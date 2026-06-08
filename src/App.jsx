@@ -16,13 +16,6 @@ const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", 
 const DAYS = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"];
 const ALL_TRAYECTOS = ["1-1", "1-2", "2-1", "2-2", "3-1", "3-2", "4-1", "4-2"];
 
-const PROGRAMAS = [
-  "PNF Informática",
-  "PNF Contaduría Pública",
-  "PNF Agroalimentación",
-  "PNF Educación Especial"
-];
-
 const TRAYECTO_COLORS = {
   "1-1": "#2563EB", "1-2": "#059669",
   "2-1": "#DC2626", "2-2": "#DB2777",
@@ -610,7 +603,7 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
           <div class="page">
             <h1>Control de Asistencia Docentes</h1>
             <div class="subtitle">PNF en Informática · Cabimas - Sede Los Laureles · ${selectedDay.charAt(0) + selectedDay.slice(1).toLowerCase()} · Turno: ${turno.charAt(0) + turno.slice(1).toLowerCase()} · 2-2026</div>
-            <table>
+            <tr>
               <thead>
                 <tr>
                   <th style="width:30px">N°</th>
@@ -882,7 +875,8 @@ export default function App() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [view, setView] = useState("horarios");
-  const [selectedPrograma, setSelectedPrograma] = useState(PROGRAMAS[0]);
+  const [selectedPrograma, setSelectedPrograma] = useState("todos");
+  const [availableProgramas, setAvailableProgramas] = useState(["todos"]);
   const [selectedTrayecto, setSelectedTrayecto] = useState("all");
   const [selectedSeccion, setSelectedSeccion] = useState("all");
   const [selectedTurno, setSelectedTurno] = useState("all");
@@ -893,13 +887,30 @@ export default function App() {
   const [docenteNames, setDocenteNames] = useState({});
   const [materiaNames, setMateriaNames] = useState({});
 
+  // Obtener lista de programas únicos de la base de datos
+  const fetchProgramas = async () => {
+    const { data: programas, error } = await supabase
+      .from("horarios")
+      .select("programa")
+      .not("programa", "is", null);
+    if (error) {
+      console.error("Error obteniendo programas:", error);
+      return;
+    }
+    const unique = [...new Set(programas.map(p => p.programa).filter(p => p && p.trim() !== ""))];
+    setAvailableProgramas(["todos", ...unique]);
+    if (unique.length > 0 && selectedPrograma === "todos") {
+      // opcional: no cambiar selección automáticamente
+    }
+  };
+
   const fetchHorarios = async () => {
     setLoading(true);
-    const { data: horarios, error } = await supabase
-      .from("horarios")
-      .select("*")
-      .eq("programa", selectedPrograma)
-      .order("id", { ascending: true });
+    let query = supabase.from("horarios").select("*");
+    if (selectedPrograma !== "todos") {
+      query = query.eq("programa", selectedPrograma);
+    }
+    const { data: horarios, error } = await query.order("id", { ascending: true });
     if (error) {
       console.error(error);
       setError(error.message);
@@ -936,9 +947,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchHorarios();
+    fetchProgramas();
     fetchDocenteNames();
     fetchMateriaNames();
+  }, []);
+
+  useEffect(() => {
+    fetchHorarios();
   }, [selectedPrograma]);
 
   const saveDocenteName = async (rawName, displayName) => {
@@ -972,21 +987,26 @@ export default function App() {
   };
 
   const clearAllData = async () => {
-    if (!window.confirm(`⚠️ ¿Estás seguro? Esto eliminará TODOS los horarios del programa "${selectedPrograma}". Esta acción no se puede deshacer.`)) {
+    if (!window.confirm(`⚠️ ¿Estás seguro? Esto eliminará TODOS los horarios ${selectedPrograma === "todos" ? "de TODOS los programas" : `del programa "${selectedPrograma}"`}. Esta acción no se puede deshacer.`)) {
       return;
     }
     setLoading(true);
-    const { error } = await supabase
-      .from("horarios")
-      .delete()
-      .eq("programa", selectedPrograma);
+    let query = supabase.from("horarios").delete();
+    if (selectedPrograma !== "todos") {
+      query = query.eq("programa", selectedPrograma);
+    } else {
+      // Eliminar todos (cuidado)
+      query = query.neq("id", 0);
+    }
+    const { error } = await query;
     if (error) {
       console.error(error);
       setError("Error al borrar los datos: " + error.message);
       alert("❌ Error al borrar: " + error.message + "\n\nVerifica las políticas de seguridad en Supabase (RLS).");
     } else {
-      alert(`✅ Todos los registros de "${selectedPrograma}" han sido eliminados.`);
+      alert(`✅ Registros eliminados correctamente.`);
       await fetchHorarios();
+      await fetchProgramas(); // actualizar lista de programas
     }
     setLoading(false);
   };
@@ -1022,18 +1042,19 @@ export default function App() {
           }
         }
         if (headerRowIdx === -1) continue;
-        let programa = selectedPrograma, trayecto = "", seccion = "", turno = "", sede = "", aula = "";
+        let programa = "", trayecto = "", seccion = "", turno = "", sede = "", aula = "";
         for (let i = 0; i < headerRowIdx; i++) {
           const row = json[i];
           if (!row) continue;
           const firstCell = row[0]?.toString().trim();
-          if (firstCell === "PROGRAMA") programa = row[1]?.toString().trim() || selectedPrograma;
+          if (firstCell === "PROGRAMA") programa = row[1]?.toString().trim() || "";
           else if (firstCell === "TRAYECTO") trayecto = row[1]?.toString().trim() || "";
           else if (firstCell === "Sede:") sede = row[1]?.toString().trim() || "";
           else if (firstCell === "Sección") seccion = row[5]?.toString().trim() || "";
           else if (firstCell === "Turno") turno = row[5]?.toString().trim() || "";
           else if (firstCell === "AULA") aula = row[1]?.toString().trim() || "";
         }
+        if (!programa && selectedPrograma !== "todos") programa = selectedPrograma;
         turno = normalizeTurno(turno);
         for (let i = headerRowIdx + 1; i < json.length; i++) {
           const row = json[i];
@@ -1053,18 +1074,26 @@ export default function App() {
         setUploading(false);
         return;
       }
-      const { data: existingData } = await supabase
-        .from("horarios")
-        .select("sheet, dia, hora, clase, programa")
-        .eq("programa", selectedPrograma);
+      // Verificar duplicados (solo dentro del mismo programa si se está filtrando)
+      let existingData = [];
+      if (selectedPrograma !== "todos") {
+        const { data: existing } = await supabase
+          .from("horarios")
+          .select("sheet, dia, hora, clase, programa")
+          .eq("programa", selectedPrograma);
+        existingData = existing || [];
+      } else {
+        const { data: existing } = await supabase.from("horarios").select("sheet, dia, hora, clase, programa");
+        existingData = existing || [];
+      }
       const existingKeys = new Set();
-      existingData?.forEach(record => {
+      existingData.forEach(record => {
         existingKeys.add(`${record.sheet}|${record.dia}|${record.hora}|${record.clase}`);
       });
       const newRows = allRows.filter(row => !existingKeys.has(`${row.sheet}|${row.dia}|${row.hora}|${row.clase}`));
       const duplicateCount = allRows.length - newRows.length;
       if (newRows.length === 0) {
-        alert(`⚠️ No se cargaron nuevos registros. ${duplicateCount} duplicados en ${selectedPrograma}.`);
+        alert(`⚠️ No se cargaron nuevos registros. ${duplicateCount} duplicados.`);
         setUploading(false);
         return;
       }
@@ -1074,10 +1103,11 @@ export default function App() {
         setError("Error al guardar: " + insertError.message);
         alert("❌ Error al guardar: " + insertError.message);
       } else {
-        let message = `✅ Se cargaron ${newRows.length} clases en "${selectedPrograma}".`;
+        let message = `✅ Se cargaron ${newRows.length} clases.`;
         if (duplicateCount > 0) message += `\n⚠️ Se omitieron ${duplicateCount} duplicados.`;
         alert(message);
         await fetchHorarios();
+        await fetchProgramas();
         const uniqueDocentes = new Set();
         const uniqueMaterias = new Set();
         newRows.forEach(row => {
@@ -1100,6 +1130,7 @@ export default function App() {
     reader.readAsBinaryString(file);
   };
 
+  // Cálculos derivados
   const filtered = useMemo(() => {
     return data.filter(d => {
       if (selectedTrayecto !== "all" && d.trayecto !== selectedTrayecto) return false;
@@ -1188,7 +1219,7 @@ export default function App() {
     { id: "estadisticas", emoji: "📊", label: "Estadísticas" },
   ];
 
-  if (loading && data.length === 0) return <div style={{ padding: 20, textAlign: "center" }}>Cargando horarios de {selectedPrograma}...</div>;
+  if (loading && data.length === 0 && availableProgramas.length === 1) return <div style={{ padding: 20, textAlign: "center" }}>Cargando horarios...</div>;
 
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "system-ui,-apple-system,sans-serif", background: "#F3F4F6", overflow: "hidden" }}>
@@ -1200,7 +1231,11 @@ export default function App() {
             onChange={e => setSelectedPrograma(e.target.value)}
             style={{ ...S.select, width: "100%", background: "#1F2937", color: "#fff", borderColor: "#374151", marginBottom: 12 }}
           >
-            {PROGRAMAS.map(p => <option key={p} value={p}>{p}</option>)}
+            {availableProgramas.map(p => (
+              <option key={p} value={p}>
+                {p === "todos" ? "📋 Todos los programas" : p}
+              </option>
+            ))}
           </select>
           <div style={{ marginTop: 12, padding: "10px 12px", background: "#1F2937", borderRadius: 8 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ fontSize: 11, color: "#9CA3AF" }}>Clases</span><span style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{stats.total}</span></div>
@@ -1245,7 +1280,7 @@ export default function App() {
               textAlign: "center", padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "none", opacity: data.length === 0 ? 0.5 : 1
             }}
           >
-            🗑️ Borrar datos del programa
+            🗑️ Borrar {selectedPrograma === "todos" ? "todos los datos" : `datos de ${selectedPrograma}`}
           </button>
           {uploading && <div style={{ fontSize: 10, marginTop: 6, color: "#9CA3AF" }}>Subiendo...</div>}
           {error && <div style={{ fontSize: 10, marginTop: 6, color: "#EF4444" }}>{error}</div>}
