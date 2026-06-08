@@ -177,7 +177,7 @@ function HorariosView({ filtered, gridData, selectedTrayecto, setSelectedTrayect
               <tr>
                 <th style={{ ...S.th, width: 130 }}>Hora</th>
                 {days.map(d => (<th key={d} style={{ ...S.th, borderLeft: "1px solid #E5E7EB" }}>{d.charAt(0) + d.slice(1).toLowerCase()}</th>))}
-              </table>
+              </tr>
             </thead>
             <tbody>
               {getUniqueHoras(filtered).map((hora, ri) => (
@@ -886,7 +886,6 @@ export default function App() {
   const [docenteNames, setDocenteNames] = useState({});
   const [materiaNames, setMateriaNames] = useState({});
 
-  // Obtener programas únicos de la base de datos
   const fetchProgramas = async () => {
     const { data: programas, error } = await supabase
       .from("horarios")
@@ -942,7 +941,6 @@ export default function App() {
     fetchHorarios();
   }, [selectedPrograma]);
 
-  // Unificación de nombres (docentes y materias)
   const unifyName = async (tableName, rawName, newDisplayName) => {
     const { data: existing, error: searchError } = await supabase
       .from(tableName)
@@ -1080,7 +1078,6 @@ export default function App() {
           else if (firstCell === "Turno") turno = row[5]?.toString().trim() || "";
           else if (firstCell === "AULA") aula = row[1]?.toString().trim() || "";
         }
-        // Forzar el programa seleccionado (a menos que sea "todos" y el Excel tenga uno)
         if (selectedPrograma !== "todos") {
           programa = selectedPrograma;
         } else if (!programa) {
@@ -1105,7 +1102,6 @@ export default function App() {
         setUploading(false);
         return;
       }
-      // Verificar duplicados (incluyendo programa)
       const { data: existingData } = await supabase
         .from("horarios")
         .select("sheet, dia, hora, clase, programa");
@@ -1153,7 +1149,6 @@ export default function App() {
     reader.readAsBinaryString(file);
   };
 
-  // Filtros y cálculos derivados (igual que antes)
   const filtered = useMemo(() => {
     return data.filter(d => {
       if (selectedTrayecto !== "all" && d.trayecto !== selectedTrayecto) return false;
