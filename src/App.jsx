@@ -395,7 +395,7 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteN
                               </td>
                             );
                           })}
-                        </table>
+                        </tr>
                       ))}
                     </tbody>
                   </table>
@@ -544,14 +544,65 @@ function AsistenciasView({ data, getDocName }) {
 
   const handlePrint = () => {
     const win = window.open("", "_blank");
-    win.document.write(`
-      <html><head><title>Asistencia Docentes - ${turno} - ${selectedDay}</title>
-      <style>*{margin:0;padding:0;box-sizing:border-box;} body{font-family:Arial,sans-serif;font-size:11px;color:#000;} .page{padding:20px;} h1{font-size:15px;margin-bottom:4px;} .subtitle{font-size:11px;color:#555;margin-bottom:16px;} table{width:100%;border-collapse:collapse;margin-bottom:20px;} th{background:#f0f0f0;border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;} td{border:1px solid #ccc;padding:6px 8px;font-size:11px;vertical-align:top;} .docente-name{font-weight:bold;font-size:12px;} .firma-box{width:120px;height:40px;border:1px solid #999;}</style>
-      </head><body><div class="page"><h1>Control de Asistencia Docentes</h1><div class="subtitle">PNF en Informática · Cabimas - Sede Los Laureles · ${selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: ${turno.charAt(0)+turno.slice(1).toLowerCase()} · 2-2026</div>
-      <table><thead><tr><th style="width:30px">N°</th><th style="width:180px">Docente</th><th>Materia(s) / Sección(es)</th><th style="width:90px">Hora</th><th style="width:80px">Entrada</th><th style="width:80px">Salida</th><th style="width:120px">Firma</th></tr></thead><tbody>
-      ${docentesDelDia.map(([rawDoc, info], idx) => { const displayName = getDocName(rawDoc); return `<tr><td>${idx+1}</td><td class="docente-name">${displayName}</td><td>${info.clases.map(c=>`${c.materia} — ${c.seccion}`).join("<br>")}</td><td>${info.clases.map(c=>c.hora).join("<br>")}</td><td></div><div class="firma-box"></div></tr>`; }).join("")}
-      </tbody>追赶<div style="margin-top:30px; display:flex; justify-content:space-between;"><div style="text-align:center; width:200px;"><div style="border-top:1px solid #000; margin-top:40px; padding-top:4px; font-size:10px;">Coordinador(a) Académico</div></div><div style="text-align:center; width:200px;"><div style="border-top:1px solid #000; margin-top:40px; padding-top:4px; font-size:10px;">Secretaría</div></div></div></div></body></html>
-    `);
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Asistencia Docentes - ${turno} - ${selectedDay}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
+            .page { padding: 20px; }
+            h1 { font-size: 15px; margin-bottom: 4px; }
+            .subtitle { font-size: 11px; color: #555; margin-bottom: 16px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th { background: #f0f0f0; border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 10px; text-transform: uppercase; }
+            td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; vertical-align: top; }
+            .docente-name { font-weight: bold; font-size: 12px; }
+            .firma-box { width: 120px; height: 40px; border: 1px solid #999; }
+          </style>
+        </head>
+        <body>
+          <div class="page">
+            <h1>Control de Asistencia Docentes</h1>
+            <div class="subtitle">PNF en Informática · Cabimas - Sede Los Laureles · ${selectedDay.charAt(0) + selectedDay.slice(1).toLowerCase()} · Turno: ${turno.charAt(0) + turno.slice(1).toLowerCase()} · 2-2026</div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:30px">N°</th>
+                  <th style="width:180px">Docente</th>
+                  <th>Materia(s) / Sección(es)</th>
+                  <th style="width:90px">Hora</th>
+                  <th style="width:80px">Entrada</th>
+                  <th style="width:80px">Salida</th>
+                  <th style="width:120px">Firma</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${docentesDelDia.map(([rawDoc, info], idx) => {
+                  const displayName = getDocName(rawDoc);
+                  return `
+                    <tr>
+                      <td style="text-align:center">${idx + 1}</td>
+                      <td class="docente-name">${displayName}</td>
+                      <td>${info.clases.map(c => `${c.materia} — ${c.seccion}`).join("<br>")}</td>
+                      <td>${info.clases.map(c => c.hora).join("<br>")}</td>
+                      <td></td>
+                      <td></td>
+                      <td><div class="firma-box"></div></td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+            <div style="margin-top:30px; display:flex; justify-content:space-between;">
+              <div style="text-align:center; width:200px;"><div style="border-top:1px solid #000; margin-top:40px; padding-top:4px; font-size:10px;">Coordinador(a) Académico</div></div>
+              <div style="text-align:center; width:200px;"><div style="border-top:1px solid #000; margin-top:40px; padding-top:4px; font-size:10px;">Secretaría</div></div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    win.document.write(htmlContent);
     win.document.close();
     win.focus();
     setTimeout(() => { win.print(); }, 400);
@@ -838,7 +889,6 @@ export default function App() {
         return false;
       }
       
-      // Actualizar estado local
       setDocenteNames(prev => ({ ...prev, [rawName]: displayName }));
       return true;
     } catch (err) {
@@ -941,7 +991,6 @@ export default function App() {
         return;
       }
       
-      // Verificar duplicados
       const { data: existingData } = await supabase.from("horarios").select("sheet, dia, hora, clase");
       const existingKeys = new Set();
       existingData?.forEach(record => {
@@ -969,7 +1018,6 @@ export default function App() {
         alert(message);
         await fetchHorarios();
         
-        // Extraer y guardar docentes únicos automáticamente
         const uniqueDocentes = new Set();
         newRows.forEach(row => {
           const { docente } = parseClase(row.clase);
