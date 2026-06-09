@@ -150,6 +150,57 @@ function normalizarPrograma(raw) {
   return raw.trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
 
+// ========== SISTEMA DE CACHÉ LOCAL ==========
+const CACHE_KEYS = {
+  horarios: "horarios_cache",
+  docentes: "docentes_cache",
+  materias: "materias_cache",
+  lastSync: "horarios_last_sync",
+};
+const CACHE_EXPIRY = 1000 * 60 * 30; // 30 minutos
+
+function guardarEnCache(key, datos) {
+  try {
+    const cache = {
+      timestamp: Date.now(),
+      datos: datos,
+    };
+    localStorage.setItem(key, JSON.stringify(cache));
+  } catch (err) {
+    console.warn("No se pudo guardar en caché:", key, err);
+  }
+}
+
+function cargarDeCache(key) {
+  try {
+    const cacheStr = localStorage.getItem(key);
+    if (!cacheStr) return null;
+    const cache = JSON.parse(cacheStr);
+    // Verificar expiración
+    if (Date.now() - cache.timestamp > CACHE_EXPIRY) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return cache.datos;
+  } catch (err) {
+    console.warn("Error al cargar caché:", key, err);
+    return null;
+  }
+}
+
+function limpiarCache() {
+  Object.values(CACHE_KEYS).forEach(key => localStorage.removeItem(key));
+}
+
+function obtenerUltimaSincronizacion() {
+  try {
+    const ts = localStorage.getItem(CACHE_KEYS.lastSync);
+    return ts ? new Date(parseInt(ts)).toLocaleString() : "Nunca";
+  } catch {
+    return "Desconocido";
+  }
+}
+
 // ========== ESTILOS ==========
 const S = {
   card: { background: "#fff", borderRadius: 10, border: "1px solid #E5E7EB", overflow: "hidden" },
@@ -747,6 +798,29 @@ export default function App() {
   const [docenteNames, setDocenteNames] = useState({});
   const [materiaNames, setMateriaNames] = useState({});
   const [toast, setToast] = useState(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [lastSync, setLastSync] = useState(obtenerUltimaSincronizacion());
+
+  // ========== DETECCIÓN DE CONEXIÓN ==========
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      showToast("✅ Conexión restablecida. Sincronizando datos...", "success");
+      fetchHorarios();
+      fetchDocenteNames();
+      fetchMateriaNames();
+    };
+    const handleOffline = () => {
+      setIsOffline(true);
+      showToast("⚠️ Sin conexión. Usando datos en caché.", "warning");
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
@@ -769,22 +843,83 @@ export default function App() {
 
   const fetchHorarios = async () => {
     setLoading(true);
-    let query = supabase.from("horarios").select("*");
-    if (selectedPrograma !== "todos") query = query.eq("programa", selectedPrograma);
-    const { data: horarios, error } = await query.order("id", { ascending: true });
-    if (error) { console.error(error); setError(error.message); }
-    else setData(horarios || []);
+    
+    // Cargar caché inmediatamente para mostrar algo rápido
+    const cachedHorarios = cargarDeCache(CACHE_KEYS.horarios);
+    if (cachedHorarios?.length > 0) {
+      setData(cachedHorarios);
+      setLoading(false);
+    }
+    
+    try {
+      let query = supabase.from("horarios").select("*");
+      if (selectedPrograma !== "todos") query = query.eq("programa", selectedPrograma);
+      const { data: horarios, error } = await query.order("id", { ascending: true });
+      
+      if (error) {
+        console.error(error);
+        if (cachedHorarios?.length > 0) {
+          setData(cachedHorarios);
+          showToast("⚠️ Error de conexión. Usando datos en caché.", "warning");
+        } else {
+          setError(error.message);
+        }
+      } else {
+        const nuevosDatos = horarios || [];
+        setData(nuevosDatos);
+        // Guardar en caché
+        guardarEnCache(CACHE_KEYS.horarios, nuevosDatos);
+        localStorage.setItem(CACHE_KEYS.lastSync, Date.now().toString());
+        setLastSync(obtenerUltimaSincronizacion());
+      }
+    } catch (err) {
+      console.error(err);
+      if (cachedHorarios?.length > 0) {
+        setData(cachedHorarios);
+        showToast("⚠️ Modo offline: usando datos en caché.", "warning");
+      }
+    }
     setLoading(false);
   };
 
   const fetchDocenteNames = async () => {
-    const { data: docentes } = await supabase.from("docentes").select("*");
-    if (docentes) { const m = {}; docentes.forEach(d => { m[d.nombre_raw] = d.nombre_display; }); setDocenteNames(m); }
+    const cachedDocentes = cargarDeCache(CACHE_KEYS.docentes);
+    if (cachedDocentes) {
+      setDocenteNames(cachedDocentes);
+    }
+    
+    try {
+      const { data: docentes } = await supabase.from("docentes").select("*");
+      if (docentes) {
+        const m = {};
+        docentes.forEach(d => { m[d.nombre_raw] = d.nombre_display; });
+        setDocenteNames(m);
+        guardarEnCache(CACHE_KEYS.docentes, m);
+      }
+    } catch (err) {
+      console.warn("Error fetching docentes:", err);
+      if (cachedDocentes) setDocenteNames(cachedDocentes);
+    }
   };
 
   const fetchMateriaNames = async () => {
-    const { data: materias } = await supabase.from("materias").select("*");
-    if (materias) { const m = {}; materias.forEach(d => { m[d.nombre_raw] = d.nombre_display; }); setMateriaNames(m); }
+    const cachedMaterias = cargarDeCache(CACHE_KEYS.materias);
+    if (cachedMaterias) {
+      setMateriaNames(cachedMaterias);
+    }
+    
+    try {
+      const { data: materias } = await supabase.from("materias").select("*");
+      if (materias) {
+        const m = {};
+        materias.forEach(d => { m[d.nombre_raw] = d.nombre_display; });
+        setMateriaNames(m);
+        guardarEnCache(CACHE_KEYS.materias, m);
+      }
+    } catch (err) {
+      console.warn("Error fetching materias:", err);
+      if (cachedMaterias) setMateriaNames(cachedMaterias);
+    }
   };
 
   useEffect(() => { fetchProgramas(); fetchDocenteNames(); fetchMateriaNames(); }, []);
@@ -830,7 +965,13 @@ export default function App() {
     let query = supabase.from("horarios").delete();
     if (selectedPrograma !== "todos") query = query.eq("programa", selectedPrograma); else query = query.neq("id", 0);
     const { error } = await query;
-    if (error) showToast("❌ Error al borrar.", "error"); else { showToast("✅ Datos eliminados.", "success"); await fetchHorarios(); await fetchProgramas(); }
+    if (error) showToast("❌ Error al borrar.", "error");
+    else { 
+      showToast("✅ Datos eliminados.", "success"); 
+      limpiarCache();
+      await fetchHorarios(); 
+      await fetchProgramas(); 
+    }
     setLoading(false);
   };
 
@@ -872,7 +1013,7 @@ export default function App() {
   };
 
   const importarDatos = async (file) => {
-    if (!window.confirm("⚠️ ¿Estás seguro? Esto REEMPLAZARÁ todos los datos actuales. Se recomienda hacer un backup primero.")) return;
+    if (!window.confirm("⚠️ ¿Estás seguro? Esto REEMPLAZARÁ todos los datos actuales.")) return;
     
     setUploading(true);
     try {
@@ -883,23 +1024,16 @@ export default function App() {
         throw new Error("El archivo no tiene el formato correcto de backup");
       }
       
-      // Limpiar tablas existentes
       await supabase.from("horarios").delete().neq("id", 0);
       await supabase.from("docentes").delete().neq("id", 0);
       await supabase.from("materias").delete().neq("id", 0);
       
-      // Insertar datos del backup
-      if (backup.horarios.length > 0) {
-        await supabase.from("horarios").insert(backup.horarios);
-      }
-      if (backup.docentes.length > 0) {
-        await supabase.from("docentes").upsert(backup.docentes, { onConflict: "nombre_raw" });
-      }
-      if (backup.materias.length > 0) {
-        await supabase.from("materias").upsert(backup.materias, { onConflict: "nombre_raw" });
-      }
+      if (backup.horarios.length > 0) await supabase.from("horarios").insert(backup.horarios);
+      if (backup.docentes.length > 0) await supabase.from("docentes").upsert(backup.docentes, { onConflict: "nombre_raw" });
+      if (backup.materias.length > 0) await supabase.from("materias").upsert(backup.materias, { onConflict: "nombre_raw" });
       
-      showToast(`✅ Backup restaurado: ${backup.horarios.length} clases, ${backup.docentes.length} docentes, ${backup.materias.length} materias`, "success");
+      limpiarCache();
+      showToast(`✅ Backup restaurado: ${backup.horarios.length} clases`, "success");
       
       await fetchHorarios();
       await fetchProgramas();
@@ -943,7 +1077,17 @@ export default function App() {
       if (!newRows.length) { showToast("⚠️ Sin registros nuevos.", "warning"); setUploading(false); return; }
       const { error: insertError } = await supabase.from("horarios").insert(newRows);
       if (insertError) showToast("❌ Error al guardar.", "error");
-      else { showToast(`✅ ${newRows.length} clases cargadas.`, "success"); await fetchHorarios(); await fetchProgramas(); const docs = new Set(), mats = new Set(); newRows.forEach(r => { const { docente, materia } = parseClase(r.clase); if (docente) docs.add(docente); if (materia) mats.add(materia); }); for (const d of docs) await supabase.from("docentes").upsert({ nombre_raw: d, nombre_display: d }, { onConflict: "nombre_raw" }); for (const m of mats) await supabase.from("materias").upsert({ nombre_raw: m, nombre_display: m }, { onConflict: "nombre_raw" }); await fetchDocenteNames(); await fetchMateriaNames(); }
+      else { 
+        showToast(`✅ ${newRows.length} clases cargadas.`, "success"); 
+        await fetchHorarios(); 
+        await fetchProgramas(); 
+        const docs = new Set(), mats = new Set(); 
+        newRows.forEach(r => { const { docente, materia } = parseClase(r.clase); if (docente) docs.add(docente); if (materia) mats.add(materia); }); 
+        for (const d of docs) await supabase.from("docentes").upsert({ nombre_raw: d, nombre_display: d }, { onConflict: "nombre_raw" }); 
+        for (const m of mats) await supabase.from("materias").upsert({ nombre_raw: m, nombre_display: m }, { onConflict: "nombre_raw" }); 
+        await fetchDocenteNames(); 
+        await fetchMateriaNames(); 
+      }
       setUploading(false);
     };
     reader.onerror = () => { setError("Error al leer el archivo."); setUploading(false); };
@@ -981,6 +1125,16 @@ export default function App() {
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ fontSize: 12, color: "#9CA3AF" }}>Clases</span><span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{stats.total}</span></div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ fontSize: 12, color: "#9CA3AF" }}>Secciones</span><span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{stats.secciones}</span></div>
             <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 12, color: "#9CA3AF" }}>Docentes</span><span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{stats.docentes}</span></div>
+          </div>
+          {/* Indicador de estado de conexión */}
+          <div style={{ marginTop: 10, padding: "6px 10px", borderRadius: 6, background: isOffline ? "#FEF2F2" : "#F0FDF4", display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: isOffline ? "#DC2626" : "#16A34A", flexShrink: 0 }}></span>
+            <span style={{ color: isOffline ? "#991B1B" : "#065F46", fontWeight: 600 }}>
+              {isOffline ? "Modo offline" : "En línea"}
+            </span>
+          </div>
+          <div style={{ marginTop: 4, fontSize: 9, color: "#6B7280", textAlign: "center" }}>
+            Última sinc: {lastSync}
           </div>
         </div>
         <nav style={{ flex: 1, padding: "8px 10px", overflowY: "auto" }}>
