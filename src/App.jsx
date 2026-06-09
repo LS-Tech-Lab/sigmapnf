@@ -635,6 +635,16 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
   const docentesDelDia = useMemo(() => {
     const map = {};
     data.filter(d => getTurnoDeRegistro(d) === turno && d.dia === selectedDay).forEach(d => {
+      // DEBUG
+      console.log("HORA ORIGINAL:", d.hora);
+      console.log("HORA FORMATEADA:", getHoraDisplayDeRegistro(d));
+      
+      const { docente, materia } = parseClase(d.clase);
+      // ...
+
+  const docentesDelDia = useMemo(() => {
+    const map = {};
+    data.filter(d => getTurnoDeRegistro(d) === turno && d.dia === selectedDay).forEach(d => {
       const { docente, materia } = parseClase(d.clase);
       if (!docente) return;
       if (!map[docente]) map[docente] = { clases: [] };
