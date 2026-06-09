@@ -128,10 +128,10 @@ function getHoraDisplayDeRegistro(d) {
 }
 
 function getHoraMin(d) {
-  const turno = getTurnoDeRegistro(d);
-  const bloques = getBloquesForTurno(turno);
-  const sb = findStartBlock(bloques, d.hora);
-  return timeToMin(bloques[sb].inicio);
+  if (!d || !d.hora) return 0;
+  const horaOriginal = d.hora.replace(/\s/g, "");
+  const inicio = horaOriginal.split(/[-–]/)[0];
+  return timeToMin(inicio);
 }
 
 function parseClase(clase) {
