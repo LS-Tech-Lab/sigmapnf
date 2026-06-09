@@ -423,7 +423,7 @@ function DashboardView({ stats, data, byDocente, byMateria, conflicts, getDocNam
             <div style={{ fontSize: 15, fontWeight: 700, color: "#991B1B", marginBottom: 8 }}>⚠️ Conflictos detectados</div>
             <div style={{ fontSize: 13, color: "#B91C1C", marginBottom: 10, fontWeight: 500 }}>Hay {conflicts.length} conflicto(s) de horario que requieren atención.</div>
             <button onClick={() => setShowConflicts(!showConflicts)} style={{ padding: "6px 14px", background: "#DC2626", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>{showConflicts ? "Ocultar detalles" : "Ver detalles"}</button>
-            {showConflicts && <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>{conflicts.slice(0, 5).map((c, i) => <div key={i} style={{ fontSize: 12, color: "#991B1B", fontWeight: 500 }}>{getDocName(c.docente)} — {c.dia.charAt(0)+c.dia.slice(1).toLowerCase()} · {getHoraDisplayDeRegistro(c.entries[0])}</div>)}</div>}
+            {showConflicts && <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>{conflicts.slice(0, 5).map((c, i) => <div key={i} style={{ fontSize: 12, color: "#991B1B", fontWeight: 500 }}>{getDocName(c.docente)} — {c.dia.charAt(0)+c.dia.slice(1).toLowerCase()} · {c.hora || "—"}</div>)}</div>}
           </div>
         )}
         {metricas && (
