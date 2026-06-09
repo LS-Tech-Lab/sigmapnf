@@ -21,7 +21,6 @@ const TRAYECTO_BG = {
   "4-1": "#F5F3FF", "4-2": "#EEF2FF",
 };
 
-// ========== SISTEMA HORARIO UNIFICADO ==========
 const BLOQUES_DIURNO = [
   { inicio: "7:30AM",  fin: "8:15AM",  label: "7:30 – 8:15 AM"  },
   { inicio: "8:15AM",  fin: "9:00AM",  label: "8:15 – 9:00 AM"  },
@@ -85,7 +84,6 @@ function getBloquesForTurno(turno) {
   return turno === "VESPERTINO" ? BLOQUES_VESPERTINO : BLOQUES_DIURNO;
 }
 
-// CORREGIDA: Encuentra el bloque de inicio más cercano (para la grilla)
 function findStartBlock(bloques, horaStr) {
   const raw = horaStr ? horaStr.replace(/\s/g, "").split(/[-–]/)[0] : "";
   const min = timeToMin(raw);
@@ -97,53 +95,36 @@ function findStartBlock(bloques, horaStr) {
   return best;
 }
 
-// CORREGIDA: Calcula cuántos bloques ocupa basado en la hora real
 function countBlocks(horaStr) {
   if (!horaStr) return 1;
-  const parts = horaStr.replace(/\s/g, "").split(/[-–]/);
+  const parts = horaStr.trim().split(/[-–]/);
   if (parts.length < 2) return 1;
-  
-  const inicioMin = timeToMin(parts[0]);
-  const finMin = timeToMin(parts[1]);
-  
+  const inicioMin = timeToMin(parts[0].trim());
+  const finMin = timeToMin(parts[1].trim());
   if (!finMin || finMin <= inicioMin) return 1;
-  
-  // Calcular diferencia en minutos y redondear a bloques de 45 min
-  const diffMin = finMin - inicioMin;
-  return Math.max(1, Math.ceil(diffMin / 45));
+  return Math.max(1, Math.ceil((finMin - inicioMin) / 45));
 }
 
-// CORREGIDA: Muestra la hora REAL del registro, no la de los bloques
 function getHoraDisplayDeRegistro(d) {
   if (!d || !d.hora) return "—";
-  
-  const horaStr = d.hora.replace(/\s/g, "");
+  const horaStr = d.hora.trim();
   const parts = horaStr.split(/[-–]/);
-  
   if (parts.length >= 2) {
-    const inicio = parts[0].replace("AM", " AM").replace("PM", " PM");
-    const fin = parts[1].replace("AM", " AM").replace("PM", " PM");
+    const inicio = parts[0].trim().replace("AM", " AM").replace("PM", " PM");
+    const fin = parts[1].trim().replace("AM", " AM").replace("PM", " PM");
     return `${inicio} – ${fin}`;
   }
-  
-  // Si solo tiene hora de inicio
   return horaStr.replace("AM", " AM").replace("PM", " PM");
 }
 
-// CORREGIDA: Obtiene la hora de inicio en minutos (para ordenamiento)
 function getHoraMin(d) {
   if (!d || !d.hora) return 0;
-  const horaStr = d.hora.replace(/\s/g, "");
-  const inicio = horaStr.split(/[-–]/)[0];
-  return timeToMin(inicio);
+  return timeToMin(d.hora.trim().split(/[-–]/)[0].trim());
 }
-
 
 function parseClase(clase) {
   const parts = clase.trim().split(/\s+(?:Profes?\.?|Prof\.?)\s+/i);
-  const materia = parts[0].trim();
-  const docente = parts[1] ? parts[1].trim() : "";
-  return { materia, docente };
+  return { materia: parts[0].trim(), docente: parts[1] ? parts[1].trim() : "" };
 }
 
 function normalizarPrograma(raw) {
@@ -169,11 +150,9 @@ const S = {
   badge: (bg, col) => ({ background: bg, color: col, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600 }),
   btn: (active) => ({
     padding: "6px 14px", borderRadius: 20, border: "1px solid",
-    borderColor: active ? "#2563EB" : "#E5E7EB",
-    background: active ? "#EFF6FF" : "#fff",
-    color: active ? "#1D4ED8" : "#6B7280",
-    cursor: "pointer", fontSize: 13, fontWeight: active ? 600 : 400,
-    transition: "all 0.15s",
+    borderColor: active ? "#2563EB" : "#E5E7EB", background: active ? "#EFF6FF" : "#fff",
+    color: active ? "#1D4ED8" : "#6B7280", cursor: "pointer", fontSize: 13,
+    fontWeight: active ? 600 : 400, transition: "all 0.15s",
   }),
   select: { fontSize: 13, padding: "6px 10px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", color: "#111827", cursor: "pointer" },
   input: { fontSize: 13, padding: "6px 12px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", color: "#111827", outline: "none" },
@@ -182,12 +161,8 @@ const S = {
 // ========== COMPONENTES SIMPLES ==========
 function Avatar({ name, size = 36 }) {
   const safeName = name || "Docente";
-  const initials = typeof safeName === "string"
-    ? safeName.split(" ").filter(Boolean).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "?"
-    : "??";
-  const hue = typeof safeName === "string"
-    ? [...safeName].reduce((a, c) => a + c.charCodeAt(0), 0) % 360
-    : 0;
+  const initials = typeof safeName === "string" ? safeName.split(" ").filter(Boolean).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "?" : "??";
+  const hue = typeof safeName === "string" ? [...safeName].reduce((a, c) => a + c.charCodeAt(0), 0) % 360 : 0;
   return (
     <div style={{ width: size, height: size, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.38, fontWeight: 700, background: `hsl(${hue},55%,90%)`, color: `hsl(${hue},55%,35%)`, flexShrink: 0 }}>
       {initials}
@@ -206,7 +181,6 @@ function StatCard({ label, value, icon, color = "#2563EB" }) {
 
 function Toast({ message, type = "success", onClose }) {
   const timerRef = useRef(null);
-
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => onClose(), 4000);
@@ -217,20 +191,10 @@ function Toast({ message, type = "success", onClose }) {
   const icons = { success: "✅", error: "❌", warning: "⚠️", info: "ℹ️" };
 
   return (
-    <div style={{
-      position: "fixed", top: 20, right: 20, zIndex: 9999,
-      background: bgColors[type] || bgColors.success, color: "#fff",
-      padding: "14px 20px", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-      fontSize: 13, fontWeight: 500, maxWidth: 420,
-      display: "flex", alignItems: "flex-start", gap: 12,
-      animation: "slideIn 0.3s ease", cursor: "pointer", lineHeight: 1.4
-    }} onClick={onClose}>
+    <div style={{ position: "fixed", top: 20, right: 20, zIndex: 9999, background: bgColors[type] || bgColors.success, color: "#fff", padding: "14px 20px", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.2)", fontSize: 13, fontWeight: 500, maxWidth: 420, display: "flex", alignItems: "flex-start", gap: 12, animation: "slideIn 0.3s ease", cursor: "pointer", lineHeight: 1.4 }} onClick={onClose}>
       <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icons[type] || icons.success}</span>
       <span style={{ flex: 1, wordBreak: "break-word" }}>{message}</span>
-      <button onClick={(e) => { e.stopPropagation(); if (timerRef.current) clearTimeout(timerRef.current); onClose(); }} 
-        style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", cursor: "pointer", fontSize: 16, padding: "2px 6px", borderRadius: 4, opacity: 0.9, fontWeight: 700, flexShrink: 0, lineHeight: 1 }}>
-        ×
-      </button>
+      <button onClick={(e) => { e.stopPropagation(); if (timerRef.current) clearTimeout(timerRef.current); onClose(); }} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", cursor: "pointer", fontSize: 16, padding: "2px 6px", borderRadius: 4, opacity: 0.9, fontWeight: 700, flexShrink: 0, lineHeight: 1 }}>×</button>
     </div>
   );
 }
@@ -297,10 +261,8 @@ function TurnoGrid({ bloques, turnoLabel, filtered, days, expandedCell, setExpan
         if (occupied[bi]) { map[day][bi] = "skip"; return; }
         const entries = filtered.filter(d => {
           if (d.dia !== day) return false;
-          const turno = getTurnoDeRegistro(d);
-          if (turno !== turnoLabel) return false;
-          const sb = findStartBlock(bloques, d.hora);
-          return sb === bi;
+          if (getTurnoDeRegistro(d) !== turnoLabel) return false;
+          return findStartBlock(bloques, d.hora) === bi;
         });
         if (entries.length === 0) { map[day][bi] = null; return; }
         let span = 1;
@@ -324,10 +286,7 @@ function TurnoGrid({ bloques, turnoLabel, filtered, days, expandedCell, setExpan
       </div>
       <div className="turno-grid-wrapper" style={{ overflowX: "auto" }}>
         <table className="turno-grid-table" style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", minWidth: 520 }}>
-          <colgroup>
-            <col style={{ width: 90 }} />
-            {days.map(d => <col key={d} />)}
-          </colgroup>
+          <colgroup><col style={{ width: 90 }} />{days.map(d => <col key={d} />)}</colgroup>
           <thead>
             <tr style={{ background: "#F9FAFB" }}>
               <th style={{ ...S.th, padding: "6px 10px", fontSize: 10, width: 90 }}>Hora</th>
@@ -343,13 +302,11 @@ function TurnoGrid({ bloques, turnoLabel, filtered, days, expandedCell, setExpan
                 return { data: cell };
               });
               const rowBg = bi % 2 === 0 ? "#fff" : "#FAFAFA";
-              const horaInicio = bloque.inicio.replace("AM", " AM").replace("PM", " PM");
-              const horaFin = bloque.fin.replace("AM", " AM").replace("PM", " PM");
               return (
                 <tr key={bi} style={{ height: ROW_H }}>
                   <td style={{ padding: "3px 8px", fontSize: 10, fontWeight: 600, color: "#9CA3AF", background: rowBg, verticalAlign: "middle", whiteSpace: "nowrap", borderTop: "1px solid #F0F0F0", lineHeight: 1.3 }}>
-                    <div style={{ color: "#6B7280", fontWeight: 700 }}>{horaInicio}</div>
-                    <div style={{ color: "#D1D5DB", fontSize: 9 }}>{horaFin}</div>
+                    <div style={{ color: "#6B7280", fontWeight: 700 }}>{bloque.inicio.replace("AM", " AM").replace("PM", " PM")}</div>
+                    <div style={{ color: "#D1D5DB", fontSize: 9 }}>{bloque.fin.replace("AM", " AM").replace("PM", " PM")}</div>
                   </td>
                   {cells.map((cell, ci) => {
                     const day = days[ci];
@@ -366,22 +323,14 @@ function TurnoGrid({ bloques, turnoLabel, filtered, days, expandedCell, setExpan
                           const docente = getDocName(rawDoc);
                           const bg = TRAYECTO_BG[e.trayecto] || "#f0f0f0";
                           const col = TRAYECTO_COLORS[e.trayecto] || "#555";
-                          const horaDisplay = getHoraDisplayDeRegistro(e);
                           return (
-                            <div key={i} onClick={() => setExpandedCell(isExp ? null : cellKey)} style={{
-                              background: bg, borderLeft: `3px solid ${col}`, borderRadius: 5,
-                              padding: isExp ? "5px 7px" : "3px 6px", marginBottom: i < entries.length - 1 ? 2 : 0,
-                              cursor: "pointer", transition: "box-shadow 0.12s",
-                              boxShadow: isExp ? `0 0 0 1.5px ${col}55` : "none",
-                              height: !isExp && span > 0 ? `calc(${span * ROW_H - 8}px / ${entries.length})` : "auto",
-                              minHeight: 28, display: "flex", flexDirection: "column", justifyContent: "center", overflow: "hidden",
-                            }}>
+                            <div key={i} onClick={() => setExpandedCell(isExp ? null : cellKey)} style={{ background: bg, borderLeft: `3px solid ${col}`, borderRadius: 5, padding: isExp ? "5px 7px" : "3px 6px", marginBottom: i < entries.length - 1 ? 2 : 0, cursor: "pointer", transition: "box-shadow 0.12s", boxShadow: isExp ? `0 0 0 1.5px ${col}55` : "none", height: !isExp && span > 0 ? `calc(${span * ROW_H - 8}px / ${entries.length})` : "auto", minHeight: 28, display: "flex", flexDirection: "column", justifyContent: "center", overflow: "hidden" }}>
                               <div style={{ fontSize: 13, fontWeight: 700, color: col, lineHeight: 1.2, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{materia}</div>
                               {docente && <div style={{ fontSize: 12, color: col, opacity: 0.75, lineHeight: 1.1, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{docente}</div>}
                               {isExp && (
                                 <div style={{ marginTop: 5, paddingTop: 5, borderTop: `1px solid ${col}25`, fontSize: 11, display: "flex", flexDirection: "column", gap: 2 }}>
                                   <div style={{ color: col, opacity: 0.9 }}>📂 {e.sheet.trim()} · T.{e.trayecto}</div>
-                                  <div style={{ color: col, opacity: 0.9 }}>⏰ {horaDisplay}</div>
+                                  <div style={{ color: col, opacity: 0.9 }}>⏰ {getHoraDisplayDeRegistro(e)}</div>
                                   <div style={{ color: col, opacity: 0.9 }}>🏫 {e.aula || "Sin aula"}</div>
                                 </div>
                               )}
@@ -439,22 +388,13 @@ function SeccionesView({ data, getDocName, getMateriaName }) {
   const [filterTray, setFilterTray] = useState("all");
 
   useEffect(() => {
-    if (allSecciones.length > 0 && (!selSheet || !allSecciones.includes(selSheet))) {
-      setSelSheet(allSecciones[0]);
-    }
+    if (allSecciones.length > 0 && (!selSheet || !allSecciones.includes(selSheet))) setSelSheet(allSecciones[0]);
   }, [allSecciones]);
 
-  const filteredSecciones = useMemo(() =>
-    filterTray === "all" ? allSecciones : allSecciones.filter(s => data.find(d => d.sheet.trim() === s)?.trayecto === filterTray),
-    [filterTray, allSecciones, data]);
-
+  const filteredSecciones = useMemo(() => filterTray === "all" ? allSecciones : allSecciones.filter(s => data.find(d => d.sheet.trim() === s)?.trayecto === filterTray), [filterTray, allSecciones, data]);
   const entries = useMemo(() => data.filter(d => d.sheet.trim() === selSheet), [data, selSheet]);
   const info = entries[0];
-
-  const byDay = useMemo(() => DAYS.reduce((acc, day) => {
-    acc[day] = entries.filter(e => e.dia === day).sort((a, b) => getHoraMin(a) - getHoraMin(b));
-    return acc;
-  }, {}), [entries]);
+  const byDay = useMemo(() => DAYS.reduce((acc, day) => { acc[day] = entries.filter(e => e.dia === day).sort((a, b) => getHoraMin(a) - getHoraMin(b)); return acc; }, {}), [entries]);
 
   return (
     <div className="secciones-layout" style={{ padding: 20, display: "flex", gap: 16, height: "calc(100vh - 61px)", overflow: "hidden" }}>
@@ -495,7 +435,7 @@ function SeccionesView({ data, getDocName, getMateriaName }) {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)" }}>
                 {DAYS.map(day => (
-                  <div key={day} style={{ padding: "10px 10px", borderRight: "1px solid #F3F4F6", minHeight: 120, verticalAlign: "top" }}>
+                  <div key={day} style={{ padding: "10px 10px", borderRight: "1px solid #F3F4F6", minHeight: 120 }}>
                     {(byDay[day] || []).map((e, i) => {
                       const { materia: rawMateria, docente: rawDoc } = parseClase(e.clase);
                       const materia = getMateriaName(rawMateria);
@@ -522,7 +462,7 @@ function SeccionesView({ data, getDocName, getMateriaName }) {
   );
 }
 
-function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteNames, setDocenteNames, getDocName, onSaveDocenteName }) {
+function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, getDocName, onSaveDocenteName }) {
   const sorted = Object.keys(byDocente).sort();
   const [sel, setSel] = useState(initialSel || null);
   const [search, setSearch] = useState("");
@@ -557,9 +497,10 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteN
     ["DIURNO", "VESPERTINO"].forEach(turno => {
       const bloques = getBloquesForTurno(turno);
       bloques.forEach((b, bi) => {
-        const hasEntry = selEntries.some(e => getTurnoDeRegistro(e) === turno && findStartBlock(bloques, e.hora) === bi);
-        const key = `${turno}__${bi}`;
-        if (hasEntry && !seen.has(key)) { seen.add(key); result.push({ turno, bi, bloque: b }); }
+        if (selEntries.some(e => getTurnoDeRegistro(e) === turno && findStartBlock(bloques, e.hora) === bi)) {
+          const key = `${turno}__${bi}`;
+          if (!seen.has(key)) { seen.add(key); result.push({ turno, bi, bloque: b }); }
+        }
       });
     });
     return result;
@@ -571,13 +512,8 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteN
       setSaving(true);
       const res = await onSaveDocenteName(sel, trimmed);
       setSaving(false);
-      if (res.success) {
-        setEditingName(false);
-        if (res.targetRaw) setSel(res.targetRaw);
-      }
-    } else {
-      setEditingName(false);
-    }
+      if (res.success) { setEditingName(false); if (res.targetRaw) setSel(res.targetRaw); }
+    } else setEditingName(false);
   };
 
   return (
@@ -595,9 +531,7 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteN
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
-        {!sel ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "#9CA3AF", fontSize: 14 }}>Selecciona un docente para ver su horario</div>
-        ) : (
+        {!sel ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "#9CA3AF", fontSize: 14 }}>Selecciona un docente para ver su horario</div> : (
           <div>
             <div style={{ ...S.card, padding: "16px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 14 }}>
               <Avatar name={getDocName(sel)} size={48} />
@@ -619,15 +553,13 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteN
                   {selConflicts.length > 0 && <span style={{ marginLeft: 10, ...S.badge("#FEF2F2", "#DC2626") }}>⚠️ {selConflicts.length} conflicto{selConflicts.length > 1 ? "s" : ""}</span>}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {[...new Set(selEntries.map(e => e.trayecto))].map(t => <span key={t} style={S.badge(TRAYECTO_BG[t] || "#f3f4f6", TRAYECTO_COLORS[t] || "#555")}>T.{t}</span>)}
-              </div>
+              <div style={{ display: "flex", gap: 8 }}>{[...new Set(selEntries.map(e => e.trayecto))].map(t => <span key={t} style={S.badge(TRAYECTO_BG[t] || "#f3f4f6", TRAYECTO_COLORS[t] || "#555")}>T.{t}</span>)}</div>
             </div>
             {selConflicts.map((c, i) => (
               <div key={i} style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "12px 16px", marginBottom: 10, display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <span style={{ fontSize: 18 }}>⚠️</span>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#991B1B" }}>Conflicto: {c.dia.charAt(0) + c.dia.slice(1).toLowerCase()} · {c.entries[0] ? getHoraDisplayDeRegistro(c.entries[0]) : c.hora}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#991B1B" }}>Conflicto: {c.dia.charAt(0) + c.dia.slice(1).toLowerCase()} · {getHoraDisplayDeRegistro(c.entries[0])}</div>
                   <div style={{ fontSize: 12, color: "#B91C1C", marginTop: 4 }}>{c.entries.map(e => parseClase(e.clase).materia).join(" · ")}</div>
                 </div>
               </div>
@@ -637,12 +569,7 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteN
                 <div style={{ padding: "12px 16px", borderBottom: "1px solid #E5E7EB", fontSize: 13, fontWeight: 600, color: "#374151" }}>Vista semanal</div>
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ borderCollapse: "collapse", minWidth: "100%" }}>
-                    <thead>
-                      <tr>
-                        <th style={{ ...S.th, width: 160 }}>Bloque</th>
-                        {DAYS.map(d => <th key={d} style={{ ...S.th, borderLeft: "1px solid #E5E7EB" }}>{d.slice(0, 3)}</th>)}
-                      </tr>
-                    </thead>
+                    <thead><tr><th style={{ ...S.th, width: 160 }}>Bloque</th>{DAYS.map(d => <th key={d} style={{ ...S.th, borderLeft: "1px solid #E5E7EB" }}>{d.slice(0, 3)}</th>)}</tr></thead>
                     <tbody>
                       {usedBloques.map(({ turno, bi, bloque }, ri) => (
                         <tr key={`${turno}-${bi}`}>
@@ -673,18 +600,15 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteN
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr>{["Día", "Hora", "Materia", "Trayecto", "Sección"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {[...selEntries].sort((a, b) => DAYS.indexOf(a.dia) - DAYS.indexOf(b.dia) || getHoraMin(a) - getHoraMin(b)).map((e, i) => {
-                    const { materia } = parseClase(e.clase);
-                    return (
-                      <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
-                        <td style={S.td}>{e.dia.charAt(0) + e.dia.slice(1).toLowerCase()}</td>
-                        <td style={{ ...S.td, color: "#9CA3AF", whiteSpace: "nowrap", fontSize: 11 }}>{getHoraDisplayDeRegistro(e)}</td>
-                        <td style={{ ...S.td, fontWeight: 500 }}>{materia}</td>
-                        <td style={S.td}><span style={S.badge(TRAYECTO_BG[e.trayecto] || "#f3f4f6", TRAYECTO_COLORS[e.trayecto] || "#555")}>{e.trayecto}</span></td>
-                        <td style={{ ...S.td, color: "#6B7280" }}>{e.sheet.trim()}</td>
-                      </tr>
-                    );
-                  })}
+                  {[...selEntries].sort((a, b) => DAYS.indexOf(a.dia) - DAYS.indexOf(b.dia) || getHoraMin(a) - getHoraMin(b)).map((e, i) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
+                      <td style={S.td}>{e.dia.charAt(0) + e.dia.slice(1).toLowerCase()}</td>
+                      <td style={{ ...S.td, color: "#9CA3AF", whiteSpace: "nowrap", fontSize: 11 }}>{getHoraDisplayDeRegistro(e)}</td>
+                      <td style={{ ...S.td, fontWeight: 500 }}>{parseClase(e.clase).materia}</td>
+                      <td style={S.td}><span style={S.badge(TRAYECTO_BG[e.trayecto] || "#f3f4f6", TRAYECTO_COLORS[e.trayecto] || "#555")}>{e.trayecto}</span></td>
+                      <td style={{ ...S.td, color: "#6B7280" }}>{e.sheet.trim()}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -695,7 +619,7 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteN
   );
 }
 
-function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, getMateriaName, onSaveMateriaName, data, getDocName }) {
+function MateriasView({ byMateria, initialSel, onConsumeNav, getMateriaName, onSaveMateriaName, data, getDocName }) {
   const sorted = Object.keys(byMateria).sort();
   const [sel, setSel] = useState(initialSel || null);
   const [search, setSearch] = useState("");
@@ -716,24 +640,15 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, getMa
       try {
         const res = await onSaveMateriaName(sel, trimmed);
         setSaving(false);
-        if (res.success) {
-          setEditingName(false);
-          if (res.targetRaw) setSel(res.targetRaw);
-        }
-      } catch (err) {
-        setSaving(false);
-        console.error("Error saving materia name:", err);
-      }
-    } else {
-      setEditingName(false);
-    }
+        if (res.success) { setEditingName(false); if (res.targetRaw) setSel(res.targetRaw); }
+      } catch (err) { setSaving(false); console.error("Error saving materia name:", err); }
+    } else setEditingName(false);
   };
 
   const asignaciones = useMemo(() => {
     if (!selEntries.length) return [];
     return selEntries.slice().sort((a, b) => {
-      const idxA = DAYS.indexOf(a.dia);
-      const idxB = DAYS.indexOf(b.dia);
+      const idxA = DAYS.indexOf(a.dia), idxB = DAYS.indexOf(b.dia);
       return (idxA !== -1 ? idxA : 9) - (idxB !== -1 ? idxB : 9) || getHoraMin(a) - getHoraMin(b);
     });
   }, [selEntries]);
@@ -753,9 +668,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, getMa
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
-        {!sel ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "#9CA3AF", fontSize: 14 }}>Selecciona una materia para ver detalles</div>
-        ) : (
+        {!sel ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "#9CA3AF", fontSize: 14 }}>Selecciona una materia para ver detalles</div> : (
           <>
             <div style={{ ...S.card, padding: "16px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 14 }}>
               <Avatar name={getMateriaName(sel)} size={48} />
@@ -786,7 +699,6 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, getMa
                   {asignaciones.map((e, i) => {
                     const turnoReal = getTurnoDeRegistro(e);
                     const { docente: rawDoc } = parseClase(e.clase);
-                    const docenteDisplay = rawDoc && getDocName ? getDocName(rawDoc) : (rawDoc || "—");
                     return (
                       <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
                         <td style={S.td}>{e.dia.charAt(0) + e.dia.slice(1).toLowerCase()}</td>
@@ -794,7 +706,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, getMa
                         <td style={S.td}><span style={S.badge(turnoReal === "DIURNO" ? "#EFF6FF" : "#FDF2F8", turnoReal === "DIURNO" ? "#2563EB" : "#DB2777")}>{turnoReal === "DIURNO" ? "☀️ Diurno" : "🌙 Vespertino"}</span></td>
                         <td style={S.td}>{e.sheet ? e.sheet.trim() : ""}</td>
                         <td style={S.td}><span style={S.badge(TRAYECTO_BG[e.trayecto] || "#f3f4f6", TRAYECTO_COLORS[e.trayecto] || "#555")}>{e.trayecto}</span></td>
-                        <td style={S.td}>{docenteDisplay}</td>
+                        <td style={S.td}>{rawDoc && getDocName ? getDocName(rawDoc) : (rawDoc || "—")}</td>
                       </tr>
                     );
                   })}
@@ -846,7 +758,7 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
 
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}><h1 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>🖨️ Asistencias Diarias por Turno</h1></div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><h1 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>🖨️ Asistencias Diarias por Turno</h1></div>
       <div className="asistencias-filters" style={{ ...S.card, padding: "14px 20px", marginBottom: 20, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <div><div style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", marginBottom: 6, textTransform: "uppercase" }}>Turno</div><div style={{ display: "flex", gap: 6 }}>{["DIURNO", "VESPERTINO"].map(t => <button key={t} onClick={() => setTurno(t)} style={{ ...S.btn(turno === t), borderRadius: 8 }}>{t === "DIURNO" ? "☀️ Diurno" : "🌙 Vespertino"}</button>)}</div></div>
         <div><div style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", marginBottom: 6, textTransform: "uppercase" }}>Día</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{DAYS.map(d => <button key={d} onClick={() => setSelectedDay(d)} style={S.btn(selectedDay === d)}>{d.charAt(0) + d.slice(1).toLowerCase()}</button>)}</div></div>
@@ -895,7 +807,7 @@ function ConflictosView({ conflicts, onGoDocente, getDocName }) {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                       <button onClick={() => onGoDocente(c.docente)} style={{ fontSize: 14, fontWeight: 700, color: "#DC2626", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>{getDocName(c.docente)}</button>
-                      <span style={{ fontSize: 13, color: "#6B7280" }}>— {c.dia.charAt(0) + c.dia.slice(1).toLowerCase()} · {c.entries[0] ? getHoraDisplayDeRegistro(c.entries[0]) : c.hora}</span>
+                      <span style={{ fontSize: 13, color: "#6B7280" }}>— {c.dia.charAt(0) + c.dia.slice(1).toLowerCase()} · {getHoraDisplayDeRegistro(c.entries[0])}</span>
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {c.entries.map((e, j) => {
@@ -917,17 +829,14 @@ function ConflictosView({ conflicts, onGoDocente, getDocName }) {
 }
 
 function EstadisticasView({ stats, byDocente, byMateria, data, getDocName, getMateriaName }) {
-  const trayectoCount = {};
-  data.forEach(d => { trayectoCount[d.trayecto] = (trayectoCount[d.trayecto] || 0) + 1; });
-  const dayCount = {};
+  const trayectoCount = {}, dayCount = {}, turnoCount = {};
+  data.forEach(d => { trayectoCount[d.trayecto] = (trayectoCount[d.trayecto] || 0) + 1; turnoCount[d.turno] = (turnoCount[d.turno] || 0) + 1; });
   DAYS.forEach(d => { dayCount[d] = data.filter(r => r.dia === d).length; });
   const maxDay = Math.max(...Object.values(dayCount), 1);
   const top8Docentes = Object.entries(byDocente).sort((a, b) => b[1].length - a[1].length).slice(0, 8);
   const maxLoadDocente = Math.max(...top8Docentes.map(([, e]) => e.length), 1);
   const topMaterias = Object.entries(byMateria).sort((a, b) => b[1].length - a[1].length).slice(0, 6);
   const maxMat = topMaterias[0]?.[1] || 1;
-  const turnoCount = {};
-  data.forEach(d => { turnoCount[d.turno] = (turnoCount[d.turno] || 0) + 1; });
   const totalClases = data.length;
   const seccionesCount = new Set(data.map(d => d.sheet.trim())).size;
 
@@ -946,7 +855,7 @@ function EstadisticasView({ stats, byDocente, byMateria, data, getDocName, getMa
           {Object.entries(trayectoCount).sort().map(([t, c]) => (
             <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
               <span style={S.badge(TRAYECTO_BG[t] || "#f3f4f6", TRAYECTO_COLORS[t] || "#555")}>{t}</span>
-              <div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 12, overflow: "hidden" }}><div style={{ width: `${(c / totalClases) * 100}%`, height: "100%", background: TRAYECTO_COLORS[t] || "#888", borderRadius: 4 }} /></div>
+              <div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 12, overflow: "hidden" }}><div style={{ width: `${(c/totalClases)*100}%`, height: "100%", background: TRAYECTO_COLORS[t] || "#888", borderRadius: 4 }} /></div>
               <span style={{ fontSize: 12, width: 32, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{c}</span>
             </div>
           ))}
@@ -955,8 +864,8 @@ function EstadisticasView({ stats, byDocente, byMateria, data, getDocName, getMa
           <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Distribución por día</div>
           {DAYS.map(d => (
             <div key={d} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 12, width: 80, color: "#6B7280", fontWeight: 500 }}>{d.charAt(0) + d.slice(1).toLowerCase()}</span>
-              <div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 12, overflow: "hidden" }}><div style={{ width: `${(dayCount[d] / maxDay) * 100}%`, height: "100%", background: "#059669", borderRadius: 4 }} /></div>
+              <span style={{ fontSize: 12, width: 80, color: "#6B7280", fontWeight: 500 }}>{d.charAt(0)+d.slice(1).toLowerCase()}</span>
+              <div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 12, overflow: "hidden" }}><div style={{ width: `${(dayCount[d]/maxDay)*100}%`, height: "100%", background: "#059669", borderRadius: 4 }} /></div>
               <span style={{ fontSize: 12, width: 32, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{dayCount[d]}</span>
             </div>
           ))}
@@ -967,9 +876,9 @@ function EstadisticasView({ stats, byDocente, byMateria, data, getDocName, getMa
           <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Docentes con mayor carga</div>
           {top8Docentes.map(([doc, entries], idx) => (
             <div key={doc} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#D1D5DB", width: 16 }}>{idx + 1}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#D1D5DB", width: 16 }}>{idx+1}</span>
               <span style={{ fontSize: 12, flex: 1, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getDocName(doc)}</span>
-              <div style={{ width: 100, background: "#F3F4F6", borderRadius: 4, height: 10, overflow: "hidden" }}><div style={{ width: `${(entries.length / maxLoadDocente) * 100}%`, height: "100%", background: "#7C3AED", borderRadius: 4 }} /></div>
+              <div style={{ width: 100, background: "#F3F4F6", borderRadius: 4, height: 10, overflow: "hidden" }}><div style={{ width: `${(entries.length/maxLoadDocente)*100}%`, height: "100%", background: "#7C3AED", borderRadius: 4 }} /></div>
               <span style={{ fontSize: 12, width: 24, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{entries.length}</span>
             </div>
           ))}
@@ -980,9 +889,9 @@ function EstadisticasView({ stats, byDocente, byMateria, data, getDocName, getMa
             const cnt = entries.length;
             return (
               <div key={mat} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#D1D5DB", width: 16 }}>{idx + 1}</span>
-                <span style={{ fontSize: 12, flex: 1, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={getMateriaName(mat)}>{getMateriaName(mat).length > 28 ? getMateriaName(mat).slice(0, 26) + "…" : getMateriaName(mat)}</span>
-                <div style={{ width: 100, background: "#F3F4F6", borderRadius: 4, height: 10, overflow: "hidden" }}><div style={{ width: `${(cnt / maxMat) * 100}%`, height: "100%", background: "#D97706", borderRadius: 4 }} /></div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#D1D5DB", width: 16 }}>{idx+1}</span>
+                <span style={{ fontSize: 12, flex: 1, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={getMateriaName(mat)}>{getMateriaName(mat).length > 28 ? getMateriaName(mat).slice(0,26)+"…" : getMateriaName(mat)}</span>
+                <div style={{ width: 100, background: "#F3F4F6", borderRadius: 4, height: 10, overflow: "hidden" }}><div style={{ width: `${(cnt/maxMat)*100}%`, height: "100%", background: "#D97706", borderRadius: 4 }} /></div>
                 <span style={{ fontSize: 12, width: 24, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{cnt}</span>
               </div>
             );
@@ -991,11 +900,11 @@ function EstadisticasView({ stats, byDocente, byMateria, data, getDocName, getMa
         <div style={{ ...S.card, padding: "16px 20px" }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Distribución por turno</div>
           {Object.entries(turnoCount).sort().map(([t, cnt]) => {
-            const pct = totalClases > 0 ? Math.round((cnt / totalClases) * 100) : 0;
+            const pct = totalClases > 0 ? Math.round((cnt/totalClases)*100) : 0;
             const colors = { DIURNO: "#2563EB", VESPERTINO: "#DB2777" };
             return (
               <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <span style={{ fontSize: 12, width: 90, color: "#6B7280", fontWeight: 500 }}>{t.charAt(0) + t.slice(1).toLowerCase()}</span>
+                <span style={{ fontSize: 12, width: 90, color: "#6B7280", fontWeight: 500 }}>{t.charAt(0)+t.slice(1).toLowerCase()}</span>
                 <div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 14, overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: colors[t] || "#888", borderRadius: 4 }} /></div>
                 <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 600, width: 60, textAlign: "right" }}>{cnt} ({pct}%)</span>
               </div>
@@ -1006,7 +915,7 @@ function EstadisticasView({ stats, byDocente, byMateria, data, getDocName, getMa
           <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Secciones por trayecto</div>
           {ALL_TRAYECTOS.map(t => {
             const cnt = [...new Set(data.filter(d => d.trayecto === t).map(d => d.sheet.trim()))].length;
-            const pct = seccionesCount > 0 ? (cnt / seccionesCount) * 100 : 0;
+            const pct = seccionesCount > 0 ? (cnt/seccionesCount)*100 : 0;
             return (
               <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <span style={S.badge(TRAYECTO_BG[t] || "#f3f4f6", TRAYECTO_COLORS[t] || "#555")}>{t}</span>
@@ -1021,7 +930,7 @@ function EstadisticasView({ stats, byDocente, byMateria, data, getDocName, getMa
   );
 }
 
-// ========== NAVEGACIÓN Y ESTILOS RESPONSIVE ==========
+// ========== NAVEGACIÓN Y ESTILOS ==========
 const NAV_ITEMS = [
   { id: "horarios", emoji: "📅", label: "Horarios" },
   { id: "secciones", emoji: "🏫", label: "Secciones" },
@@ -1054,15 +963,10 @@ const responsiveCSS = `
     .turno-grid-table { min-width: 500px; }
     .turno-grid-wrapper { overflow-x: auto; }
   }
-  @media (max-width: 480px) {
-    .stats-grid-4 { grid-template-columns: 1fr 1fr !important; }
-    .header-stats { display: none; }
-  }
+  @media (max-width: 480px) { .stats-grid-4 { grid-template-columns: 1fr 1fr !important; } .header-stats { display: none; } }
 `;
 
-function ResponsiveStyles() {
-  return <style>{responsiveCSS}</style>;
-}
+function ResponsiveStyles() { return <style>{responsiveCSS}</style>; }
 
 // ========== COMPONENTE PRINCIPAL APP ==========
 export default function App() {
@@ -1085,7 +989,6 @@ export default function App() {
   const [materiaNames, setMateriaNames] = useState({});
   const [toast, setToast] = useState(null);
 
-  // ========== AUTH ==========
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
@@ -1094,12 +997,11 @@ export default function App() {
 
   const handleLogout = async () => { await supabase.auth.signOut(); };
 
-  // ========== FETCHS ==========
   const fetchProgramas = async () => {
-    const { data: programas, error } = await supabase.from("horarios").select("programa").not("programa", "is", null);
-    if (!error && programas) {
+    const { data: programas } = await supabase.from("horarios").select("programa").not("programa", "is", null);
+    if (programas) {
       const canonicalSet = new Map();
-      programas.forEach(p => { if (p.programa && p.programa.trim() !== "") { const canon = normalizarPrograma(p.programa); if (canon) canonicalSet.set(canon, true); } });
+      programas.forEach(p => { if (p.programa?.trim()) { const canon = normalizarPrograma(p.programa); if (canon) canonicalSet.set(canon, true); } });
       const unique = [...canonicalSet.keys()].sort();
       const defaults = DEFAULT_PROGRAMAS.filter(p => !unique.some(u => u.toLowerCase() === p.toLowerCase()));
       setProgramasDisponibles(["todos", ...unique, ...defaults]);
@@ -1117,46 +1019,33 @@ export default function App() {
   };
 
   const fetchDocenteNames = async () => {
-    const { data: docentes, error } = await supabase.from("docentes").select("*");
-    if (!error && docentes) {
-      const namesMap = {};
-      docentes.forEach(d => { namesMap[d.nombre_raw] = d.nombre_display; });
-      setDocenteNames(namesMap);
-    }
+    const { data: docentes } = await supabase.from("docentes").select("*");
+    if (docentes) { const m = {}; docentes.forEach(d => { m[d.nombre_raw] = d.nombre_display; }); setDocenteNames(m); }
   };
 
   const fetchMateriaNames = async () => {
-    const { data: materias, error } = await supabase.from("materias").select("*");
-    if (!error && materias) {
-      const namesMap = {};
-      materias.forEach(m => { namesMap[m.nombre_raw] = m.nombre_display; });
-      setMateriaNames(namesMap);
-    }
+    const { data: materias } = await supabase.from("materias").select("*");
+    if (materias) { const m = {}; materias.forEach(d => { m[d.nombre_raw] = d.nombre_display; }); setMateriaNames(m); }
   };
 
   useEffect(() => { fetchProgramas(); fetchDocenteNames(); fetchMateriaNames(); }, []);
   useEffect(() => { fetchHorarios(); }, [selectedPrograma]);
 
-  // ========== FUNCIONES DE DATOS ==========
   const showToast = useCallback((message, type = "success") => {
     setToast(null);
     setTimeout(() => setToast({ message, type }), 50);
   }, []);
 
   const unifyName = async (tableName, rawName, newDisplayName) => {
-    const { data: existing, error: searchError } = await supabase.from(tableName).select("nombre_raw, nombre_display").ilike("nombre_display", newDisplayName.trim()).neq("nombre_raw", rawName).limit(1);
-    if (searchError) throw searchError;
-    if (existing && existing.length > 0) {
-      const targetRaw = existing[0].nombre_raw;
-      const canonicalDisplay = existing[0].nombre_display;
-      const { data: horarios, error: fetchError } = await supabase.from("horarios").select("id, clase");
-      if (fetchError) throw fetchError;
-      for (const row of horarios) {
-        if (!row.clase || !row.clase.includes(rawName)) continue;
-        const nuevaClase = row.clase.split(rawName).join(targetRaw);
-        if (nuevaClase !== row.clase) {
-          const { error: updateError } = await supabase.from("horarios").update({ clase: nuevaClase }).eq("id", row.id);
-          if (updateError) throw updateError;
+    const { data: existing } = await supabase.from(tableName).select("nombre_raw, nombre_display").ilike("nombre_display", newDisplayName.trim()).neq("nombre_raw", rawName).limit(1);
+    if (existing?.length > 0) {
+      const targetRaw = existing[0].nombre_raw, canonicalDisplay = existing[0].nombre_display;
+      const { data: horarios } = await supabase.from("horarios").select("id, clase");
+      if (horarios) {
+        for (const row of horarios) {
+          if (!row.clase?.includes(rawName)) continue;
+          const nuevaClase = row.clase.split(rawName).join(targetRaw);
+          if (nuevaClase !== row.clase) await supabase.from("horarios").update({ clase: nuevaClase }).eq("id", row.id);
         }
       }
       await supabase.from(tableName).delete().eq("nombre_raw", rawName);
@@ -1168,43 +1057,25 @@ export default function App() {
   const saveDocenteName = async (rawName, displayName) => {
     try {
       const unified = await unifyName("docentes", rawName, displayName);
-      if (unified) {
-        showToast(`✅ Docente unificado con "${unified.canonicalDisplay}".`, "success");
-        await fetchDocenteNames();
-        await fetchHorarios();
-        return { success: true, targetRaw: unified.targetRaw };
-      }
+      if (unified) { showToast(`✅ Docente unificado con "${unified.canonicalDisplay}".`, "success"); await fetchDocenteNames(); await fetchHorarios(); return { success: true, targetRaw: unified.targetRaw }; }
       const { error } = await supabase.from("docentes").upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
       if (error) throw error;
       setDocenteNames(prev => ({ ...prev, [rawName]: displayName }));
       showToast("✅ Nombre del docente actualizado correctamente.", "success");
       return { success: true };
-    } catch (err) {
-      console.error(err);
-      showToast("❌ Error al guardar: " + err.message, "error");
-      return { success: false };
-    }
+    } catch (err) { console.error(err); showToast("❌ Error al guardar: " + err.message, "error"); return { success: false }; }
   };
 
   const saveMateriaName = async (rawName, displayName) => {
     try {
       const unified = await unifyName("materias", rawName, displayName);
-      if (unified) {
-        showToast(`✅ Materia unificada con "${unified.canonicalDisplay}".`, "success");
-        await fetchMateriaNames();
-        await fetchHorarios();
-        return { success: true, targetRaw: unified.targetRaw };
-      }
+      if (unified) { showToast(`✅ Materia unificada con "${unified.canonicalDisplay}".`, "success"); await fetchMateriaNames(); await fetchHorarios(); return { success: true, targetRaw: unified.targetRaw }; }
       const { error } = await supabase.from("materias").upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
       if (error) throw error;
       setMateriaNames(prev => ({ ...prev, [rawName]: displayName }));
       showToast("✅ Nombre de la materia actualizado correctamente.", "success");
       return { success: true };
-    } catch (err) {
-      console.error(err);
-      showToast("❌ Error al guardar: " + err.message, "error");
-      return { success: false };
-    }
+    } catch (err) { console.error(err); showToast("❌ Error al guardar: " + err.message, "error"); return { success: false }; }
   };
 
   const clearAllData = async () => {
@@ -1226,13 +1097,11 @@ export default function App() {
     reader.onload = async (e) => {
       const workbook = XLSX.read(e.target.result, { type: "binary" });
       const allRows = [];
-      
       for (const sheetName of workbook.SheetNames) {
         const worksheet = workbook.Sheets[sheetName];
         const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
         let headerRowIdx = -1, horaColIdx = -1;
         let diaCols = { LUNES: -1, MARTES: -1, MIÉRCOLES: -1, JUEVES: -1, VIERNES: -1 };
-        
         for (let i = 0; i < json.length; i++) {
           const row = json[i];
           if (!row) continue;
@@ -1251,7 +1120,6 @@ export default function App() {
           }
         }
         if (headerRowIdx === -1) continue;
-        
         let programa = "", trayecto = "", seccion = "", turno = "", sede = "", aula = "";
         for (let i = 0; i < headerRowIdx; i++) {
           const row = json[i];
@@ -1267,14 +1135,11 @@ export default function App() {
             else if (cellVal === "Turno" && !turno) turno = row[j+1]?.toString().trim() || row[j+2]?.toString().trim() || "";
           }
         }
-        
         if (selectedPrograma !== "todos") programa = selectedPrograma;
         else if (!programa) programa = "Sin programa";
         else programa = normalizarPrograma(programa) || programa;
-        
         const turnoNorm = getTurnoByCodigo(sheetName) || normalizeTurno(turno) || null;
         turno = turnoNorm || turno;
-        
         for (let i = headerRowIdx + 1; i < json.length; i++) {
           const row = json[i];
           const hora = row[horaColIdx]?.toString().trim();
@@ -1286,37 +1151,25 @@ export default function App() {
           }
         }
       }
-      
       if (allRows.length === 0) { setError("No se encontraron datos válidos en el archivo."); setUploading(false); return; }
-      
       const { data: existingData } = await supabase.from("horarios").select("sheet, dia, hora, clase, programa");
       const existingKeys = new Set();
       existingData?.forEach(record => existingKeys.add(`${record.sheet}|${record.dia}|${record.hora}|${record.clase}|${record.programa}`));
       const newRows = allRows.filter(row => !existingKeys.has(`${row.sheet}|${row.dia}|${row.hora}|${row.clase}|${row.programa}`));
       const duplicateCount = allRows.length - newRows.length;
-      
       if (newRows.length === 0) { showToast(`⚠️ No se cargaron nuevos registros. ${duplicateCount} duplicados.`, "warning"); setUploading(false); return; }
-      
       const { error: insertError } = await supabase.from("horarios").insert(newRows);
       if (insertError) { console.error(insertError); setError("Error al guardar: " + insertError.message); showToast("❌ Error al guardar: " + insertError.message, "error"); }
       else {
         let message = `✅ Se cargaron ${newRows.length} clases.`;
         if (duplicateCount > 0) message += ` Se omitieron ${duplicateCount} duplicados.`;
         showToast(message, "success");
-        await fetchHorarios();
-        await fetchProgramas();
-        
-        const uniqueDocentes = new Set();
-        const uniqueMaterias = new Set();
-        newRows.forEach(row => {
-          const { docente, materia } = parseClase(row.clase);
-          if (docente) uniqueDocentes.add(docente);
-          if (materia) uniqueMaterias.add(materia);
-        });
+        await fetchHorarios(); await fetchProgramas();
+        const uniqueDocentes = new Set(), uniqueMaterias = new Set();
+        newRows.forEach(row => { const { docente, materia } = parseClase(row.clase); if (docente) uniqueDocentes.add(docente); if (materia) uniqueMaterias.add(materia); });
         for (const docente of uniqueDocentes) await supabase.from("docentes").upsert({ nombre_raw: docente, nombre_display: docente }, { onConflict: "nombre_raw" });
         for (const materia of uniqueMaterias) await supabase.from("materias").upsert({ nombre_raw: materia, nombre_display: materia }, { onConflict: "nombre_raw" });
-        await fetchDocenteNames();
-        await fetchMateriaNames();
+        await fetchDocenteNames(); await fetchMateriaNames();
       }
       setUploading(false);
     };
@@ -1324,7 +1177,6 @@ export default function App() {
     reader.readAsBinaryString(file);
   };
 
-  // ========== CÁLCULOS MEMOIZADOS ==========
   const filtered = useMemo(() => data.filter(d => {
     if (selectedTrayecto !== "all" && d.trayecto !== selectedTrayecto) return false;
     if (selectedSeccion !== "all" && d.sheet.trim() !== selectedSeccion) return false;
@@ -1348,8 +1200,7 @@ export default function App() {
     const issues = [];
     Object.entries(byDocente).forEach(([doc, entries]) => {
       DAYS.forEach(day => {
-        const horasUnicas = [...new Set(entries.map(e => e.hora?.trim()))].filter(Boolean);
-        horasUnicas.forEach(hora => {
+        [...new Set(entries.map(e => e.hora?.trim()))].filter(Boolean).forEach(hora => {
           const matches = entries.filter(e => e.dia === day && e.hora?.trim() === hora);
           if (matches.length > 1) issues.push({ docente: doc, dia: day, hora, entries: matches });
         });
@@ -1361,13 +1212,7 @@ export default function App() {
   const allTrayectos = useMemo(() => [...new Set(data.map(d => d.trayecto))].sort(), [data]);
   const allSecciones = useMemo(() => [...new Set(data.map(d => d.sheet.trim()))].sort(), [data]);
   const seccionesByTrayecto = useMemo(() => allSecciones.filter(s => selectedTrayecto === "all" || data.some(d => d.sheet.trim() === s && d.trayecto === selectedTrayecto)), [selectedTrayecto, data, allSecciones]);
-
-  const stats = useMemo(() => ({
-    total: data.length,
-    secciones: new Set(data.map(d => d.sheet.trim())).size,
-    docentes: Object.keys(byDocente).length,
-    materias: Object.keys(byMateria).length,
-  }), [data, byDocente, byMateria]);
+  const stats = useMemo(() => ({ total: data.length, secciones: new Set(data.map(d => d.sheet.trim())).size, docentes: Object.keys(byDocente).length, materias: Object.keys(byMateria).length }), [data, byDocente, byMateria]);
 
   const getDocName = useCallback((raw) => docenteNames[raw] || raw, [docenteNames]);
   const getMateriaName = useCallback((raw) => materiaNames[raw] || raw, [materiaNames]);
@@ -1380,7 +1225,6 @@ export default function App() {
 
   const nav = NAV_ITEMS.map(item => ({ ...item, badge: item.hasBadge ? conflicts.length : 0 }));
 
-  // ========== RENDER ==========
   if (user === undefined) return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0F172A", color: "#94A3B8", fontFamily: "system-ui, sans-serif", fontSize: 14 }}>Verificando sesión…</div>;
   if (!user) return <LoginScreen />;
   if (loading && data.length === 0) return <div style={{ padding: 20, textAlign: "center" }}>Cargando horarios...</div>;
@@ -1390,7 +1234,6 @@ export default function App() {
       <ResponsiveStyles />
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} style={{ display: "none", position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 299 }} />
-      
       <aside className={`sidebar-aside${sidebarOpen ? " open" : ""}`} style={{ width: 220, background: "#111827", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "20px 16px 16px" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>PNF</div>
@@ -1405,13 +1248,8 @@ export default function App() {
         </div>
         <nav style={{ flex: 1, padding: "8px 10px", overflowY: "auto" }}>
           {nav.map(item => (
-            <button key={item.id} onClick={() => { setView(item.id); setSidebarOpen(false); }} style={{
-              display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px", border: "none", borderRadius: 8,
-              background: view === item.id ? "#2563EB" : "transparent", color: view === item.id ? "#fff" : "#9CA3AF",
-              cursor: "pointer", fontSize: 13, textAlign: "left", marginBottom: 2, fontWeight: view === item.id ? 600 : 400,
-            }}>
-              <span style={{ fontSize: 15 }}>{item.emoji}</span>
-              <span style={{ flex: 1 }}>{item.label}</span>
+            <button key={item.id} onClick={() => { setView(item.id); setSidebarOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px", border: "none", borderRadius: 8, background: view === item.id ? "#2563EB" : "transparent", color: view === item.id ? "#fff" : "#9CA3AF", cursor: "pointer", fontSize: 13, textAlign: "left", marginBottom: 2, fontWeight: view === item.id ? 600 : 400 }}>
+              <span style={{ fontSize: 15 }}>{item.emoji}</span><span style={{ flex: 1 }}>{item.label}</span>
               {item.badge > 0 && <span style={{ background: "#EF4444", color: "#fff", borderRadius: 10, fontSize: 10, padding: "2px 6px", fontWeight: 700 }}>{item.badge}</span>}
             </button>
           ))}
@@ -1419,23 +1257,17 @@ export default function App() {
         <div style={{ padding: "12px 14px", borderTop: "1px solid #1F2937" }}>
           <label htmlFor="upload-excel" style={{ display: "block", cursor: "pointer", background: "#2563EB", color: "#fff", textAlign: "center", padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>📂 Cargar Excel</label>
           <input id="upload-excel" type="file" accept=".xlsx, .xls" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploading} />
-          <button onClick={clearAllData} disabled={loading || data.length === 0} style={{ display: "block", width: "100%", cursor: data.length === 0 ? "not-allowed" : "pointer", background: "#DC2626", color: "#fff", textAlign: "center", padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "none", opacity: data.length === 0 ? 0.5 : 1 }}>
-            🗑️ Borrar {selectedPrograma === "todos" ? "todos los datos" : `datos de ${selectedPrograma}`}
-          </button>
+          <button onClick={clearAllData} disabled={loading || data.length === 0} style={{ display: "block", width: "100%", cursor: data.length === 0 ? "not-allowed" : "pointer", background: "#DC2626", color: "#fff", textAlign: "center", padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "none", opacity: data.length === 0 ? 0.5 : 1 }}>🗑️ Borrar {selectedPrograma === "todos" ? "todos los datos" : `datos de ${selectedPrograma}`}</button>
           {uploading && <div style={{ fontSize: 10, marginTop: 6, color: "#9CA3AF" }}>Subiendo...</div>}
           {error && <div style={{ fontSize: 10, marginTop: 6, color: "#EF4444" }}>{error}</div>}
           {data.length > 0 && !uploading && !loading && <div style={{ fontSize: 10, marginTop: 6, color: "#6B7280", textAlign: "center" }}>{data.length} registros cargados</div>}
         </div>
         <div style={{ padding: "10px 14px", borderTop: "1px solid #1F2937", display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#2563EB,#7C3AED)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{user.email?.[0]?.toUpperCase() ?? "A"}</div>
-          <div style={{ flex: 1, overflow: "hidden" }}>
-            <div style={{ fontSize: 11, color: "#D1D5DB", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
-            <div style={{ fontSize: 10, color: "#4B5563" }}>Administrador</div>
-          </div>
+          <div style={{ flex: 1, overflow: "hidden" }}><div style={{ fontSize: 11, color: "#D1D5DB", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div><div style={{ fontSize: 10, color: "#4B5563" }}>Administrador</div></div>
           <button onClick={handleLogout} title="Cerrar sesión" style={{ background: "none", border: "1px solid #374151", borderRadius: 6, cursor: "pointer", color: "#6B7280", fontSize: 13, padding: "3px 6px", flexShrink: 0, lineHeight: 1 }}>⏏</button>
         </div>
       </aside>
-
       <div className="main-content" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <header className="header-bar" style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <button onClick={() => setSidebarOpen(o => !o)} style={{ display: "none", background: "none", border: "1px solid #E5E7EB", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 18, color: "#374151", lineHeight: 1, flexShrink: 0 }} className="hamburger-btn" aria-label="Abrir menú">☰</button>
@@ -1445,8 +1277,8 @@ export default function App() {
         <main style={{ flex: 1, overflow: "auto" }}>
           {view === "horarios" && <HorariosView filtered={filtered} selectedTrayecto={selectedTrayecto} setSelectedTrayecto={setSelectedTrayecto} selectedSeccion={selectedSeccion} setSelectedSeccion={setSelectedSeccion} activeDay={activeDay} setActiveDay={setActiveDay} seccionesByTrayecto={seccionesByTrayecto} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} allTrayectos={allTrayectos} />}
           {view === "secciones" && <SeccionesView data={data} getDocName={getDocName} getMateriaName={getMateriaName} />}
-          {view === "docentes" && <DocentesView byDocente={byDocente} conflicts={conflicts} initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)} docenteNames={docenteNames} setDocenteNames={setDocenteNames} getDocName={getDocName} onSaveDocenteName={saveDocenteName} />}
-          {view === "materias" && <MateriasView byMateria={byMateria} initialSel={materiaNav} onConsumeNav={() => setMateriaNav(null)} materiaNames={materiaNames} getMateriaName={getMateriaName} onSaveMateriaName={saveMateriaName} data={data} getDocName={getDocName} />}
+          {view === "docentes" && <DocentesView byDocente={byDocente} conflicts={conflicts} initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)} getDocName={getDocName} onSaveDocenteName={saveDocenteName} />}
+          {view === "materias" && <MateriasView byMateria={byMateria} initialSel={materiaNav} onConsumeNav={() => setMateriaNav(null)} getMateriaName={getMateriaName} onSaveMateriaName={saveMateriaName} data={data} getDocName={getDocName} />}
           {view === "asistencias" && <AsistenciasView data={data} getDocName={getDocName} getMateriaName={getMateriaName} />}
           {view === "conflictos" && <ConflictosView conflicts={conflicts} onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }} getDocName={getDocName} />}
           {view === "estadisticas" && <EstadisticasView stats={stats} byDocente={byDocente} byMateria={byMateria} data={data} getDocName={getDocName} getMateriaName={getMateriaName} />}
