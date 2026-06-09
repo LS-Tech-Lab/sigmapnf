@@ -5,16 +5,28 @@ import LoginScreen from "./components/LoginScreen";
 
 // ========== Constantes globales ==========
 const DAYS = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"];
-const ALL_TRAYECTOS = ["1-1", "1-2", "2-1", "2-2", "3-1", "3-2", "4-1", "4-2"];
+const ALL_TRAYECTOS = [
+  "INICIAL",
+  "1-1", "1-2", "1-3",
+  "2-1", "2-2", "2-3",
+  "3-1", "3-2", "3-3",
+  "4-1", "4-2", "4-3"
+];
 const DEFAULT_PROGRAMAS = ["PNF Informática", "PNF Contaduría Pública", "PNF Agroalimentación", "PNF Educación Especial"];
 
 const TRAYECTO_COLORS = {
-  "1-1": "#2563EB", "1-2": "#059669", "2-1": "#DC2626", "2-2": "#DB2777",
-  "3-1": "#D97706", "3-2": "#65A30D", "4-1": "#7C3AED", "4-2": "#4338CA",
+  "INICIAL": "#8B5CF6",
+  "1-1": "#2563EB", "1-2": "#1D4ED8", "1-3": "#1E40AF",
+  "2-1": "#DC2626", "2-2": "#B91C1C", "2-3": "#991B1B",
+  "3-1": "#D97706", "3-2": "#B45309", "3-3": "#92400E",
+  "4-1": "#059669", "4-2": "#047857", "4-3": "#065F46",
 };
 const TRAYECTO_BG = {
-  "1-1": "#EFF6FF", "1-2": "#ECFDF5", "2-1": "#FEF2F2", "2-2": "#FDF2F8",
-  "3-1": "#FFFBEB", "3-2": "#F7FEE7", "4-1": "#F5F3FF", "4-2": "#EEF2FF",
+  "INICIAL": "#F5F3FF",
+  "1-1": "#EFF6FF", "1-2": "#DBEAFE", "1-3": "#BFDBFE",
+  "2-1": "#FEF2F2", "2-2": "#FEE2E2", "2-3": "#FECACA",
+  "3-1": "#FFFBEB", "3-2": "#FEF3C7", "3-3": "#FDE68A",
+  "4-1": "#ECFDF5", "4-2": "#D1FAE5", "4-3": "#A7F3D0",
 };
 
 const BLOQUES_DIURNO = [
@@ -863,7 +875,7 @@ export default function App() {
   const byDocente = useMemo(() => { const m = {}; data.forEach(d => { const { docente } = parseClase(d.clase); if (docente) { if (!m[docente]) m[docente] = []; m[docente].push(d); } }); return m; }, [data]);
   const byMateria = useMemo(() => { const m = {}; data.forEach(d => { const { materia } = parseClase(d.clase); if (materia) { if (!m[materia]) m[materia] = []; m[materia].push(d); } }); return m; }, [data]);
   const conflicts = useMemo(() => { const issues = []; Object.entries(byDocente).forEach(([doc, entries]) => { DAYS.forEach(day => { [...new Set(entries.map(e => e.hora?.trim()))].filter(Boolean).forEach(hora => { const matches = entries.filter(e => e.dia === day && e.hora?.trim() === hora); if (matches.length > 1) issues.push({ docente: doc, dia: day, hora, entries: matches }); }); }); }); return issues; }, [byDocente]);
-  const allTrayectos = useMemo(() => [...new Set(data.map(d => d.trayecto))].sort(), [data]);
+  const allTrayectos = useMemo(() => [...new Set(data.map(d => d.trayecto))].sort((a, b) => ALL_TRAYECTOS.indexOf(a) - ALL_TRAYECTOS.indexOf(b)), [data]);
   const seccionesByTrayecto = useMemo(() => [...new Set(data.map(d => d.sheet.trim()))].sort().filter(s => selectedTrayecto === "all" || data.some(d => d.sheet.trim() === s && d.trayecto === selectedTrayecto)), [selectedTrayecto, data]);
   const stats = useMemo(() => ({ total: data.length, secciones: new Set(data.map(d => d.sheet.trim())).size, docentes: Object.keys(byDocente).length, materias: Object.keys(byMateria).length }), [data, byDocente, byMateria]);
   const getDocName = useCallback((raw) => docenteNames[raw] || raw, [docenteNames]);
