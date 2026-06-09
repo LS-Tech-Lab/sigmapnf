@@ -721,7 +721,8 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
       setEditValue(getMateriaName(sel));
       setEditingName(false);
     }
-  }, [sel, getMateriaName]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sel]);
 
   const selEntries = sel && byMateria[sel] ? byMateria[sel] : [];
   const filteredSorted = search 
@@ -775,7 +776,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
           {filteredSorted.map(m => (
             <div 
               key={m} 
-              onClick={() => setSel(m)} 
+              onClick={() => { setSel(m); setEditingName(false); }} 
               style={{ 
                 padding: "9px 12px", 
                 cursor: "pointer", 
