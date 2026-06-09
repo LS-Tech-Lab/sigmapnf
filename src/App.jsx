@@ -853,6 +853,7 @@ function EstadisticasView({ stats, byDocente, byMateria, data, getDocName, getMa
 
 // ========== NAVEGACIÓN Y ESTILOS ==========
 const NAV_ITEMS = [
+  { id: "dashboard", emoji: "🏠", label: "Dashboard" }, // NUEVO - Primera opción
   { id: "horarios", emoji: "📅", label: "Horarios" },
   { id: "secciones", emoji: "🏫", label: "Secciones" },
   { id: "docentes", emoji: "👥", label: "Docentes", hasBadge: true },
@@ -877,7 +878,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
-  const [view, setView] = useState("horarios");
+  const [view, setView] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedPrograma, setSelectedPrograma] = useState("todos");
   const [programasDisponibles, setProgramasDisponibles] = useState(["todos", ...DEFAULT_PROGRAMAS]);
@@ -1265,6 +1266,7 @@ export default function App() {
           <div className="header-stats" style={{ marginLeft: "auto", fontSize: 13, color: "#6B7280", fontWeight: 500 }}>{stats.total} registros · {stats.materias} materias</div>
         </header>
         <main style={{ flex: 1, overflow: "auto" }}>
+          {view === "dashboard" && <DashboardView stats={stats} data={data} byDocente={byDocente} byMateria={byMateria} conflicts={conflicts} getDocName={getDocName} getMateriaName={getMateriaName} />}
           {view === "horarios" && <HorariosView filtered={filtered} selectedTrayecto={selectedTrayecto} setSelectedTrayecto={setSelectedTrayecto} selectedSeccion={selectedSeccion} setSelectedSeccion={setSelectedSeccion} activeDay={activeDay} setActiveDay={setActiveDay} seccionesByTrayecto={seccionesByTrayecto} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} allTrayectos={allTrayectos} />}
           {view === "secciones" && <SeccionesView data={data} getDocName={getDocName} getMateriaName={getMateriaName} />}
           {view === "docentes" && <DocentesView byDocente={byDocente} conflicts={conflicts} initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)} getDocName={getDocName} onSaveDocenteName={saveDocenteName} />}
