@@ -68,8 +68,13 @@ const S = {
 
 // ========== Componentes auxiliares ==========
 function Avatar({ name, size = 36 }) {
-  const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
-  const hue = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+  const safeName = name || "Docente";
+  const initials = typeof safeName === "string"
+    ? safeName.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
+    : "??";
+  const hue = typeof safeName === "string"
+    ? [...safeName].reduce((a, c) => a + c.charCodeAt(0), 0) % 360
+    : 0;
   return (
     <div style={{ width: size, height: size, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.38, fontWeight: 700, background: `hsl(${hue},55%,90%)`, color: `hsl(${hue},55%,35%)`, flexShrink: 0 }}>
       {initials}
@@ -275,7 +280,10 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteN
 
   useEffect(() => {
     if (sel && !byDocente[sel]) {
-      const newSel = Object.keys(byDocente).find(k => getDocName(k).toLowerCase() === editValue.trim().toLowerCase());
+      const newSel = Object.keys(byDocente).find(k => {
+        const name = getDocName(k);
+        return name && editValue && name.toLowerCase() === editValue.trim().toLowerCase();
+      });
       setSel(newSel || null);
     }
   }, [byDocente, sel, editValue, getDocName]);
@@ -298,10 +306,13 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, docenteN
     const trimmed = editValue.trim(); 
     if (trimmed && sel) {
       setSaving(true);
-      const success = await onSaveDocenteName(sel, trimmed);
+      const res = await onSaveDocenteName(sel, trimmed);
       setSaving(false);
-      if (success) {
+      if (res.success) {
         setEditingName(false);
+        if (res.targetRaw) {
+          setSel(res.targetRaw);
+        }
       }
     } else {
       setEditingName(false);
@@ -455,7 +466,10 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
 
   useEffect(() => {
     if (sel && !byMateria[sel]) {
-      const newSel = Object.keys(byMateria).find(k => getMateriaName(k).toLowerCase() === editValue.trim().toLowerCase());
+      const newSel = Object.keys(byMateria).find(k => {
+        const name = getMateriaName(k);
+        return name && editValue && name.toLowerCase() === editValue.trim().toLowerCase();
+      });
       setSel(newSel || null);
     }
   }, [byMateria, sel, editValue, getMateriaName]);
@@ -467,10 +481,13 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
     const trimmed = editValue.trim(); 
     if (trimmed && sel) {
       setSaving(true);
-      const success = await onSaveMateriaName(sel, trimmed);
+      const res = await onSaveMateriaName(sel, trimmed);
       setSaving(false);
-      if (success) {
+      if (res.success) {
         setEditingName(false);
+        if (res.targetRaw) {
+          setSel(res.targetRaw);
+        }
       }
     } else {
       setEditingName(false);
@@ -484,12 +501,16 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
         dia: e.dia,
         hora: e.hora,
         turno: e.turno,
-        seccion: e.sheet.trim(),
+        seccion: e.sheet ? e.sheet.trim() : "",
         trayecto: e.trayecto,
         docente: e.docente
       });
     });
-    return map.sort((a, b) => DAYS.indexOf(a.dia) - DAYS.indexOf(b.dia) || a.hora.localeCompare(b.hora));
+    return map.sort((a, b) => {
+      const idxA = DAYS.indexOf(a.dia);
+      const idxB = DAYS.indexOf(b.dia);
+      return (idxA !== -1 ? idxA : 9) - (idxB !== -1 ? idxB : 9) || (a.hora || "").localeCompare(b.hora || "");
+    });
   }, [selEntries]);
 
   return (
@@ -1026,21 +1047,21 @@ export default function App() {
     try {
       const unified = await unifyName("docentes", rawName, displayName);
       if (unified) {
+        alert(`✅ El docente "${displayName}" ya existía. Se han unificado los registros bajo "${unified.canonicalDisplay}".`);
         await fetchDocenteNames();
         await fetchHorarios();
-        alert(`✅ El docente "${displayName}" ya existía. Se han unificado los registros bajo "${unified.canonicalDisplay}".`);
-        return true;
+        return { success: true, targetRaw: unified.targetRaw };
       }
       const { error } = await supabase
         .from("docentes")
         .upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
       if (error) throw error;
       setDocenteNames(prev => ({ ...prev, [rawName]: displayName }));
-      return true;
+      return { success: true };
     } catch (err) {
       console.error(err);
       alert("❌ Error al guardar: " + err.message);
-      return false;
+      return { success: false };
     }
   };
 
@@ -1048,21 +1069,21 @@ export default function App() {
     try {
       const unified = await unifyName("materias", rawName, displayName);
       if (unified) {
+        alert(`✅ La materia "${displayName}" ya existía. Se han unificado los registros bajo "${unified.canonicalDisplay}".`);
         await fetchMateriaNames();
         await fetchHorarios();
-        alert(`✅ La materia "${displayName}" ya existía. Se han unificado los registros bajo "${unified.canonicalDisplay}".`);
-        return true;
+        return { success: true, targetRaw: unified.targetRaw };
       }
       const { error } = await supabase
         .from("materias")
         .upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
       if (error) throw error;
       setMateriaNames(prev => ({ ...prev, [rawName]: displayName }));
-      return true;
+      return { success: true };
     } catch (err) {
       console.error(err);
       alert("❌ Error al guardar: " + err.message);
-      return false;
+      return { success: false };
     }
   };
 
