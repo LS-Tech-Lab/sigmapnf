@@ -29,6 +29,77 @@ function normalizeTurno(t) {
   return u;
 }
 
+// ========== Bloques horarios fijos de 45 minutos ==========
+const BLOQUES_DIURNO = [
+  { inicio: "7:30AM",  fin: "8:15AM"  },
+  { inicio: "8:15AM",  fin: "9:00AM"  },
+  { inicio: "9:00AM",  fin: "9:45AM"  },
+  { inicio: "9:45AM",  fin: "10:30AM" },
+  { inicio: "10:30AM", fin: "11:15AM" },
+  { inicio: "11:15AM", fin: "12:00PM" },
+];
+const BLOQUES_VESPERTINO = [
+  { inicio: "1:00PM",  fin: "1:45PM"  },
+  { inicio: "1:45PM",  fin: "2:30PM"  },
+  { inicio: "2:30PM",  fin: "3:15PM"  },
+  { inicio: "3:15PM",  fin: "4:00PM"  },
+  { inicio: "4:00PM",  fin: "4:45PM"  },
+  { inicio: "4:45PM",  fin: "5:30PM"  },
+];
+
+function timeToMin(s) {
+  if (!s) return 0;
+  const m = s.replace(/\s/g, "").match(/^(\d+):(\d+)(AM|PM)$/i);
+  if (!m) return 0;
+  let hh = parseInt(m[1]), mi = parseInt(m[2]);
+  const ap = m[3].toUpperCase();
+  if (ap === "PM" && hh !== 12) hh += 12;
+  if (ap === "AM" && hh === 12) hh = 0;
+  return hh * 60 + mi;
+}
+
+// Detecta qué turno corresponde a una hora de inicio dada
+function detectTurnoFromHora(horaStr) {
+  // horaStr puede ser "7:30AM - 9:45AM" o "7:30AM" etc.
+  const raw = horaStr ? horaStr.split(/[-–]/)[0].trim() : "";
+  const min = timeToMin(raw);
+  if (min >= timeToMin("7:00AM") && min < timeToMin("12:30PM")) return "DIURNO";
+  if (min >= timeToMin("12:30PM")) return "VESPERTINO";
+  return null;
+}
+
+// Dados los bloques del turno, detecta cuál bloque de inicio corresponde a una hora
+function findStartBlock(bloques, horaStr) {
+  const raw = horaStr ? horaStr.split(/[-–]/)[0].trim() : "";
+  const min = timeToMin(raw);
+  // Buscar el bloque cuyo inicio coincide exactamente, o el más cercano
+  let best = 0;
+  let bestDiff = Infinity;
+  bloques.forEach((b, i) => {
+    const diff = Math.abs(timeToMin(b.inicio) - min);
+    if (diff < bestDiff) { bestDiff = diff; best = i; }
+  });
+  return best;
+}
+
+// Dados los bloques del turno, detecta cuántos bloques abarca la clase
+function countBlocks(bloques, horaStr) {
+  const parts = horaStr ? horaStr.replace(/\s/g, "").split(/[-–]/) : [];
+  if (parts.length < 2) return 1;
+  const inicioMin = timeToMin(parts[0]);
+  const finMin = timeToMin(parts[1]);
+  if (!finMin || finMin <= inicioMin) return 1;
+  // Contar cuántos bloques de 45 min caben
+  const n = Math.round((finMin - inicioMin) / 45);
+  return Math.max(1, n);
+}
+
+// Obtener el label de rango completo para un conjunto de bloques
+function getHoraRango(bloques, startIdx, count) {
+  const endIdx = Math.min(startIdx + count - 1, bloques.length - 1);
+  return `${bloques[startIdx].inicio} – ${bloques[endIdx].fin}`;
+}
+
 function parseClase(clase) {
   const parts = clase.trim().split(/\s+(?:Profes?\.?|Prof\.?)\s+/i);
   const materia = parts[0].trim();
@@ -142,8 +213,138 @@ function GlobalSearch({ onNavigate, docenteNames, materiaNames, data }) {
 }
 
 // ========== Vistas principales ==========
+function TurnoGrid({ bloques, turnoLabel, filtered, days, expandedCell, setExpandedCell, getDocName, getMateriaName }) {
+  // Para cada día y cada bloque, calcular qué clase empieza ahí y cuántos bloques ocupa
+  // También rastrear bloques "ocupados" por rowSpan de filas anteriores
+  const cellMap = useMemo(() => {
+    // cellMap[dia][bloqueIdx] = { entry, span } | "skip" | null
+    const map = {};
+    days.forEach(day => {
+      map[day] = {};
+      const occupied = {}; // bloqueIdx -> true si ya está cubierto por un rowSpan anterior
+      bloques.forEach((bloque, bi) => {
+        if (occupied[bi]) { map[day][bi] = "skip"; return; }
+        // Buscar entradas cuya hora de inicio corresponde a este bloque
+        const entries = filtered.filter(d => {
+          if (d.dia !== day) return false;
+          const t = d.turno || detectTurnoFromHora(d.hora);
+          if (turnoLabel === "DIURNO" && t !== "DIURNO") return false;
+          if (turnoLabel === "VESPERTINO" && t !== "VESPERTINO") return false;
+          const sb = findStartBlock(bloques, d.hora);
+          return sb === bi;
+        });
+        if (entries.length === 0) { map[day][bi] = null; return; }
+        // Calcular el span máximo (según la primera entrada, o el mayor)
+        let span = 1;
+        entries.forEach(e => {
+          const s = countBlocks(bloques, e.hora);
+          if (s > span) span = s;
+        });
+        span = Math.min(span, bloques.length - bi);
+        map[day][bi] = { entries, span };
+        for (let k = bi + 1; k < bi + span; k++) occupied[k] = true;
+      });
+    });
+    return map;
+  }, [bloques, days, filtered, turnoLabel]);
+
+  return (
+    <div style={{ ...S.card, marginBottom: 20 }}>
+      <div style={{ padding: "10px 16px", background: turnoLabel === "DIURNO" ? "#EFF6FF" : "#FDF2F8", borderBottom: "1px solid #E5E7EB", display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 14 }}>{turnoLabel === "DIURNO" ? "☀️" : "🌙"}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: turnoLabel === "DIURNO" ? "#1D4ED8" : "#BE185D" }}>{turnoLabel === "DIURNO" ? "Turno Diurno" : "Turno Vespertino"}</span>
+        <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: 4 }}>
+          {turnoLabel === "DIURNO" ? "7:30AM – 12:00PM" : "1:00PM – 5:30PM"} · bloques de 45 min
+        </span>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+        <thead>
+          <tr>
+            <th style={{ ...S.th, width: 140 }}>Bloque</th>
+            {days.map(d => (<th key={d} style={{ ...S.th, borderLeft: "1px solid #E5E7EB" }}>{d.charAt(0) + d.slice(1).toLowerCase()}</th>))}
+          </tr>
+        </thead>
+        <tbody>
+          {bloques.map((bloque, bi) => {
+            // Construir las celdas del día para este bloque
+            const cells = days.map(day => {
+              const cell = cellMap[day]?.[bi];
+              if (cell === "skip") return { skip: true };
+              if (!cell) return { empty: true };
+              return { data: cell };
+            });
+            const isAltRow = bi % 2 === 0;
+            const rowBg = isAltRow ? "#fff" : "#FAFAFA";
+            return (
+              <tr key={bi}>
+                <td style={{ ...S.td, fontSize: 11, fontWeight: 600, color: "#9CA3AF", whiteSpace: "nowrap", background: rowBg, verticalAlign: "middle" }}>
+                  <div style={{ lineHeight: 1.4 }}>{bloque.inicio}</div>
+                  <div style={{ color: "#D1D5DB", fontSize: 10 }}>↓ {bloque.fin}</div>
+                </td>
+                {cells.map((cell, ci) => {
+                  const day = days[ci];
+                  if (cell.skip) return null;
+                  const cellKey = `${turnoLabel}__${bi}__${day}`;
+                  const isExp = expandedCell === cellKey;
+                  if (cell.empty) {
+                    return (
+                      <td key={day} style={{ padding: "4px 6px", borderTop: "1px solid #F3F4F6", borderLeft: "1px solid #F3F4F6", background: rowBg }} />
+                    );
+                  }
+                  const { entries, span } = cell.data;
+                  return (
+                    <td key={day} rowSpan={span} style={{ padding: "4px 6px", borderTop: "1px solid #F3F4F6", borderLeft: "1px solid #F3F4F6", verticalAlign: "top", background: isExp ? "#F0F9FF" : "#fff" }}>
+                      {entries.map((e, i) => {
+                        const { materia: rawMateria, docente: rawDoc } = parseClase(e.clase);
+                        const materia = getMateriaName(rawMateria);
+                        const docente = getDocName(rawDoc);
+                        const bg = TRAYECTO_BG[e.trayecto] || "#f0f0f0";
+                        const col = TRAYECTO_COLORS[e.trayecto] || "#555";
+                        const eSpan = countBlocks(bloques, e.hora);
+                        const horaRango = getHoraRango(bloques, findStartBlock(bloques, e.hora), eSpan);
+                        return (
+                          <div key={i} onClick={() => setExpandedCell(isExp ? null : cellKey)}
+                            style={{ background: bg, borderLeft: `3px solid ${col}`, borderRadius: 6, padding: "5px 8px", marginBottom: i < entries.length - 1 ? 3 : 0, cursor: "pointer", transition: "box-shadow 0.15s", boxShadow: isExp ? `0 0 0 1.5px ${col}40` : "none", minHeight: span > 1 ? `${span * 44 - 12}px` : undefined, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: col, lineHeight: 1.3 }}>{materia.length > 28 ? materia.slice(0, 26) + "…" : materia}</div>
+                            {docente && <div style={{ fontSize: 11, color: col, opacity: 0.7, marginTop: 1 }}>{docente}</div>}
+                            {span > 1 && <div style={{ fontSize: 10, color: col, opacity: 0.55, marginTop: 2 }}>{horaRango}</div>}
+                            {isExp && (<div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${col}25`, fontSize: 11 }}>
+                              <div style={{ color: col, opacity: 0.85 }}>📂 {e.sheet.trim()}</div>
+                              <div style={{ color: col, opacity: 0.85 }}>🏫 {e.aula || "Sin aula"}</div>
+                              <div style={{ color: col, opacity: 0.85 }}>⏰ {horaRango}</div>
+                              <div style={{ color: col, opacity: 0.85 }}>📐 {eSpan} bloque{eSpan > 1 ? "s" : ""}</div>
+                            </div>)}
+                          </div>
+                        );
+                      })}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function HorariosView({ filtered, gridData, selectedTrayecto, setSelectedTrayecto, selectedSeccion, setSelectedSeccion, selectedTurno, setSelectedTurno, activeDay, setActiveDay, seccionesByTrayecto, expandedCell, setExpandedCell, getDocName, getMateriaName, allTrayectos, allTurnos }) {
   const days = activeDay === "all" ? DAYS : [activeDay];
+
+  // Determinar qué turnos mostrar
+  const showDiurno  = selectedTurno === "all" || selectedTurno === "DIURNO";
+  const showVesp    = selectedTurno === "all" || selectedTurno === "VESPERTINO";
+
+  // Filtrar entradas por turno para cada grid
+  const filteredDiurno = filtered.filter(d => {
+    const t = d.turno || detectTurnoFromHora(d.hora);
+    return t === "DIURNO";
+  });
+  const filteredVesp = filtered.filter(d => {
+    const t = d.turno || detectTurnoFromHora(d.hora);
+    return t === "VESPERTINO";
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -167,46 +368,35 @@ function HorariosView({ filtered, gridData, selectedTrayecto, setSelectedTrayect
         {["all", ...DAYS].map(d => (<button key={d} onClick={() => setActiveDay(d)} style={S.btn(activeDay === d)}>{d === "all" ? "Semana completa" : d.charAt(0) + d.slice(1).toLowerCase()}</button>))}
       </div>
       <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
-        <div style={S.card}>
-          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-            <thead>
-              <tr>
-                <th style={{ ...S.th, width: 130 }}>Hora</th>
-                {days.map(d => (<th key={d} style={{ ...S.th, borderLeft: "1px solid #E5E7EB" }}>{d.charAt(0) + d.slice(1).toLowerCase()}</th>))}
-              </tr>
-            </thead>
-            <tbody>
-              {getUniqueHoras(filtered).map((hora, ri) => (
-                <tr key={hora}>
-                  <td style={{ ...S.td, fontSize: 11, fontWeight: 600, color: "#9CA3AF", whiteSpace: "nowrap", background: ri % 2 === 0 ? "#fff" : "#FAFAFA" }}>{hora}</td>
-                  {days.map(day => {
-                    const entries = gridData[`${hora}__${day}`] || [];
-                    const cellKey = `${hora}__${day}`;
-                    const isExp = expandedCell === cellKey;
-                    return (
-                      <td key={day} style={{ padding: "4px 6px", borderTop: "1px solid #F3F4F6", borderLeft: "1px solid #F3F4F6", verticalAlign: "top", background: ri % 2 === 0 ? "#fff" : "#FAFAFA" }}>
-                        {entries.map((e, i) => {
-                          const { materia: rawMateria, docente: rawDoc } = parseClase(e.clase);
-                          const materia = getMateriaName(rawMateria);
-                          const docente = getDocName(rawDoc);
-                          const bg = TRAYECTO_BG[e.trayecto] || "#f0f0f0";
-                          const col = TRAYECTO_COLORS[e.trayecto] || "#555";
-                          return (
-                            <div key={i} onClick={() => setExpandedCell(isExp ? null : cellKey)} style={{ background: bg, borderLeft: `3px solid ${col}`, borderRadius: 6, padding: "5px 8px", marginBottom: i < entries.length - 1 ? 3 : 0, cursor: "pointer", transition: "box-shadow 0.15s", boxShadow: isExp ? `0 0 0 1.5px ${col}40` : "none" }}>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: col, lineHeight: 1.3 }}>{materia.length > 28 ? materia.slice(0, 26) + "…" : materia}</div>
-                              {docente && <div style={{ fontSize: 11, color: col, opacity: 0.7, marginTop: 1 }}>{docente}</div>}
-                              {isExp && (<div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${col}25`, fontSize: 11 }}><div style={{ color: col, opacity: 0.85 }}>📂 {e.sheet.trim()}</div><div style={{ color: col, opacity: 0.85 }}>🏫 {e.aula || "Sin aula"}</div><div style={{ color: col, opacity: 0.85 }}>⏰ {e.turno}</div></div>)}
-                            </div>
-                          );
-                        })}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {showDiurno && filteredDiurno.length > 0 && (
+          <TurnoGrid
+            bloques={BLOQUES_DIURNO}
+            turnoLabel="DIURNO"
+            filtered={filteredDiurno}
+            days={days}
+            expandedCell={expandedCell}
+            setExpandedCell={setExpandedCell}
+            getDocName={getDocName}
+            getMateriaName={getMateriaName}
+          />
+        )}
+        {showVesp && filteredVesp.length > 0 && (
+          <TurnoGrid
+            bloques={BLOQUES_VESPERTINO}
+            turnoLabel="VESPERTINO"
+            filtered={filteredVesp}
+            days={days}
+            expandedCell={expandedCell}
+            setExpandedCell={setExpandedCell}
+            getDocName={getDocName}
+            getMateriaName={getMateriaName}
+          />
+        )}
+        {filtered.length === 0 && (
+          <div style={{ ...S.card, padding: "60px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>
+            No hay clases para los filtros seleccionados.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -598,19 +788,36 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
   const [turno, setTurno] = useState("DIURNO");
   const [selectedDay, setSelectedDay] = useState(DAYS[0]);
 
+  // Helper: dado un registro, devuelve el rango horario formateado
+  const getHoraDisplay = (d) => {
+    const bloques = d.turno === "VESPERTINO" ? BLOQUES_VESPERTINO : BLOQUES_DIURNO;
+    const sb = findStartBlock(bloques, d.hora);
+    const span = countBlocks(bloques, d.hora);
+    return getHoraRango(bloques, sb, span);
+  };
+
   const docentesDelDia = useMemo(() => {
     const map = {};
     data.filter(d => d.turno === turno && d.dia === selectedDay).forEach(d => {
       const { docente, materia } = parseClase(d.clase);
       if (!docente) return;
       if (!map[docente]) map[docente] = { clases: [] };
+      const bloques = turno === "VESPERTINO" ? BLOQUES_VESPERTINO : BLOQUES_DIURNO;
+      const sb = findStartBlock(bloques, d.hora);
+      const span = countBlocks(bloques, d.hora);
+      const horaRango = getHoraRango(bloques, sb, span);
       map[docente].clases.push({ 
         materia: getMateriaName(materia), 
-        hora: d.hora, 
+        hora: horaRango,
+        horaMin: timeToMin(bloques[sb].inicio),
         seccion: d.sheet.trim(), 
         trayecto: d.trayecto, 
         aula: d.aula 
       });
+    });
+    // Ordenar clases de cada docente por hora
+    Object.values(map).forEach(v => {
+      v.clases.sort((a, b) => a.horaMin - b.horaMin);
     });
     return Object.entries(map).sort((a, b) => getDocName(a[0]).localeCompare(getDocName(b[0])));
   }, [data, turno, selectedDay, getDocName, getMateriaName]);
@@ -637,14 +844,14 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
         <body>
           <div class="page">
             <h1>Control de Asistencia Docentes</h1>
-            <div class="subtitle">PNF en Informática · Cabimas - Sede Los Laureles · ${selectedDay.charAt(0) + selectedDay.slice(1).toLowerCase()} · Turno: ${turno.charAt(0) + turno.slice(1).toLowerCase()} · 2-2026</div>
+            <div class="subtitle">PNF en Informática · Cabimas - Sede Los Laureles · ${selectedDay.charAt(0) + selectedDay.slice(1).toLowerCase()} · Turno: ${turno === "DIURNO" ? "Diurno (7:30AM – 12:00PM)" : "Vespertino (1:00PM – 5:30PM)"} · 2-2026</div>
             <table>
               <thead>
                 <tr>
                   <th style="width:30px">N°</th>
                   <th style="width:180px">Docente</th>
                   <th>Materia(s) / Sección(es)</th>
-                  <th style="width:90px">Hora</th>
+                  <th style="width:140px">Horario</th>
                   <th style="width:80px">Entrada</th>
                   <th style="width:80px">Salida</th>
                   <th style="width:120px">Firma</th>
@@ -659,7 +866,9 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
                       <td class="docente-name">${displayName}</td>
                       <td>${info.clases.map(c => `${c.materia} — ${c.seccion}`).join("<br>")}</td>
                       <td>${info.clases.map(c => c.hora).join("<br>")}</td>
-                      <td></div><div class="firma-box"></div></td>
+                      <td><div class="firma-box"></div></td>
+                      <td><div class="firma-box"></div></td>
+                      <td><div class="firma-box"></div></td>
                     </tr>
                   `;
                 }).join("")}
@@ -688,7 +897,7 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
         <div style={{ marginLeft: "auto" }}><button onClick={handlePrint} style={{ padding: "8px 18px", background: "#2563EB", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>🖨️ Imprimir / PDF</button></div>
       </div>
       <div style={S.card}>
-        <div style={{ padding: "14px 20px", borderBottom: "1px solid #E5E7EB", background: "#F9FAFB" }}><div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>Control de Asistencia Docentes</div><div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>PNF en Informática · Cabimas - Sede Los Laureles · {selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: {turno.charAt(0)+turno.slice(1).toLowerCase()} · 2-2026</div></div>
+        <div style={{ padding: "14px 20px", borderBottom: "1px solid #E5E7EB", background: "#F9FAFB" }}><div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>Control de Asistencia Docentes</div><div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>PNF en Informática · Cabimas - Sede Los Laureles · {selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: {turno === "DIURNO" ? "Diurno (7:30AM – 12:00PM)" : "Vespertino (1:00PM – 5:30PM)"} · 2-2026</div></div>
         {docentesDelDia.length === 0 ? (<div style={{ padding: "40px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>No hay docentes registrados para {turno.toLowerCase()} el {selectedDay.toLowerCase()}.</div>) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -696,7 +905,7 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
                 <th style={{ ...S.th, width: 36 }}>N°</th>
                 <th style={{ ...S.th, width: 200 }}>Docente</th>
                 <th style={S.th}>Materia(s) / Sección(es)</th>
-                <th style={{ ...S.th, width: 120 }}>Hora</th>
+                <th style={{ ...S.th, width: 150 }}>Horario</th>
                 <th style={{ ...S.th, width: 80 }}>Entrada</th>
                 <th style={{ ...S.th, width: 80 }}>Salida</th>
                 <th style={{ ...S.th, width: 120 }}>Firma</th>
@@ -718,7 +927,7 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
                         </div>
                       ))}
                     </td>
-                    <td style={{ ...S.td, fontSize: 12, color: "#6B7280" }}>{info.clases.map((c, i) => (<div key={i} style={{ marginBottom: i < info.clases.length - 1 ? 4 : 0 }}>{c.hora}</div>))}</td>
+                    <td style={{ ...S.td, fontSize: 12, color: "#6B7280", whiteSpace: "nowrap" }}>{info.clases.map((c, i) => (<div key={i} style={{ marginBottom: i < info.clases.length - 1 ? 4 : 0 }}>{c.hora}</div>))}</td>
                     <td style={{ ...S.td, border: "1px solid #E5E7EB" }}></td>
                     <td style={{ ...S.td, border: "1px solid #E5E7EB" }}></td>
                     <td style={{ ...S.td, border: "1px solid #E5E7EB", height: 44 }}></td>
