@@ -168,6 +168,55 @@ function normalizarPrograma(raw) {
   return raw.trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
 
+// ========== COMPONENTE TOAST ==========
+function Toast({ message, type = "success", onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const bgColors = {
+    success: "#059669",
+    error: "#DC2626",
+    warning: "#D97706",
+    info: "#2563EB"
+  };
+
+  return (
+    <div style={{
+      position: "fixed",
+      top: 20,
+      right: 20,
+      zIndex: 9999,
+      background: bgColors[type] || bgColors.success,
+      color: "#fff",
+      padding: "12px 20px",
+      borderRadius: 8,
+      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+      fontSize: 13,
+      fontWeight: 500,
+      maxWidth: 400,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      animation: "slideIn 0.3s ease",
+      cursor: "pointer"
+    }}
+    onClick={onClose}
+    >
+      <span style={{ fontSize: 16 }}>
+        {type === "success" ? "✅" : type === "error" ? "❌" : type === "warning" ? "⚠️" : "ℹ️"}
+      </span>
+      <span style={{ flex: 1 }}>{message}</span>
+      <button onClick={(e) => { e.stopPropagation(); onClose(); }} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 16, padding: 0, opacity: 0.8, fontWeight: 700 }}>
+        ×
+      </button>
+    </div>
+  );
+}
+
 function Avatar({ name, size = 36 }) {
   const safeName = name || "Docente";
   const initials = typeof safeName === "string"
@@ -723,16 +772,10 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
     }
   }, [sel, getMateriaName]);
 
-  const selEntries = useMemo(() => {
-    if (!sel || !byMateria[sel]) return [];
-    return byMateria[sel];
-  }, [sel, byMateria]);
-  
-  const filteredSorted = useMemo(() => {
-    if (!search) return sorted;
-    const lo = search.toLowerCase();
-    return sorted.filter(m => getMateriaName(m).toLowerCase().includes(lo));
-  }, [search, sorted, getMateriaName]);
+  const selEntries = sel && byMateria[sel] ? byMateria[sel] : [];
+  const filteredSorted = search 
+    ? sorted.filter(m => getMateriaName(m).toLowerCase().includes(search.toLowerCase())) 
+    : sorted;
 
   const saveEdit = async () => { 
     const trimmed = editValue.trim(); 
@@ -1279,6 +1322,11 @@ const NAV_ITEMS = [
 ];
 
 const responsiveCSS = `
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
   @media (max-width: 768px) {
     .hamburger-btn { display: block !important; }
     .sidebar-aside { transform: translateX(-100%); position: fixed !important; z-index: 300; height: 100vh; transition: transform 0.25s ease; }
@@ -1333,6 +1381,7 @@ export default function App() {
   const [materiaNav, setMateriaNav] = useState(null);
   const [docenteNames, setDocenteNames] = useState({});
   const [materiaNames, setMateriaNames] = useState({});
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1450,7 +1499,7 @@ export default function App() {
     try {
       const unified = await unifyName("docentes", rawName, displayName);
       if (unified) {
-        alert(`✅ El docente "${displayName}" ya existía. Se han unificado los registros bajo "${unified.canonicalDisplay}".`);
+        setToast({ message: `✅ El docente se ha unificado con "${unified.canonicalDisplay}".`, type: "success" });
         await fetchDocenteNames();
         await fetchHorarios();
         return { success: true, targetRaw: unified.targetRaw };
@@ -1460,10 +1509,11 @@ export default function App() {
         .upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
       if (error) throw error;
       setDocenteNames(prev => ({ ...prev, [rawName]: displayName }));
+      setToast({ message: "✅ Nombre del docente actualizado correctamente.", type: "success" });
       return { success: true };
     } catch (err) {
       console.error(err);
-      alert("❌ Error al guardar: " + err.message);
+      setToast({ message: "❌ Error al guardar: " + err.message, type: "error" });
       return { success: false };
     }
   };
@@ -1472,7 +1522,7 @@ export default function App() {
     try {
       const unified = await unifyName("materias", rawName, displayName);
       if (unified) {
-        alert(`✅ La materia "${displayName}" ya existía. Se han unificado los registros bajo "${unified.canonicalDisplay}".`);
+        setToast({ message: `✅ La materia se ha unificado con "${unified.canonicalDisplay}".`, type: "success" });
         await fetchMateriaNames();
         await fetchHorarios();
         return { success: true, targetRaw: unified.targetRaw };
@@ -1482,10 +1532,11 @@ export default function App() {
         .upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
       if (error) throw error;
       setMateriaNames(prev => ({ ...prev, [rawName]: displayName }));
+      setToast({ message: "✅ Nombre de la materia actualizado correctamente.", type: "success" });
       return { success: true };
     } catch (err) {
       console.error(err);
-      alert("❌ Error al guardar: " + err.message);
+      setToast({ message: "❌ Error al guardar: " + err.message, type: "error" });
       return { success: false };
     }
   };
@@ -1505,9 +1556,9 @@ export default function App() {
     if (error) {
       console.error(error);
       setError("Error al borrar los datos: " + error.message);
-      alert("❌ Error al borrar: " + error.message + "\n\nVerifica las políticas de seguridad en Supabase (RLS).");
+      setToast({ message: "❌ Error al borrar los datos.", type: "error" });
     } else {
-      alert(`✅ Registros eliminados correctamente.`);
+      setToast({ message: "✅ Registros eliminados correctamente.", type: "success" });
       await fetchHorarios();
       await fetchProgramas();
     }
@@ -1582,7 +1633,6 @@ export default function App() {
         const turnoNorm = getTurnoByCodigo(sheetName) || normalizeTurno(turno) || null;
         turno = turnoNorm || turno;
         
-        let filasProcesadas = 0;
         for (let i = headerRowIdx + 1; i < json.length; i++) {
           const row = json[i];
           const hora = row[horaColIdx]?.toString().trim();
@@ -1593,7 +1643,6 @@ export default function App() {
             const clase = row[colIdx]?.toString().trim();
             if (clase && clase !== "") {
               allRows.push({ sheet: sheetName, programa, trayecto, seccion, turno, sede, aula: aula || null, dia, hora, clase });
-              filasProcesadas++;
             }
           }
         }
@@ -1616,7 +1665,7 @@ export default function App() {
       const duplicateCount = allRows.length - newRows.length;
       
       if (newRows.length === 0) {
-        alert(`⚠️ No se cargaron nuevos registros. ${duplicateCount} duplicados.`);
+        setToast({ message: `⚠️ No se cargaron nuevos registros. ${duplicateCount} duplicados.`, type: "warning" });
         setUploading(false);
         return;
       }
@@ -1625,11 +1674,11 @@ export default function App() {
       if (insertError) {
         console.error(insertError);
         setError("Error al guardar: " + insertError.message);
-        alert("❌ Error al guardar: " + insertError.message);
+        setToast({ message: "❌ Error al guardar: " + insertError.message, type: "error" });
       } else {
         let message = `✅ Se cargaron ${newRows.length} clases.`;
-        if (duplicateCount > 0) message += `\n⚠️ Se omitieron ${duplicateCount} duplicados.`;
-        alert(message);
+        if (duplicateCount > 0) message += ` Se omitieron ${duplicateCount} duplicados.`;
+        setToast({ message, type: "success" });
         await fetchHorarios();
         await fetchProgramas();
         
@@ -1742,6 +1791,13 @@ export default function App() {
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "system-ui,-apple-system,sans-serif", background: "#F3F4F6", overflow: "hidden" }}>
       <ResponsiveStyles />
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
       <div
         className="sidebar-overlay"
         onClick={() => setSidebarOpen(false)}
