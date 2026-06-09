@@ -113,30 +113,18 @@ function countBlocks(horaStr) {
 function getHoraDisplayDeRegistro(d) {
   if (!d || !d.hora) return "—";
   
-  // Si la hora ya viene en formato "inicio – fin", extraer ambas partes
-  const parts = d.hora.replace(/\s/g, "").split(/[-–]/);
+  // Extraer partes de la hora original
+  const horaOriginal = d.hora.replace(/\s/g, "");
+  const parts = horaOriginal.split(/[-–]/);
   
   if (parts.length >= 2) {
-    const horaInicio = parts[0];
-    const horaFin = parts[1];
-    
-    // Formatear para mostrar
-    const inicioFormateado = horaInicio.replace("AM", " AM").replace("PM", " PM");
-    const finFormateado = horaFin.replace("AM", " AM").replace("PM", " PM");
-    
-    return `${inicioFormateado} – ${finFormateado}`;
+    const inicio = parts[0].replace("AM", " AM").replace("PM", " PM");
+    const fin = parts[1].replace("AM", " AM").replace("PM", " PM");
+    return `${inicio} – ${fin}`;
   }
   
-  // Si solo tiene hora de inicio, usar el sistema de bloques
-  const turno = getTurnoDeRegistro(d);
-  const bloques = getBloquesForTurno(turno);
-  const sb = findStartBlock(bloques, d.hora);
-  
-  if (bloques[sb]) {
-    return bloques[sb].inicio.replace("AM", " AM").replace("PM", " PM");
-  }
-  
-  return d.hora;
+  // Si solo tiene una hora (sin rango), devolverla formateada
+  return horaOriginal.replace("AM", " AM").replace("PM", " PM");
 }
 
 function getHoraMin(d) {
