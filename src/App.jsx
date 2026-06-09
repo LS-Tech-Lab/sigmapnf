@@ -233,7 +233,7 @@ function GlobalSearch({ onNavigate, docenteNames, materiaNames, data }) {
       {open && results.length > 0 && (
         <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: "#fff", borderRadius: 10, border: "1px solid #E5E7EB", boxShadow: "0 8px 24px rgba(0,0,0,0.1)", zIndex: 200, overflow: "hidden" }}>
           {results.map((r, i) => (
-            <div key={i} onClick={() => { onNavigate(r); setOpen(false); setQ(""); }} style={{ padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, borderTop: i > 0 ? "1px solid #F3F4F6" : "none" }} onMouseEnter={e => e.currentTarget.style.background = "#F9FAFB"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+            <div key={i} onClick={() => { onNavigate(r); setOpen(false); setQ(""); }} style={{ padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, borderTop: i > 0 ? "1px solid #F3F4F6" : "none" }}>
               <span style={S.badge(TRAYECTO_BG[r.trayecto] || "#f3f4f6", TRAYECTO_COLORS[r.trayecto] || "#555")}>{r.trayecto}</span>
               <div><div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{r.materia}</div>{r.docente && <div style={{ fontSize: 11, color: "#9CA3AF" }}>{r.docente}</div>}</div>
             </div>
@@ -372,7 +372,7 @@ function SeccionesView({ data, getDocName, getMateriaName }) {
   const allSecciones = useMemo(() => [...new Set(data.map(d => d.sheet.trim()))].sort(), [data]);
   const [selSheet, setSelSheet] = useState(null);
   const [filterTray, setFilterTray] = useState("all");
-  useEffect(() => { if (allSecciones.length > 0 && (!selSheet || !allSecciones.includes(selSheet))) setSelSheet(allSecciones[0]); }, [allSecciones]);
+  useEffect(() => { if (allSecciones.length && (!selSheet || !allSecciones.includes(selSheet))) setSelSheet(allSecciones[0]); }, [allSecciones, selSheet]);
   const filteredSecciones = useMemo(() => filterTray === "all" ? allSecciones : allSecciones.filter(s => data.find(d => d.sheet.trim() === s)?.trayecto === filterTray), [filterTray, allSecciones, data]);
   const entries = useMemo(() => data.filter(d => d.sheet.trim() === selSheet), [data, selSheet]);
   const info = entries[0];
@@ -416,7 +416,7 @@ function SeccionesView({ data, getDocName, getMateriaName }) {
                       const col = TRAYECTO_COLORS[e.trayecto] || "#555", bg = TRAYECTO_BG[e.trayecto] || "#f5f5f5";
                       return <div key={i} style={{ background: bg, borderLeft: `3px solid ${col}`, borderRadius: 5, padding: "5px 8px", marginBottom: 5 }}><div style={{ fontSize: 11, fontWeight: 600, color: col, lineHeight: 1.3 }}>{materia.length > 22 ? materia.slice(0, 20) + "…" : materia}</div><div style={{ fontSize: 10, color: col, opacity: 0.7, marginTop: 2 }}>{getHoraDisplayDeRegistro(e)}</div>{docente && <div style={{ fontSize: 10, color: col, opacity: 0.65, marginTop: 1 }}>{docente.split(" ")[0]}</div>}</div>;
                     })}
-                    {byDay[day].length === 0 && <div style={{ fontSize: 11, color: "#D1D5DB", textAlign: "center", marginTop: 20 }}>—</div>}
+                    {!byDay[day]?.length && <div style={{ fontSize: 11, color: "#D1D5DB", textAlign: "center", marginTop: 20 }}>—</div>}
                   </div>
                 ))}
               </div>
@@ -632,17 +632,20 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
   const [turno, setTurno] = useState("DIURNO");
   const [selectedDay, setSelectedDay] = useState(DAYS[0]);
 
- 
-      // ...
-
   const docentesDelDia = useMemo(() => {
     const map = {};
-  data.filter(d => getTurnoDeRegistro(d) === turno && d.dia === selectedDay).forEach(d => {
-      // DEBUG
-      console.log("HORA ORIGINAL:", d.hora);
-      console.log("HORA FORMATEADA:", getHoraDisplayDeRegistro(d));
-      
+    data.filter(d => getTurnoDeRegistro(d) === turno && d.dia === selectedDay).forEach(d => {
       const { docente, materia } = parseClase(d.clase);
+      if (!docente) return;
+      if (!map[docente]) map[docente] = { clases: [] };
+      map[docente].clases.push({
+        materia: getMateriaName(materia),
+        hora: getHoraDisplayDeRegistro(d),
+        horaMin: getHoraMin(d),
+        seccion: d.sheet.trim(),
+        trayecto: d.trayecto,
+        aula: d.aula
+      });
     });
     Object.values(map).forEach(v => { v.clases.sort((a, b) => a.horaMin - b.horaMin); });
     return Object.entries(map).sort((a, b) => getDocName(a[0]).localeCompare(getDocName(b[0])));
@@ -651,7 +654,7 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
   const handlePrint = () => {
     const win = window.open("", "_blank");
     if (!win) { alert("⚠️ El navegador bloqueó la ventana emergente."); return; }
-    const html = `<!DOCTYPE html><html><head><title>Asistencia</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11px;color:#000}.page{padding:20px}h1{font-size:15px;margin-bottom:4px}.subtitle{font-size:11px;color:#555;margin-bottom:16px}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#f0f0f0;border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase}td{border:1px solid #ccc;padding:6px 8px;font-size:11px;vertical-align:top}.docente-name{font-weight:bold;font-size:12px}.firma-box{width:120px;height:40px;border:1px solid #999}</style></head><body><div class="page"><h1>Control de Asistencia Docentes</h1><div class="subtitle">${selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: ${turno==="DIURNO"?"Diurno":"Vespertino"} · 2-2026</div><table><thead><tr><th>N°</th><th>Docente</th><th>Materia(s) / Sección(es)</th><th>Horario</th><th>Entrada</th><th>Salida</th><th>Firma</th></tr></thead><tbody>${docentesDelDia.map(([rd, info], idx) => `<tr><td>${idx+1}</td><td class="docente-name">${getDocName(rd)}</td><td>${info.clases.map(c => `${c.materia} — ${c.seccion}`).join("<br>")}</td><td>${info.clases.map(c => c.hora).join("<br>")}</td><td><div class="firma-box"></div></td><td><div class="firma-box"></div></td><td><div class="firma-box"></div></td></tr>`).join("")}</tbody></table></div></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>Asistencia</title><style>*{margin:0;padding:0}body{font-family:Arial;font-size:11px}.page{padding:20px}h1{font-size:15px}.subtitle{font-size:11px;color:#555;margin-bottom:16px}table{width:100%;border-collapse:collapse}th{background:#f0f0f0;border:1px solid #ccc;padding:6px 8px;font-size:10px}td{border:1px solid #ccc;padding:6px 8px;font-size:11px}.docente-name{font-weight:bold}.firma-box{width:120px;height:40px;border:1px solid #999}</style></head><body><div class="page"><h1>Control de Asistencia Docentes</h1><div class="subtitle">${selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: ${turno==="DIURNO"?"Diurno":"Vespertino"} · 2-2026</div><table><thead><tr><th>N°</th><th>Docente</th><th>Materia(s) / Sección(es)</th><th>Horario</th><th>Entrada</th><th>Salida</th><th>Firma</th></tr></thead><tbody>${docentesDelDia.map(([rd, info], idx) => `<tr><td>${idx+1}</td><td class="docente-name">${getDocName(rd)}</td><td>${info.clases.map(c => `${c.materia} — ${c.seccion}`).join("<br>")}</td><td>${info.clases.map(c => c.hora).join("<br>")}</td><td><div class="firma-box"></div></td><td><div class="firma-box"></div></td><td><div class="firma-box"></div></td></tr>`).join("")}</tbody></table></div></body></html>`;
     win.document.write(html);
     win.document.close();
     win.focus();
@@ -668,13 +671,13 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
       </div>
       <div style={S.card}>
         <div style={{ padding: "14px 20px", borderBottom: "1px solid #E5E7EB", background: "#F9FAFB" }}><div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>Control de Asistencia Docentes</div><div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>PNF en Informática · {selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: {turno === "DIURNO" ? "Diurno (7:30AM – 12:00PM)" : "Vespertino (1:00PM – 5:30PM)"} · 2-2026</div></div>
-        {docentesDelDia.length === 0 ? <div style={{ padding: "40px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>No hay docentes registrados.</div> : (
+        {!docentesDelDia.length ? <div style={{ padding: "40px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>No hay docentes registrados.</div> : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr><th style={{ ...S.th, width: 36 }}>N°</th><th style={{ ...S.th, width: 200 }}>Docente</th><th style={S.th}>Materia(s) / Sección(es)</th><th style={{ ...S.th, width: 150 }}>Horario</th><th style={{ ...S.th, width: 80 }}>Entrada</th><th style={{ ...S.th, width: 80 }}>Salida</th><th style={{ ...S.th, width: 120 }}>Firma</th></tr></thead>
             <tbody>{docentesDelDia.map(([rd, info], idx) => <tr key={rd} style={{ background: idx % 2 === 0 ? "#fff" : "#FAFAFA" }}><td style={{ ...S.td, textAlign: "center", color: "#9CA3AF", fontSize: 12 }}>{idx+1}</td><td style={S.td}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><Avatar name={getDocName(rd)} size={28} /><span style={{ fontWeight: 600, fontSize: 13, color: "#111827" }}>{getDocName(rd)}</span></div></td><td style={{ ...S.td, fontSize: 12 }}>{info.clases.map((c, i) => <div key={i} style={{ marginBottom: i < info.clases.length - 1 ? 4 : 0 }}><span style={{ fontWeight: 500 }}>{c.materia}</span><span style={{ color: "#9CA3AF", marginLeft: 6 }}>— {c.seccion}</span>{c.trayecto && <span style={{ ...S.badge(TRAYECTO_BG[c.trayecto] || "#f3f4f6", TRAYECTO_COLORS[c.trayecto] || "#555"), marginLeft: 6 }}>T.{c.trayecto}</span>}</div>)}</td><td style={{ ...S.td, fontSize: 12, color: "#6B7280", whiteSpace: "nowrap" }}>{info.clases.map((c, i) => <div key={i} style={{ marginBottom: i < info.clases.length - 1 ? 4 : 0 }}>{c.hora}</div>)}</td><td style={{ ...S.td, border: "1px solid #E5E7EB" }}></td><td style={{ ...S.td, border: "1px solid #E5E7EB" }}></td><td style={{ ...S.td, border: "1px solid #E5E7EB", height: 44 }}></td></tr>)}</tbody>
           </table>
         )}
-        {docentesDelDia.length > 0 && <div style={{ padding: "16px 20px", borderTop: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between" }}><div style={{ fontSize: 12, color: "#9CA3AF" }}>Total docentes: <strong style={{ color: "#111827" }}>{docentesDelDia.length}</strong></div><div style={{ fontSize: 12, color: "#9CA3AF" }}>Total clases: <strong style={{ color: "#111827" }}>{docentesDelDia.reduce((a, [, v]) => a + v.clases.length, 0)}</strong></div></div>}
+        {docentesDelDia.length > 0 && <div style={{ padding: "16px 20px", borderTop: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between" }}><div>Total docentes: <strong>{docentesDelDia.length}</strong></div><div>Total clases: <strong>{docentesDelDia.reduce((a, [, v]) => a + v.clases.length, 0)}</strong></div></div>}
       </div>
     </div>
   );
@@ -683,12 +686,11 @@ function AsistenciasView({ data, getDocName, getMateriaName }) {
 function ConflictosView({ conflicts, onGoDocente, getDocName }) {
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><h1 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>⚠️ Conflictos detectados</h1><span style={S.badge(conflicts.length > 0 ? "#FEF2F2" : "#F0FDF4", conflicts.length > 0 ? "#DC2626" : "#16A34A")}>{conflicts.length} {conflicts.length === 1 ? "conflicto" : "conflictos"}</span></div>
-      {conflicts.length === 0 ? <div style={{ ...S.card, padding: "60px 20px", textAlign: "center" }}><div style={{ fontSize: 48, marginBottom: 12 }}>✅</div><div style={{ fontSize: 17, fontWeight: 600, color: "#111827" }}>Sin conflictos</div></div> : (
-        <>
-          <div style={{ ...S.card, padding: "14px 18px", marginBottom: 20, background: "#FFFBEB", border: "1px solid #FDE68A", display: "flex", gap: 10, alignItems: "flex-start" }}><span>💡</span><div style={{ fontSize: 13, color: "#92400E" }}>Un conflicto ocurre cuando el mismo docente aparece asignado a dos grupos distintos en el mismo día y horario.</div></div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><h1 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>⚠️ Conflictos detectados</h1><span style={S.badge(conflicts.length > 0 ? "#FEF2F2" : "#F0FDF4", conflicts.length > 0 ? "#DC2626" : "#16A34A")}>{conflicts.length}</span></div>
+      {!conflicts.length ? <div style={{ ...S.card, padding: "60px 20px", textAlign: "center" }}><div style={{ fontSize: 48 }}>✅</div><div style={{ fontSize: 17, fontWeight: 600, color: "#111827" }}>Sin conflictos</div></div> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {conflicts.map((c, i) => (
-            <div key={i} style={{ ...S.card, borderLeft: "4px solid #EF4444", padding: "14px 18px", marginBottom: 12 }}>
+            <div key={i} style={{ ...S.card, borderLeft: "4px solid #EF4444", padding: "14px 18px" }}>
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
                 <div style={{ flex: 1 }}>
@@ -701,7 +703,7 @@ function ConflictosView({ conflicts, onGoDocente, getDocName }) {
               </div>
             </div>
           ))}
-        </>
+        </div>
       )}
     </div>
   );
@@ -727,15 +729,13 @@ function EstadisticasView({ stats, byDocente, byMateria, data, getDocName, getMa
         <StatCard label="Docentes" value={stats.docentes} icon="👥" color="#7C3AED" />
         <StatCard label="Materias únicas" value={stats.materias} icon="📖" color="#D97706" />
       </div>
-      <div className="stats-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Clases por trayecto</div>{Object.entries(trayectoCount).sort().map(([t, c]) => <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={S.badge(TRAYECTO_BG[t] || "#f3f4f6", TRAYECTO_COLORS[t] || "#555")}>{t}</span><div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 12, overflow: "hidden" }}><div style={{ width: `${(c/totalClases)*100}%`, height: "100%", background: TRAYECTO_COLORS[t] || "#888", borderRadius: 4 }} /></div><span style={{ fontSize: 12, width: 32, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{c}</span></div>)}</div>
-        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Distribución por día</div>{DAYS.map(d => <div key={d} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ fontSize: 12, width: 80, color: "#6B7280", fontWeight: 500 }}>{d.charAt(0)+d.slice(1).toLowerCase()}</span><div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 12, overflow: "hidden" }}><div style={{ width: `${(dayCount[d]/maxDay)*100}%`, height: "100%", background: "#059669", borderRadius: 4 }} /></div><span style={{ fontSize: 12, width: 32, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{dayCount[d]}</span></div>)}</div>
-      </div>
       <div className="stats-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Docentes con mayor carga</div>{top8Docentes.map(([doc, entries], idx) => <div key={doc} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ fontSize: 11, fontWeight: 700, color: "#D1D5DB", width: 16 }}>{idx+1}</span><span style={{ fontSize: 12, flex: 1, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getDocName(doc)}</span><div style={{ width: 100, background: "#F3F4F6", borderRadius: 4, height: 10, overflow: "hidden" }}><div style={{ width: `${(entries.length/maxLoadDocente)*100}%`, height: "100%", background: "#7C3AED", borderRadius: 4 }} /></div><span style={{ fontSize: 12, width: 24, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{entries.length}</span></div>)}</div>
-        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Materias más frecuentes</div>{topMaterias.map(([mat, entries], idx) => { const cnt = entries.length; return <div key={mat} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ fontSize: 11, fontWeight: 700, color: "#D1D5DB", width: 16 }}>{idx+1}</span><span style={{ fontSize: 12, flex: 1, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={getMateriaName(mat)}>{getMateriaName(mat).length > 28 ? getMateriaName(mat).slice(0,26)+"…" : getMateriaName(mat)}</span><div style={{ width: 100, background: "#F3F4F6", borderRadius: 4, height: 10, overflow: "hidden" }}><div style={{ width: `${(cnt/maxMat)*100}%`, height: "100%", background: "#D97706", borderRadius: 4 }} /></div><span style={{ fontSize: 12, width: 24, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{cnt}</span></div>; })}</div>
-        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Distribución por turno</div>{Object.entries(turnoCount).sort().map(([t, cnt]) => { const pct = totalClases > 0 ? Math.round((cnt/totalClases)*100) : 0; const colors = { DIURNO: "#2563EB", VESPERTINO: "#DB2777" }; return <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}><span style={{ fontSize: 12, width: 90, color: "#6B7280", fontWeight: 500 }}>{t.charAt(0)+t.slice(1).toLowerCase()}</span><div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 14, overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: colors[t] || "#888", borderRadius: 4 }} /></div><span style={{ fontSize: 12, color: "#6B7280", fontWeight: 600, width: 60, textAlign: "right" }}>{cnt} ({pct}%)</span></div>; })}</div>
-        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Secciones por trayecto</div>{ALL_TRAYECTOS.map(t => { const cnt = [...new Set(data.filter(d => d.trayecto === t).map(d => d.sheet.trim()))].length; const pct = seccionesCount > 0 ? (cnt/seccionesCount)*100 : 0; return <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={S.badge(TRAYECTO_BG[t] || "#f3f4f6", TRAYECTO_COLORS[t] || "#555")}>{t}</span><div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 12, overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: TRAYECTO_COLORS[t] || "#888", borderRadius: 4 }} /></div><span style={{ fontSize: 12, width: 32, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{cnt}</span></div>; })}</div>
+        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Clases por trayecto</div>{Object.entries(trayectoCount).sort().map(([t, c]) => <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={S.badge(TRAYECTO_BG[t] || "#f3f4f6", TRAYECTO_COLORS[t] || "#555")}>{t}</span><div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 12, overflow: "hidden" }}><div style={{ width: `${(c/totalClases)*100}%`, height: "100%", background: TRAYECTO_COLORS[t] || "#888", borderRadius: 4 }} /></div><span style={{ fontSize: 12, width: 32, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{c}</span></div>)}</div>
+        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Distribución por día</div>{DAYS.map(d => <div key={d} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ fontSize: 12, width: 80, color: "#6B7280" }}>{d.charAt(0)+d.slice(1).toLowerCase()}</span><div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 12, overflow: "hidden" }}><div style={{ width: `${(dayCount[d]/maxDay)*100}%`, height: "100%", background: "#059669", borderRadius: 4 }} /></div><span style={{ fontSize: 12, width: 32, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{dayCount[d]}</span></div>)}</div>
+        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Docentes con mayor carga</div>{top8Docentes.map(([doc, entries], idx) => <div key={doc} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ fontSize: 11, fontWeight: 700, color: "#D1D5DB", width: 16 }}>{idx+1}</span><span style={{ fontSize: 12, flex: 1, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getDocName(doc)}</span><div style={{ width: 100, background: "#F3F4F6", borderRadius: 4, height: 10, overflow: "hidden" }}><div style={{ width: `${(entries.length/maxLoadDocente)*100}%`, height: "100%", background: "#7C3AED", borderRadius: 4 }} /></div><span style={{ fontSize: 12, width: 24, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{entries.length}</span></div>)}</div>
+        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Materias más frecuentes</div>{topMaterias.map(([mat, entries], idx) => { const cnt = entries.length; return <div key={mat} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ fontSize: 11, fontWeight: 700, color: "#D1D5DB", width: 16 }}>{idx+1}</span><span style={{ fontSize: 12, flex: 1, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={getMateriaName(mat)}>{getMateriaName(mat).length > 28 ? getMateriaName(mat).slice(0,26)+"…" : getMateriaName(mat)}</span><div style={{ width: 100, background: "#F3F4F6", borderRadius: 4, height: 10, overflow: "hidden" }}><div style={{ width: `${(cnt/maxMat)*100}%`, height: "100%", background: "#D97706", borderRadius: 4 }} /></div><span style={{ fontSize: 12, width: 24, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{cnt}</span></div>; })}</div>
+        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Distribución por turno</div>{Object.entries(turnoCount).sort().map(([t, cnt]) => { const pct = totalClases > 0 ? Math.round((cnt/totalClases)*100) : 0; const colors = { DIURNO: "#2563EB", VESPERTINO: "#DB2777" }; return <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}><span style={{ fontSize: 12, width: 90, color: "#6B7280" }}>{t.charAt(0)+t.slice(1).toLowerCase()}</span><div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 14, overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: colors[t] || "#888", borderRadius: 4 }} /></div><span style={{ fontSize: 12, color: "#6B7280", fontWeight: 600, width: 60, textAlign: "right" }}>{cnt} ({pct}%)</span></div>; })}</div>
+        <div style={{ ...S.card, padding: "16px 20px" }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Secciones por trayecto</div>{ALL_TRAYECTOS.map(t => { const cnt = [...new Set(data.filter(d => d.trayecto === t).map(d => d.sheet.trim()))].length; const pct = seccionesCount > 0 ? (cnt/seccionesCount)*100 : 0; return <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={S.badge(TRAYECTO_BG[t] || "#f3f4f6", TRAYECTO_COLORS[t] || "#555")}>{t}</span><div style={{ flex: 1, background: "#F3F4F6", borderRadius: 4, height: 12, overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: TRAYECTO_COLORS[t] || "#888", borderRadius: 4 }} /></div><span style={{ fontSize: 12, width: 32, textAlign: "right", color: "#6B7280", fontWeight: 600 }}>{cnt}</span></div>; })}</div>
       </div>
     </div>
   );
@@ -753,11 +753,9 @@ const NAV_ITEMS = [
 ];
 
 const responsiveCSS = `
-  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-  @media (max-width: 768px) {
-    .hamburger-btn{display:block!important}.sidebar-aside{transform:translateX(-100%);position:fixed!important;z-index:300;height:100vh;transition:transform 0.25s ease}.sidebar-aside.open{transform:translateX(0)}.sidebar-overlay{display:block!important}.main-content{margin-left:0!important}.horarios-filters{flex-wrap:wrap;gap:6px!important}.horarios-filters select{font-size:12px!important;padding:5px 8px!important}.day-buttons{overflow-x:auto;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;padding-bottom:4px}.day-buttons button{flex-shrink:0}.stats-grid-4{grid-template-columns:repeat(2,1fr)!important}.stats-grid-2{grid-template-columns:1fr!important}.docentes-layout,.materias-layout,.secciones-layout{flex-direction:column!important;height:auto!important;overflow:visible!important}.docentes-left-panel,.materias-left-panel,.secciones-left-panel{width:100%!important;max-height:220px}.asistencias-filters{flex-direction:column!important;gap:10px!important}.global-search{width:160px!important}.header-bar{padding:8px 12px!important}.turno-grid-table{min-width:500px}.turno-grid-wrapper{overflow-x:auto}
-  }
-  @media (max-width: 480px) { .stats-grid-4{grid-template-columns:1fr 1fr!important}.header-stats{display:none} }
+  @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+  @media(max-width:768px){.hamburger-btn{display:block!important}.sidebar-aside{transform:translateX(-100%);position:fixed!important;z-index:300;height:100vh;transition:transform .25s}.sidebar-aside.open{transform:translateX(0)}.sidebar-overlay{display:block!important}.main-content{margin-left:0!important}.stats-grid-4{grid-template-columns:repeat(2,1fr)!important}.stats-grid-2{grid-template-columns:1fr!important}.docentes-layout,.materias-layout,.secciones-layout{flex-direction:column!important;height:auto!important}.docentes-left-panel,.materias-left-panel,.secciones-left-panel{width:100%!important;max-height:220px}.global-search{width:160px!important}}
+  @media(max-width:480px){.stats-grid-4{grid-template-columns:1fr 1fr!important}.header-stats{display:none}}
 `;
 
 function ResponsiveStyles() { return <style>{responsiveCSS}</style>; }
@@ -796,7 +794,9 @@ export default function App() {
     if (programas) {
       const canonicalSet = new Map();
       programas.forEach(p => { if (p.programa?.trim()) { const canon = normalizarPrograma(p.programa); if (canon) canonicalSet.set(canon, true); } });
-      setProgramasDisponibles(["todos", ...canonicalSet.keys().sort(), ...DEFAULT_PROGRAMAS.filter(p => ![...canonicalSet.keys()].some(u => u.toLowerCase() === p.toLowerCase()))]);
+      const unique = [...canonicalSet.keys()].sort();
+      const defaults = DEFAULT_PROGRAMAS.filter(p => !unique.some(u => u.toLowerCase() === p.toLowerCase()));
+      setProgramasDisponibles(["todos", ...unique, ...defaults]);
     }
   };
 
@@ -847,34 +847,34 @@ export default function App() {
   const saveDocenteName = async (rawName, displayName) => {
     try {
       const unified = await unifyName("docentes", rawName, displayName);
-      if (unified) { showToast(`✅ Docente unificado con "${unified.canonicalDisplay}".`, "success"); await fetchDocenteNames(); await fetchHorarios(); return { success: true, targetRaw: unified.targetRaw }; }
+      if (unified) { showToast(`✅ Docente unificado.`, "success"); await fetchDocenteNames(); await fetchHorarios(); return { success: true, targetRaw: unified.targetRaw }; }
       await supabase.from("docentes").upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
       setDocenteNames(prev => ({ ...prev, [rawName]: displayName }));
-      showToast("✅ Nombre del docente actualizado.", "success");
+      showToast("✅ Docente actualizado.", "success");
       return { success: true };
-    } catch (err) { console.error(err); showToast("❌ Error: " + err.message, "error"); return { success: false }; }
+    } catch (err) { showToast("❌ Error: " + err.message, "error"); return { success: false }; }
   };
 
   const saveMateriaName = async (rawName, displayName) => {
     try {
       const unified = await unifyName("materias", rawName, displayName);
-      if (unified) { showToast(`✅ Materia unificada con "${unified.canonicalDisplay}".`, "success"); await fetchMateriaNames(); await fetchHorarios(); return { success: true, targetRaw: unified.targetRaw }; }
+      if (unified) { showToast(`✅ Materia unificada.`, "success"); await fetchMateriaNames(); await fetchHorarios(); return { success: true, targetRaw: unified.targetRaw }; }
       await supabase.from("materias").upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
       setMateriaNames(prev => ({ ...prev, [rawName]: displayName }));
-      showToast("✅ Nombre de la materia actualizado.", "success");
+      showToast("✅ Materia actualizada.", "success");
       return { success: true };
-    } catch (err) { console.error(err); showToast("❌ Error: " + err.message, "error"); return { success: false }; }
+    } catch (err) { showToast("❌ Error: " + err.message, "error"); return { success: false }; }
   };
 
   const clearAllData = async () => {
-    if (!window.confirm(`⚠️ ¿Eliminar TODOS los horarios${selectedPrograma !== "todos" ? ` de "${selectedPrograma}"` : ""}?`)) return;
+    if (!window.confirm("⚠️ ¿Eliminar TODOS los horarios?")) return;
     setLoading(true);
     let query = supabase.from("horarios").delete();
     if (selectedPrograma !== "todos") query = query.eq("programa", selectedPrograma);
     else query = query.neq("id", 0);
     const { error } = await query;
-    if (error) { console.error(error); showToast("❌ Error al borrar.", "error"); }
-    else { showToast("✅ Registros eliminados.", "success"); await fetchHorarios(); await fetchProgramas(); }
+    if (error) showToast("❌ Error al borrar.", "error");
+    else { showToast("✅ Datos eliminados.", "success"); await fetchHorarios(); await fetchProgramas(); }
     setLoading(false);
   };
 
@@ -911,14 +911,13 @@ export default function App() {
         }
         if (headerRowIdx === -1) continue;
         
-        // Detectar celdas combinadas
+        // Mapa de celdas combinadas
         const merges = worksheet['!merges'] || [];
-        const verticalMerges = {};
+        const mergeMap = {};
         merges.forEach(merge => {
-          if (merge.e.r > merge.s.r) {
-            for (let r = merge.s.r; r <= merge.e.r; r++) {
-              if (!verticalMerges[r]) verticalMerges[r] = {};
-              verticalMerges[r][merge.s.c] = { startRow: merge.s.r, endRow: merge.e.r, startCol: merge.s.c, endCol: merge.e.c };
+          for (let r = merge.s.r; r <= merge.e.r; r++) {
+            for (let c = merge.s.c; c <= merge.e.c; c++) {
+              mergeMap[`${r}-${c}`] = { sr: merge.s.r, er: merge.e.r, sc: merge.s.c, ec: merge.e.c };
             }
           }
         });
@@ -939,50 +938,38 @@ export default function App() {
           }
         }
         
-        if (selectedPrograma !== "todos") programa = selectedPrograma;
-        else if (!programa) programa = "Sin programa";
-        else programa = normalizarPrograma(programa) || programa;
+        programa = selectedPrograma !== "todos" ? selectedPrograma : (programa ? normalizarPrograma(programa) || programa : "Sin programa");
         turno = getTurnoByCodigo(sheetName) || normalizeTurno(turno) || turno;
         
-        const processedCells = {};
+        const processedMerges = new Set();
+        
         for (let i = headerRowIdx + 1; i < json.length; i++) {
           const row = json[i];
-          const hora = row[horaColIdx]?.toString().trim();
-          if (!hora) continue;
-          
-          const horaParts = hora.split(/[-–]/);
-          const horaInicio = horaParts[0]?.trim();
-          let horaFin = horaParts[1]?.trim();
-          
-          if (!horaInicio) continue;
+          if (!row) continue;
           
           for (const [dia, colIdx] of Object.entries(diaCols)) {
             if (colIdx === -1) continue;
             
-            const cellKey = `${i}-${colIdx}`;
-            if (processedCells[cellKey]) continue;
-            
             const clase = row[colIdx]?.toString().trim();
             if (!clase) continue;
             
-            // Verificar celda combinada
-            const merge = verticalMerges[i]?.[colIdx];
-            let horaCompleta = horaFin ? `${horaInicio} - ${horaFin}` : horaInicio;
+            const merge = mergeMap[`${i}-${colIdx}`];
+            if (merge && processedMerges.has(`${merge.sr}-${merge.sc}`)) continue;
             
-            if (merge && merge.endRow > merge.startRow) {
-              const lastRow = json[merge.endRow];
-              if (lastRow?.[horaColIdx]) {
-                const lastHoraParts = lastRow[horaColIdx]?.toString().trim().split(/[-–]/);
-                if (lastHoraParts.length >= 2) {
-                  horaCompleta = `${horaInicio} - ${lastHoraParts[1].trim()}`;
-                }
-              }
-              for (let r = merge.startRow; r <= merge.endRow; r++) {
-                for (let c = merge.startCol; c <= merge.endCol; c++) {
-                  processedCells[`${r}-${c}`] = true;
-                }
-              }
+            let horaCompleta = "";
+            
+            if (merge) {
+              processedMerges.add(`${merge.sr}-${merge.sc}`);
+              const firstRow = json[merge.sr];
+              const lastRow = json[merge.er];
+              const horaInicio = firstRow[horaColIdx]?.toString().trim().split(/[-–]/)[0]?.trim();
+              const horaFin = lastRow[horaColIdx]?.toString().trim().split(/[-–]/)[1]?.trim() || lastRow[horaColIdx]?.toString().trim().split(/[-–]/)[0]?.trim();
+              horaCompleta = horaFin ? `${horaInicio} - ${horaFin}` : horaInicio;
+            } else {
+              horaCompleta = row[horaColIdx]?.toString().trim() || "";
             }
+            
+            if (!horaCompleta) continue;
             
             allRows.push({ sheet: sheetName, programa, trayecto, seccion, turno, sede, aula: aula || null, dia, hora: horaCompleta, clase });
           }
@@ -995,10 +982,10 @@ export default function App() {
       const existingKeys = new Set(existingData?.map(r => `${r.sheet}|${r.dia}|${r.hora}|${r.clase}|${r.programa}`) || []);
       const newRows = allRows.filter(r => !existingKeys.has(`${r.sheet}|${r.dia}|${r.hora}|${r.clase}|${r.programa}`));
       
-      if (!newRows.length) { showToast(`⚠️ Sin registros nuevos. ${allRows.length - newRows.length} duplicados.`, "warning"); setUploading(false); return; }
+      if (!newRows.length) { showToast(`⚠️ ${allRows.length - newRows.length} duplicados.`, "warning"); setUploading(false); return; }
       
       const { error: insertError } = await supabase.from("horarios").insert(newRows);
-      if (insertError) { console.error(insertError); showToast("❌ Error al guardar.", "error"); }
+      if (insertError) { showToast("❌ Error al guardar.", "error"); }
       else {
         showToast(`✅ ${newRows.length} clases cargadas.`, "success");
         await fetchHorarios(); await fetchProgramas();
@@ -1033,7 +1020,7 @@ export default function App() {
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "system-ui,-apple-system,sans-serif", background: "#F3F4F6", overflow: "hidden" }}>
       <ResponsiveStyles />
-      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} style={{ display: "none", position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 299 }} />
       <aside className={`sidebar-aside${sidebarOpen ? " open" : ""}`} style={{ width: 220, background: "#111827", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "20px 16px 16px" }}>
@@ -1058,7 +1045,7 @@ export default function App() {
         <div style={{ padding: "12px 14px", borderTop: "1px solid #1F2937" }}>
           <label htmlFor="upload-excel" style={{ display: "block", cursor: "pointer", background: "#2563EB", color: "#fff", textAlign: "center", padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>📂 Cargar Excel</label>
           <input id="upload-excel" type="file" accept=".xlsx, .xls" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploading} />
-          <button onClick={clearAllData} disabled={loading || !data.length} style={{ display: "block", width: "100%", cursor: data.length ? "pointer" : "not-allowed", background: "#DC2626", color: "#fff", textAlign: "center", padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "none", opacity: data.length ? 1 : 0.5 }}>🗑️ Borrar {selectedPrograma === "todos" ? "todo" : selectedPrograma}</button>
+          <button onClick={clearAllData} disabled={loading || !data.length} style={{ display: "block", width: "100%", cursor: data.length ? "pointer" : "not-allowed", background: "#DC2626", color: "#fff", textAlign: "center", padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "none", opacity: data.length ? 1 : 0.5 }}>🗑️ Borrar datos</button>
           {uploading && <div style={{ fontSize: 10, marginTop: 6, color: "#9CA3AF" }}>Subiendo...</div>}
           {error && <div style={{ fontSize: 10, marginTop: 6, color: "#EF4444" }}>{error}</div>}
         </div>
@@ -1072,7 +1059,7 @@ export default function App() {
         <header className="header-bar" style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <button onClick={() => setSidebarOpen(o => !o)} className="hamburger-btn" style={{ display: "none", background: "none", border: "1px solid #E5E7EB", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 18, color: "#374151", flexShrink: 0 }}>☰</button>
           <GlobalSearch onNavigate={handleNavigate} docenteNames={docenteNames} materiaNames={materiaNames} data={data} />
-          <div className="header-stats" style={{ marginLeft: "auto", fontSize: 12, color: "#9CA3AF" }}>{stats.total} registros · {stats.materias} materias</div>
+          <div className="header-stats" style={{ marginLeft: "auto", fontSize: 12, color: "#9CA3AF" }}>{stats.total} registros</div>
         </header>
         <main style={{ flex: 1, overflow: "auto" }}>
           {view === "horarios" && <HorariosView filtered={filtered} selectedTrayecto={selectedTrayecto} setSelectedTrayecto={setSelectedTrayecto} selectedSeccion={selectedSeccion} setSelectedSeccion={setSelectedSeccion} activeDay={activeDay} setActiveDay={setActiveDay} seccionesByTrayecto={seccionesByTrayecto} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} allTrayectos={allTrayectos} />}
