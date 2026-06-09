@@ -756,49 +756,27 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
   const [editingName, setEditingName] = useState(false);
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
-  const prevSelRef = useRef(sel);
   
   // Manejar navegación inicial
   useEffect(() => { 
     if (initialSel) { 
       setSel(initialSel);
-      setEditingName(false);
-      setEditValue(getMateriaName(initialSel));
       onConsumeNav(); 
     } 
-  }, [initialSel]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialSel, onConsumeNav]);
   
-  // Actualizar editValue solo cuando sel cambia
+  // Actualizar editValue cuando cambia sel
   useEffect(() => { 
-    if (sel && sel !== prevSelRef.current) {
-      prevSelRef.current = sel;
+    if (sel) {
       setEditValue(getMateriaName(sel));
       setEditingName(false);
     }
-  }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Verificar si la materia seleccionada existe
-  const materiaExists = !sel || byMateria[sel];
-  
-  useEffect(() => {
-    if (sel && !byMateria[sel]) {
-      setSel(null);
-      setEditingName(false);
-    }
-  }, [sel, byMateria]);
+  }, [sel, getMateriaName]);
 
   const selEntries = sel && byMateria[sel] ? byMateria[sel] : [];
   const filteredSorted = search 
     ? sorted.filter(m => getMateriaName(m).toLowerCase().includes(search.toLowerCase())) 
     : sorted;
-
-  const handleSelectMateria = (m) => {
-    if (m !== sel) {
-      setSel(m);
-      setEditingName(false);
-      setEditValue(getMateriaName(m));
-    }
-  };
 
   const saveEdit = async () => { 
     const trimmed = editValue.trim(); 
@@ -822,11 +800,6 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
     }
   };
 
-  const handleStartEdit = () => {
-    setEditValue(getMateriaName(sel));
-    setEditingName(true);
-  };
-
   const asignaciones = useMemo(() => {
     if (!selEntries.length) return [];
     return selEntries.slice().sort((a, b) => {
@@ -836,14 +809,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
     });
   }, [selEntries]);
 
-  if (!materiaExists) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "#9CA3AF", fontSize: 14 }}>
-        La materia seleccionada ya no existe.
-      </div>
-    );
-  }
-
+  // El resto del componente se mantiene igual...
   return (
     <div className="materias-layout" style={{ padding: 20, display: "flex", gap: 16, height: "calc(100vh - 61px)", overflow: "hidden" }}>
       <div className="materias-left-panel" style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -860,7 +826,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
           {filteredSorted.map(m => (
             <div 
               key={m} 
-              onClick={() => handleSelectMateria(m)} 
+              onClick={() => setSel(m)} 
               style={{ 
                 padding: "9px 12px", 
                 cursor: "pointer", 
@@ -899,10 +865,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
                       onChange={e => setEditValue(e.target.value)} 
                       onKeyDown={e => { 
                         if (e.key === "Enter") saveEdit(); 
-                        if (e.key === "Escape") {
-                          setEditingName(false);
-                          setEditValue(getMateriaName(sel));
-                        }
+                        if (e.key === "Escape") setEditingName(false);
                       }} 
                       autoFocus 
                       style={{ ...S.input, fontSize: 15, fontWeight: 600, flex: 1 }} 
@@ -925,10 +888,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
                       {saving ? "Guardando..." : "Guardar"}
                     </button>
                     <button 
-                      onClick={() => {
-                        setEditingName(false);
-                        setEditValue(getMateriaName(sel));
-                      }} 
+                      onClick={() => setEditingName(false)} 
                       style={{ 
                         padding: "5px 10px", 
                         background: "#F3F4F6", 
@@ -948,7 +908,10 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
                       {getMateriaName(sel)}
                     </div>
                     <button 
-                      onClick={handleStartEdit} 
+                      onClick={() => {
+                        setEditValue(getMateriaName(sel));
+                        setEditingName(true);
+                      }} 
                       title="Editar nombre" 
                       style={{ 
                         background: "none", 
@@ -1033,6 +996,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
     </div>
   );
 }
+
 
 function AsistenciasView({ data, getDocName, getMateriaName }) {
   const [turno, setTurno] = useState("DIURNO");
@@ -1832,8 +1796,8 @@ export default function App() {
     materias: Object.keys(byMateria).length,
   }), [data, byDocente, byMateria]);
 
-  const getDocName = (raw) => docenteNames[raw] || raw;
-  const getMateriaName = (raw) => materiaNames[raw] || raw;
+  const getDocName = useCallback((raw) => docenteNames[raw] || raw, [docenteNames]);
+  const getMateriaName = useCallback((raw) => materiaNames[raw] || raw, [materiaNames]);
   const handleNavigate = (result) => {
     if (result.docente) { setDocenteNav(result.rawDocente || result.docente); setView("docentes"); }
     else if (result.materia) { setMateriaNav(result.rawMateria); setView("materias"); }
