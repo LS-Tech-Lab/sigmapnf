@@ -444,29 +444,30 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, getDocNa
   const selConflicts = sel ? conflicts.filter(c => c.docente === sel) : [];
   const filteredSorted = search ? sorted.filter(d => getDocName(d).toLowerCase().includes(search.toLowerCase())) : sorted;
 
-  const docGrid = useMemo(() => {
-    const map = {};
-    selEntries.forEach(e => {
-      const turno = getTurnoDeRegistro(e), bloques = getBloquesForTurno(turno);
-      const key = `${turno}__${findStartBlock(bloques, e.hora)}__${e.dia}`;
-      if (!map[key]) map[key] = [];
-      map[key].push(e);
-    });
-    return map;
-  }, [selEntries]);
-
-  const usedBloques = useMemo(() => {
-    const seen = new Set(), result = [];
-    ["DIURNO", "VESPERTINO"].forEach(turno => {
-      const bloques = getBloquesForTurno(turno);
-      bloques.forEach((b, bi) => {
-        if (selEntries.some(e => getTurnoDeRegistro(e) === turno && findStartBlock(bloques, e.hora) === bi)) {
-          const key = `${turno}__${bi}`;
-          if (!seen.has(key)) { seen.add(key); result.push({ turno, bi, bloque: b }); }
-        }
-      });
-    });
-    return result;
+  // Estadísticas del docente seleccionado
+  const docenteStats = useMemo(() => {
+    if (!selEntries.length) return null;
+    const dias = new Set(selEntries.map(e => e.dia));
+    const trayectos = new Set(selEntries.map(e => e.trayecto));
+    const secciones = new Set(selEntries.map(e => e.sheet?.trim()).filter(Boolean));
+    const materias = new Set(selEntries.map(e => parseClase(e.clase).materia));
+    const horasPorDia = {};
+    DAYS.forEach(d => { horasPorDia[d] = selEntries.filter(e => e.dia === d).length; });
+    const diaMasCargado = Object.entries(horasPorDia).sort((a, b) => b[1] - a[1])[0];
+    
+    return {
+      totalClases: selEntries.length,
+      totalDias: dias.size,
+      totalTrayectos: trayectos.size,
+      totalSecciones: secciones.size,
+      totalMaterias: materias.size,
+      dias,
+      trayectos,
+      secciones,
+      materias,
+      diaMasCargado,
+      horasPorDia,
+    };
   }, [selEntries]);
   
   const saveEdit = async () => { 
@@ -481,6 +482,7 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, getDocNa
 
   return (
     <div className="docentes-layout" style={{ padding: 20, display: "flex", gap: 16, height: "calc(100vh - 61px)", overflow: "hidden" }}>
+      {/* Panel izquierdo: lista de docentes */}
       <div className="docentes-left-panel" style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrar docente…" style={{ ...S.input, width: "100%", boxSizing: "border-box" }} />
         <div style={{ ...S.card, flex: 1, overflowY: "auto" }}>
@@ -493,9 +495,14 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, getDocNa
           ))}
         </div>
       </div>
+
+      {/* Panel derecho: detalles del docente */}
       <div style={{ flex: 1, overflowY: "auto" }}>
-        {!sel ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "#9CA3AF", fontSize: 14 }}>Selecciona un docente para ver su horario</div> : (
+        {!sel ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "#9CA3AF", fontSize: 14 }}>Selecciona un docente para ver su horario</div>
+        ) : (
           <div>
+            {/* Tarjeta de información del docente */}
             <div style={{ ...S.card, padding: "16px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 14 }}>
               <Avatar name={getDocName(sel)} size={48} />
               <div style={{ flex: 1 }}>
@@ -511,42 +518,102 @@ function DocentesView({ byDocente, conflicts, initialSel, onConsumeNav, getDocNa
                     <button onClick={() => { setEditValue(getDocName(sel)); setEditingName(true); }} title="Editar nombre" style={{ background: "none", border: "1px solid #E5E7EB", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontSize: 11, color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>✏️ Editar</button>
                   </div>
                 )}
-                <div style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>{selEntries.length} clases asignadas{selConflicts.length > 0 && <span style={{ marginLeft: 10, ...S.badge("#FEF2F2", "#DC2626") }}>⚠️ {selConflicts.length} conflicto{selConflicts.length > 1 ? "s" : ""}</span>}</div>
+                <div style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
+                  {selEntries.length} clases asignadas
+                  {selConflicts.length > 0 && <span style={{ marginLeft: 10, ...S.badge("#FEF2F2", "#DC2626") }}>⚠️ {selConflicts.length} conflicto{selConflicts.length > 1 ? "s" : ""}</span>}
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>{[...new Set(selEntries.map(e => e.trayecto))].map(t => <span key={t} style={S.badge(TRAYECTO_BG[t] || "#f3f4f6", TRAYECTO_COLORS[t] || "#555")}>T.{t}</span>)}</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[...new Set(selEntries.map(e => e.trayecto))].sort().map(t => <span key={t} style={S.badge(TRAYECTO_BG[t] || "#f3f4f6", TRAYECTO_COLORS[t] || "#555")}>T.{t}</span>)}
+              </div>
             </div>
+
+            {/* Conflictos (si los hay) */}
             {selConflicts.map((c, i) => (
               <div key={i} style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "12px 16px", marginBottom: 10, display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <span style={{ fontSize: 18 }}>⚠️</span>
-                <div><div style={{ fontSize: 13, fontWeight: 600, color: "#991B1B" }}>Conflicto: {c.dia.charAt(0) + c.dia.slice(1).toLowerCase()} · {getHoraDisplayDeRegistro(c.entries[0])}</div><div style={{ fontSize: 12, color: "#B91C1C", marginTop: 4 }}>{c.entries.map(e => parseClase(e.clase).materia).join(" · ")}</div></div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#991B1B" }}>Conflicto: {c.dia.charAt(0) + c.dia.slice(1).toLowerCase()} · {getHoraDisplayDeRegistro(c.entries[0])}</div>
+                  <div style={{ fontSize: 12, color: "#B91C1C", marginTop: 4 }}>{c.entries.map(e => parseClase(e.clase).materia).join(" · ")}</div>
+                </div>
               </div>
             ))}
-            {usedBloques.length > 0 && (
-              <div style={{ ...S.card, marginBottom: 16 }}>
-                <div style={{ padding: "12px 16px", borderBottom: "1px solid #E5E7EB", fontSize: 13, fontWeight: 600, color: "#374151" }}>Vista semanal</div>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ borderCollapse: "collapse", minWidth: "100%" }}>
-                    <thead><tr><th style={{ ...S.th, width: 160 }}>Bloque</th>{DAYS.map(d => <th key={d} style={{ ...S.th, borderLeft: "1px solid #E5E7EB" }}>{d.slice(0, 3)}</th>)}</tr></thead>
-                    <tbody>
-                      {usedBloques.map(({ turno, bi, bloque }, ri) => (
-                        <tr key={`${turno}-${bi}`}>
-                          <td style={{ ...S.td, fontSize: 11, color: "#9CA3AF", fontWeight: 600, background: ri % 2 === 0 ? "#fff" : "#FAFAFA", whiteSpace: "nowrap" }}><span style={{ fontSize: 9, fontWeight: 700, color: turno === "DIURNO" ? "#2563EB" : "#BE185D", marginRight: 4 }}>{turno === "DIURNO" ? "☀️" : "🌙"}</span>{bloque.label}</td>
-                          {DAYS.map(day => {
-                            const es = docGrid[`${turno}__${bi}__${day}`] || [];
-                            return <td key={day} style={{ padding: "4px 6px", borderTop: "1px solid #F3F4F6", borderLeft: "1px solid #F3F4F6", background: ri % 2 === 0 ? "#fff" : "#FAFAFA", verticalAlign: "top" }}>{es.map((e, i) => { const { materia } = parseClase(e.clase); const col = TRAYECTO_COLORS[e.trayecto] || "#555", bg = TRAYECTO_BG[e.trayecto] || "#f5f5f5"; return <div key={i} style={{ background: bg, borderLeft: `3px solid ${col}`, borderRadius: 5, padding: "4px 7px" }}><div style={{ fontSize: 11, fontWeight: 600, color: col }}>{materia.length > 18 ? materia.slice(0, 16) + "…" : materia}</div><div style={{ fontSize: 10, color: col, opacity: 0.7 }}>{e.sheet.trim()}</div></div>; })}</td>;
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+            {/* Estadísticas del docente */}
+            {docenteStats && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
+                <StatCard label="Clases" value={docenteStats.totalClases} icon="📅" color="#2563EB" />
+                <StatCard label="Materias" value={docenteStats.totalMaterias} icon="📖" color="#D97706" />
+                <StatCard label="Secciones" value={docenteStats.totalSecciones} icon="🏫" color="#059669" />
+                <StatCard label="Trayectos" value={docenteStats.totalTrayectos} icon="📊" color="#7C3AED" />
+              </div>
+            )}
+
+            {/* Distribución por día */}
+            {docenteStats && (
+              <div style={{ ...S.card, padding: "14px 18px", marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 10 }}>📅 Distribución por día</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {DAYS.map(day => {
+                    const count = docenteStats.horasPorDia[day] || 0;
+                    const maxCount = Math.max(...Object.values(docenteStats.horasPorDia), 1);
+                    const isMax = count === maxCount && count > 0;
+                    return (
+                      <div key={day} style={{
+                        flex: 1, minWidth: 80, textAlign: "center", padding: "8px 6px", borderRadius: 8,
+                        background: count > 0 ? (isMax ? "#EFF6FF" : "#F9FAFB") : "#F3F4F6",
+                        border: `1px solid ${count > 0 ? (isMax ? "#2563EB" : "#E5E7EB") : "#E5E7EB"}`,
+                      }}>
+                        <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600, marginBottom: 4, textTransform: "uppercase" }}>{day.slice(0, 3)}</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: count > 0 ? (isMax ? "#1D4ED8" : "#374151") : "#D1D5DB" }}>{count}</div>
+                        {count > 0 && <div style={{ fontSize: 9, color: "#9CA3AF", marginTop: 2 }}>clases</div>}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
+
+            {/* Lista detallada de asignaciones */}
             <div style={S.card}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr>{["Día", "Hora", "Materia", "Trayecto", "Sección"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                <tbody>{[...selEntries].sort((a, b) => DAYS.indexOf(a.dia) - DAYS.indexOf(b.dia) || getHoraMin(a) - getHoraMin(b)).map((e, i) => <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}><td style={S.td}>{e.dia.charAt(0) + e.dia.slice(1).toLowerCase()}</td><td style={{ ...S.td, color: "#9CA3AF", whiteSpace: "nowrap", fontSize: 11 }}>{getHoraDisplayDeRegistro(e)}</td><td style={{ ...S.td, fontWeight: 500 }}>{parseClase(e.clase).materia}</td><td style={S.td}><span style={S.badge(TRAYECTO_BG[e.trayecto] || "#f3f4f6", TRAYECTO_COLORS[e.trayecto] || "#555")}>{e.trayecto}</span></td><td style={{ ...S.td, color: "#6B7280" }}>{e.sheet.trim()}</td></tr>)}</tbody>
-              </table>
+              <div style={{ padding: "12px 16px", borderBottom: "1px solid #E5E7EB", fontSize: 13, fontWeight: 600, color: "#374151" }}>📋 Asignaciones</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...S.th, width: 100 }}>Día</th>
+                      <th style={{ ...S.th, width: 180 }}>Hora</th>
+                      <th style={S.th}>Materia</th>
+                      <th style={{ ...S.th, width: 90 }}>Trayecto</th>
+                      <th style={{ ...S.th, width: 130 }}>Sección</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...selEntries].sort((a, b) => DAYS.indexOf(a.dia) - DAYS.indexOf(b.dia) || getHoraMin(a) - getHoraMin(b)).map((e, i) => {
+                      const { materia } = parseClase(e.clase);
+                      const diaIdx = DAYS.indexOf(e.dia);
+                      const prevEntry = i > 0 ? [...selEntries].sort((a, b) => DAYS.indexOf(a.dia) - DAYS.indexOf(b.dia) || getHoraMin(a) - getHoraMin(b))[i-1] : null;
+                      const showDayHeader = !prevEntry || prevEntry.dia !== e.dia;
+                      
+                      return (
+                        <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
+                          <td style={{ ...S.td, fontWeight: showDayHeader ? 600 : 400, color: showDayHeader ? "#111827" : "#6B7280", borderTop: showDayHeader && i > 0 ? "2px solid #E5E7EB" : "1px solid #F3F4F6" }}>
+                            {e.dia.charAt(0) + e.dia.slice(1).toLowerCase()}
+                          </td>
+                          <td style={{ ...S.td, color: "#9CA3AF", whiteSpace: "nowrap", fontSize: 11, fontFamily: "monospace" }}>
+                            {getHoraDisplayDeRegistro(e)}
+                          </td>
+                          <td style={{ ...S.td, fontWeight: 500 }}>{materia}</td>
+                          <td style={S.td}>
+                            <span style={S.badge(TRAYECTO_BG[e.trayecto] || "#f3f4f6", TRAYECTO_COLORS[e.trayecto] || "#555")}>{e.trayecto}</span>
+                          </td>
+                          <td style={{ ...S.td, color: "#6B7280", fontFamily: "monospace", fontSize: 12 }}>{e.sheet?.trim() || ""}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
