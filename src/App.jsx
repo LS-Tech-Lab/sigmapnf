@@ -758,20 +758,22 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
   const [saving, setSaving] = useState(false);
   
   useEffect(() => { if (initialSel) { setSel(initialSel); onConsumeNav(); } }, [initialSel, onConsumeNav]);
-  useEffect(() => { if (sel) setEditValue(getMateriaName(sel)); }, [sel, getMateriaName]);
-
-  useEffect(() => {
-    if (sel && !byMateria[sel]) {
-      const newSel = Object.keys(byMateria).find(k => {
-        const name = getMateriaName(k);
-        return name && editValue && name.toLowerCase() === editValue.trim().toLowerCase();
-      });
-      setSel(newSel || null);
+  
+  // Memorizar getMateriaName para evitar dependencias inestables
+  const stableGetMateriaName = useCallback((raw) => getMateriaName(raw), [materiaNames]);
+  
+  useEffect(() => { 
+    if (sel) {
+      setEditValue(stableGetMateriaName(sel));
+      // Verificar si la materia aún existe en byMateria
+      if (!byMateria[sel]) {
+        setSel(null);
+      }
     }
-  }, [byMateria, sel, editValue, getMateriaName]);
+  }, [sel, byMateria, stableGetMateriaName]);
 
-  const selEntries = byMateria[sel] || [];
-  const filteredSorted = search ? sorted.filter(m => getMateriaName(m).toLowerCase().includes(search.toLowerCase())) : sorted;
+  const selEntries = sel && byMateria[sel] ? byMateria[sel] : [];
+  const filteredSorted = search ? sorted.filter(m => stableGetMateriaName(m).toLowerCase().includes(search.toLowerCase())) : sorted;
 
   const saveEdit = async () => { 
     const trimmed = editValue.trim(); 
@@ -806,7 +808,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
           <div style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid #E5E7EB", background: "#F9FAFB" }}>{filteredSorted.length} materias</div>
           {filteredSorted.map(m => (
             <div key={m} onClick={() => { setSel(m); setEditingName(false); }} style={{ padding: "9px 12px", cursor: "pointer", fontSize: 13, background: sel === m ? "#EFF6FF" : "transparent", color: sel === m ? "#1D4ED8" : "#374151", borderBottom: "1px solid #F3F4F6", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: sel === m ? 600 : 400 }}>
-              <span>{getMateriaName(m)}</span>
+              <span>{stableGetMateriaName(m)}</span>
               <span style={{ fontSize: 11, background: "#F3F4F6", borderRadius: 10, padding: "1px 7px", color: "#6B7280", fontWeight: 600 }}>{byMateria[m].length}</span>
             </div>
           ))}
@@ -818,7 +820,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
         ) : (
           <>
             <div style={{ ...S.card, padding: "16px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 14 }}>
-              <Avatar name={getMateriaName(sel)} size={48} />
+              <Avatar name={stableGetMateriaName(sel)} size={48} />
               <div style={{ flex: 1 }}>
                 {editingName ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -830,8 +832,8 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
                   </div>
                 ) : (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ fontSize: 17, fontWeight: 700, color: "#111827" }}>{getMateriaName(sel)}</div>
-                    <button onClick={() => { setEditValue(getMateriaName(sel)); setEditingName(true); }} title="Editar nombre" style={{ background: "none", border: "1px solid #E5E7EB", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontSize: 11, color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>✏️ Editar</button>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: "#111827" }}>{stableGetMateriaName(sel)}</div>
+                    <button onClick={() => { setEditValue(stableGetMateriaName(sel)); setEditingName(true); }} title="Editar nombre" style={{ background: "none", border: "1px solid #E5E7EB", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontSize: 11, color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>✏️ Editar</button>
                   </div>
                 )}
                 <div style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
@@ -882,6 +884,7 @@ function MateriasView({ byMateria, initialSel, onConsumeNav, materiaNames, setMa
     </div>
   );
 }
+
 
 function AsistenciasView({ data, getDocName, getMateriaName }) {
   const [turno, setTurno] = useState("DIURNO");
