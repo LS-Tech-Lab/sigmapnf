@@ -878,7 +878,6 @@ const [data, setData] = useState([]);
 const [loading, setLoading] = useState(true);
 const [uploading, setUploading] = useState(false);
 const [error, setError] = useState(null);
-  const [view, setView] = useState("horarios");
   const [view, setView] = useState("dashboard");
 const [sidebarOpen, setSidebarOpen] = useState(false);
 const [selectedPrograma, setSelectedPrograma] = useState("todos");
