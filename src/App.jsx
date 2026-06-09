@@ -378,12 +378,7 @@ function TurnoGrid({ bloques, turnoLabel, filtered, days, expandedCell, setExpan
                           const docente = getDocName(rawDoc);
                           const bg = TRAYECTO_BG[e.trayecto] || "#f0f0f0";
                           const col = TRAYECTO_COLORS[e.trayecto] || "#555";
-                          const eSpan = countBlocks(e.hora);
                           const horaDisplay = getHoraDisplayDeRegistro(e);
-                          // Nombre corto: primera letra de cada palabra del apellido
-                          const docenteCorto = docente
-                            ? docente.split(" ").slice(0, 2).map((w, wi) => wi === 0 ? w : w[0] + ".").join(" ")
-                            : "";
                           return (
                             <div
                               key={i}
@@ -405,29 +400,22 @@ function TurnoGrid({ bloques, turnoLabel, filtered, days, expandedCell, setExpan
                                 overflow: "hidden",
                               }}
                             >
-                              {/* Nombre materia — comprimido */}
-                              <div style={{ fontSize: 11, fontWeight: 700, color: col, lineHeight: 1.2, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+                              {/* Materia */}
+                              <div style={{ fontSize: 13, fontWeight: 700, color: col, lineHeight: 1.2, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
                                 {materia}
                               </div>
-                              {/* Docente abreviado */}
-                              {docenteCorto && (
-                                <div style={{ fontSize: 10, color: col, opacity: 0.75, lineHeight: 1.1, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-                                  {docenteCorto}
-                                </div>
-                              )}
-                              {/* Badge trayecto + sección solo si hay espacio (span > 1) */}
-                              {(isExp || eSpan > 1) && !isExp && (
-                                <div style={{ fontSize: 9, color: col, opacity: 0.55, marginTop: 1 }}>
-                                  T.{e.trayecto} · {e.sheet.trim()}
+                              {/* Docente — nombre completo */}
+                              {docente && (
+                                <div style={{ fontSize: 12, color: col, opacity: 0.75, lineHeight: 1.1, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+                                  {docente}
                                 </div>
                               )}
                               {/* Panel expandido */}
                               {isExp && (
-                                <div style={{ marginTop: 5, paddingTop: 5, borderTop: `1px solid ${col}25`, fontSize: 10, display: "flex", flexDirection: "column", gap: 2 }}>
+                                <div style={{ marginTop: 5, paddingTop: 5, borderTop: `1px solid ${col}25`, fontSize: 11, display: "flex", flexDirection: "column", gap: 2 }}>
                                   <div style={{ color: col, opacity: 0.9 }}>📂 {e.sheet.trim()} · T.{e.trayecto}</div>
                                   <div style={{ color: col, opacity: 0.9 }}>⏰ {horaDisplay}</div>
                                   <div style={{ color: col, opacity: 0.9 }}>🏫 {e.aula || "Sin aula"}</div>
-                                  {docente && <div style={{ color: col, opacity: 0.9 }}>👤 {docente}</div>}
                                 </div>
                               )}
                             </div>
