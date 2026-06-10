@@ -327,17 +327,17 @@ export default function useAppData() {
   // Computed values
   const byDocente = useMemo(() => {
     const m = {};
-      if (!data) return m;  // ← Añade esta línea
-
+    if (!data) return m;  // ← Añade esta línea
     data.forEach(d => { const { docente } = parseClase(d.clase); if (docente) { if (!m[docente]) m[docente] = []; m[docente].push(d); } });
     return m;
-  }, [data]);
+}, [data]);
 
   const byMateria = useMemo(() => {
     const m = {};
+    if (!data) return m;  // ← Añade esta línea
     data.forEach(d => { const { materia } = parseClase(d.clase); if (materia) { if (!m[materia]) m[materia] = []; m[materia].push(d); } });
     return m;
-  }, [data]);
+}, [data]);
 
   const conflicts = useMemo(() => {
     const issues = [];
@@ -353,17 +353,22 @@ export default function useAppData() {
     return issues;
   }, [byDocente]);
 
-  const allTrayectos = useMemo(() => [...new Set(data.map(d => d.trayecto))].sort((a, b) => {
-    const { ALL_TRAYECTOS } = ("../constants");
-    return ALL_TRAYECTOS.indexOf(a) - ALL_TRAYECTOS.indexOf(b);
-  }), [data]);
+  const allTrayectos = useMemo(() => {
+    if (!data || data.length === 0) return [];  // ← Añade esta línea
+    return [...new Set(data.map(d => d.trayecto))].sort((a, b) => {
+        return ALL_TRAYECTOS.indexOf(a) - ALL_TRAYECTOS.indexOf(b);
+    });
+}, [data]);
 
-  const stats = useMemo(() => ({
-    total: data.length,
-    secciones: new Set(data.map(d => d.sheet.trim())).size,
-    docentes: Object.keys(byDocente).length,
-    materias: Object.keys(byMateria).length,
-  }), [data, byDocente, byMateria]);
+  const stats = useMemo(() => {
+    if (!data) return { total: 0, secciones: 0, docentes: 0, materias: 0 };  // ← Añade esta línea
+    return {
+        total: data.length,
+        secciones: new Set(data.map(d => d.sheet?.trim())).size,
+        docentes: Object.keys(byDocente).length,
+        materias: Object.keys(byMateria).length,
+    };
+}, [data, byDocente, byMateria]);
 
   const getDocName = useCallback((raw) => docenteNames[raw] || raw, [docenteNames]);
   const getMateriaName = useCallback((raw) => materiaNames[raw] || raw, [materiaNames]);
