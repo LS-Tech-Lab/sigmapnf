@@ -1,4 +1,5 @@
 import { timeToMin } from './time';
+import { BLOQUES_DIURNO, BLOQUES_VESPERTINO } from '../constants';
 
 export function getTurnoByCodigo(sheetName) {
   if (!sheetName) return null;
