@@ -84,4 +84,39 @@ export default function App() {
         <div style={{ padding: "12px 14px", borderTop: "1px solid #1F2937" }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
             <button onClick={appData.exportarDatos} disabled={appData.uploading || !appData.data.length} style={{ flex: 1, cursor: appData.data.length ? "pointer" : "not-allowed", background: "#059669", color: "#fff", textAlign: "center", padding: "7px 8px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "none", opacity: appData.data.length ? 1 : 0.5 }}>💾 Backup</button>
-            <label htmlFor="import-backup" style={{ flex: 1, cursor: "pointer", background: "#D97706", color: "#fff
+            <label htmlFor="import-backup" style={{ flex: 1, cursor: "pointer", background: "#D97706", color: "#fff", textAlign: "center", padding: "7px 8px", borderRadius: 6, fontSize: 12, fontWeight: 600, marginBottom: 0 }}>📥 Restaurar</label>
+            <input id="import-backup" type="file" accept=".json" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) appData.importarDatos(e.target.files[0]); e.target.value = ""; }} disabled={appData.uploading} />
+          </div>
+          <label htmlFor="upload-excel" style={{ display: "block", cursor: "pointer", background: "#2563EB", color: "#fff", textAlign: "center", padding: "7px 12px", borderRadius: 6, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>📂 Cargar Excel</label>
+          <input id="upload-excel" type="file" accept=".xlsx, .xls" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) appData.handleFileUpload(e.target.files[0]); e.target.value = ""; }} disabled={appData.uploading} />
+          <button onClick={appData.clearAllData} disabled={appData.loading || !appData.data.length} style={{ display: "block", width: "100%", cursor: appData.data.length ? "pointer" : "not-allowed", background: "#DC2626", color: "#fff", textAlign: "center", padding: "7px 12px", borderRadius: 6, fontSize: 13, fontWeight: 600, border: "none", opacity: appData.data.length ? 1 : 0.5 }}>🗑️ Borrar datos</button>
+          {appData.uploading && <div style={{ fontSize: 11, marginTop: 6, color: "#9CA3AF" }}>Procesando...</div>}
+          {appData.error && <div style={{ fontSize: 11, marginTop: 6, color: "#EF4444" }}>{appData.error}</div>}
+          {appData.data.length > 0 && !appData.uploading && !appData.loading && <div style={{ fontSize: 11, marginTop: 6, color: "#6B7280", textAlign: "center" }}>{appData.data.length} registros cargados</div>}
+        </div>
+        <div style={{ padding: "10px 14px", borderTop: "1px solid #1F2937", display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#2563EB,#7C3AED)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{appData.user.email?.[0]?.toUpperCase() ?? "A"}</div>
+          <div style={{ flex: 1, overflow: "hidden" }}><div style={{ fontSize: 12, color: "#D1D5DB", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{appData.user.email}</div></div>
+          <button onClick={appData.handleLogout} title="Cerrar sesión" style={{ background: "none", border: "1px solid #374151", borderRadius: 6, cursor: "pointer", color: "#6B7280", fontSize: 14, padding: "3px 7px", flexShrink: 0 }}>⏏</button>
+        </div>
+      </aside>
+      <div className="main-content" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <header className="header-bar" style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          <button onClick={() => setSidebarOpen(o => !o)} className="hamburger-btn" style={{ display: "none", background: "none", border: "1px solid #E5E7EB", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 18, color: "#374151", flexShrink: 0 }}>☰</button>
+          <GlobalSearch onNavigate={handleNavigate} docenteNames={appData.docenteNames} materiaNames={appData.materiaNames} data={appData.data} />
+          <div className="header-stats" style={{ marginLeft: "auto", fontSize: 13, color: "#6B7280", fontWeight: 500 }}>{appData.stats.total} registros · {appData.stats.materias} materias</div>
+        </header>
+        <main style={{ flex: 1, overflow: "auto" }}>
+          {view === "dashboard" && <DashboardView stats={appData.stats} data={appData.data} byDocente={appData.byDocente} byMateria={appData.byMateria} conflicts={appData.conflicts} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
+          {view === "horarios" && <HorariosView filtered={appData.data.filter(d => (selectedTrayecto === "all" || d.trayecto === selectedTrayecto) && (selectedSeccion === "all" || d.sheet.trim() === selectedSeccion) && (activeDay === "all" || d.dia === activeDay))} selectedTrayecto={selectedTrayecto} setSelectedTrayecto={setSelectedTrayecto} selectedSeccion={selectedSeccion} setSelectedSeccion={setSelectedSeccion} activeDay={activeDay} setActiveDay={setActiveDay} seccionesByTrayecto={seccionesByTrayecto} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} allTrayectos={appData.allTrayectos} />}
+          {view === "secciones" && <SeccionesView data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
+          {view === "docentes" && <DocentesView byDocente={appData.byDocente} conflicts={appData.conflicts} initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)} getDocName={appData.getDocName} onSaveDocenteName={appData.saveDocenteName} />}
+          {view === "materias" && <MateriasView byMateria={appData.byMateria} initialSel={materiaNav} onConsumeNav={() => setMateriaNav(null)} getMateriaName={appData.getMateriaName} onSaveMateriaName={appData.saveMateriaName} data={appData.data} getDocName={appData.getDocName} />}
+          {view === "asistencias" && <AsistenciasView data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
+          {view === "conflictos" && <ConflictosView conflicts={appData.conflicts} onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }} getDocName={appData.getDocName} />}
+          {view === "estadisticas" && <EstadisticasView stats={appData.stats} byDocente={appData.byDocente} byMateria={appData.byMateria} data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
+        </main>
+      </div>
+    </div>
+  );
+}
