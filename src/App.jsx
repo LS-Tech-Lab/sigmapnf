@@ -26,6 +26,13 @@ export default function App() {
 
   const appData = useAppData();
 
+  const seccionesByTrayecto = React.useMemo(() => {
+    if (!appData.data || !appData.data.length) return [];
+    return [...new Set(appData.data.map(d => d.sheet.trim()))].sort().filter(s =>
+      selectedTrayecto === "all" || appData.data.some(d => d.sheet.trim() === s && d.trayecto === selectedTrayecto)
+    );
+  }, [selectedTrayecto, appData.data]);
+
   if (appData.user === undefined) return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0F172A", color: "#94A3B8", fontFamily: "system-ui, sans-serif", fontSize: 15 }}>Verificando sesión…</div>;
   if (!appData.user) return <LoginScreen />;
   if (appData.loading && !appData.data.length) return <div style={{ padding: 20, textAlign: "center", fontSize: 15, fontWeight: 500 }}>Cargando horarios...</div>;
@@ -35,12 +42,6 @@ export default function App() {
     else if (r.materia) { setMateriaNav(r.rawMateria); setView("materias"); }
     else setView("horarios");
   };
-
-  const seccionesByTrayecto = React.useMemo(() => {
-    return [...new Set(appData.data.map(d => d.sheet.trim()))].sort().filter(s =>
-      selectedTrayecto === "all" || appData.data.some(d => d.sheet.trim() === s && d.trayecto === selectedTrayecto)
-    );
-  }, [selectedTrayecto, appData.data]);
 
   const nav = NAV_ITEMS.map(item => ({ ...item, badge: item.hasBadge ? appData.conflicts.length : 0 }));
 
