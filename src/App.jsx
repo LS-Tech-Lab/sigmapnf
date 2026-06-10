@@ -4,18 +4,17 @@ import LoginScreen from "./components/LoginScreen";
 import ResponsiveStyles from "./components/ResponsiveStyles";
 import GlobalSearch from "./components/GlobalSearch";
 import Toast from "./components/Toast";
-import DashboardView from "./components/DashboardView";
+import ResumenView from "./components/ResumenView";
 import HorariosView from "./components/HorariosView";
 import SeccionesView from "./components/SeccionesView";
 import DocentesView from "./components/DocentesView";
 import MateriasView from "./components/MateriasView";
 import AsistenciasView from "./components/AsistenciasView";
 import ConflictosView from "./components/ConflictosView";
-import EstadisticasView from "./components/EstadisticasView";
 import { NAV_ITEMS, S } from "./constants";
 
 export default function App() {
-  const [view, setView] = useState("dashboard");
+  const [view, setView] = useState("resumen");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedTrayecto, setSelectedTrayecto] = useState("all");
   const [selectedSeccion, setSelectedSeccion] = useState("all");
@@ -108,14 +107,13 @@ export default function App() {
           <div className="header-stats" style={{ marginLeft: "auto", fontSize: 13, color: "#6B7280", fontWeight: 500 }}>{appData.stats.total} registros · {appData.stats.materias} materias</div>
         </header>
         <main style={{ flex: 1, overflow: "auto" }}>
-          {view === "dashboard" && <DashboardView stats={appData.stats} data={appData.data} byDocente={appData.byDocente} byMateria={appData.byMateria} conflicts={appData.conflicts} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
+          {view === "resumen" && <ResumenView stats={appData.stats} data={appData.data} byDocente={appData.byDocente} byMateria={appData.byMateria} conflicts={appData.conflicts} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
           {view === "horarios" && <HorariosView filtered={appData.data.filter(d => (selectedTrayecto === "all" || d.trayecto === selectedTrayecto) && (selectedSeccion === "all" || d.sheet.trim() === selectedSeccion) && (activeDay === "all" || d.dia === activeDay))} selectedTrayecto={selectedTrayecto} setSelectedTrayecto={setSelectedTrayecto} selectedSeccion={selectedSeccion} setSelectedSeccion={setSelectedSeccion} activeDay={activeDay} setActiveDay={setActiveDay} seccionesByTrayecto={seccionesByTrayecto} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} allTrayectos={appData.allTrayectos} />}
           {view === "secciones" && <SeccionesView data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
           {view === "docentes" && <DocentesView byDocente={appData.byDocente} conflicts={appData.conflicts} initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)} getDocName={appData.getDocName} onSaveDocenteName={appData.saveDocenteName} />}
           {view === "materias" && <MateriasView byMateria={appData.byMateria} initialSel={materiaNav} onConsumeNav={() => setMateriaNav(null)} getMateriaName={appData.getMateriaName} onSaveMateriaName={appData.saveMateriaName} data={appData.data} getDocName={appData.getDocName} />}
           {view === "asistencias" && <AsistenciasView data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
           {view === "conflictos" && <ConflictosView conflicts={appData.conflicts} onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }} getDocName={appData.getDocName} />}
-          {view === "estadisticas" && <EstadisticasView stats={appData.stats} byDocente={appData.byDocente} byMateria={appData.byMateria} data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
         </main>
       </div>
     </div>
