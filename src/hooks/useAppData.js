@@ -1,5 +1,6 @@
-import { DAYS, ALL_TRAYECTOS } from "../constants";
+import { DAYS, ALL_TRAYECTOS, DEFAULT_PROGRAMAS } from "../constants";
 import { getTurnoByCodigo, normalizeTurno } from "../utils/turno";
+import { normalizarPrograma, parseClase } from "../utils/parsing";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import * as XLSX from "xlsx";
