@@ -277,8 +277,8 @@ export default function useAppData() {
           }
         }
         programa = selectedPrograma !== "todos" ? selectedPrograma : (programa ? normalizarPrograma(programa) || programa : "Sin programa");
-        const { getTurnoByCodigo } = require("../utils/turno");
-        const { normalizeTurno } = require("../utils/turno");
+        const { getTurnoByCodigo } = ("../utils/turno");
+        const { normalizeTurno } = ("../utils/turno");
         turno = getTurnoByCodigo(sheetName) || normalizeTurno(turno) || turno;
         const processedMerges = new Set();
         for (let i = headerRowIdx + 1; i < json.length; i++) {
@@ -341,7 +341,7 @@ export default function useAppData() {
   const conflicts = useMemo(() => {
     const issues = [];
     Object.entries(byDocente).forEach(([doc, entries]) => {
-      const { DAYS } = require("../constants");
+      const { DAYS } = ("../constants");
       DAYS.forEach(day => {
         [...new Set(entries.map(e => e.hora?.trim()))].filter(Boolean).forEach(hora => {
           const matches = entries.filter(e => e.dia === day && e.hora?.trim() === hora);
@@ -353,7 +353,7 @@ export default function useAppData() {
   }, [byDocente]);
 
   const allTrayectos = useMemo(() => [...new Set(data.map(d => d.trayecto))].sort((a, b) => {
-    const { ALL_TRAYECTOS } = require("../constants");
+    const { ALL_TRAYECTOS } = ("../constants");
     return ALL_TRAYECTOS.indexOf(a) - ALL_TRAYECTOS.indexOf(b);
   }), [data]);
 
