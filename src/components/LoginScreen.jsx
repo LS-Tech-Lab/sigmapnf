@@ -41,7 +41,7 @@ export default function LoginScreen() {
       }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 36, marginBottom: 8 }}>📅</div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#111827" }}>Horarios PNF</h1>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#111827" }}>Sistema Interno para la Gestión de Horarios Academicos y Asistencias Docentes</h1>
           <p style={{ margin: "6px 0 0", fontSize: 13, color: "#6B7280", fontWeight: 500 }}>
             Inicia sesión para continuar
           </p>
