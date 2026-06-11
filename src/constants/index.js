@@ -1,6 +1,15 @@
 // ========== Constantes globales ==========
 export const DAYS = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"];
 
+// Lapsos académicos: 3 por año (1 = Ene-Abr, 2 = May-Ago, 3 = Sep-Dic)
+// Este valor se calcula dinámicamente en utils/lapso.js y se gestiona desde App.jsx
+// No se hardcodea aquí, pero se exporta el mapeo de rangos de meses como referencia.
+export const LAPSO_MESES = {
+  1: { label: "Ene – Abr", inicio: 1, fin: 4 },
+  2: { label: "May – Ago", inicio: 5, fin: 8 },
+  3: { label: "Sep – Dic", inicio: 9, fin: 12 },
+};
+
 export const ALL_TRAYECTOS = [
   "INICIAL",
   "1-1", "1-2", "1-3",
