@@ -85,9 +85,12 @@ export default function useAppData() {
     }
 
     try {
-      let query = supabase.from("horarios").select("*");
+      // Mejora 3: usamos count:"exact" para detectar si Supabase cortó resultados
+      // al límite por defecto de 1 000 filas sin avisarnos.
+      const PAGE_LIMIT = 1000;
+      let query = supabase.from("horarios").select("*", { count: "exact" });
       if (programa !== "todos") query = query.eq("programa", programa);
-      const { data: horarios, error } = await query.order("id", { ascending: true });
+      const { data: horarios, error, count } = await query.order("id", { ascending: true }).limit(PAGE_LIMIT);
       if (error) {
         console.error(error);
         if (cachedHorarios?.length > 0) {
@@ -100,6 +103,10 @@ export default function useAppData() {
         guardarEnCache(CACHE_KEYS.horarios, nuevosDatos);
         localStorage.setItem(CACHE_KEYS.lastSync, Date.now().toString());
         setLastSync(obtenerUltimaSincronizacion());
+        // Mejora 3: avisar si el total real supera el límite de la página.
+        if (count !== null && count > PAGE_LIMIT) {
+          showToast(`⚠️ Hay ${count} registros pero solo se muestran los primeros ${PAGE_LIMIT}. Contacte al administrador.`, "warning");
+        }
       }
     } catch (err) {
       console.error(err);
@@ -359,8 +366,11 @@ export default function useAppData() {
         await fetchProgramas();
         const docs = new Set(), mats = new Set();
         newRows.forEach(r => { const { docente, materia } = parseClase(r.clase); if (docente) docs.add(docente); if (materia) mats.add(materia); });
-        for (const d of docs) await supabase.from("docentes").upsert({ nombre_raw: d, nombre_display: d }, { onConflict: "nombre_raw" });
-        for (const m of mats) await supabase.from("materias").upsert({ nombre_raw: m, nombre_display: m }, { onConflict: "nombre_raw" });
+        // Mejora 2: un solo upsert en batch por tabla en lugar de N llamadas secuenciales.
+        const docsArray = [...docs].map(d => ({ nombre_raw: d, nombre_display: d }));
+        const matsArray = [...mats].map(m => ({ nombre_raw: m, nombre_display: m }));
+        if (docsArray.length) await supabase.from("docentes").upsert(docsArray, { onConflict: "nombre_raw" });
+        if (matsArray.length) await supabase.from("materias").upsert(matsArray, { onConflict: "nombre_raw" });
         await fetchDocenteNames();
         await fetchMateriaNames();
       }
