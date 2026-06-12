@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import useAppData from "./hooks/useAppData";
+import useHorariosFilters from "./hooks/useHorariosFilters";
 import LoginScreen from "./components/LoginScreen";
 import ResponsiveStyles from "./components/ResponsiveStyles";
 import GlobalSearch from "./components/GlobalSearch";
@@ -11,29 +12,23 @@ import DocentesView from "./components/DocentesView";
 import MateriasView from "./components/MateriasView";
 import AsistenciasView from "./components/AsistenciasView";
 import ConfirmModal from "./components/ConfirmModal";
+import ConflictosView from "./components/ConflictosView";
 import { NAV_ITEMS, S } from "./constants";
 import { getCurrentLapso, getLapsosDisponibles, formatLapso } from "./utils/lapso";
 
 export default function App() {
   const [view, setView] = useState("resumen");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedTrayecto, setSelectedTrayecto] = useState("all");
-  const [selectedSeccion, setSelectedSeccion] = useState("all");
-  const [activeDay, setActiveDay] = useState("all");
-  const [expandedCell, setExpandedCell] = useState(null);
+  // Mejora 11: estado de filtros de HorariosView movido a su propio hook.
+  // App.jsx ya no gestiona selectedTrayecto, selectedSeccion, activeDay ni expandedCell.
   const [docenteNav, setDocenteNav] = useState(null);
   const [materiaNav, setMateriaNav] = useState(null);
   const [lapso, setLapso] = useState(() => getCurrentLapso());
   const lapsosDisponibles = React.useMemo(() => getLapsosDisponibles(lapso), [lapso]);
 
   const appData = useAppData();
-
-  const seccionesByTrayecto = React.useMemo(() => {
-    if (!appData.data || !appData.data.length) return [];
-    return [...new Set(appData.data.map(d => d.sheet.trim()))].sort().filter(s =>
-      selectedTrayecto === "all" || appData.data.some(d => d.sheet.trim() === s && d.trayecto === selectedTrayecto)
-    );
-  }, [selectedTrayecto, appData.data]);
+  // Mejora 11: filtros y secciones encapsulados en el hook dedicado
+  const horariosFilters = useHorariosFilters(appData.data);
 
   if (appData.user === undefined) return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0F172A", color: "#94A3B8", fontFamily: "system-ui, sans-serif", fontSize: 15 }}>Verificando sesión…</div>;
   if (!appData.user) return <LoginScreen />;
@@ -205,7 +200,27 @@ export default function App() {
         </header>
         <main style={{ flex: 1, overflow: "auto" }}>
           {view === "resumen" && <ResumenView stats={appData.stats} data={appData.data} byDocente={appData.byDocente} byMateria={appData.byMateria} conflicts={appData.conflicts} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
-          {view === "horarios" && <HorariosView filtered={appData.data.filter(d => (selectedTrayecto === "all" || d.trayecto === selectedTrayecto) && (selectedSeccion === "all" || d.sheet.trim() === selectedSeccion) && (activeDay === "all" || d.dia === activeDay))} selectedTrayecto={selectedTrayecto} setSelectedTrayecto={setSelectedTrayecto} selectedSeccion={selectedSeccion} setSelectedSeccion={setSelectedSeccion} activeDay={activeDay} setActiveDay={setActiveDay} seccionesByTrayecto={seccionesByTrayecto} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} allTrayectos={appData.allTrayectos} conflicts={appData.conflicts} onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }} />}
+          {view === "horarios" && <HorariosView
+            filtered={appData.data.filter(d =>
+              (horariosFilters.selectedTrayecto === "all" || d.trayecto === horariosFilters.selectedTrayecto) &&
+              (horariosFilters.selectedSeccion === "all" || d.sheet.trim() === horariosFilters.selectedSeccion) &&
+              (horariosFilters.activeDay === "all" || d.dia === horariosFilters.activeDay)
+            )}
+            selectedTrayecto={horariosFilters.selectedTrayecto}
+            setSelectedTrayecto={horariosFilters.setSelectedTrayecto}
+            selectedSeccion={horariosFilters.selectedSeccion}
+            setSelectedSeccion={horariosFilters.setSelectedSeccion}
+            activeDay={horariosFilters.activeDay}
+            setActiveDay={horariosFilters.setActiveDay}
+            seccionesByTrayecto={horariosFilters.seccionesByTrayecto}
+            expandedCell={horariosFilters.expandedCell}
+            setExpandedCell={horariosFilters.setExpandedCell}
+            getDocName={appData.getDocName}
+            getMateriaName={appData.getMateriaName}
+            allTrayectos={appData.allTrayectos}
+            conflicts={appData.conflicts}
+            onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }}
+          />}
           {view === "secciones" && <SeccionesView data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
           {view === "docentes" && <DocentesView byDocente={appData.byDocente} conflicts={appData.conflicts} initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)} getDocName={appData.getDocName} onSaveDocenteName={appData.saveDocenteName} />}
           {view === "materias" && <MateriasView byMateria={appData.byMateria} initialSel={materiaNav} onConsumeNav={() => setMateriaNav(null)} getMateriaName={appData.getMateriaName} onSaveMateriaName={appData.saveMateriaName} data={appData.data} getDocName={appData.getDocName} />}
