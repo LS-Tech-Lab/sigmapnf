@@ -11,8 +11,8 @@ import DocentesView from "./components/DocentesView";
 import MateriasView from "./components/MateriasView";
 import AsistenciasView from "./components/AsistenciasView";
 import ConflictosView from "./components/ConflictosView";
+import ConfirmModal from "./components/ConfirmModal";
 import { NAV_ITEMS, S } from "./constants";
-import { getCurrentLapso, getLapsosDisponibles, formatLapso } from "./utils/lapso";
 
 export default function App() {
   const [view, setView] = useState("resumen");
@@ -23,8 +23,6 @@ export default function App() {
   const [expandedCell, setExpandedCell] = useState(null);
   const [docenteNav, setDocenteNav] = useState(null);
   const [materiaNav, setMateriaNav] = useState(null);
-  const [lapso, setLapso] = useState(() => getCurrentLapso());
-  const lapsosDisponibles = React.useMemo(() => getLapsosDisponibles(lapso), [lapso]);
 
   const appData = useAppData();
 
@@ -37,6 +35,8 @@ export default function App() {
 
   if (appData.user === undefined) return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0F172A", color: "#94A3B8", fontFamily: "system-ui, sans-serif", fontSize: 15 }}>Verificando sesión…</div>;
   if (!appData.user) return <LoginScreen />;
+  // Mejora 10: solo bloqueamos con pantalla de carga si no hay absolutamente ningún dato.
+  // Si hay caché, la app se renderiza de inmediato y isSyncing muestra un indicador sutil.
   if (appData.loading && !appData.data.length) return <div style={{ padding: 20, textAlign: "center", fontSize: 15, fontWeight: 500 }}>Cargando horarios...</div>;
 
   const handleNavigate = (r) => {
@@ -72,6 +72,15 @@ export default function App() {
     <div style={{ display: "flex", height: "100vh", fontFamily: "system-ui,-apple-system,sans-serif", background: "#F3F4F6", overflow: "hidden" }}>
       <ResponsiveStyles />
       {appData.toast && <Toast message={appData.toast.message} type={appData.toast.type} onClose={() => appData.showToast(null)} />}
+      <ConfirmModal
+        open={!!appData.confirmModal}
+        title={appData.confirmModal?.title}
+        message={appData.confirmModal?.message}
+        confirmLabel={appData.confirmModal?.confirmLabel}
+        danger={appData.confirmModal?.danger}
+        onConfirm={appData.confirmModal?.onConfirm}
+        onCancel={appData.closeConfirm}
+      />
       <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} style={{ display: "none", position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 299 }} />
       <aside className={`sidebar-aside${sidebarOpen ? " open" : ""}`} style={{ width: 228, background: "#0F172A", display: "flex", flexDirection: "column", flexShrink: 0, borderRight: "1px solid #1E293B" }}>
 
@@ -88,16 +97,6 @@ export default function App() {
             style={{ ...S.select, width: "100%", background: "#1E293B", color: "#CBD5E1", borderColor: "#334155", fontSize: 12, padding: "6px 10px" }}>
             {appData.programasDisponibles.map(p => <option key={p} value={p}>{p === "todos" ? "Todos los programas" : p}</option>)}
           </select>
-          {/* ── SELECTOR DE LAPSO ── */}
-          <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 10, color: "#475569", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Lapso académico</div>
-            <select value={lapso} onChange={e => setLapso(e.target.value)}
-              style={{ ...S.select, width: "100%", background: "#1E293B", color: "#93C5FD", borderColor: "#334155", fontSize: 12, padding: "6px 10px", fontWeight: 600 }}>
-              {lapsosDisponibles.map(l => (
-                <option key={l} value={l}>{formatLapso(l)}</option>
-              ))}
-            </select>
-          </div>
         </div>
 
         {/* ── ESTADÍSTICAS COMPACTAS ── */}
@@ -186,7 +185,12 @@ export default function App() {
         <header className="header-bar" style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <button onClick={() => setSidebarOpen(o => !o)} className="hamburger-btn" style={{ display: "none", background: "none", border: "1px solid #E5E7EB", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 18, color: "#374151", flexShrink: 0 }}>☰</button>
           <GlobalSearch onNavigate={handleNavigate} docenteNames={appData.docenteNames} materiaNames={appData.materiaNames} data={appData.data} />
-
+          {/* Mejora 10: indicador de actualización en background, no bloquea la UI */}
+          {appData.isSyncing && (
+            <span style={{ fontSize: 11, color: "#94A3B8", whiteSpace: "nowrap", flexShrink: 0 }}>
+              🔄 Actualizando…
+            </span>
+          )}
         </header>
         <main style={{ flex: 1, overflow: "auto" }}>
           {view === "resumen" && <ResumenView stats={appData.stats} data={appData.data} byDocente={appData.byDocente} byMateria={appData.byMateria} conflicts={appData.conflicts} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
@@ -194,7 +198,7 @@ export default function App() {
           {view === "secciones" && <SeccionesView data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
           {view === "docentes" && <DocentesView byDocente={appData.byDocente} conflicts={appData.conflicts} initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)} getDocName={appData.getDocName} onSaveDocenteName={appData.saveDocenteName} />}
           {view === "materias" && <MateriasView byMateria={appData.byMateria} initialSel={materiaNav} onConsumeNav={() => setMateriaNav(null)} getMateriaName={appData.getMateriaName} onSaveMateriaName={appData.saveMateriaName} data={appData.data} getDocName={appData.getDocName} />}
-          {view === "asistencias" && <AsistenciasView data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} lapso={lapso} />}
+          {view === "asistencias" && <AsistenciasView data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} />}
           {view === "conflictos" && <ConflictosView conflicts={appData.conflicts} onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }} getDocName={appData.getDocName} />}
         </main>
       </div>
