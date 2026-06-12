@@ -129,6 +129,14 @@ export default function App() {
             <NavBtn key={item.id} item={item} active={view === item.id} onClick={() => { setView(item.id); setSidebarOpen(false); }} />
           ))}
 
+          <div style={{ height: 1, background: "#1E293B", margin: "8px 6px" }} />
+
+          {/* Grupo: Sistema */}
+          <div style={{ fontSize: 10, fontWeight: 600, color: "#334155", letterSpacing: "0.08em", textTransform: "uppercase", padding: "0 6px", marginBottom: 4 }}>Sistema</div>
+          {nav.filter(i => ["conflictos"].includes(i.id)).map(item => (
+            <NavBtn key={item.id} item={item} active={view === item.id} onClick={() => { setView(item.id); setSidebarOpen(false); }} />
+          ))}
+
           {/* ── Opciones contextuales según vista ── */}
           {view === "asistencias" && (
             <>
@@ -225,6 +233,7 @@ export default function App() {
           {view === "docentes" && <DocentesView byDocente={appData.byDocente} conflicts={appData.conflicts} initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)} getDocName={appData.getDocName} onSaveDocenteName={appData.saveDocenteName} />}
           {view === "materias" && <MateriasView byMateria={appData.byMateria} initialSel={materiaNav} onConsumeNav={() => setMateriaNav(null)} getMateriaName={appData.getMateriaName} onSaveMateriaName={appData.saveMateriaName} data={appData.data} getDocName={appData.getDocName} />}
           {view === "asistencias" && <AsistenciasView data={appData.data} getDocName={appData.getDocName} getMateriaName={appData.getMateriaName} lapso={lapso} />}
+          {view === "conflictos" && <ConflictosView conflicts={appData.conflicts} getDocName={appData.getDocName} onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }} />}
         </main>
       </div>
     </div>
