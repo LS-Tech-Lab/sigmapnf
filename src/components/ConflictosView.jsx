@@ -23,7 +23,7 @@ export default function ConflictosView({ conflicts, onGoDocente, getDocName }) {
           {conflicts.map((c, i) => (
             <div key={i} style={{ ...S.card, borderLeft: "4px solid #EF4444", padding: "14px 18px" }}>
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
+                <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, marginTop: 2 }}>⚠️</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                     <button onClick={() => onGoDocente(c.docente)} style={{ fontSize: 15, fontWeight: 700, color: "#DC2626", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
