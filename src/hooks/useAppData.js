@@ -36,20 +36,6 @@ export default function useAppData() {
 
   const closeConfirm = useCallback(() => setConfirmModal(null), []);
 
-  useEffect(() => {
-    const handleOnline = () => { setIsOffline(false); showToast("✅ Conexión restablecida.", "success"); fetchHorarios(selectedPrograma); fetchDocenteNames(); fetchMateriaNames(); };
-    const handleOffline = () => { setIsOffline(true); showToast("⚠️ Sin conexión. Usando caché.", "warning"); };
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
-  }, []);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
-    return () => subscription.unsubscribe();
-  }, []);
-
   const handleLogout = async () => { await supabase.auth.signOut(); };
 
   const showToast = useCallback((message, type = "success") => {
@@ -147,7 +133,21 @@ export default function useAppData() {
   };
 
   useEffect(() => { fetchProgramas(); fetchDocenteNames(); fetchMateriaNames(); }, []);
-  useEffect(() => { fetchHorarios(selectedPrograma); }, [selectedPrograma]);
+  useEffect(() => { fetchHorarios(selectedPrograma); }, [selectedPrograma, fetchHorarios]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = () => { setIsOffline(false); showToast("✅ Conexión restablecida.", "success"); fetchHorarios(selectedPrograma); fetchDocenteNames(); fetchMateriaNames(); };
+    const handleOffline = () => { setIsOffline(true); showToast("⚠️ Sin conexión. Usando caché.", "warning"); };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+  }, [selectedPrograma, fetchHorarios, showToast]);
 
   const unifyName = async (tableName, rawName, newDisplayName) => {
     const { data: existing } = await supabase.from(tableName).select("nombre_raw, nombre_display").ilike("nombre_display", newDisplayName.trim()).neq("nombre_raw", rawName).limit(1);
@@ -269,8 +269,29 @@ export default function useAppData() {
     });
   };
 
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+  const ALLOWED_EXTENSIONS = [".xlsx", ".xls"];
+
   const handleFileUpload = async (file) => {
-    setUploading(true); setError(null);
+    setError(null);
+    if (!file) return;
+
+    const nameLower = (file.name || "").toLowerCase();
+    const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => nameLower.endsWith(ext));
+    if (!hasValidExtension) {
+      setError("Formato de archivo no válido. Solo se aceptan archivos .xlsx o .xls.");
+      showToast("❌ Formato de archivo no válido. Usa .xlsx o .xls.", "error");
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      setError(`El archivo es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 10 MB.`);
+      showToast(`❌ Archivo demasiado grande (${sizeMB} MB). Máximo permitido: 10 MB.`, "error");
+      return;
+    }
+
+    setUploading(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
       const workbook = XLSX.read(e.target.result, { type: "binary" });
