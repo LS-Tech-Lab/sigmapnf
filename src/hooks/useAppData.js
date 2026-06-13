@@ -3,15 +3,18 @@ import { timeToMin } from "../utils/time";
 import { getTurnoByCodigo, normalizeTurno } from "../utils/turno";
 import { normalizarPrograma, parseClase } from "../utils/parsing";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "../lib/supabase";
 import {
   guardarEnCache, cargarDeCache,
-  CACHE_KEYS, limpiarCache, obtenerUltimaSincronizacion
+  CACHE_KEYS, limpiarCache, obtenerUltimaSincronizacion, validarVersionCache
 } from "../utils/cache";
 
 export default function useAppData() {
+  // Invalida caché si el esquema cambió (ejecuta solo en mount)
+  useEffect(() => { validarVersionCache(); }, []);
+
   const [user, setUser] = useState(undefined);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,9 +53,12 @@ export default function useAppData() {
   const handleLogout = async () => { await supabase.auth.signOut(); };
 
   const showToast = useCallback((message, type = "success") => {
+    if (!message) { setToast(null); return; }
     setToast(null);
     setTimeout(() => setToast({ message, type }), 50);
   }, []);
+
+  const hideToast = useCallback(() => setToast(null), []);
 
   const fetchProgramas = async () => {
     const { data: programas } = await supabase.from("horarios").select("programa").not("programa", "is", null);
@@ -432,7 +438,7 @@ export default function useAppData() {
     user, loading, isSyncing, uploading, error, selectedPrograma, setSelectedPrograma,
     programasDisponibles, data, docenteNames, materiaNames,
     byDocente, byMateria, conflicts, stats, allTrayectos,
-    isOffline, lastSync, toast, showToast,
+    isOffline, lastSync, toast, showToast, hideToast,
     confirmModal, closeConfirm,
     handleLogout, handleFileUpload, exportarDatos, importarDatos, clearAllData,
     saveDocenteName, saveMateriaName, getDocName, getMateriaName,
