@@ -74,7 +74,7 @@ export default function HorariosView({
           <>
             {fd.length > 0 && <TurnoGrid bloques={BLOQUES_DIURNO} turnoLabel="DIURNO" filtered={fd} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} />}
             {fv.length > 0 && <TurnoGrid bloques={BLOQUES_VESPERTINO} turnoLabel="VESPERTINO" filtered={fv} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} />}
-            {filtered.length === 0 && <div style={{ ...S.card, padding: "60px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 15, fontWeight: 500 }}>No hay clases para los filtros seleccionados.</div>}
+            {(filtered.length === 0 || (fd.length === 0 && fv.length === 0)) && <div style={{ ...S.card, padding: "60px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 15, fontWeight: 500 }}>No hay clases para los filtros seleccionados.</div>}
           </>
         )}
         {tab === 'conflictos' && (
