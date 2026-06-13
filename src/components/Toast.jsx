@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 export default function Toast({ message, type = "success", onClose }) {
   const timerRef = useRef(null);
@@ -9,30 +9,55 @@ export default function Toast({ message, type = "success", onClose }) {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [message, onClose]);
 
-  const bgColors = { success: "#059669", error: "#DC2626", warning: "#D97706", info: "#2563EB" };
-  const icons = { success: "✅", error: "❌", warning: "⚠️", info: "ℹ️" };
+  const palette = {
+    success: { bg: "#F0FDF4", border: "#16A34A", bar: "#16A34A", text: "#14532D" },
+    error:   { bg: "#FEF2F2", border: "#DC2626", bar: "#DC2626", text: "#7F1D1D" },
+    warning: { bg: "#FFFBEB", border: "#D97706", bar: "#D97706", text: "#78350F" },
+    info:    { bg: "#EFF6FF", border: "#2563EB", bar: "#2563EB", text: "#1E3A8A" },
+  };
+
+  const c = palette[type] || palette.success;
 
   return (
     <div
+      onClick={onClose}
       style={{
         position: "fixed", top: 20, right: 20, zIndex: 9999,
-        background: bgColors[type] || bgColors.success,
-        color: "#fff", padding: "14px 20px", borderRadius: 10,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.2)", fontSize: 14,
-        fontWeight: 500, maxWidth: 420,
-        display: "flex", alignItems: "flex-start", gap: 12,
-        animation: "slideIn 0.3s ease", cursor: "pointer", lineHeight: 1.4
+        background: c.bg,
+        border: `1px solid ${c.border}`,
+        borderRadius: 10,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+        maxWidth: 380, minWidth: 260,
+        display: "flex", alignItems: "stretch",
+        animation: "slideIn 0.25s ease",
+        cursor: "pointer",
+        overflow: "hidden",
       }}
-      onClick={onClose}
     >
-      <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icons[type] || icons.success}</span>
-      <span style={{ flex: 1, wordBreak: "break-word" }}>{message}</span>
+      {/* Barra lateral de color */}
+      <div style={{ width: 4, background: c.bar, flexShrink: 0 }} />
+
+      {/* Texto */}
+      <span style={{
+        flex: 1, padding: "13px 14px",
+        fontSize: 13, fontWeight: 500,
+        color: c.text, lineHeight: 1.5,
+        wordBreak: "break-word",
+      }}>
+        {message}
+      </span>
+
+      {/* Botón cerrar */}
       <button
         onClick={(e) => { e.stopPropagation(); if (timerRef.current) clearTimeout(timerRef.current); onClose(); }}
-        style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", cursor: "pointer", fontSize: 16, padding: "2px 6px", borderRadius: 4, opacity: 0.9, fontWeight: 700, flexShrink: 0 }}
-      >
-        ×
-      </button>
+        style={{
+          background: "none", border: "none",
+          color: c.text, opacity: 0.5,
+          cursor: "pointer", fontSize: 18,
+          padding: "0 12px", flexShrink: 0,
+          lineHeight: 1,
+        }}
+      >×</button>
     </div>
   );
 }
