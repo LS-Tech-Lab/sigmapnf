@@ -74,7 +74,7 @@ export default function App() {
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "system-ui,-apple-system,sans-serif", background: "#F3F4F6", overflow: "hidden" }}>
       <ResponsiveStyles />
-      {appData.toast && <Toast message={appData.toast.message} type={appData.toast.type} onClose={() => appData.showToast(null)} />}
+      {appData.toast && <Toast message={appData.toast.message} type={appData.toast.type} onClose={appData.hideToast} />}
       <ConfirmModal
         open={!!appData.confirmModal}
         title={appData.confirmModal?.title}
