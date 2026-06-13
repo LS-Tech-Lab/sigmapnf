@@ -96,7 +96,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
               </div>
             )}
             {metricas && (
-              <div style={{ ...S.card, padding: '16px 20px' }}>
+              <div style={{ ...S.card, padding: '16px 20px', gridColumn: conflicts.length > 0 ? 'auto' : '1 / -1' }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 12 }}>Distribución por turno</div>
                 <div style={{ display: 'flex', gap: 16 }}>
                   <div style={{ flex: 1, textAlign: 'center', padding: 14, background: '#EFF6FF', borderRadius: 8 }}>
