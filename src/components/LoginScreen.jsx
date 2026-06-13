@@ -57,14 +57,12 @@ export default function LoginScreen() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="admin@ejemplo.com"
+              onFocus={e => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.15)"; }}
+              onBlur={e  => { e.target.style.borderColor = "#D1D5DB"; e.target.style.boxShadow = "none"; }}
               style={{
-                width: "100%",
-                padding: "10px 14px",
-                borderRadius: 8,
-                border: "1px solid #D1D5DB",
-                fontSize: 14,
-                outline: "none",
-                boxSizing: "border-box",
+                width: "100%", padding: "10px 14px", borderRadius: 8,
+                border: "1px solid #D1D5DB", fontSize: 14,
+                outline: "none", boxSizing: "border-box", transition: "border-color .15s, box-shadow .15s",
               }}
             />
           </div>
@@ -79,14 +77,12 @@ export default function LoginScreen() {
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="••••••••"
+              onFocus={e => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.15)"; }}
+              onBlur={e  => { e.target.style.borderColor = "#D1D5DB"; e.target.style.boxShadow = "none"; }}
               style={{
-                width: "100%",
-                padding: "10px 14px",
-                borderRadius: 8,
-                border: "1px solid #D1D5DB",
-                fontSize: 14,
-                outline: "none",
-                boxSizing: "border-box",
+                width: "100%", padding: "10px 14px", borderRadius: 8,
+                border: "1px solid #D1D5DB", fontSize: 14,
+                outline: "none", boxSizing: "border-box", transition: "border-color .15s, box-shadow .15s",
               }}
             />
           </div>
