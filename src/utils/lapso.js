@@ -30,14 +30,12 @@ export function getCurrentLapso(fecha = new Date()) {
 export function getLapsosDisponibles(trimestre = getCurrentLapso()) {
   const [num, anio] = parseLapso(trimestre);
 
-  // Retroceder 2 posiciones desde el actual
   let pn = num, py = anio;
   for (let i = 0; i < 2; i++) {
     pn--;
     if (pn < 1) { pn = 3; py--; }
   }
 
-  // Generar 5 consecutivos desde ese punto
   const lista = [];
   let n = pn, y = py;
   for (let i = 0; i < 5; i++) {
@@ -67,4 +65,41 @@ export function parseLapso(lapso) {
 export function formatLapso(lapso) {
   const [num, anio] = parseLapso(lapso);
   return `Trimestre ${num} · ${anio}`;
+}
+
+/**
+ * Calcula el trimestre siguiente a partir de uno dado.
+ * Regla: 1→2→3→1 (el año incrementa al pasar de 3→1)
+ * @param {string} lapso - Ej: "3-2026"
+ * @returns {string} Ej: "1-2027"
+ */
+export function getSiguienteLapso(lapso) {
+  let [num, anio] = parseLapso(lapso);
+  num++;
+  if (num > 3) { num = 1; anio++; }
+  return `${num}-${anio}`;
+}
+
+/**
+ * Valida el formato de un string trimestre.
+ * @param {string} lapso
+ * @returns {boolean}
+ */
+export function isValidLapso(lapso) {
+  if (!lapso || typeof lapso !== "string") return false;
+  const parts = lapso.split("-");
+  if (parts.length !== 2) return false;
+  const [num, anio] = [parseInt(parts[0], 10), parseInt(parts[1], 10)];
+  return num >= 1 && num <= 3 && anio >= 2000 && anio <= 2100;
+}
+
+/**
+ * Compara dos trimestres.
+ * @returns {number} negativo si a < b, 0 si iguales, positivo si a > b
+ */
+export function compareLapsos(a, b) {
+  const [na, ya] = parseLapso(a);
+  const [nb, yb] = parseLapso(b);
+  if (ya !== yb) return ya - yb;
+  return na - nb;
 }
