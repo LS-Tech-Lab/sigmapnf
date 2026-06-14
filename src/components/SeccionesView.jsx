@@ -10,8 +10,38 @@ export default function SeccionesView({ data, getDocName, getMateriaName }) {
   useEffect(() => { if (allSecciones.length && (!selSheet || !allSecciones.includes(selSheet))) setSelSheet(allSecciones[0]); }, [allSecciones, selSheet]);
   
   const filteredSecciones = useMemo(() => filterTray === "all" ? allSecciones : allSecciones.filter(s => data.some(d => d.sheet.trim() === s && d.trayecto === filterTray)), [filterTray, allSecciones, data]);
+
+  // Fix: en lugar de tomar el trayecto del primer registro (data.find), se calculan
+  // todos los trayectos presentes por sección. Si hay más de uno, se muestra el
+  // que coincide con el filtro activo (o el primero, ordenado, si el filtro es "all").
+  const trayectosBySeccion = useMemo(() => {
+    const map = {};
+    data.forEach(d => {
+      const s = d.sheet.trim();
+      if (!map[s]) map[s] = new Set();
+      map[s].add(d.trayecto);
+    });
+    return map;
+  }, [data]);
+
+  const getTrayectoIndicador = (s) => {
+    const trayectos = trayectosBySeccion[s];
+    if (!trayectos || trayectos.size === 0) return null;
+    if (filterTray !== "all" && trayectos.has(filterTray)) return filterTray;
+    return [...trayectos].sort()[0];
+  };
+
   const entries = useMemo(() => data.filter(d => d.sheet.trim() === selSheet), [data, selSheet]);
   const info = entries[0];
+  // Fix: si la sección tiene registros con más de un "programa" (caso edge),
+  // se deriva el programa mayoritario en lugar de asumir el del primer registro.
+  const programaSeccion = useMemo(() => {
+    if (!entries.length) return "";
+    const counts = {};
+    entries.forEach(e => { if (e.programa) counts[e.programa] = (counts[e.programa] || 0) + 1; });
+    const sortedProgramas = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return sortedProgramas[0]?.[0] || "";
+  }, [entries]);
   const byDay = useMemo(() => DAYS.reduce((acc, day) => { acc[day] = entries.filter(e => e.dia === day).sort((a, b) => getHoraMin(a) - getHoraMin(b)); return acc; }, {}), [entries]);
 
   return (
@@ -24,7 +54,7 @@ export default function SeccionesView({ data, getDocName, getMateriaName }) {
         <div style={{ ...S.card, flex: 1, overflowY: "auto" }}>
           <div style={{ padding: "10px 14px", fontSize: 12, fontWeight: 700, color: "#6B7280", letterSpacing: "0.06em", textTransform: "uppercase", borderBottom: "1px solid #E5E7EB", background: "#F9FAFB" }}>{filteredSecciones.length} secciones</div>
           {filteredSecciones.map(s => {
-            const tray = data.find(d => d.sheet.trim() === s)?.trayecto;
+            const tray = getTrayectoIndicador(s);
             return (
               <div key={s} onClick={() => setSelSheet(s)}
                 style={{
@@ -49,7 +79,7 @@ export default function SeccionesView({ data, getDocName, getMateriaName }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                 <div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>{selSheet}</div>
-                  <div style={{ fontSize: 14, color: "#6B7280", marginTop: 2, fontWeight: 500 }}>{info.programa}</div>
+                  <div style={{ fontSize: 14, color: "#6B7280", marginTop: 2, fontWeight: 500 }}>{programaSeccion}</div>
                 </div>
                 <span style={{ background: TRAYECTO_BG[info.trayecto] || "#f3f4f6", color: TRAYECTO_COLORS[info.trayecto] || "#555", borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Trayecto {info.trayecto}</span>
               </div>
