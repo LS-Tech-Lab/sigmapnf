@@ -11,7 +11,6 @@ import DocentesView from "./components/DocentesView";
 import MateriasView from "./components/MateriasView";
 import AsistenciasView from "./components/AsistenciasView";
 import ConfirmModal from "./components/ConfirmModal";
-import ConflictosView from "./components/ConflictosView";
 import HistorialView from "./components/HistorialView";
 import { S } from "./constants";
 import { getCurrentLapso, getLapsosDisponibles, formatLapso } from "./utils/lapso";
@@ -38,7 +37,6 @@ const NAV_GROUPS = [
   {
     label: "Sistema",
     items: [
-      { id: "conflictos", emoji: "⚠️", label: "Conflictos", hasBadge: true },
       { id: "historial",  emoji: "🗂️", label: "Historial"  },
     ],
   },
@@ -125,18 +123,6 @@ const GLOBAL_CSS = `
   /* Badge */
   .badge-red { background: #EF4444; color: #fff; border-radius: 10px;
                font-size: 10px; padding: 1px 5px; font-weight: 700; line-height: 1.4; }
-
-  /* Modo consulta banner */
-  .consulta-pill {
-    font-size: 11px; background: #FFFBEB; color: #92400E;
-    border: 1px solid #FDE68A; border-radius: 6px;
-    padding: 3px 10px; font-weight: 600; white-space: nowrap;
-  }
-  .activo-pill {
-    font-size: 11px; background: #EFF6FF; color: #1E40AF;
-    border: 1px solid #BFDBFE; border-radius: 6px;
-    padding: 3px 10px; font-weight: 600; white-space: nowrap;
-  }
 
   /* Mobile */
   @media (max-width: 768px) {
@@ -241,6 +227,7 @@ export default function App() {
   const [view,        setView]        = useState("resumen");
   const [docenteNav,  setDocenteNav]  = useState(null);
   const [materiaNav,  setMateriaNav]  = useState(null);
+  const [horariosTab, setHorariosTab] = useState(null);
   const [lapso,       setLapso]       = useState(() => getCurrentLapso());
   const [modoConsulta,setModoConsulta]= useState(false);
 
@@ -279,6 +266,11 @@ export default function App() {
     if (r.docente) { setDocenteNav(r.rawDocente || r.docente); setView("docentes"); }
     else if (r.materia) { setMateriaNav(r.rawMateria); setView("materias"); }
     else setView("horarios");
+  };
+
+  const handleGoToConflictos = () => {
+    setHorariosTab("conflictos");
+    setView("horarios");
   };
 
   // ── Guards ────────────────────────────────────────────────────────────────
@@ -537,14 +529,6 @@ export default function App() {
               🔄 Actualizando…
             </span>
           )}
-
-          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-            {/* Pill de trimestre */}
-            {modoConsulta
-              ? <span className="consulta-pill">📂 Historial · {formatLapso(lapso)}</span>
-              : <span className="activo-pill">📅 {formatLapso(lapso)}</span>
-            }
-          </div>
         </header>
 
         {/* Banner modo consulta */}
@@ -571,6 +555,7 @@ export default function App() {
               byDocente={appData.byDocente} byMateria={appData.byMateria}
               conflicts={appData.conflicts}
               getDocName={appData.getDocName} getMateriaName={appData.getMateriaName}
+              onGoToConflictos={handleGoToConflictos}
             />
           )}
           {view === "horarios" && (
@@ -594,6 +579,8 @@ export default function App() {
               allTrayectos={appData.allTrayectos}
               conflicts={appData.conflicts}
               onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }}
+              initialTab={horariosTab}
+              onConsumeInitialTab={() => setHorariosTab(null)}
             />
           )}
           {view === "secciones" && (
@@ -613,10 +600,6 @@ export default function App() {
           {view === "asistencias" && (
             <AsistenciasView data={appData.data} getDocName={appData.getDocName}
               getMateriaName={appData.getMateriaName} lapso={lapso} />
-          )}
-          {view === "conflictos" && (
-            <ConflictosView conflicts={appData.conflicts} getDocName={appData.getDocName}
-              onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }} />
           )}
           {view === "historial" && (
             <HistorialView
