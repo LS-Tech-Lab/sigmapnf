@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import useAppData from "./hooks/useAppData";
 import useHorariosFilters from "./hooks/useHorariosFilters";
 import LoginScreen from "./components/LoginScreen";
-import ResponsiveStyles from "./components/ResponsiveStyles";
 import GlobalSearch from "./components/GlobalSearch";
 import Toast from "./components/Toast";
 import ResumenView from "./components/ResumenView";
@@ -14,80 +13,267 @@ import AsistenciasView from "./components/AsistenciasView";
 import ConfirmModal from "./components/ConfirmModal";
 import ConflictosView from "./components/ConflictosView";
 import HistorialView from "./components/HistorialView";
-import { NAV_ITEMS, S } from "./constants";
-import { getCurrentLapso, getLapsosDisponibles, formatLapso, getSiguienteLapso } from "./utils/lapso";
-import { supabase } from "./lib/supabase";
-import { supabaseConfigError } from "./lib/supabase";
+import { S } from "./constants";
+import { getCurrentLapso, getLapsosDisponibles, formatLapso } from "./utils/lapso";
+import { supabase, supabaseConfigError } from "./lib/supabase";
 
-// ── Íconos de navegación incluye historial ─────────────────────────────────
-const NAV_CON_HISTORIAL = [
-  ...NAV_ITEMS,
-  { id: "historial", emoji: "🗂️", label: "Historial" },
+// ── Grupos de navegación ──────────────────────────────────────────────────────
+const NAV_GROUPS = [
+  {
+    label: "Consulta",
+    items: [
+      { id: "resumen",    emoji: "📊", label: "Resumen"     },
+      { id: "horarios",  emoji: "📅", label: "Horarios"    },
+      { id: "secciones", emoji: "🏫", label: "Secciones"   },
+    ],
+  },
+  {
+    label: "Académico",
+    items: [
+      { id: "docentes",    emoji: "👥", label: "Docentes"    },
+      { id: "materias",    emoji: "📖", label: "Materias"    },
+      { id: "asistencias", emoji: "🖨️", label: "Asistencias" },
+    ],
+  },
+  {
+    label: "Sistema",
+    items: [
+      { id: "conflictos", emoji: "⚠️", label: "Conflictos", hasBadge: true },
+      { id: "historial",  emoji: "🗂️", label: "Historial"  },
+    ],
+  },
 ];
 
-export default function App() {
-  const [view, setView] = useState("resumen");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [docenteNav, setDocenteNav] = useState(null);
-  const [materiaNav, setMateriaNav] = useState(null);
+// ── Estilos globales ──────────────────────────────────────────────────────────
+const GLOBAL_CSS = `
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; }
 
-  // ── Trimestre activo ───────────────────────────────────────────────────────
-  // Se inicializa con el trimestre calculado por fecha, pero luego se puede
-  // cambiar desde el historial (p.ej. para consultar un trimestre pasado).
-  const [lapso, setLapso] = useState(() => getCurrentLapso());
-  const [modoConsulta, setModoConsulta] = useState(false); // true = viendo trimestre archivado
-  const lapsosDisponibles = React.useMemo(() => getLapsosDisponibles(lapso), [lapso]);
+  /* Sidebar */
+  .sb { transition: width 0.22s cubic-bezier(.4,0,.2,1); overflow: hidden; }
+  .sb-collapsed { width: 56px !important; }
+  .sb-expanded  { width: 220px !important; }
 
-  // Cuando el lapso cambia, detectar si es el activo o uno archivado
-  const lapsoActual = getCurrentLapso();
+  /* Etiquetas y separadores en sidebar */
+  .sb-label { transition: opacity 0.15s, width 0.15s; white-space: nowrap; overflow: hidden; }
+  .sb-collapsed .sb-label  { opacity: 0; width: 0; }
+  .sb-expanded  .sb-label  { opacity: 1; }
+  .sb-collapsed .sb-group-title { opacity: 0; }
+  .sb-expanded  .sb-group-title { opacity: 1; }
 
-  // Resolver si el lapso seleccionado es el activo o uno pasado
+  /* Nav item */
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px; border-radius: 7px; cursor: pointer;
+    border: none; background: transparent; width: 100%;
+    color: #64748B; font-size: 13px; text-align: left;
+    transition: background 0.13s, color 0.13s;
+    position: relative;
+  }
+  .nav-item:hover  { background: #1E293B; color: #CBD5E1; }
+  .nav-item.active { background: #1E3A8A; color: #93C5FD; font-weight: 600;
+                     border-left: 2px solid #3B82F6; }
+
+  /* Tooltip cuando colapsado */
+  .nav-item .tooltip {
+    display: none; position: absolute; left: 52px; top: 50%;
+    transform: translateY(-50%);
+    background: #1E293B; color: #E2E8F0; font-size: 12px; font-weight: 500;
+    padding: 5px 10px; border-radius: 6px; white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 999;
+    pointer-events: none;
+  }
+  .sb-collapsed .nav-item:hover .tooltip { display: block; }
+
+  /* Admin dropdown */
+  .admin-menu {
+    position: absolute; bottom: 52px; left: 8px; right: 8px;
+    background: #1E293B; border: 1px solid #334155;
+    border-radius: 10px; padding: 6px;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.35); z-index: 400;
+    animation: fadeUp .15s ease;
+  }
+  .sb-collapsed .admin-menu { left: 56px; bottom: 8px; width: 200px; right: auto; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .admin-item {
+    display: flex; align-items: center; gap: 9px;
+    width: 100%; padding: 8px 10px; border-radius: 7px;
+    border: none; background: transparent; cursor: pointer;
+    font-size: 13px; color: #CBD5E1; text-align: left;
+    transition: background 0.12s;
+  }
+  .admin-item:hover { background: #334155; }
+  .admin-item.danger { color: #F87171; }
+  .admin-item.danger:hover { background: #450A0A; }
+  .admin-item:disabled { opacity: 0.4; cursor: not-allowed; }
+  .admin-divider { height: 1px; background: #334155; margin: 4px 0; }
+
+  /* Pin button */
+  .pin-btn {
+    background: none; border: none; cursor: pointer; padding: 4px 6px;
+    border-radius: 5px; color: #334155; font-size: 13px;
+    transition: color 0.12s, background 0.12s;
+  }
+  .pin-btn:hover { background: #1E293B; color: #60A5FA; }
+  .pin-btn.pinned { color: #60A5FA; }
+
+  /* Header */
+  .topbar { background: #fff; border-bottom: 1px solid #E5E7EB;
+             display: flex; align-items: center; gap: 10px;
+             padding: 0 20px; height: 52px; flex-shrink: 0; }
+
+  /* Badge */
+  .badge-red { background: #EF4444; color: #fff; border-radius: 10px;
+               font-size: 10px; padding: 1px 5px; font-weight: 700; line-height: 1.4; }
+
+  /* Modo consulta banner */
+  .consulta-pill {
+    font-size: 11px; background: #FFFBEB; color: #92400E;
+    border: 1px solid #FDE68A; border-radius: 6px;
+    padding: 3px 10px; font-weight: 600; white-space: nowrap;
+  }
+  .activo-pill {
+    font-size: 11px; background: #EFF6FF; color: #1E40AF;
+    border: 1px solid #BFDBFE; border-radius: 6px;
+    padding: 3px 10px; font-weight: 600; white-space: nowrap;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .sb { position: fixed !important; z-index: 300; height: 100vh;
+          transform: translateX(-100%); transition: transform .25s, width .22s; }
+    .sb.mobile-open { transform: translateX(0); }
+    .sb-overlay { display: block !important; }
+    .hamburger { display: flex !important; }
+    .global-search { max-width: 160px !important; }
+    .stats-grid-4 { grid-template-columns: repeat(2,1fr) !important; }
+    .docentes-layout, .materias-layout, .secciones-layout { flex-direction: column !important; height: auto !important; }
+    .docentes-left-panel, .materias-left-panel, .secciones-left-panel { width: 100% !important; max-height: 220px; }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+`;
+
+// ── Admin dropdown ────────────────────────────────────────────────────────────
+function AdminMenu({ appData, onClose, modoConsulta }) {
+  const ref = useRef(null);
+  const fileRef = useRef(null);
+  const backupRef = useRef(null);
+
   useEffect(() => {
-    // Consultar BD para saber el estado real del trimestre
-    const checkEstado = async () => {
-      const { data } = await supabase
-        .from("trimestres")
-        .select("estado")
-        .eq("lapso", lapso)
-        .single();
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const disabled = appData.uploading || appData.loading;
+
+  return (
+    <div ref={ref} className="admin-menu">
+      {/* Sección: datos */}
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em", padding: "4px 10px 6px" }}>
+        Datos del trimestre
+      </div>
+
+      {!modoConsulta && (
+        <>
+          <button className="admin-item" disabled={disabled}
+            onClick={() => { fileRef.current?.click(); onClose(); }}>
+            <span>📂</span> Cargar Excel
+          </button>
+          <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }}
+            onChange={e => { if (e.target.files[0]) appData.handleFileUpload(e.target.files[0]); e.target.value = ""; }} />
+        </>
+      )}
+
+      <button className="admin-item" disabled={disabled || !appData.data.length}
+        onClick={() => { appData.exportarDatos(); onClose(); }}>
+        <span>💾</span> Exportar backup
+      </button>
+
+      {!modoConsulta && (
+        <>
+          <button className="admin-item" disabled={disabled}
+            onClick={() => backupRef.current?.click()}>
+            <span>📥</span> Restaurar backup
+          </button>
+          <input ref={backupRef} type="file" accept=".json" style={{ display: "none" }}
+            onChange={e => { if (e.target.files[0]) { appData.importarDatos(e.target.files[0]); onClose(); } e.target.value = ""; }} />
+        </>
+      )}
+
+      {!modoConsulta && (
+        <>
+          <div className="admin-divider" />
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em", padding: "4px 10px 6px" }}>
+            Zona de peligro
+          </div>
+          <button className="admin-item danger" disabled={disabled || !appData.data.length}
+            onClick={() => { appData.clearAllData(); onClose(); }}>
+            <span>🗑️</span> Borrar datos del trimestre
+          </button>
+        </>
+      )}
+
+      <div className="admin-divider" />
+
+      {/* Estado de conexión */}
+      <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 10px" }}>
+        <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+          background: appData.isOffline ? "#EF4444" : "#22C55E" }} />
+        <span style={{ fontSize: 11, color: appData.isOffline ? "#FCA5A5" : "#4ADE80", fontWeight: 600 }}>
+          {appData.isOffline ? "Sin conexión" : "En línea"}
+        </span>
+        {appData.data.length > 0 && (
+          <span style={{ fontSize: 11, color: "#475569", marginLeft: "auto" }}>
+            {appData.data.length} registros
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 10, color: "#334155", padding: "0 10px 4px" }}>
+        Últ. sync: {appData.lastSync}
+      </div>
+    </div>
+  );
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
+export default function App() {
+  const [view,        setView]        = useState("resumen");
+  const [docenteNav,  setDocenteNav]  = useState(null);
+  const [materiaNav,  setMateriaNav]  = useState(null);
+  const [lapso,       setLapso]       = useState(() => getCurrentLapso());
+  const [modoConsulta,setModoConsulta]= useState(false);
+
+  // Sidebar state: expanded (hover o fijado), pinned (fijado por el usuario), mobileOpen
+  const [hovered,    setHovered]    = useState(false);
+  const [pinned,     setPinned]     = useState(() => localStorage.getItem("sb_pinned") === "1");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [adminOpen,  setAdminOpen]  = useState(false);
+
+  const expanded = pinned || hovered || mobileOpen;
+
+  const togglePin = () => {
+    const next = !pinned;
+    setPinned(next);
+    localStorage.setItem("sb_pinned", next ? "1" : "0");
+  };
+
+  // Trimestre: detectar si es consulta histórica
+  useEffect(() => {
+    const check = async () => {
+      const { data } = await supabase.from("trimestres").select("estado").eq("lapso", lapso).single();
       setModoConsulta(data?.estado === "cerrado" || data?.estado === "archivado");
     };
-    checkEstado();
+    check();
   }, [lapso]);
 
-  // ── Cambiar de trimestre (desde historial o selector) ─────────────────────
-  const handleCambiarLapso = useCallback((nuevoLapso) => {
-    setLapso(nuevoLapso);
-    // Si viene del historial y es diferente al activo, ir a resumen
+  const handleCambiarLapso = useCallback((nuevo) => {
+    setLapso(nuevo);
     setView("resumen");
   }, []);
 
-  const appData = useAppData(lapso);
+  const appData        = useAppData(lapso);
   const horariosFilters = useHorariosFilters(appData.data);
-
-  // ── Error de configuración ─────────────────────────────────────────────────
-  if (supabaseConfigError) return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0F172A", color: "#E2E8F0", gap: 16, padding: 32, textAlign: "center", fontFamily: "system-ui, sans-serif" }}>
-      <span style={{ fontSize: 48 }}>⚠️</span>
-      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "#F1F5F9" }}>Configuración incompleta</h2>
-      <p style={{ margin: 0, fontSize: 14, color: "#94A3B8", maxWidth: 460, lineHeight: 1.6 }}>{supabaseConfigError}</p>
-    </div>
-  );
-
-  if (appData.user === undefined) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0F172A", color: "#94A3B8", fontFamily: "system-ui, sans-serif", fontSize: 15 }}>
-      Verificando sesión…
-    </div>
-  );
-  if (!appData.user) return <LoginScreen />;
-
-  if (appData.loading && !appData.data.length) return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0F172A", gap: 16, fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ width: 36, height: 36, border: "3px solid #1E3A5F", borderTop: "3px solid #3B82F6", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <span style={{ color: "#94A3B8", fontSize: 14, fontWeight: 500 }}>Cargando horarios…</span>
-    </div>
-  );
 
   const handleNavigate = (r) => {
     if (r.docente) { setDocenteNav(r.rawDocente || r.docente); setView("docentes"); }
@@ -95,37 +281,41 @@ export default function App() {
     else setView("horarios");
   };
 
-  const nav = NAV_CON_HISTORIAL.map(item => ({
-    ...item,
-    badge: item.hasBadge ? appData.conflicts.length : 0,
-  }));
-
-  const NavBtn = ({ item, active, onClick }) => (
-    <button onClick={onClick}
-      style={{
-        display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "8px 10px",
-        border: "none", borderRadius: 7,
-        background: active ? "#1E3A8A" : "transparent",
-        color: active ? "#93C5FD" : "#64748B",
-        cursor: "pointer", fontSize: 13, textAlign: "left", marginBottom: 1,
-        fontWeight: active ? 600 : 400,
-        borderLeft: active ? "2px solid #3B82F6" : "2px solid transparent",
-        transition: "background 0.15s, color 0.15s",
-      }}
-    >
-      <span style={{ fontSize: 14, opacity: active ? 1 : 0.7 }}>{item.emoji}</span>
-      <span style={{ flex: 1 }}>{item.label}</span>
-      {item.badge > 0 && (
-        <span style={{ background: "#EF4444", color: "#fff", borderRadius: 10, fontSize: 10, padding: "1px 6px", fontWeight: 700 }}>
-          {item.badge}
-        </span>
-      )}
-    </button>
+  // ── Guards ────────────────────────────────────────────────────────────────
+  if (supabaseConfigError) return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:"#0F172A", color:"#E2E8F0", gap:16, padding:32, textAlign:"center", fontFamily:"system-ui,sans-serif" }}>
+      <span style={{ fontSize:48 }}>⚠️</span>
+      <h2 style={{ margin:0, fontSize:20, fontWeight:600, color:"#F1F5F9" }}>Configuración incompleta</h2>
+      <p style={{ margin:0, fontSize:14, color:"#94A3B8", maxWidth:460, lineHeight:1.6 }}>{supabaseConfigError}</p>
+    </div>
+  );
+  if (appData.user === undefined) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh",
+      background:"#0F172A", color:"#94A3B8", fontFamily:"system-ui,sans-serif", fontSize:15 }}>
+      Verificando sesión…
+    </div>
+  );
+  if (!appData.user) return <LoginScreen />;
+  if (appData.loading && !appData.data.length) return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:"#0F172A", gap:16, fontFamily:"system-ui,sans-serif" }}>
+      <div style={{ width:36, height:36, border:"3px solid #1E3A5F", borderTop:"3px solid #3B82F6",
+        borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <span style={{ color:"#94A3B8", fontSize:14 }}>Cargando horarios…</span>
+    </div>
   );
 
+  // Conflictos count para badge
+  const conflictCount = appData.conflicts.length;
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: "flex", height: "100vh", fontFamily: "system-ui,-apple-system,sans-serif", background: "#F3F4F6", overflow: "hidden" }}>
-      <ResponsiveStyles />
+    <div style={{ display:"flex", height:"100vh", fontFamily:"system-ui,-apple-system,sans-serif",
+      background:"#F3F4F6", overflow:"hidden" }}>
+      <style>{GLOBAL_CSS}</style>
+
       {appData.toast && <Toast message={appData.toast.message} type={appData.toast.type} onClose={appData.hideToast} />}
       <ConfirmModal
         open={!!appData.confirmModal}
@@ -138,220 +328,243 @@ export default function App() {
       />
 
       {/* Overlay móvil */}
-      <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}
-        style={{ display: "none", position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 299 }} />
+      <div className="sb-overlay" onClick={() => setMobileOpen(false)}
+        style={{ display:"none", position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:299 }} />
 
-      {/* ── SIDEBAR ────────────────────────────────────────────────────────── */}
-      <aside className={`sidebar-aside${sidebarOpen ? " open" : ""}`}
-        style={{ width: 228, background: "#0F172A", display: "flex", flexDirection: "column", flexShrink: 0, borderRight: "1px solid #1E293B" }}>
+      {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
+      <aside
+        className={`sb ${expanded ? "sb-expanded" : "sb-collapsed"} ${mobileOpen ? "mobile-open" : ""}`}
+        onMouseEnter={() => !pinned && setHovered(true)}
+        onMouseLeave={() => { if (!pinned) { setHovered(false); setAdminOpen(false); } }}
+        style={{ background:"#0F172A", display:"flex", flexDirection:"column",
+          flexShrink:0, borderRight:"1px solid #1E293B", position:"relative" }}
+      >
+        {/* Marca + pin */}
+        <div style={{ display:"flex", alignItems:"center", gap:8, padding:"14px 10px 12px",
+          borderBottom:"1px solid #1E293B", flexShrink:0 }}>
+          <div style={{ width:32, height:32, borderRadius:8, flexShrink:0,
+            background:"linear-gradient(135deg,#2563EB,#7C3AED)",
+            display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>
+            🎓
+          </div>
+          <div className="sb-label" style={{ flex:1, overflow:"hidden" }}>
+            <div style={{ fontSize:13, fontWeight:700, color:"#F1F5F9", whiteSpace:"nowrap" }}>Horarios PNF</div>
+            <div style={{ fontSize:10, color:"#475569", marginTop:1, whiteSpace:"nowrap" }}>Sistema de gestión</div>
+          </div>
+          {expanded && (
+            <button className={`pin-btn ${pinned ? "pinned" : ""}`} onClick={togglePin}
+              title={pinned ? "Desfijar sidebar" : "Fijar sidebar"}>
+              {pinned ? "📌" : "📍"}
+            </button>
+          )}
+        </div>
 
-        {/* Marca */}
-        <div style={{ padding: "18px 16px 14px", borderBottom: "1px solid #1E293B" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg,#2563EB,#7C3AED)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>🎓</div>
+        {/* Trimestre activo */}
+        <div style={{ padding:"10px 10px 10px", borderBottom:"1px solid #1E293B", flexShrink:0 }}>
+          <div style={{ width:32, height:32, borderRadius:7, flexShrink:0,
+            background: modoConsulta ? "#451A03" : "#0C1A3A",
+            display:"flex", alignItems:"center", justifyContent:"center", fontSize:14,
+            cursor: modoConsulta ? "pointer" : "default",
+            ...(expanded ? { display:"none" } : {}) }}
+            onClick={() => modoConsulta && handleCambiarLapso(getCurrentLapso())}
+            title={modoConsulta ? `Historial: ${lapso} — clic para volver` : `Trimestre activo: ${lapso}`}
+          >
+            {modoConsulta ? "📂" : "📅"}
+          </div>
+          {expanded && (
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#F1F5F9", lineHeight: 1 }}>Horarios PNF</div>
-              <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>Sistema de gestión</div>
-            </div>
-          </div>
-
-          {/* Selector de programa */}
-          <select value={appData.selectedPrograma} onChange={e => appData.setSelectedPrograma(e.target.value)}
-            style={{ ...S.select, width: "100%", background: "#1E293B", color: "#CBD5E1", borderColor: "#334155", fontSize: 12, padding: "6px 10px" }}>
-            {appData.programasDisponibles.map(p => (
-              <option key={p} value={p}>{p === "todos" ? "Todos los programas" : p}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Trimestre activo con indicador */}
-        <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E293B" }}>
-          <div style={{ fontSize: 9, fontWeight: 600, color: "#334155", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>
-            {modoConsulta ? "📂 Consultando historial" : "📅 Trimestre activo"}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{
-              flex: 1, fontSize: 13, fontWeight: 700,
-              color: modoConsulta ? "#FBBF24" : "#60A5FA",
-            }}>
-              {formatLapso(lapso)}
-            </span>
-            {modoConsulta && (
-              <button
-                onClick={() => { setLapso(getCurrentLapso()); setModoConsulta(false); setView("resumen"); }}
-                title="Volver al trimestre activo"
-                style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: "1px solid #334155", background: "#1E293B", color: "#60A5FA", cursor: "pointer", fontWeight: 600, flexShrink: 0 }}
-              >↩ Volver</button>
-            )}
-          </div>
-        </div>
-
-        {/* Estadísticas compactas */}
-        <div style={{ padding: "10px 14px 12px", borderBottom: "1px solid #1E293B" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 0" }}>
-            {[
-              { label: "Clases",    val: appData.stats.total,    color: "#60A5FA" },
-              { label: "Secciones", val: appData.stats.secciones, color: "#34D399" },
-              { label: "Docentes",  val: appData.stats.docentes,  color: "#A78BFA" },
-              { label: "Materias",  val: appData.stats.materias,  color: "#FBBF24" },
-            ].map((s, i) => (
-              <div key={s.label} style={{ padding: "6px 8px", borderRadius: 7, background: "#1E293B", margin: i % 2 === 0 ? "0 4px 0 0" : "0 0 0 4px" }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.val}</div>
-                <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize:9, fontWeight:700, color:"#334155", textTransform:"uppercase",
+                letterSpacing:"0.08em", marginBottom:3 }}>
+                {modoConsulta ? "📂 Consultando historial" : "📅 Trimestre activo"}
               </div>
-            ))}
-          </div>
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <span style={{ fontSize:13, fontWeight:700, color: modoConsulta ? "#FBBF24" : "#60A5FA",
+                  flex:1, whiteSpace:"nowrap" }}>
+                  {formatLapso(lapso)}
+                </span>
+                {modoConsulta && (
+                  <button onClick={() => handleCambiarLapso(getCurrentLapso())}
+                    style={{ fontSize:10, padding:"2px 7px", borderRadius:5, border:"1px solid #334155",
+                      background:"#1E293B", color:"#60A5FA", cursor:"pointer", fontWeight:600, flexShrink:0 }}>
+                    ↩
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Selector de programa */}
+        <div style={{ padding:"8px 10px", borderBottom:"1px solid #1E293B", flexShrink:0 }}>
+          {expanded ? (
+            <select value={appData.selectedPrograma} onChange={e => appData.setSelectedPrograma(e.target.value)}
+              style={{ ...S.select, width:"100%", background:"#1E293B", color:"#CBD5E1",
+                borderColor:"#334155", fontSize:12, padding:"6px 8px" }}>
+              {appData.programasDisponibles.map(p => (
+                <option key={p} value={p}>{p === "todos" ? "Todos los programas" : p}</option>
+              ))}
+            </select>
+          ) : (
+            <div style={{ width:32, height:32, borderRadius:7, background:"#1E293B",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:13, color:"#475569", cursor:"default" }}
+              title={`Programa: ${appData.selectedPrograma === "todos" ? "Todos" : appData.selectedPrograma}`}>
+              🎓
+            </div>
+          )}
         </div>
 
         {/* Navegación */}
-        <nav style={{ flex: 1, padding: "10px 10px 6px", overflowY: "auto" }}>
-
-          <div style={{ fontSize: 10, fontWeight: 600, color: "#334155", letterSpacing: "0.08em", textTransform: "uppercase", padding: "0 6px", marginBottom: 4 }}>Vistas</div>
-          {nav.filter(i => ["resumen", "horarios", "secciones"].includes(i.id)).map(item => (
-            <NavBtn key={item.id} item={item} active={view === item.id}
-              onClick={() => { setView(item.id); setSidebarOpen(false); }} />
-          ))}
-
-          <div style={{ height: 1, background: "#1E293B", margin: "8px 6px" }} />
-
-          <div style={{ fontSize: 10, fontWeight: 600, color: "#334155", letterSpacing: "0.08em", textTransform: "uppercase", padding: "0 6px", marginBottom: 4 }}>Gestión</div>
-          {nav.filter(i => ["docentes", "materias", "asistencias"].includes(i.id)).map(item => (
-            <NavBtn key={item.id} item={item} active={view === item.id}
-              onClick={() => { setView(item.id); setSidebarOpen(false); }} />
-          ))}
-
-          <div style={{ height: 1, background: "#1E293B", margin: "8px 6px" }} />
-
-          <div style={{ fontSize: 10, fontWeight: 600, color: "#334155", letterSpacing: "0.08em", textTransform: "uppercase", padding: "0 6px", marginBottom: 4 }}>Sistema</div>
-          {nav.filter(i => ["conflictos", "historial"].includes(i.id)).map(item => (
-            <NavBtn key={item.id} item={item} active={view === item.id}
-              onClick={() => { setView(item.id); setSidebarOpen(false); }} />
-          ))}
-
-          {/* Selector de lapso en asistencias */}
-          {view === "asistencias" && (
-            <>
-              <div style={{ height: 1, background: "#1E293B", margin: "8px 6px" }} />
-              <div style={{ padding: "0 6px" }}>
-                <div style={{ fontSize: 10, color: "#475569", marginBottom: 4, fontWeight: 600 }}>Trimestre académico</div>
-                <select value={lapso} onChange={e => setLapso(e.target.value)}
-                  style={{ ...S.select, width: "100%", background: "#1E293B", color: "#93C5FD", borderColor: "#334155", fontSize: 12, padding: "6px 10px", fontWeight: 600 }}>
-                  {lapsosDisponibles.map(l => (
-                    <option key={l} value={l}>{formatLapso(l)}</option>
-                  ))}
-                </select>
+        <nav style={{ flex:1, padding:"8px 8px 6px", overflowY:"auto", overflowX:"hidden" }}>
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={group.label} style={{ marginBottom: gi < NAV_GROUPS.length - 1 ? 4 : 0 }}>
+              {/* Separador con etiqueta */}
+              {gi > 0 && (
+                <div style={{ height:1, background:"#1E293B", margin:"6px 4px 8px" }} />
+              )}
+              <div className="sb-group-title" style={{
+                fontSize:9, fontWeight:700, color:"#334155", textTransform:"uppercase",
+                letterSpacing:"0.1em", padding:"0 8px", marginBottom:4,
+                transition:"opacity 0.15s",
+              }}>
+                {group.label}
               </div>
-            </>
-          )}
+
+              {group.items.map(item => {
+                const active = view === item.id;
+                const badge  = item.hasBadge ? conflictCount : 0;
+                return (
+                  <button key={item.id}
+                    className={`nav-item ${active ? "active" : ""}`}
+                    onClick={() => { setView(item.id); setMobileOpen(false); }}
+                  >
+                    <span style={{ fontSize:15, flexShrink:0, width:20, textAlign:"center" }}>
+                      {item.emoji}
+                    </span>
+                    <span className="sb-label" style={{ flex:1 }}>{item.label}</span>
+                    {badge > 0 && <span className="badge-red">{badge}</span>}
+                    {/* Tooltip solo cuando colapsado */}
+                    <span className="tooltip">
+                      {item.label}{badge > 0 ? ` (${badge})` : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
-        {/* Acciones de datos (ocultas en modo consulta de historial) */}
-        {!modoConsulta && (
-          <div style={{ padding: "10px 12px", borderTop: "1px solid #1E293B" }}>
-            <label htmlFor="upload-excel"
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer", background: "#2563EB", color: "#fff", padding: "8px 12px", borderRadius: 8, fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-              <span>📂</span> Cargar Excel
-            </label>
-            <input id="upload-excel" type="file" accept=".xlsx, .xls" style={{ display: "none" }}
-              onChange={(e) => { if (e.target.files[0]) appData.handleFileUpload(e.target.files[0]); e.target.value = ""; }}
-              disabled={appData.uploading} />
-
-            <div style={{ display: "flex", gap: 5, marginBottom: 6 }}>
-              <button onClick={appData.exportarDatos} disabled={appData.uploading || !appData.data.length}
-                title="Exportar backup"
-                style={{ flex: 1, cursor: appData.data.length ? "pointer" : "not-allowed", background: "#1E293B", color: appData.data.length ? "#94A3B8" : "#334155", border: "1px solid #334155", padding: "6px 0", borderRadius: 7, fontSize: 11, fontWeight: 600 }}>
-                💾 Backup
-              </button>
-              <label htmlFor="import-backup" title="Restaurar backup"
-                style={{ flex: 1, cursor: "pointer", background: "#1E293B", color: "#94A3B8", border: "1px solid #334155", padding: "6px 0", borderRadius: 7, fontSize: 11, fontWeight: 600, textAlign: "center" }}>
-                📥 Restaurar
-              </label>
-              <input id="import-backup" type="file" accept=".json" style={{ display: "none" }}
-                onChange={(e) => { if (e.target.files[0]) appData.importarDatos(e.target.files[0]); e.target.value = ""; }}
-                disabled={appData.uploading} />
-              <button onClick={appData.clearAllData} disabled={appData.loading || !appData.data.length}
-                title="Borrar todos los datos"
-                style={{ flex: 1, cursor: appData.data.length ? "pointer" : "not-allowed", background: "#1E293B", color: appData.data.length ? "#F87171" : "#334155", border: "1px solid #334155", padding: "6px 0", borderRadius: 7, fontSize: 11, fontWeight: 600 }}>
-                🗑️ Borrar
-              </button>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: appData.isOffline ? "#EF4444" : "#22C55E", flexShrink: 0 }}></span>
-                <span style={{ color: appData.isOffline ? "#FCA5A5" : "#4ADE80", fontWeight: 600 }}>
-                  {appData.isOffline ? "Offline" : "En línea"}
-                </span>
-              </div>
-              {appData.data.length > 0 && !appData.uploading && (
-                <span style={{ fontSize: 10, color: "#334155" }}>{appData.data.length} registros</span>
-              )}
-              {appData.uploading && <span style={{ fontSize: 10, color: "#60A5FA" }}>Procesando…</span>}
-            </div>
-            {appData.error && <div style={{ fontSize: 10, marginTop: 4, color: "#F87171" }}>{appData.error}</div>}
-          </div>
+        {/* Admin dropdown */}
+        {adminOpen && (
+          <AdminMenu
+            appData={appData}
+            modoConsulta={modoConsulta}
+            onClose={() => setAdminOpen(false)}
+          />
         )}
 
-        {/* Modo consulta: banner de solo lectura */}
-        {modoConsulta && (
-          <div style={{ padding: "10px 12px", borderTop: "1px solid #1E293B", background: "#1C1A10" }}>
-            <div style={{ fontSize: 10, color: "#FBBF24", fontWeight: 600, textAlign: "center", lineHeight: 1.5 }}>
-              📂 Modo consulta — solo lectura<br />
-              <span style={{ color: "#475569", fontWeight: 400 }}>{formatLapso(lapso)}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Usuario */}
-        <div style={{ padding: "10px 12px", borderTop: "1px solid #1E293B", display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#2563EB,#7C3AED)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-            {appData.user.email?.[0]?.toUpperCase() ?? "A"}
-          </div>
-          <div style={{ flex: 1, overflow: "hidden" }}>
-            <div style={{ fontSize: 11, color: "#94A3B8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{appData.user.email}</div>
-            <div style={{ fontSize: 9, color: "#334155", marginTop: 1 }}>Sinc: {appData.lastSync}</div>
-          </div>
-          <button onClick={appData.handleLogout} title="Cerrar sesión"
-            style={{ background: "none", border: "1px solid #1E293B", borderRadius: 6, cursor: "pointer", color: "#475569", fontSize: 13, padding: "3px 7px", flexShrink: 0 }}>
-            ⏏
+        {/* Footer: botón admin + usuario */}
+        <div style={{ borderTop:"1px solid #1E293B", padding:"8px 8px", flexShrink:0 }}>
+          {/* Botón de administración */}
+          <button
+            onClick={() => setAdminOpen(o => !o)}
+            className="nav-item"
+            style={{ marginBottom:6, color: adminOpen ? "#93C5FD" : "#64748B",
+              background: adminOpen ? "#1E293B" : "transparent" }}
+            title="Administración"
+          >
+            <span style={{ fontSize:15, flexShrink:0, width:20, textAlign:"center" }}>⚙️</span>
+            <span className="sb-label" style={{ flex:1 }}>Administración</span>
+            {appData.uploading && (
+              <span style={{ width:8, height:8, borderRadius:"50%", border:"1.5px solid #3B82F6",
+                borderTop:"1.5px solid transparent", animation:"spin .7s linear infinite", flexShrink:0 }} />
+            )}
+            <span className="tooltip">Administración</span>
           </button>
+
+          {/* Usuario */}
+          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"4px 4px 0" }}>
+            <div style={{ width:28, height:28, borderRadius:"50%", flexShrink:0,
+              background:"linear-gradient(135deg,#2563EB,#7C3AED)",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:12, fontWeight:700, color:"#fff" }}>
+              {appData.user.email?.[0]?.toUpperCase() ?? "A"}
+            </div>
+            <div className="sb-label" style={{ flex:1, overflow:"hidden" }}>
+              <div style={{ fontSize:11, color:"#94A3B8", overflow:"hidden",
+                textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                {appData.user.email}
+              </div>
+            </div>
+            {expanded && (
+              <button onClick={appData.handleLogout} title="Cerrar sesión"
+                style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
+                  cursor:"pointer", color:"#475569", fontSize:12, padding:"3px 7px", flexShrink:0 }}>
+                ⏏
+              </button>
+            )}
+          </div>
         </div>
       </aside>
 
-      {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────────── */}
-      <div className="main-content" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────── */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
 
-        {/* Header */}
-        <header className="header-bar"
-          style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-          <button onClick={() => setSidebarOpen(o => !o)} className="hamburger-btn"
-            style={{ display: "none", background: "none", border: "1px solid #E5E7EB", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 18, color: "#374151", flexShrink: 0 }}>
+        {/* Topbar */}
+        <header className="topbar">
+          {/* Hamburger (mobile) */}
+          <button className="hamburger"
+            onClick={() => setMobileOpen(o => !o)}
+            style={{ display:"none", background:"none", border:"1px solid #E5E7EB",
+              borderRadius:6, padding:"5px 9px", cursor:"pointer", fontSize:17,
+              color:"#374151", flexShrink:0, alignItems:"center" }}>
             ☰
           </button>
 
-          <GlobalSearch onNavigate={handleNavigate} docenteNames={appData.docenteNames} materiaNames={appData.materiaNames} data={appData.data} />
+          {/* Búsqueda */}
+          <div style={{ flex:1, maxWidth:420 }}>
+            <GlobalSearch
+              onNavigate={handleNavigate}
+              docenteNames={appData.docenteNames}
+              materiaNames={appData.materiaNames}
+              data={appData.data}
+            />
+          </div>
 
+          {/* Syncing */}
           {appData.isSyncing && (
-            <span style={{ fontSize: 11, color: "#94A3B8", whiteSpace: "nowrap", flexShrink: 0 }}>🔄 Actualizando…</span>
+            <span style={{ fontSize:11, color:"#94A3B8", whiteSpace:"nowrap", flexShrink:0 }}>
+              🔄 Actualizando…
+            </span>
           )}
 
-          {/* Indicador de trimestre en header */}
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            {modoConsulta && (
-              <span style={{ fontSize: 11, background: "#FFFBEB", color: "#92400E", border: "1px solid #FDE68A", borderRadius: 6, padding: "3px 10px", fontWeight: 600 }}>
-                📂 Historial: {formatLapso(lapso)}
-              </span>
-            )}
-            {!modoConsulta && (
-              <span style={{ fontSize: 11, background: "#EFF6FF", color: "#1E40AF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "3px 10px", fontWeight: 600 }}>
-                📅 {formatLapso(lapso)}
-              </span>
-            )}
+          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
+            {/* Pill de trimestre */}
+            {modoConsulta
+              ? <span className="consulta-pill">📂 Historial · {formatLapso(lapso)}</span>
+              : <span className="activo-pill">📅 {formatLapso(lapso)}</span>
+            }
           </div>
         </header>
 
+        {/* Banner modo consulta */}
+        {modoConsulta && (
+          <div style={{ background:"#FFFBEB", borderBottom:"1px solid #FDE68A",
+            padding:"7px 20px", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+            <span style={{ fontSize:13, color:"#92400E", fontWeight:600 }}>
+              📂 Modo consulta — estás viendo el trimestre {formatLapso(lapso)} (solo lectura)
+            </span>
+            <button onClick={() => handleCambiarLapso(getCurrentLapso())}
+              style={{ marginLeft:"auto", fontSize:12, padding:"4px 12px", borderRadius:6,
+                border:"1px solid #FDE68A", background:"#fff", color:"#92400E",
+                cursor:"pointer", fontWeight:600, flexShrink:0 }}>
+              ↩ Volver al trimestre activo
+            </button>
+          </div>
+        )}
+
         {/* Vistas */}
-        <main style={{ flex: 1, overflow: "auto" }}>
+        <main style={{ flex:1, overflow:"auto" }}>
           {view === "resumen" && (
             <ResumenView
               stats={appData.stats} data={appData.data}
@@ -364,8 +577,8 @@ export default function App() {
             <HorariosView
               filtered={appData.data.filter(d =>
                 (horariosFilters.selectedTrayecto === "all" || d.trayecto === horariosFilters.selectedTrayecto) &&
-                (horariosFilters.selectedSeccion === "all" || d.sheet.trim() === horariosFilters.selectedSeccion) &&
-                (horariosFilters.activeDay === "all" || d.dia === horariosFilters.activeDay)
+                (horariosFilters.selectedSeccion  === "all" || d.sheet.trim() === horariosFilters.selectedSeccion) &&
+                (horariosFilters.activeDay        === "all" || d.dia === horariosFilters.activeDay)
               )}
               selectedTrayecto={horariosFilters.selectedTrayecto}
               setSelectedTrayecto={horariosFilters.setSelectedTrayecto}
