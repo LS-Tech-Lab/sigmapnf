@@ -1,13 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { DAYS, S, ALL_TRAYECTOS, TRAYECTO_BG, TRAYECTO_COLORS } from '../constants';
 import { getTurnoDeRegistro } from '../utils/turno';
-import { getHoraDisplayDeRegistro } from '../utils/time';
 import StatCard from './StatCard';
 import Avatar from './Avatar';
 
-export default function ResumenView({ stats, data, byDocente, byMateria, conflicts, getDocName, getMateriaName }) {
+export default function ResumenView({ stats, data, byDocente, byMateria, conflicts, getDocName, getMateriaName, onGoToConflictos }) {
   const [tab, setTab] = useState('general');
-  const [showConflicts, setShowConflicts] = useState(false);
 
   const metricas = useMemo(() => {
     if (!data || data.length === 0) return null;
@@ -81,18 +79,9 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
                 <div style={{ fontSize: 13, color: '#B91C1C', marginBottom: 10, fontWeight: 500 }}>
                   Hay {conflicts.length} conflicto(s) de horario que requieren atención.
                 </div>
-                <button onClick={() => setShowConflicts(!showConflicts)} style={{ padding: '6px 14px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-                  {showConflicts ? 'Ocultar detalles' : 'Ver detalles'}
+                <button onClick={onGoToConflictos} style={{ padding: '6px 14px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                  Ver detalles
                 </button>
-                {showConflicts && (
-                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {conflicts.slice(0, 5).map((c, i) => (
-                      <div key={i} style={{ fontSize: 12, color: '#991B1B', fontWeight: 500 }}>
-                        {getDocName(c.docente)} — {c.dia.charAt(0)+c.dia.slice(1).toLowerCase()} · {getHoraDisplayDeRegistro(c.entries[0])}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
             {metricas && (
