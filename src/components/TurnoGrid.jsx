@@ -77,10 +77,16 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
                           const { materia: rawMateria, docente: rawDoc } = parseClase(e.clase);
                           const materia = getMateriaName(rawMateria), docente = getDocName(rawDoc);
                           const bg = TRAYECTO_BG[e.trayecto] || "#f0f0f0", col = TRAYECTO_COLORS[e.trayecto] || "#555";
+                          const toggleExpand = () => setExpandedCell(isExp ? null : cellKey);
                           return (
                             <div
                               key={i}
-                              onClick={() => setExpandedCell(isExp ? null : cellKey)}
+                              role="button"
+                              tabIndex={0}
+                              aria-expanded={isExp}
+                              aria-label={`${materia}${docente ? ` — ${docente}` : ""}. Presiona Enter para ${isExp ? "ocultar" : "ver"} detalles.`}
+                              onClick={toggleExpand}
+                              onKeyDown={ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggleExpand(); } }}
                               style={{
                                 background: bg, borderLeft: `3px solid ${col}`, borderRadius: 6,
                                 padding: isExp ? "6px 8px" : "5px 8px", marginBottom: i < entries.length - 1 ? 3 : 0,
