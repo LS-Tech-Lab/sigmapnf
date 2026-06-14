@@ -28,7 +28,7 @@ export function getTurnoFromHora(horaStr) {
 }
 
 export function getTurnoDeRegistro(d) {
-  return getTurnoByCodigo(d.sheet) || normalizeTurno(d.turno) || getTurnoFromHora(d.hora) || "DIURNO";
+  return normalizeTurno(d.turno) || getTurnoByCodigo(d.sheet) || getTurnoFromHora(d.hora) || "DIURNO";
 }
 
 // Mejora 4: eliminado el import() dinámico (devolvía una Promise, nunca funcionó).
