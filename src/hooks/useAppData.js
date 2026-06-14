@@ -11,7 +11,7 @@ import {
   CACHE_KEYS, limpiarCache, obtenerUltimaSincronizacion, validarVersionCache
 } from "../utils/cache";
 
-export default function useAppData() {
+export default function useAppData(lapso) {
   // Invalida caché si el esquema cambió (ejecuta solo en mount)
   useEffect(() => { validarVersionCache(); }, []);
 
@@ -46,8 +46,10 @@ export default function useAppData() {
 
   const hideToast = useCallback(() => setToast(null), []);
 
-  const fetchProgramas = async () => {
-    const { data: programas } = await supabase.from("horarios").select("programa").not("programa", "is", null);
+  const fetchProgramas = async (lapsoActual) => {
+    let query = supabase.from("horarios").select("programa").not("programa", "is", null);
+    if (lapsoActual) query = query.eq("lapso", lapsoActual);
+    const { data: programas } = await query;
     if (programas) {
       const canonicalSet = new Map();
       programas.forEach(p => { if (p.programa?.trim()) { const canon = normalizarPrograma(p.programa); if (canon) canonicalSet.set(canon, true); } });
@@ -57,8 +59,11 @@ export default function useAppData() {
     }
   };
 
+  // Clave de caché incluye el lapso para evitar mezclar datos de distintos trimestres
+  const cacheKey = lapso ? `${CACHE_KEYS.horarios}_${lapso}` : CACHE_KEYS.horarios;
+
   const fetchHorarios = useCallback(async (programa = selectedPrograma) => {
-    const cachedHorarios = cargarDeCache(CACHE_KEYS.horarios);
+    const cachedHorarios = cargarDeCache(cacheKey);
     if (cachedHorarios?.length > 0) {
       setData(cachedHorarios);
       setLoading(false);
@@ -69,6 +74,8 @@ export default function useAppData() {
     try {
       const PAGE_LIMIT = 1000;
       let query = supabase.from("horarios").select("*", { count: "exact" });
+      // Filtrar por trimestre si hay uno activo
+      if (lapso) query = query.eq("lapso", lapso);
       if (programa !== "todos") query = query.eq("programa", programa);
       const { data: horarios, error, count } = await query.order("id", { ascending: true }).limit(PAGE_LIMIT);
       if (error) {
@@ -80,7 +87,7 @@ export default function useAppData() {
       } else {
         const nuevosDatos = horarios || [];
         setData(nuevosDatos);
-        guardarEnCache(CACHE_KEYS.horarios, nuevosDatos);
+        guardarEnCache(cacheKey, nuevosDatos);
         localStorage.setItem(CACHE_KEYS.lastSync, Date.now().toString());
         setLastSync(obtenerUltimaSincronizacion());
         if (count !== null && count > PAGE_LIMIT) {
@@ -96,7 +103,7 @@ export default function useAppData() {
     }
     setLoading(false);
     setIsSyncing(false);
-  }, [selectedPrograma, showToast]);
+  }, [selectedPrograma, lapso, cacheKey, showToast]);
 
   const fetchDocenteNames = async () => {
     const cachedDocentes = cargarDeCache(CACHE_KEYS.docentes);
@@ -132,8 +139,8 @@ export default function useAppData() {
     }
   };
 
-  useEffect(() => { fetchProgramas(); fetchDocenteNames(); fetchMateriaNames(); }, []);
-  useEffect(() => { fetchHorarios(selectedPrograma); }, [selectedPrograma, fetchHorarios]);
+  useEffect(() => { fetchProgramas(lapso); fetchDocenteNames(); fetchMateriaNames(); }, [lapso]);
+  useEffect(() => { fetchHorarios(selectedPrograma); }, [selectedPrograma, lapso, fetchHorarios]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
@@ -155,11 +162,6 @@ export default function useAppData() {
       const { nombre_raw: targetRaw, nombre_display: canonicalDisplay } = existing[0];
       const { error: rpcError } = await supabase.rpc("replace_nombre_en_clases", { old_raw: rawName, new_raw: targetRaw });
       if (rpcError) throw new Error(`Error al unificar en horarios: ${rpcError.message}`);
-      // Si esta limpieza falla, no abortamos: la unificación en "horarios" (el dato
-      // importante) ya se completó. Solo quedaría un registro huérfano de nombre
-      // en `tableName`, que no afecta la app (getDocName/getMateriaName usan
-      // nombre_raw como clave y targetRaw ya es el que se usará en adelante).
-      // Lo registramos para poder limpiarlo manualmente si se acumula.
       const { error: deleteError } = await supabase.from(tableName).delete().eq("nombre_raw", rawName);
       if (deleteError) {
         console.warn(`No se pudo eliminar el registro huérfano "${rawName}" de "${tableName}":`, deleteError.message);
@@ -193,18 +195,19 @@ export default function useAppData() {
     const scope = selectedPrograma !== "todos" ? `el programa "${selectedPrograma}"` : "TODOS los programas";
     openConfirm({
       title: "Borrar datos",
-      message: `Se eliminarán los horarios de ${scope}. Se recomienda hacer un backup antes. Esta acción no se puede deshacer.`,
+      message: `Se eliminarán los horarios de ${scope} del trimestre ${lapso || "actual"}. Se recomienda hacer un backup antes. Esta acción no se puede deshacer.`,
       confirmLabel: "Sí, borrar",
       danger: true,
       onConfirm: async () => {
         closeConfirm();
         setLoading(true);
         let query = supabase.from("horarios").delete();
+        if (lapso) query = query.eq("lapso", lapso);
         if (selectedPrograma !== "todos") query = query.eq("programa", selectedPrograma);
         else query = query.neq("id", 0);
         const { error } = await query;
         if (error) showToast("❌ Error al borrar.", "error");
-        else { showToast("✅ Datos eliminados.", "success"); limpiarCache(); await fetchHorarios(); await fetchProgramas(); }
+        else { showToast("✅ Datos eliminados.", "success"); limpiarCache(); await fetchHorarios(); await fetchProgramas(lapso); }
         setLoading(false);
       },
     });
@@ -214,13 +217,16 @@ export default function useAppData() {
     try {
       showToast("📦 Preparando backup...", "info");
       const [horariosRes, docentesRes, materiasRes] = await Promise.all([
-        supabase.from("horarios").select("*"),
+        lapso
+          ? supabase.from("horarios").select("*").eq("lapso", lapso)
+          : supabase.from("horarios").select("*"),
         supabase.from("docentes").select("*"),
         supabase.from("materias").select("*"),
       ]);
       const backup = {
-        version: "1.0",
+        version: "2.0",
         fecha: new Date().toISOString(),
+        lapso: lapso || "todos",
         programa: selectedPrograma,
         horarios: horariosRes.data || [],
         docentes: docentesRes.data || [],
@@ -230,7 +236,7 @@ export default function useAppData() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `backup-horarios-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `backup-horarios-${lapso || "todos"}-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -245,7 +251,7 @@ export default function useAppData() {
   const importarDatos = (file) => {
     openConfirm({
       title: "Restaurar backup",
-      message: "Esto REEMPLAZARÁ todos los datos actuales con el contenido del archivo. ¿Continuar?",
+      message: "Esto REEMPLAZARÁ todos los datos del trimestre actual con el contenido del archivo. ¿Continuar?",
       confirmLabel: "Sí, restaurar",
       danger: true,
       onConfirm: async () => {
@@ -255,16 +261,22 @@ export default function useAppData() {
           const text = await file.text();
           const backup = JSON.parse(text);
           if (!backup.horarios || !backup.docentes || !backup.materias) throw new Error("El archivo no tiene el formato correcto de backup");
-          await supabase.from("horarios").delete().neq("id", 0);
+          // Borrar solo el lapso que corresponde
+          let delQuery = supabase.from("horarios").delete();
+          if (lapso) delQuery = delQuery.eq("lapso", lapso);
+          else delQuery = delQuery.neq("id", 0);
+          await delQuery;
           await supabase.from("docentes").delete().neq("id", 0);
           await supabase.from("materias").delete().neq("id", 0);
-          if (backup.horarios.length > 0) await supabase.from("horarios").insert(backup.horarios);
+          // Asegurar que los horarios restaurados llevan el lapso correcto
+          const horariosConLapso = backup.horarios.map(h => ({ ...h, lapso: lapso || h.lapso || null }));
+          if (horariosConLapso.length > 0) await supabase.from("horarios").insert(horariosConLapso);
           if (backup.docentes.length > 0) await supabase.from("docentes").upsert(backup.docentes, { onConflict: "nombre_raw" });
           if (backup.materias.length > 0) await supabase.from("materias").upsert(backup.materias, { onConflict: "nombre_raw" });
           limpiarCache();
           showToast(`✅ Backup restaurado: ${backup.horarios.length} clases`, "success");
           await fetchHorarios();
-          await fetchProgramas();
+          await fetchProgramas(lapso);
           await fetchDocenteNames();
           await fetchMateriaNames();
         } catch (err) {
@@ -277,7 +289,7 @@ export default function useAppData() {
     });
   };
 
-  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
   const ALLOWED_EXTENSIONS = [".xlsx", ".xls"];
 
   const handleFileUpload = async (file) => {
@@ -326,7 +338,7 @@ export default function useAppData() {
           }
         }
         if (headerRowIdx === -1) continue;
-        const merges = worksheet['!merges'] || [];
+        const merges = worksheet["!merges"] || [];
         const mergeMap = {};
         merges.forEach(merge => { for (let r = merge.s.r; r <= merge.e.r; r++) for (let c = merge.s.c; c <= merge.e.c; c++) mergeMap[`${r}-${c}`] = { sr: merge.s.r, er: merge.e.r, sc: merge.s.c, ec: merge.e.c }; });
         let programa = "", trayecto = "", seccion = "", turno = "", sede = "", aula = "";
@@ -334,12 +346,12 @@ export default function useAppData() {
           const row = json[i]; if (!row) continue;
           for (let j = 0; j < row.length; j++) {
             const cv = row[j]?.toString().trim(); if (!cv) continue;
-            if (cv === "PROGRAMA" && !programa) programa = row[j+1]?.toString().trim() || "";
-            else if (cv === "TRAYECTO" && !trayecto) trayecto = row[j+1]?.toString().trim() || "";
-            else if (cv === "Sede:" && !sede) sede = row[j+1]?.toString().trim() || "";
-            else if (cv === "AULA" && !aula) aula = row[j+1]?.toString().trim() || "";
-            else if (cv === "Sección" && !seccion) seccion = row[j+1]?.toString().trim() || row[j+2]?.toString().trim() || "";
-            else if (cv === "Turno" && !turno) turno = row[j+1]?.toString().trim() || row[j+2]?.toString().trim() || "";
+            if (cv === "PROGRAMA" && !programa) programa = row[j + 1]?.toString().trim() || "";
+            else if (cv === "TRAYECTO" && !trayecto) trayecto = row[j + 1]?.toString().trim() || "";
+            else if (cv === "Sede:" && !sede) sede = row[j + 1]?.toString().trim() || "";
+            else if (cv === "AULA" && !aula) aula = row[j + 1]?.toString().trim() || "";
+            else if (cv === "Sección" && !seccion) seccion = row[j + 1]?.toString().trim() || row[j + 2]?.toString().trim() || "";
+            else if (cv === "Turno" && !turno) turno = row[j + 1]?.toString().trim() || row[j + 2]?.toString().trim() || "";
           }
         }
         programa = selectedPrograma !== "todos" ? selectedPrograma : (programa ? normalizarPrograma(programa) || programa : "Sin programa");
@@ -362,7 +374,8 @@ export default function useAppData() {
               horaCompleta = hf ? `${hi} - ${hf}` : hi;
             } else horaCompleta = row[horaColIdx]?.toString().trim() || "";
             if (!horaCompleta) continue;
-            allRows.push({ sheet: sheetName, programa, trayecto, seccion, turno, sede, aula: aula || null, dia, hora: horaCompleta, clase });
+            // ✅ Incluir el lapso actual en cada registro
+            allRows.push({ sheet: sheetName, programa, trayecto, seccion, turno, sede, aula: aula || null, dia, hora: horaCompleta, clase, lapso: lapso || null });
           }
         }
       }
@@ -372,17 +385,11 @@ export default function useAppData() {
         setUploading(false);
         return;
       }
-      // Optimización: en lugar de traer TODA la tabla "horarios" para deduplicar
-      // en cliente (costoso cuando la tabla crece), filtramos por las hojas
-      // (`sheet`) y programas presentes en el archivo subido, que es el único
-      // subconjunto relevante para detectar duplicados de esta carga.
       const sheetsEnArchivo = [...new Set(allRows.map(r => r.sheet))];
       const programasEnArchivo = [...new Set(allRows.map(r => r.programa))];
-      const { data: existingData } = await supabase
-        .from("horarios")
-        .select("sheet, dia, hora, clase, programa")
-        .in("sheet", sheetsEnArchivo)
-        .in("programa", programasEnArchivo);
+      let dupQuery = supabase.from("horarios").select("sheet, dia, hora, clase, programa").in("sheet", sheetsEnArchivo).in("programa", programasEnArchivo);
+      if (lapso) dupQuery = dupQuery.eq("lapso", lapso);
+      const { data: existingData } = await dupQuery;
       const existingKeys = new Set(existingData?.map(r => `${r.sheet}|${r.dia}|${r.hora}|${r.clase}|${r.programa}`) || []);
       const newRows = allRows.filter(r => !existingKeys.has(`${r.sheet}|${r.dia}|${r.hora}|${r.clase}|${r.programa}`));
       if (!newRows.length) { showToast("⚠️ Sin registros nuevos.", "warning"); setUploading(false); return; }
@@ -391,7 +398,7 @@ export default function useAppData() {
       else {
         showToast(`✅ ${newRows.length} clases cargadas.`, "success");
         await fetchHorarios();
-        await fetchProgramas();
+        await fetchProgramas(lapso);
         const docs = new Set(), mats = new Set();
         newRows.forEach(r => { const { docente, materia } = parseClase(r.clase); if (docente) docs.add(docente); if (materia) mats.add(materia); });
         const docsArray = [...docs].map(d => ({ nombre_raw: d, nombre_display: d }));
@@ -483,7 +490,7 @@ export default function useAppData() {
     programasDisponibles, data, docenteNames, materiaNames,
     byDocente, byMateria, conflicts, stats, allTrayectos,
     isOffline, lastSync, toast, showToast, hideToast,
-    confirmModal, closeConfirm,
+    confirmModal, openConfirm, closeConfirm,
     handleLogout, handleFileUpload, exportarDatos, importarDatos, clearAllData,
     saveDocenteName, saveMateriaName, getDocName, getMateriaName,
   };
