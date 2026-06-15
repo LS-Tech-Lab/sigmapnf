@@ -238,7 +238,6 @@ const [adminOpen,  setAdminOpen]  = useState(false);
   // <input> antes de que el evento "change" pueda dispararse, y la
   // selección de archivo se pierde silenciosamente (sin error visible).
   const fileRef = useRef(null);
-  const backupRef = useRef(null);
   const expanded = pinned || hovered || mobileOpen;
 
   const togglePin = () => {
