@@ -163,7 +163,7 @@ function AdminMenu({ appData, onClose, modoConsulta }) {
       {!modoConsulta && (
         <>
           <button className="admin-item" disabled={disabled}
-            onClick={() => { fileRef.current?.click(); onClose(); }}>
+            onClick={() => { fileRef.current?.click(); setTimeout(onClose, 0); }}>
             <span>📂</span> Cargar Excel
           </button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }}
