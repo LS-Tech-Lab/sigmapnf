@@ -60,10 +60,6 @@ export default function useAppData(lapso) {
 
   const cacheKey = lapso ? `${CACHE_KEYS.horarios}_${lapso}` : CACHE_KEYS.horarios;
 
-  // ── Paginación por cursor (Mejora 4) ─────────────────────────────────
-  // Itera páginas de PAGE_SIZE filas usando cursor sobre "id" hasta
-  // agotar todos los registros. Muestra datos parciales en la UI tras
-  // cada página para que el usuario no espere con pantalla en blanco.
   const PAGE_SIZE = 500;
 
   const fetchHorarios = useCallback(async (programa = selectedPrograma) => {
@@ -79,7 +75,7 @@ export default function useAppData(lapso) {
     try {
       const todasLasFilas = [];
       let cursor = 0;
-      let hayMas  = true;
+      let hayMas = true;
 
       while (hayMas) {
         let query = supabase
@@ -201,9 +197,7 @@ export default function useAppData(lapso) {
         fetchDocenteNames();
         setConflictsRefreshKey(k => k + 1);
       },
-      onMateriasChange: () => {
-        fetchMateriaNames();
-      },
+      onMateriasChange: () => { fetchMateriaNames(); },
     });
     return cancelar;
   }, [user, lapso, selectedPrograma, fetchHorarios, fetchDocenteNames, fetchMateriaNames, showToast]);
@@ -215,9 +209,7 @@ export default function useAppData(lapso) {
       const { error: rpcError } = await supabase.rpc("replace_nombre_en_clases", { old_raw: rawName, new_raw: targetRaw });
       if (rpcError) throw new Error(`Error al unificar en horarios: ${rpcError.message}`);
       const { error: deleteError } = await supabase.from(tableName).delete().eq("nombre_raw", rawName);
-      if (deleteError) {
-        console.warn(`No se pudo eliminar el registro huérfano "${rawName}" de "${tableName}":`, deleteError.message);
-      }
+      if (deleteError) console.warn(`No se pudo eliminar el registro huérfano "${rawName}" de "${tableName}":`, deleteError.message);
       return { targetRaw, canonicalDisplay };
     }
     return null;
@@ -284,13 +276,34 @@ export default function useAppData(lapso) {
       onConfirm: async () => {
         closeConfirm();
         setLoading(true);
-        let query = supabase.from("horarios").delete();
-        if (lapso) query = query.eq("lapso", lapso);
-        if (selectedPrograma !== "todos") query = query.eq("programa", selectedPrograma);
-        else query = query.neq("id", 0);
-        const { error } = await query;
-        if (error) showToast("❌ Error al borrar.", "error");
-        else { showToast("✅ Datos eliminados.", "success"); limpiarCache(); await fetchHorarios(); await fetchProgramas(lapso); }
+
+        const programaParam = selectedPrograma !== "todos" ? selectedPrograma : null;
+        const { error: rpcError } = await supabase.rpc("borrar_horarios", {
+          p_lapso:    lapso    || null,
+          p_programa: programaParam,
+        });
+
+        if (rpcError) {
+          const noExiste = rpcError.code === "PGRST202" || rpcError.message?.includes("Could not find");
+          if (noExiste) {
+            console.warn("borrar_horarios no disponible, usando DELETE directo:", rpcError.message);
+            let query = supabase.from("horarios").delete();
+            if (lapso) query = query.eq("lapso", lapso);
+            if (selectedPrograma !== "todos") query = query.eq("programa", selectedPrograma);
+            else query = query.neq("id", 0);
+            const { error: delError } = await query;
+            if (delError) { showToast("❌ Error al borrar.", "error"); setLoading(false); return; }
+          } else {
+            showToast("❌ Error al borrar.", "error");
+            setLoading(false);
+            return;
+          }
+        }
+
+        showToast("✅ Datos eliminados.", "success");
+        limpiarCache();
+        await fetchHorarios();
+        await fetchProgramas(lapso);
         setLoading(false);
       },
     });
@@ -343,19 +356,41 @@ export default function useAppData(lapso) {
         try {
           const text = await file.text();
           const backup = JSON.parse(text);
-          if (!backup.horarios || !backup.docentes || !backup.materias) throw new Error("El archivo no tiene el formato correcto de backup");
-          let delQuery = supabase.from("horarios").delete();
-          if (lapso) delQuery = delQuery.eq("lapso", lapso);
-          else delQuery = delQuery.neq("id", 0);
-          await delQuery;
-          await supabase.from("docentes").delete().neq("id", 0);
-          await supabase.from("materias").delete().neq("id", 0);
-          const horariosConLapso = backup.horarios.map(h => ({ ...h, lapso: lapso || h.lapso || null }));
-          if (horariosConLapso.length > 0) await supabase.from("horarios").insert(horariosConLapso);
-          if (backup.docentes.length > 0) await supabase.from("docentes").upsert(backup.docentes, { onConflict: "nombre_raw" });
-          if (backup.materias.length > 0) await supabase.from("materias").upsert(backup.materias, { onConflict: "nombre_raw" });
+          if (!backup.horarios || !backup.docentes || !backup.materias)
+            throw new Error("El archivo no tiene el formato correcto de backup");
+
+          const horariosConLapso = backup.horarios.map(h => ({
+            ...h, lapso: lapso || h.lapso || null,
+          }));
+
+          const { data: rpcData, error: rpcError } = await supabase.rpc("restaurar_backup", {
+            p_lapso:    lapso || null,
+            p_horarios: horariosConLapso,
+            p_docentes: backup.docentes,
+            p_materias: backup.materias,
+          });
+
+          if (rpcError) {
+            const noExiste = rpcError.code === "PGRST202" || rpcError.message?.includes("Could not find");
+            if (noExiste) {
+              console.warn("restaurar_backup no disponible, usando flujo multi-llamada:", rpcError.message);
+              let delQuery = supabase.from("horarios").delete();
+              if (lapso) delQuery = delQuery.eq("lapso", lapso);
+              else delQuery = delQuery.neq("id", 0);
+              await delQuery;
+              await supabase.from("docentes").delete().neq("id", 0);
+              await supabase.from("materias").delete().neq("id", 0);
+              if (horariosConLapso.length > 0) await supabase.from("horarios").insert(horariosConLapso);
+              if (backup.docentes.length > 0) await supabase.from("docentes").upsert(backup.docentes, { onConflict: "nombre_raw" });
+              if (backup.materias.length > 0) await supabase.from("materias").upsert(backup.materias, { onConflict: "nombre_raw" });
+            } else {
+              throw new Error(rpcError.message);
+            }
+          }
+
+          const insertados = rpcData?.horarios_insertados ?? horariosConLapso.length;
           limpiarCache();
-          showToast(`✅ Backup restaurado: ${backup.horarios.length} clases`, "success");
+          showToast(`✅ Backup restaurado: ${insertados} clases`, "success");
           await fetchHorarios();
           await fetchProgramas(lapso);
           await fetchDocenteNames();
