@@ -253,7 +253,7 @@ const tdComp = (bg, center = false) => ({ background: bg, padding: "10px 14px", 
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, openConfirm, closeConfirm, user }) {
+export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, openConfirm, closeConfirm, user, modoConsulta = false, logAudit = null }) {
   const [trimestres,   setTrimestres]   = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [expandido,    setExpandido]    = useState(null);
@@ -329,6 +329,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     );
     if (error) { showToast("❌ Error al cerrar: " + error.message, "error"); setProcesando(false); return; }
     showToast(`✅ Trimestre ${formatLapso(lapso)} cerrado y archivado.`, "success");
+    logAudit?.({ accion: "CERRAR_TRIMESTRE", entidad: "trimestres", lapso, resumen: `Trimestre cerrado: ${formatLapso(lapso)}` });
     setModal(null);
     await cargarTrimestres();
     // Proponer el siguiente automáticamente
@@ -357,6 +358,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     );
     if (error) { showToast("❌ Error al crear: " + error.message, "error"); setProcesando(false); return; }
     showToast(`✅ Trimestre ${formatLapso(lapso)} activado.`, "success");
+    logAudit?.({ accion: "CREAR_TRIMESTRE", entidad: "trimestres", lapso, resumen: `Nuevo trimestre activado: ${formatLapso(lapso)}` });
     setModal(null);
     onCambiarLapso(lapso);
     await cargarTrimestres();
@@ -404,14 +406,18 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
             <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>Gestión y consulta de todos los períodos académicos</p>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={() => { setLapsoSiguiente(getSiguienteLapso(lapsoActivo)); setModal("crear"); }}
-              style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#2563EB", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
-              + Nuevo trimestre
-            </button>
-            <button onClick={() => setModal("cerrar")}
-              style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #FECACA", background: "#FFF5F5", color: "#DC2626", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
-              🔒 Cerrar trimestre activo
-            </button>
+            {!modoConsulta && (
+              <>
+                <button onClick={() => { setLapsoSiguiente(getSiguienteLapso(lapsoActivo)); setModal("crear"); }}
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#2563EB", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+                  + Nuevo trimestre
+                </button>
+                <button onClick={() => setModal("cerrar")}
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #FECACA", background: "#FFF5F5", color: "#DC2626", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+                  🔒 Cerrar trimestre activo
+                </button>
+              </>
+            )}
           </div>
         </div>
 
