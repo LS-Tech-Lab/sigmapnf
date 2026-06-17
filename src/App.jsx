@@ -331,7 +331,7 @@ export default function App() {
   }, [lapso]);
 
   // Restringir programa automáticamente para secretarios
-  const appData = useAppData(lapso);
+  const appData = useAppData(lapso, logAudit);
 
   useEffect(() => {
     if (permisos.puedeVerSoloSuPrograma && permisos.programaRestringido) {
@@ -809,6 +809,7 @@ export default function App() {
               closeConfirm={appData.closeConfirm}
               user={user}
               modoConsulta={!permisos.puedeGestionarTrimestres}
+              logAudit={logAudit}
             />
           )}
           {view === "logs" && permisos.puedeVerLogs && (
