@@ -12,6 +12,7 @@ import DocentesView from "./components/DocentesView";
 import MateriasView from "./components/MateriasView";
 import AsistenciasView from "./components/AsistenciasView";
 import ConfirmModal from "./components/ConfirmModal";
+import ChangePasswordModal from "./components/ChangePasswordModal";
 import HistorialView from "./components/HistorialView";
 import UsuariosView from "./components/UsuariosView";
 import LogsView from "./components/LogsView";
@@ -306,6 +307,7 @@ export default function App() {
   const [pinned,     setPinned]     = useState(() => localStorage.getItem("sb_pinned") === "1");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [adminOpen,  setAdminOpen]  = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const fileRef   = useRef(null);
   const backupRef = useRef(null);
@@ -461,6 +463,13 @@ export default function App() {
         onConfirm={appData.confirmModal?.onConfirm}
         onCancel={appData.closeConfirm}
       />
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+        email={user?.email}
+        showToast={appData.showToast}
+        logAudit={logAudit}
+      />
 
       {/* Overlay móvil */}
       <div className="sb-overlay" onClick={() => setMobileOpen(false)}
@@ -492,11 +501,21 @@ export default function App() {
             </div>
           </div>
           {expanded && (
-            <button className={`pin-btn ${pinned ? "pinned" : ""}`} onClick={togglePin}
-              title={pinned ? "Desfijar sidebar" : "Fijar sidebar"}>
-              {pinned ? "📌" : "📍"}
-            </button>
-          )}
+              <div style={{ display:"flex", gap:4, flexShrink:0 }}>
+                <button onClick={() => setChangePasswordOpen(true)} title="Cambiar mi contraseña"
+                  style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
+                    cursor:"pointer", color:"#475569", fontSize:12,
+                    padding:"3px 7px" }}>
+                  🔑
+                </button>
+                <button onClick={handleLogout} title="Cerrar sesión"
+                  style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
+                    cursor:"pointer", color:"#475569", fontSize:12,
+                    padding:"3px 7px" }}>
+                  ⏏
+                </button>
+              </div>
+            )}
         </div>
 
         {/* Trimestre activo */}
