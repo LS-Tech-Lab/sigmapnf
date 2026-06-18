@@ -14,7 +14,6 @@ import {
 export default function useAppData(lapso, logAudit = null) {
   useEffect(() => { validarVersionCache(); }, []);
 
-  const [user, setUser] = useState(undefined);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -35,7 +34,7 @@ export default function useAppData(lapso, logAudit = null) {
 
   const closeConfirm = useCallback(() => setConfirmModal(null), []);
 
-  const handleLogout = async () => { await supabase.auth.signOut(); };
+
 
   const showToast = useCallback((message, type = "success") => {
     if (!message) { setToast(null); return; }
@@ -167,11 +166,7 @@ export default function useAppData(lapso, logAudit = null) {
   useEffect(() => { fetchProgramas(lapso); fetchDocenteNames(); fetchMateriaNames(); }, [lapso]);
   useEffect(() => { fetchHorarios(selectedPrograma); }, [selectedPrograma, lapso, fetchHorarios]);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
-    return () => subscription.unsubscribe();
-  }, []);
+
 
   useEffect(() => {
     const handleOnline = () => { setIsOffline(false); showToast("✅ Conexión restablecida.", "success"); fetchHorarios(selectedPrograma); fetchDocenteNames(); fetchMateriaNames(); };
@@ -184,23 +179,27 @@ export default function useAppData(lapso, logAudit = null) {
   const [conflictsRefreshKey, setConflictsRefreshKey] = useState(0);
 
   useEffect(() => {
-    if (!user) return;
-    const cancelar = suscribirCambiosRemotos({
-      lapso,
-      onHorariosChange: () => {
-        limpiarCache();
-        fetchHorarios(selectedPrograma);
-        setConflictsRefreshKey(k => k + 1);
-        showToast("🔄 Horarios actualizados por otro usuario.", "info");
-      },
-      onDocentesChange: () => {
-        fetchDocenteNames();
-        setConflictsRefreshKey(k => k + 1);
-      },
-      onMateriasChange: () => { fetchMateriaNames(); },
+    // Verificar sesión activa antes de suscribirse a realtime
+    let cancelar = () => {};
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      cancelar = suscribirCambiosRemotos({
+        lapso,
+        onHorariosChange: () => {
+          limpiarCache();
+          fetchHorarios(selectedPrograma);
+          setConflictsRefreshKey(k => k + 1);
+          showToast("🔄 Horarios actualizados por otro usuario.", "info");
+        },
+        onDocentesChange: () => {
+          fetchDocenteNames();
+          setConflictsRefreshKey(k => k + 1);
+        },
+        onMateriasChange: () => { fetchMateriaNames(); },
+      });
     });
-    return cancelar;
-  }, [user, lapso, selectedPrograma, fetchHorarios, fetchDocenteNames, fetchMateriaNames, showToast]);
+    return () => cancelar();
+  }, [lapso, selectedPrograma, fetchHorarios, fetchDocenteNames, fetchMateriaNames, showToast]);
 
   const unifyNameLegacy = async (tableName, rawName, newDisplayName) => {
     const { data: existing } = await supabase.from(tableName).select("nombre_raw, nombre_display").ilike("nombre_display", newDisplayName.trim()).neq("nombre_raw", rawName).limit(1);
@@ -530,12 +529,12 @@ export default function useAppData(lapso, logAudit = null) {
   const getMateriaName = useCallback((raw) => materiaNames[raw] || raw, [materiaNames]);
 
   return {
-    user, loading, isSyncing, uploading, error, selectedPrograma, setSelectedPrograma,
+    loading, isSyncing, uploading, error, selectedPrograma, setSelectedPrograma,
     programasDisponibles, data, docenteNames, materiaNames,
     byDocente, byMateria, conflicts, usingFallbackConflicts, refetchConflictos, stats, allTrayectos,
     isOffline, lastSync, toast, showToast, hideToast,
     confirmModal, openConfirm, closeConfirm,
-    handleLogout, handleFileUpload, exportarDatos, importarDatos, clearAllData,
+    handleFileUpload, exportarDatos, importarDatos, clearAllData,
     saveDocenteName, saveMateriaName, getDocName, getMateriaName,
   };
 }
