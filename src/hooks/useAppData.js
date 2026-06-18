@@ -2,7 +2,7 @@ import { ALL_TRAYECTOS, DEFAULT_PROGRAMAS } from "../constants";
 import { parseClase, normalizarPrograma } from "../utils/parsing";
 import { parseExcelFile } from "../utils/excelParser";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { suscribirCambiosRemotos } from "../lib/realtime";
 import useConflictos from "./useConflictos";
@@ -33,8 +33,6 @@ export default function useAppData(lapso, logAudit = null) {
   }, []);
 
   const closeConfirm = useCallback(() => setConfirmModal(null), []);
-
-
 
   const showToast = useCallback((message, type = "success") => {
     if (!message) { setToast(null); return; }
@@ -166,8 +164,6 @@ export default function useAppData(lapso, logAudit = null) {
   useEffect(() => { fetchProgramas(lapso); fetchDocenteNames(); fetchMateriaNames(); }, [lapso]);
   useEffect(() => { fetchHorarios(selectedPrograma); }, [selectedPrograma, lapso, fetchHorarios]);
 
-
-
   useEffect(() => {
     const handleOnline = () => { setIsOffline(false); showToast("✅ Conexión restablecida.", "success"); fetchHorarios(selectedPrograma); fetchDocenteNames(); fetchMateriaNames(); };
     const handleOffline = () => { setIsOffline(true); showToast("⚠️ Sin conexión. Usando caché.", "warning"); };
@@ -178,8 +174,9 @@ export default function useAppData(lapso, logAudit = null) {
 
   const [conflictsRefreshKey, setConflictsRefreshKey] = useState(0);
 
+  // Suscripción realtime: verificar sesión activa con getSession() en lugar de
+  // mantener un useState(user) propio que duplicaba el listener de useAuth.
   useEffect(() => {
-    // Verificar sesión activa antes de suscribirse a realtime
     let cancelar = () => {};
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) return;
@@ -227,14 +224,14 @@ export default function useAppData(lapso, logAudit = null) {
           showToast(unificado ? "✅ Docente unificado." : "✅ Docente actualizado.", "success");
           logAudit?.({ accion: unificado ? "UNIFICAR_DOCENTE" : "EDITAR_DOCENTE", entidad: "docentes", resumen: unificado ? `Docente unificado: "${rawName}" → "${displayName}"` : `Docente renombrado: "${rawName}" → "${displayName}"` });
           await fetchDocenteNames();
-          await fetchHorarios();
+          await fetchHorarios(selectedPrograma);
           setConflictsRefreshKey(k => k + 1);
           return { success: true };
         }
         console.warn("renombrar_docente no disponible, usando flujo legacy:", rpcError.message);
       }
       const unified = await unifyNameLegacy("docentes", rawName, displayName);
-      if (unified) { showToast("✅ Docente unificado.", "success"); logAudit?.({ accion: "UNIFICAR_DOCENTE", entidad: "docentes", resumen: `Docente unificado: "${rawName}" → "${displayName}"` }); await fetchDocenteNames(); await fetchHorarios(); setConflictsRefreshKey(k => k + 1); return { success: true, targetRaw: unified.targetRaw }; }
+      if (unified) { showToast("✅ Docente unificado.", "success"); logAudit?.({ accion: "UNIFICAR_DOCENTE", entidad: "docentes", resumen: `Docente unificado: "${rawName}" → "${displayName}"` }); await fetchDocenteNames(); await fetchHorarios(selectedPrograma); setConflictsRefreshKey(k => k + 1); return { success: true, targetRaw: unified.targetRaw }; }
       await supabase.from("docentes").upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
       setDocenteNames(prev => ({ ...prev, [rawName]: displayName }));
       showToast("✅ Docente actualizado.", "success");
@@ -256,13 +253,13 @@ export default function useAppData(lapso, logAudit = null) {
           showToast(unificada ? "✅ Materia unificada." : "✅ Materia actualizada.", "success");
           logAudit?.({ accion: unificada ? "UNIFICAR_MATERIA" : "EDITAR_MATERIA", entidad: "materias", resumen: unificada ? `Materia unificada: "${rawName}" → "${displayName}"` : `Materia renombrada: "${rawName}" → "${displayName}"` });
           await fetchMateriaNames();
-          await fetchHorarios();
+          await fetchHorarios(selectedPrograma);
           return { success: true };
         }
         console.warn("renombrar_materia no disponible, usando flujo legacy:", rpcError.message);
       }
       const unified = await unifyNameLegacy("materias", rawName, displayName);
-      if (unified) { showToast("✅ Materia unificada.", "success"); logAudit?.({ accion: "UNIFICAR_MATERIA", entidad: "materias", resumen: `Materia unificada: "${rawName}" → "${displayName}"` }); await fetchMateriaNames(); await fetchHorarios(); return { success: true, targetRaw: unified.targetRaw }; }
+      if (unified) { showToast("✅ Materia unificada.", "success"); logAudit?.({ accion: "UNIFICAR_MATERIA", entidad: "materias", resumen: `Materia unificada: "${rawName}" → "${displayName}"` }); await fetchMateriaNames(); await fetchHorarios(selectedPrograma); return { success: true, targetRaw: unified.targetRaw }; }
       await supabase.from("materias").upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
       setMateriaNames(prev => ({ ...prev, [rawName]: displayName }));
       showToast("✅ Materia actualizada.", "success");
@@ -307,7 +304,7 @@ export default function useAppData(lapso, logAudit = null) {
 
         showToast("✅ Datos eliminados.", "success");
         limpiarCache();
-        await fetchHorarios();
+        await fetchHorarios(selectedPrograma);
         await fetchProgramas(lapso);
         setLoading(false);
       },
@@ -396,7 +393,7 @@ export default function useAppData(lapso, logAudit = null) {
           const insertados = rpcData?.horarios_insertados ?? horariosConLapso.length;
           limpiarCache();
           showToast(`✅ Backup restaurado: ${insertados} clases`, "success");
-          await fetchHorarios();
+          await fetchHorarios(selectedPrograma);
           await fetchProgramas(lapso);
           await fetchDocenteNames();
           await fetchMateriaNames();
@@ -477,7 +474,7 @@ export default function useAppData(lapso, logAudit = null) {
       showToast("❌ Error al guardar.", "error");
     } else {
       showToast(`✅ ${newRows.length} clases cargadas.`, "success");
-      await fetchHorarios();
+      await fetchHorarios(selectedPrograma);
       await fetchProgramas(lapso);
       const docs = new Set(), mats = new Set();
       newRows.forEach(r => { const { docente, materia } = parseClase(r.clase); if (docente) docs.add(docente); if (materia) mats.add(materia); });
