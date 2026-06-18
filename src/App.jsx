@@ -12,10 +12,10 @@ import DocentesView from "./components/DocentesView";
 import MateriasView from "./components/MateriasView";
 import AsistenciasView from "./components/AsistenciasView";
 import ConfirmModal from "./components/ConfirmModal";
-import ChangePasswordModal from "./components/ChangePasswordModal";
 import HistorialView from "./components/HistorialView";
 import UsuariosView from "./components/UsuariosView";
 import LogsView from "./components/LogsView";
+import ModalCambiarPassword from "./components/ModalCambiarPassword";
 import { S } from "./constants";
 import { getCurrentLapso, getLapsosDisponibles, formatLapso } from "./utils/lapso";
 import { supabase, supabaseConfigError } from "./lib/supabase";
@@ -140,7 +140,7 @@ const GLOBAL_CSS = `
     .sb { position: fixed !important; z-index: 300; height: 100vh;
           transform: translateX(-100%); transition: transform .25s, width .22s; }
     .sb.mobile-open { transform: translateX(0); }
-    .sb-overlay { display: block }
+    .sb-overlay { display: block !important; }
     .hamburger { display: flex !important; }
     .global-search { max-width: 160px !important; }
     .stats-grid-4 { grid-template-columns: repeat(2,1fr) !important; }
@@ -303,11 +303,11 @@ export default function App() {
   const [lapso,       setLapso]       = useState(() => getCurrentLapso());
   const [modoConsulta,setModoConsulta]= useState(false);
 
-  const [hovered,    setHovered]    = useState(false);
-  const [pinned,     setPinned]     = useState(() => localStorage.getItem("sb_pinned") === "1");
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [adminOpen,  setAdminOpen]  = useState(false);
-  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [hovered,       setHovered]       = useState(false);
+  const [pinned,        setPinned]        = useState(() => localStorage.getItem("sb_pinned") === "1");
+  const [mobileOpen,    setMobileOpen]    = useState(false);
+  const [adminOpen,     setAdminOpen]     = useState(false);
+  const [modalPassword, setModalPassword] = useState(false);
 
   const fileRef   = useRef(null);
   const backupRef = useRef(null);
@@ -454,6 +454,12 @@ export default function App() {
       {appData.toast && (
         <Toast message={appData.toast.message} type={appData.toast.type} onClose={appData.hideToast} />
       )}
+      {modalPassword && (
+        <ModalCambiarPassword
+          onCerrar={() => setModalPassword(false)}
+          showToast={appData.showToast}
+        />
+      )}
       <ConfirmModal
         open={!!appData.confirmModal}
         title={appData.confirmModal?.title}
@@ -463,17 +469,10 @@ export default function App() {
         onConfirm={appData.confirmModal?.onConfirm}
         onCancel={appData.closeConfirm}
       />
-      <ChangePasswordModal
-        open={changePasswordOpen}
-        onClose={() => setChangePasswordOpen(false)}
-        email={user?.email}
-        showToast={appData.showToast}
-        logAudit={logAudit}
-      />
 
       {/* Overlay móvil */}
       <div className="sb-overlay" onClick={() => setMobileOpen(false)}
-        style={{ display: mobileOpen ? "block" : "none", position:"fixed", inset:0,
+        style={{ display:"none", position:"fixed", inset:0,
           background:"rgba(0,0,0,0.45)", zIndex:299 }} />
 
       {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
@@ -501,21 +500,11 @@ export default function App() {
             </div>
           </div>
           {expanded && (
-              <div style={{ display:"flex", gap:4, flexShrink:0 }}>
-                <button onClick={() => setChangePasswordOpen(true)} title="Cambiar mi contraseña"
-                  style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
-                    cursor:"pointer", color:"#475569", fontSize:12,
-                    padding:"3px 7px" }}>
-                  🔑
-                </button>
-                <button onClick={handleLogout} title="Cerrar sesión"
-                  style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
-                    cursor:"pointer", color:"#475569", fontSize:12,
-                    padding:"3px 7px" }}>
-                  ⏏
-                </button>
-              </div>
-            )}
+            <button className={`pin-btn ${pinned ? "pinned" : ""}`} onClick={togglePin}
+              title={pinned ? "Desfijar sidebar" : "Fijar sidebar"}>
+              {pinned ? "📌" : "📍"}
+            </button>
+          )}
         </div>
 
         {/* Trimestre activo */}
@@ -685,12 +674,20 @@ export default function App() {
               </div>
             </div>
             {expanded && (
-              <button onClick={handleLogout} title="Cerrar sesión"
-                style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
-                  cursor:"pointer", color:"#475569", fontSize:12,
-                  padding:"3px 7px", flexShrink:0 }}>
-                ⏏
-              </button>
+              <div style={{ display:"flex", gap:4, flexShrink:0 }}>
+                <button onClick={() => setModalPassword(true)} title="Cambiar contraseña"
+                  style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
+                    cursor:"pointer", color:"#475569", fontSize:12,
+                    padding:"3px 7px" }}>
+                  🔑
+                </button>
+                <button onClick={handleLogout} title="Cerrar sesión"
+                  style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
+                    cursor:"pointer", color:"#475569", fontSize:12,
+                    padding:"3px 7px" }}>
+                  ⏏
+                </button>
+              </div>
             )}
           </div>
         </div>
