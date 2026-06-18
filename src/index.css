@@ -34,3 +34,22 @@ body {
   font-family: var(--font-sans);
   background: var(--color-background-tertiary);
 }
+
+/* Animación global del spinner de carga — evita que el <style> embebido
+   en React falle en móvil cuando el componente monta antes del primer paint */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Fix viewport en móvil: las pantallas de carga usan 100dvh para que
+   la barra de URL del navegador no cubra el contenido */
+.full-screen-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  background: #0F172A;
+  gap: 16px;
+  font-family: system-ui, sans-serif;
+}
