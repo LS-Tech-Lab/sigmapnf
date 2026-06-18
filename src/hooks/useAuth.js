@@ -19,6 +19,7 @@ export const ROLES = {
   COORDINADOR:    "coordinador",
   SECRETARIO:     "secretario",
   ADMINISTRATIVO: "administrativo",
+  OPERADOR_QR:    "operador_qr",
 };
 
 // ── Permisos derivados del rol ───────────────────────────────────────
@@ -39,6 +40,7 @@ function calcularPermisos(profile) {
     esCoordinador:         false,
     esSecretario:          false,
     esAdministrativo:      false,
+    esOperadorQR:          false,
     programaRestringido:   null,
   };
 
@@ -47,6 +49,7 @@ function calcularPermisos(profile) {
   const esCoordinador    = rol === ROLES.COORDINADOR;
   const esSecretario     = rol === ROLES.SECRETARIO;
   const esAdministrativo = rol === ROLES.ADMINISTRATIVO;
+  const esOperadorQR     = rol === ROLES.OPERADOR_QR;
 
   return {
     // Vista y datos
@@ -70,7 +73,7 @@ function calcularPermisos(profile) {
     puedeVerAuditoria:        esAdmin || esCoordinador || esSecretario,
 
     // Flags de rol
-    esAdmin, esCoordinador, esSecretario, esAdministrativo,
+    esAdmin, esCoordinador, esSecretario, esAdministrativo, esOperadorQR,
   };
 }
 
@@ -110,35 +113,14 @@ export default function useAuth() {
 
   // Suscribirse a cambios de Auth
   useEffect(() => {
-    // Flag para evitar doble carga: onAuthStateChange dispara INITIAL_SESSION
-    // casi simultáneamente con getSession(). En móvil (mayor latencia), la
-    // duplicación causaba el ciclo undefined→null→user que dejaba pantalla negra.
-    let initialHandled = false;
-
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!initialHandled) {
-        initialHandled = true;
-        setUser(session?.user ?? null);
-        cargarProfile(session?.user ?? null);
-      }
+      setUser(session?.user ?? null);
+      cargarProfile(session?.user ?? null);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         const authUser = session?.user ?? null;
-
-        // INITIAL_SESSION llega casi simultáneamente con getSession().
-        // Si getSession ya procesó la sesión inicial, ignoramos este evento
-        // para no relanzar cargarProfile innecesariamente y evitar pantalla negra.
-        if (event === "INITIAL_SESSION") {
-          if (!initialHandled) {
-            initialHandled = true;
-            setUser(authUser);
-            cargarProfile(authUser);
-          }
-          return;
-        }
-
         setUser(authUser);
         cargarProfile(authUser);
 
@@ -175,12 +157,11 @@ export default function useAuth() {
   const handleLogin = useCallback(async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      // Registrar intento fallido usando RPC accesible por anon (sin sesión activa)
+      // Intentar registrar login fallido (sin sesión activa, puede fallar)
       try {
-        await supabase.rpc("log_login_fallido", {
-          p_email:      email,
-          p_user_agent: navigator.userAgent,
-          p_motivo:     error.message,
+        await supabase.rpc("log_session_event", {
+          p_evento:   "login_fallido",
+          p_detalles: { email, motivo: error.message },
         });
       } catch { /* no-op */ }
       return { error };
