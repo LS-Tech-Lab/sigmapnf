@@ -15,7 +15,11 @@ import ConfirmModal from "./components/ConfirmModal";
 import HistorialView from "./components/HistorialView";
 import UsuariosView from "./components/UsuariosView";
 import LogsView from "./components/LogsView";
-import ModalCambiarPassword from "./components/ModalCambiarPassword";
+// ── Módulo de Asistencias QR ──────────────────────────────────────────────────
+import ModuleSelector from "./components/ModuleSelector";
+import AdminQRPanel from "./components/asistencias/AdminQRPanel";
+import ReporteAsistencias from "./components/asistencias/ReporteAsistencias";
+import DocenteScan from "./components/asistencias/DocenteScan";
 import { S } from "./constants";
 import { getCurrentLapso, getLapsosDisponibles, formatLapso } from "./utils/lapso";
 import { supabase, supabaseConfigError } from "./lib/supabase";
@@ -303,11 +307,16 @@ export default function App() {
   const [lapso,       setLapso]       = useState(() => getCurrentLapso());
   const [modoConsulta,setModoConsulta]= useState(false);
 
-  const [hovered,       setHovered]       = useState(false);
-  const [pinned,        setPinned]        = useState(() => localStorage.getItem("sb_pinned") === "1");
-  const [mobileOpen,    setMobileOpen]    = useState(false);
-  const [adminOpen,     setAdminOpen]     = useState(false);
-  const [modalPassword, setModalPassword] = useState(false);
+  // ── Módulo activo: null = selector, "horarios" | "asistencias" ───────────
+  // Para roles no-admin, se salta el selector y se va directo a "horarios".
+  const [moduloActivo,      setModuloActivo]      = useState(null);
+  // Sub-vista dentro del módulo de asistencias
+  const [asistenciasSubView, setAsistenciasSubView] = useState("panel"); // "panel" | "reporte"
+
+  const [hovered,    setHovered]    = useState(false);
+  const [pinned,     setPinned]     = useState(() => localStorage.getItem("sb_pinned") === "1");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [adminOpen,  setAdminOpen]  = useState(false);
 
   const fileRef   = useRef(null);
   const backupRef = useRef(null);
@@ -333,7 +342,7 @@ export default function App() {
   }, [lapso]);
 
   // Restringir programa automáticamente para secretarios
-  const appData = useAppData(lapso, logAudit);
+  const appData = useAppData(lapso);
 
   useEffect(() => {
     if (permisos.puedeVerSoloSuPrograma && permisos.programaRestringido) {
@@ -387,6 +396,13 @@ export default function App() {
   };
 
   // ── Guards ────────────────────────────────────────────────────────────────
+  // ── Ruta pública /scan ────────────────────────────────────────────────────
+  // Debe ir ANTES de todos los guards de auth: el docente no tiene sesión.
+  // vercel.json redirige todo a "/" pero la URL conserva el pathname.
+  if (window.location.pathname === "/scan") {
+    return <DocenteScan />;
+  }
+
   if (supabaseConfigError) return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
       height:"100vh", background:"#0F172A", color:"#E2E8F0", gap:16, padding:32,
@@ -427,6 +443,146 @@ export default function App() {
   // Cuenta desactivada
   if (profile._desactivado) return <CuentaDesactivada onLogout={handleLogout} />;
 
+
+  // ── Selector de módulo (solo admins) ─────────────────────────────────────
+  // Roles no-admin entran directo al módulo de horarios sin pasar por aquí.
+  if (!moduloActivo) {
+    if (profile.rol !== "admin") {
+      // Auto-seleccionar horarios para no-admins
+      setModuloActivo("horarios");
+      return null; // re-renderiza en el siguiente tick con moduloActivo="horarios"
+    }
+    return (
+      <ModuleSelector
+        profile={profile}
+        onSelectModule={(mod) => {
+          setModuloActivo(mod);
+          setAsistenciasSubView("panel");
+        }}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  // ── Módulo de Asistencias QR (solo admin) ─────────────────────────────────
+  if (moduloActivo === "asistencias") {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#F3F4F6",
+          fontFamily: "system-ui, -apple-system, sans-serif",
+        }}
+      >
+        {/* Topbar del módulo de asistencias */}
+        <header
+          style={{
+            background: "#fff",
+            borderBottom: "1px solid #E5E7EB",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "0 20px",
+            height: 52,
+            flexShrink: 0,
+          }}
+        >
+          {/* Volver al selector */}
+          <button
+            onClick={() => setModuloActivo(null)}
+            style={{
+              background: "none",
+              border: "1px solid #E5E7EB",
+              borderRadius: 7,
+              padding: "5px 12px",
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#374151",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            ← Módulos
+          </button>
+
+          {/* Pestañas internas */}
+          <div style={{ display: "flex", gap: 4 }}>
+            {[
+              { id: "panel",   label: "📲 Panel QR"  },
+              { id: "reporte", label: "📋 Reporte"    },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setAsistenciasSubView(tab.id)}
+                style={{
+                  padding: "5px 14px",
+                  borderRadius: 7,
+                  border: "none",
+                  background: asistenciasSubView === tab.id ? "#EFF6FF" : "transparent",
+                  color: asistenciasSubView === tab.id ? "#1D4ED8" : "#6B7280",
+                  fontWeight: asistenciasSubView === tab.id ? 700 : 500,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  transition: "all 0.12s",
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Badge de usuario */}
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "#A78BFA",
+                background: "#1E293B",
+                borderRadius: 6,
+                padding: "3px 10px",
+              }}
+            >
+              Administrador
+            </span>
+            <button
+              onClick={handleLogout}
+              title="Cerrar sesión"
+              style={{
+                background: "none",
+                border: "1px solid #E5E7EB",
+                borderRadius: 6,
+                cursor: "pointer",
+                color: "#6B7280",
+                fontSize: 12,
+                padding: "3px 9px",
+              }}
+            >
+              ⏏
+            </button>
+          </div>
+        </header>
+
+        {/* Sub-vistas */}
+        <main>
+          {asistenciasSubView === "panel" && (
+            <AdminQRPanel
+              profile={profile}
+              onVerReporte={() => setAsistenciasSubView("reporte")}
+            />
+          )}
+          {asistenciasSubView === "reporte" && (
+            <ReporteAsistencias
+              onVolverPanel={() => setAsistenciasSubView("panel")}
+            />
+          )}
+        </main>
+      </div>
+    );
+  }
+
   // Datos cargando
   if (appData.loading && !appData.data.length) return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
@@ -453,12 +609,6 @@ export default function App() {
 
       {appData.toast && (
         <Toast message={appData.toast.message} type={appData.toast.type} onClose={appData.hideToast} />
-      )}
-      {modalPassword && (
-        <ModalCambiarPassword
-          onCerrar={() => setModalPassword(false)}
-          showToast={appData.showToast}
-        />
       )}
       <ConfirmModal
         open={!!appData.confirmModal}
@@ -635,6 +785,20 @@ export default function App() {
 
         {/* Footer: botón admin + usuario */}
         <div style={{ borderTop:"1px solid #1E293B", padding:"8px 8px", flexShrink:0 }}>
+          {/* Botón "Cambiar módulo" solo para admins */}
+          {profile.rol === "admin" && (
+            <button
+              onClick={() => setModuloActivo(null)}
+              className="nav-item"
+              style={{ marginBottom: 4, color: "#64748B" }}
+              title="Cambiar módulo"
+            >
+              <span style={{ fontSize:15, flexShrink:0, width:20, textAlign:"center" }}>🔀</span>
+              <span className="sb-label" style={{ flex:1 }}>Cambiar módulo</span>
+              <span className="tooltip">Cambiar módulo</span>
+            </button>
+          )}
+
           {/* Botón de administración — visible solo si tiene algo que hacer */}
           {(permisos.puedeImportarExcel || permisos.puedeHacerBackup || permisos.puedeBorrarHorarios) && (
             <button
@@ -674,20 +838,12 @@ export default function App() {
               </div>
             </div>
             {expanded && (
-              <div style={{ display:"flex", gap:4, flexShrink:0 }}>
-                <button onClick={() => setModalPassword(true)} title="Cambiar contraseña"
-                  style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
-                    cursor:"pointer", color:"#475569", fontSize:12,
-                    padding:"3px 7px" }}>
-                  🔑
-                </button>
-                <button onClick={handleLogout} title="Cerrar sesión"
-                  style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
-                    cursor:"pointer", color:"#475569", fontSize:12,
-                    padding:"3px 7px" }}>
-                  ⏏
-                </button>
-              </div>
+              <button onClick={handleLogout} title="Cerrar sesión"
+                style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
+                  cursor:"pointer", color:"#475569", fontSize:12,
+                  padding:"3px 7px", flexShrink:0 }}>
+                ⏏
+              </button>
             )}
           </div>
         </div>
@@ -825,7 +981,6 @@ export default function App() {
               closeConfirm={appData.closeConfirm}
               user={user}
               modoConsulta={!permisos.puedeGestionarTrimestres}
-              logAudit={logAudit}
             />
           )}
           {view === "logs" && permisos.puedeVerLogs && (
