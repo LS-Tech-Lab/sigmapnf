@@ -15,6 +15,7 @@ import ConfirmModal from "./components/ConfirmModal";
 import HistorialView from "./components/HistorialView";
 import UsuariosView from "./components/UsuariosView";
 import LogsView from "./components/LogsView";
+import ModalCambiarPassword from "./components/ModalCambiarPassword";
 // ── Módulo de Asistencias QR ──────────────────────────────────────────────────
 import ModuleSelector from "./components/ModuleSelector";
 import AdminQRPanel from "./components/asistencias/AdminQRPanel";
@@ -317,6 +318,7 @@ export default function App() {
   const [pinned,     setPinned]     = useState(() => localStorage.getItem("sb_pinned") === "1");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [adminOpen,  setAdminOpen]  = useState(false);
+  const [showCambiarPassword, setShowCambiarPassword] = useState(false);
 
   const fileRef   = useRef(null);
   const backupRef = useRef(null);
@@ -620,6 +622,13 @@ export default function App() {
         onCancel={appData.closeConfirm}
       />
 
+      {showCambiarPassword && (
+        <ModalCambiarPassword
+          onCerrar={() => setShowCambiarPassword(false)}
+          showToast={appData.showToast}
+        />
+      )}
+
       {/* Overlay móvil */}
       <div className="sb-overlay" onClick={() => setMobileOpen(false)}
         style={{ display:"none", position:"fixed", inset:0,
@@ -838,12 +847,20 @@ export default function App() {
               </div>
             </div>
             {expanded && (
-              <button onClick={handleLogout} title="Cerrar sesión"
-                style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
-                  cursor:"pointer", color:"#475569", fontSize:12,
-                  padding:"3px 7px", flexShrink:0 }}>
-                ⏏
-              </button>
+              <div style={{ display:"flex", gap:4, flexShrink:0 }}>
+                <button onClick={() => setShowCambiarPassword(true)} title="Cambiar contraseña"
+                  style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
+                    cursor:"pointer", color:"#475569", fontSize:12,
+                    padding:"3px 7px" }}>
+                  🔑
+                </button>
+                <button onClick={handleLogout} title="Cerrar sesión"
+                  style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
+                    cursor:"pointer", color:"#475569", fontSize:12,
+                    padding:"3px 7px" }}>
+                  ⏏
+                </button>
+              </div>
             )}
           </div>
         </div>
