@@ -143,11 +143,11 @@ const GLOBAL_CSS = `
   /* Móvil y tablet (hasta 1024px): sidebar como overlay, hamburger visible */
   @media (max-width: 1024px) {
     .sb { position: fixed !important; z-index: 300; height: 100dvh;
-          transform: translateX(-100%); transition: transform .25s, width .22s; }
+          width: 220px !important;
+          transform: translateX(-100%); transition: transform .25s; }
     .sb.mobile-open { transform: translateX(0); }
-    /* sb-overlay NO se activa aquí — lo controla React con mobileOpen.
-       Si se pone display:block en el CSS, el overlay cubre toda la pantalla
-       permanentemente en tablet aunque el sidebar esté cerrado. */
+    /* width: 0 en el flujo para que el sidebar fixed no deje espacio en blanco */
+    .sb-flow-spacer { display: none !important; }
     .hamburger { display: flex !important; }
     .global-search { max-width: 200px !important; }
     .stats-grid-4 { grid-template-columns: repeat(2,1fr) !important; }
@@ -618,6 +618,10 @@ export default function App() {
       )}
 
       {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
+      {/* sb-flow-spacer: ocupa el espacio del sidebar en desktop;
+          en tablet/móvil se oculta (CSS) porque el sidebar es fixed overlay */}
+      <div className={`sb-flow-spacer ${expanded ? "sb-expanded" : "sb-collapsed"}`}
+        style={{ flexShrink:0, transition:"width .22s" }} />
       <aside
         className={`sb ${expanded ? "sb-expanded" : "sb-collapsed"} ${mobileOpen ? "mobile-open" : ""}`}
         onMouseEnter={() => !pinned && setHovered(true)}
