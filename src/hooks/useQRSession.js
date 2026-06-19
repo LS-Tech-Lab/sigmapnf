@@ -16,6 +16,14 @@ import { supabase } from "../lib/supabase";
 
 const TTL_MINUTES = 5;
 
+// FIX (realtime-fallback-polling-rotacion-qr): si asistencias_diarias no
+// está en la publicación supabase_realtime, la rotación automática del
+// token al detectar un escaneo (pensada para invalidar fotos compartidas
+// del QR) nunca se disparaba. Este poll revisa cada cierto tiempo si hay
+// registros nuevos para la sesión activa y, de haberlos, rota el token
+// igual que lo haría el evento realtime.
+const SCAN_POLL_MS = 7000;
+
 export default function useQRSession() {
   const [sessionId,  setSessionId]  = useState(null);
   const [token,      setToken]      = useState(null);
@@ -29,12 +37,19 @@ export default function useQRSession() {
   const countdownRef   = useRef(null);
   // Ref para sessionId accesible dentro de closures de intervalos
   const sessionIdRef   = useRef(null);
+  // FIX (realtime-fallback-polling-rotacion-qr): último conteo de
+  // asistencias visto para la sesión activa, para detectar escaneos nuevos
+  // por poll cuando el websocket de Realtime no entrega el evento.
+  const scanCountRef   = useRef(0);
+  const scanPollRef    = useRef(null);
 
   const limpiarIntervalos = useCallback(() => {
     if (renewTimerRef.current)  clearInterval(renewTimerRef.current);
     if (countdownRef.current)   clearInterval(countdownRef.current);
+    if (scanPollRef.current)    clearInterval(scanPollRef.current);
     renewTimerRef.current = null;
     countdownRef.current  = null;
+    scanPollRef.current   = null;
   }, []);
 
   const iniciarCountdown = useCallback((expiresAtStr) => {
@@ -95,6 +110,45 @@ export default function useQRSession() {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
+  }, [sessionId, renovarToken]);
+
+  // FIX (realtime-fallback-polling-rotacion-qr): poll de respaldo. Si la
+  // tabla no está en supabase_realtime (ver migración
+  // 0010_realtime_asistencias_qr.sql) o se pierde el websocket, esto
+  // garantiza que el token igual rote poco después de un escaneo real,
+  // en vez de quedarse fijo durante todo el TTL de 5 minutos.
+  useEffect(() => {
+    if (!sessionId) {
+      scanCountRef.current = 0;
+      if (scanPollRef.current) clearInterval(scanPollRef.current);
+      return;
+    }
+
+    let cancelado = false;
+
+    // Línea base: cuántos registros tiene la sesión al momento de activarse.
+    supabase
+      .from("asistencias_diarias")
+      .select("id", { count: "exact", head: true })
+      .eq("qr_session_id", sessionId)
+      .then(({ count }) => { if (!cancelado) scanCountRef.current = count || 0; });
+
+    scanPollRef.current = setInterval(async () => {
+      const { count } = await supabase
+        .from("asistencias_diarias")
+        .select("id", { count: "exact", head: true })
+        .eq("qr_session_id", sessionIdRef.current);
+
+      if (count != null && count > scanCountRef.current) {
+        scanCountRef.current = count;
+        renovarToken(sessionIdRef.current);
+      }
+    }, SCAN_POLL_MS);
+
+    return () => {
+      cancelado = true;
+      if (scanPollRef.current) clearInterval(scanPollRef.current);
+    };
   }, [sessionId, renovarToken]);
 
   const crearSesion = useCallback(async ({ turno, programa = null, fecha = null }) => {
