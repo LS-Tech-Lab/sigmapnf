@@ -39,7 +39,7 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
 
   const saveEdit = async () => {
     const t = editValue.trim();
-    if (t && sel) {
+    if (t && sel && onSaveDocenteName) {
       setSaving(true);
       const res = await onSaveDocenteName(sel, t);
       setSaving(false);
@@ -51,7 +51,7 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
   };
 
   return (
-    <div className="docentes-layout" style={{ padding: 20, display: "flex", gap: 16, height: "calc(100vh - 61px)", overflow: "hidden" }}>
+    <div className="docentes-layout" style={{ padding: 20, display: "flex", gap: 16, flex: 1, height: 0, overflow: "hidden" }}>
       <div className="docentes-left-panel" style={{ width: 250, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrar docente…" style={{ ...S.input, width: "100%", boxSizing: "border-box" }} />
         <div style={{ ...S.card, flex: 1, overflowY: "auto" }}>
@@ -87,7 +87,9 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
                 ) : (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ fontSize: 19, fontWeight: 700, color: "#111827" }}>{getDocName(sel)}</div>
-                    <button onClick={() => { setEditValue(getDocName(sel)); setEditingName(true); }} title="Editar" style={{ background: "none", border: "1px solid #E5E7EB", borderRadius: 6, padding: "3px 10px", cursor: "pointer", fontSize: 12, color: "#6B7280", fontWeight: 500 }}>✏️ Editar</button>
+                    {onSaveDocenteName && (
+                      <button onClick={() => { setEditValue(getDocName(sel)); setEditingName(true); }} title="Editar" style={{ background: "none", border: "1px solid #E5E7EB", borderRadius: 6, padding: "3px 10px", cursor: "pointer", fontSize: 12, color: "#6B7280", fontWeight: 500 }}>✏️ Editar</button>
+                    )}
                   </div>
                 )}
                 <div style={{ fontSize: 13, color: "#6B7280", marginTop: 4, fontWeight: 500 }}>{selEntries.length} clases asignadas{selConflicts.length > 0 && <span style={{ marginLeft: 10, background: "#FEF2F2", color: "#DC2626", borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>⚠️ {selConflicts.length} conflicto{selConflicts.length > 1 ? "s" : ""}</span>}</div>
@@ -164,4 +166,4 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
       </div>
     </div>
   );
-}
+            }
