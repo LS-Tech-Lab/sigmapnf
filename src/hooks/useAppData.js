@@ -22,6 +22,7 @@ export default function useAppData(lapso, logAudit = null) {
   const [selectedPrograma, setSelectedPrograma] = useState("todos");
   const [programasDisponibles, setProgramasDisponibles] = useState(["todos", ...DEFAULT_PROGRAMAS]);
   const [docenteNames, setDocenteNames] = useState({});
+  const [docenteCedulas, setDocenteCedulas] = useState({});
   const [materiaNames, setMateriaNames] = useState({});
   const [toast, setToast] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -130,17 +131,22 @@ export default function useAppData(lapso, logAudit = null) {
   const fetchDocenteNames = useCallback(async () => {
     const cachedDocentes = cargarDeCache(CACHE_KEYS.docentes);
     if (cachedDocentes) setDocenteNames(cachedDocentes);
+    const cachedCedulas = cargarDeCache(CACHE_KEYS.docenteCedulas);
+    if (cachedCedulas) setDocenteCedulas(cachedCedulas);
     try {
       const { data: docentes } = await supabase.from("docentes").select("*");
       if (docentes) {
-        const m = {};
-        docentes.forEach(d => { m[d.nombre_raw] = d.nombre_display; });
+        const m = {}, c = {};
+        docentes.forEach(d => { m[d.nombre_raw] = d.nombre_display; if (d.cedula) c[d.nombre_raw] = d.cedula; });
         setDocenteNames(m);
+        setDocenteCedulas(c);
         guardarEnCache(CACHE_KEYS.docentes, m);
+        guardarEnCache(CACHE_KEYS.docenteCedulas, c);
       }
     } catch (err) {
       console.warn("Error fetching docentes:", err);
       if (cachedDocentes) setDocenteNames(cachedDocentes);
+      if (cachedCedulas) setDocenteCedulas(cachedCedulas);
     }
   }, []);
 
@@ -236,6 +242,34 @@ export default function useAppData(lapso, logAudit = null) {
       setDocenteNames(prev => ({ ...prev, [rawName]: displayName }));
       showToast("✅ Docente actualizado.", "success");
       logAudit?.({ accion: "EDITAR_DOCENTE", entidad: "docentes", resumen: `Docente actualizado: "${rawName}" → "${displayName}"` });
+      return { success: true };
+    } catch (err) { showToast("❌ Error: " + err.message, "error"); return { success: false }; }
+  };
+
+  // Vincula manualmente la cédula de un docente (nombre_raw -> cedula),
+  // usada por el módulo de asistencias QR para cruzar el escaneo con el
+  // horario real del docente (ver migración 0008, horario_docente_hoy).
+  const saveDocenteCedula = async (rawName, cedula) => {
+    const cedulaLimpia = cedula.trim().toUpperCase();
+    try {
+      const { error: upsertError } = await supabase
+        .from("docentes")
+        .upsert({ nombre_raw: rawName, cedula: cedulaLimpia || null }, { onConflict: "nombre_raw" });
+      if (upsertError) {
+        if (upsertError.code === "23505") {
+          showToast("❌ Esa cédula ya está vinculada a otro docente.", "error");
+        } else {
+          showToast("❌ Error: " + upsertError.message, "error");
+        }
+        return { success: false };
+      }
+      setDocenteCedulas(prev => {
+        const next = { ...prev };
+        if (cedulaLimpia) next[rawName] = cedulaLimpia; else delete next[rawName];
+        return next;
+      });
+      showToast(cedulaLimpia ? "✅ Cédula vinculada." : "✅ Cédula desvinculada.", "success");
+      logAudit?.({ accion: "EDITAR_DOCENTE", entidad: "docentes", resumen: `Cédula de "${rawName}" actualizada a "${cedulaLimpia || "(vacío)"}"` });
       return { success: true };
     } catch (err) { showToast("❌ Error: " + err.message, "error"); return { success: false }; }
   };
@@ -523,15 +557,16 @@ export default function useAppData(lapso, logAudit = null) {
   }, [data, byDocente, byMateria]);
 
   const getDocName = useCallback((raw) => docenteNames[raw] || raw, [docenteNames]);
+  const getDocCedula = useCallback((raw) => docenteCedulas[raw] || "", [docenteCedulas]);
   const getMateriaName = useCallback((raw) => materiaNames[raw] || raw, [materiaNames]);
 
   return {
     loading, isSyncing, uploading, error, selectedPrograma, setSelectedPrograma,
-    programasDisponibles, data, docenteNames, materiaNames,
+    programasDisponibles, data, docenteNames, docenteCedulas, materiaNames,
     byDocente, byMateria, conflicts, usingFallbackConflicts, refetchConflictos, stats, allTrayectos,
     isOffline, lastSync, toast, showToast, hideToast,
     confirmModal, openConfirm, closeConfirm,
     handleFileUpload, exportarDatos, importarDatos, clearAllData,
-    saveDocenteName, saveMateriaName, getDocName, getMateriaName,
+    saveDocenteName, saveDocenteCedula, saveMateriaName, getDocName, getDocCedula, getMateriaName,
   };
 }
