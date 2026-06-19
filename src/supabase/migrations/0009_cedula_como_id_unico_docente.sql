@@ -330,7 +330,7 @@ AS $$
         SELECT ad.cedula_docente
         FROM   asistencias_diarias ad
         WHERE  LOWER(TRIM(ad.nombre_docente)) = LOWER(TRIM(d.nombre_raw))
-        ORDER BY ad.created_at DESC
+        ORDER BY ad.hora_registro DESC
         LIMIT  1
       )
     ) AS cedula,
