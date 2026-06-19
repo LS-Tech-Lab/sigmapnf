@@ -182,7 +182,6 @@ function AdminMenu({ appData, onClose, modoConsulta, fileRef, backupRef, permiso
   }, [onClose]);
 
   const disabled = appData.uploading || appData.loading;
-  const puedeEscribir = !modoConsulta && (permisos.puedeImportarExcel || permisos.puedeEditarHorarios);
 
   return (
     <div ref={ref} className="admin-menu">
@@ -902,7 +901,7 @@ export default function App() {
         )}
 
         {/* Vistas */}
-        <main style={{ flex:1, overflow:"auto" }}>
+        <main style={{ flex:1, overflow:"auto", display:"flex", flexDirection:"column" }}>
           {view === "resumen" && (
             <ResumenView
               stats={appData.stats} data={appData.data}
