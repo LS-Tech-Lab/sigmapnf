@@ -4,7 +4,7 @@ import { getTurnoDeRegistro } from '../utils/turno';
 import StatCard from './StatCard';
 import Avatar from './Avatar';
 
-export default function ResumenView({ stats, data, byDocente, byMateria, conflicts, getDocName, getMateriaName, onGoToConflictos }) {
+export default function ResumenView({ stats, data, byDocente, byMateria, conflicts = [], getDocName, getMateriaName, onGoToConflictos }) {
   const [tab, setTab] = useState('general');
 
   const metricas = useMemo(() => {
