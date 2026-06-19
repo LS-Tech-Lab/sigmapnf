@@ -8,6 +8,7 @@ const VERSION_KEY = "horarios_cache_schema_v";
 export const CACHE_KEYS = {
   horarios: "horarios_cache",
   docentes: "docentes_cache",
+  docenteCedulas: "docentes_cedulas_cache",
   materias: "materias_cache",
   lastSync: "horarios_last_sync",
 };
