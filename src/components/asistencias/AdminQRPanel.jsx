@@ -33,6 +33,13 @@ const TURNOS_VISIBLES = [
   { id: "VESPERTINO", label: "🌆 Vespertino", hora: "1:00 PM – 5:30 PM"  },
 ];
 
+// FIX (realtime-fallback-polling-panel-qr): si la tabla asistencias_diarias
+// no está en la publicación supabase_realtime (ver migración
+// 0010_realtime_asistencias_qr.sql) o se cae el websocket, el contador y el
+// feed de actividad se quedaban congelados en 0 para siempre. Este poll de
+// respaldo asegura que igual se actualicen cada pocos segundos.
+const POLL_FALLBACK_MS = 5000;
+
 // ── Barra de cuenta regresiva ────────────────────────────────────────────────
 function CountdownBar({ segundos, total }) {
   const pct   = Math.max(0, (segundos / total) * 100);
@@ -53,7 +60,9 @@ function CountdownBar({ segundos, total }) {
 }
 
 // ── QR canvas ───────────────────────────────────────────────────────────────
-function QRDisplay({ qrUrl, segundos, ttlMinutes }) {
+// FIX (qr-pill-proyeccion): se exporta para reutilizarlo, sin duplicar
+// código, en la vista de solo-proyección (QRProyeccion.jsx).
+export function QRDisplay({ qrUrl, segundos, ttlMinutes }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -167,7 +176,10 @@ function ContadorSesion({ sessionId }) {
       }, fetchStats)
       .subscribe();
 
-    return () => supabase.removeChannel(ch);
+    // FIX (realtime-fallback-polling-panel-qr): poll de respaldo.
+    const pollId = setInterval(fetchStats, POLL_FALLBACK_MS);
+
+    return () => { supabase.removeChannel(ch); clearInterval(pollId); };
   }, [sessionId]);
 
   return (
@@ -235,7 +247,10 @@ export default function AdminQRPanel({
       }, fetchFeed)
       .subscribe();
 
-    return () => supabase.removeChannel(ch);
+    // FIX (realtime-fallback-polling-panel-qr): poll de respaldo.
+    const pollId = setInterval(fetchFeed, POLL_FALLBACK_MS);
+
+    return () => { supabase.removeChannel(ch); clearInterval(pollId); };
   }, [sessionId]);
 
   const handleIniciar = () => {
