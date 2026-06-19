@@ -48,6 +48,7 @@ export default function GlobalSearch({ onNavigate, docenteNames, materiaNames, d
           value={q}
           onChange={e => { setQ(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
+          onKeyDown={e => { if (e.key === "Escape") { setOpen(false); setQ(""); } }}
           placeholder="Buscar materia, docente…"
           style={{ border: "none", background: "transparent", outline: "none", fontSize: 14, color: "#111827", width: "100%", fontWeight: 500 }}
         />
@@ -72,4 +73,4 @@ export default function GlobalSearch({ onNavigate, docenteNames, materiaNames, d
       )}
     </div>
   );
-}
+} 
