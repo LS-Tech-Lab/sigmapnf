@@ -948,8 +948,8 @@ export default function App() {
             <DocentesView
               byDocente={appData.byDocente} conflicts={appData.conflicts}
               initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)}
-              getDocName={appData.getDocName}
-              onSaveDocenteName={permisos.puedeEditarDocentes ? appData.saveDocenteName : null}
+              getDocCedula={appData.getDocCedula}
+              onSaveDocenteCedula={permisos.puedeEditarDocentes ? appData.saveDocenteCedula : null}
             />
           )}
           {view === "materias" && (
