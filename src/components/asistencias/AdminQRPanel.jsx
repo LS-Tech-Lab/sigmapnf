@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
-import { DEFAULT_PROGRAMAS } from "../../constants";
+import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../constants";
 import { supabase } from "../../lib/supabase";
 import { fechaHoyVE } from "../../utils/time";
 
@@ -21,7 +21,11 @@ function horaActualVE() {
   return ve.getHours() * 60 + ve.getMinutes();
 }
 
-const TURNO_FIN = { DIURNO: 720, VESPERTINO: 1050 };
+// MEJORA #11: turnos desde constants — NOCTURNO se activa con habilitado:true
+// en constants/index.js sin tocar este archivo.
+// finMin reemplaza al anterior TURNO_FIN hardcoded.
+// Se mantiene `export` en TURNOS_VISIBLES porque QRProyeccion.jsx lo importa.
+export const TURNOS_VISIBLES = TURNOS_CONFIG.filter(t => t.habilitado);
 
 // FIX (qr-solo-en-proyeccion): exportadas para reutilizarlas en
 // QRProyeccion.jsx sin duplicar el formato de fecha/turno.
@@ -30,11 +34,6 @@ export function formatFechaVE(isoStr) {
   const [y, m, d] = isoStr.split("-");
   return `${d}-${m}-${y}`;
 }
-
-export const TURNOS_VISIBLES = [
-  { id: "DIURNO",     label: "☀️ Diurno",    hora: "7:30 AM – 12:00 PM" },
-  { id: "VESPERTINO", label: "🌆 Vespertino", hora: "1:00 PM – 5:30 PM"  },
-];
 
 // FIX (realtime-fallback-polling-panel-qr): si la tabla asistencias_diarias
 // no está en la publicación supabase_realtime (ver migración
@@ -203,6 +202,95 @@ function ContadorSesion({ sessionId }) {
   );
 }
 
+// ── MEJORA #12: Historial de sesiones del día ────────────────────────────────
+// Si el operador cierra accidentalmente el panel, puede ver todas las sesiones
+// anteriores de la jornada con estado, ventana horaria y conteo de registros.
+function HistorialSesiones({ fecha, sessionIdActiva }) {
+  const [sesiones,     setSesiones]     = useState([]);
+  const [loading,      setLoading]      = useState(false);
+  const [expandido,    setExpandido]    = useState(false);
+  const [conteosPorId, setConteosPorId] = useState({});
+
+  useEffect(() => {
+    if (!expandido) return;
+    const fetchHistorial = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("qr_sessions")
+        .select("id, turno, programa, created_at, activa")
+        .eq("fecha", fecha)
+        .order("created_at", { ascending: false });
+      const sesionesData = data || [];
+      setSesiones(sesionesData);
+      if (sesionesData.length > 0) {
+        const ids = sesionesData.map(s => s.id);
+        const { data: registros } = await supabase
+          .from("asistencias_diarias")
+          .select("qr_session_id, tipo")
+          .in("qr_session_id", ids);
+        const conteos = {};
+        ids.forEach(id => { conteos[id] = { entradas: 0, salidas: 0 }; });
+        (registros || []).forEach(r => {
+          if (!conteos[r.qr_session_id]) return;
+          if (r.tipo === "ENTRADA") conteos[r.qr_session_id].entradas++;
+          if (r.tipo === "SALIDA")  conteos[r.qr_session_id].salidas++;
+        });
+        setConteosPorId(conteos);
+      }
+      setLoading(false);
+    };
+    fetchHistorial();
+  }, [fecha, expandido, sessionIdActiva]);
+
+  const sesionesAnteriores = sesiones.filter(s => s.id !== sessionIdActiva);
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <button
+        onClick={() => setExpandido(v => !v)}
+        style={{ width: "100%", padding: "9px 14px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, fontSize: 12, fontWeight: 600, color: "#374151", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+      >
+        <span>🕓 Historial de sesiones hoy</span>
+        <span style={{ color: "#9CA3AF" }}>{expandido ? "▲" : "▼"}</span>
+      </button>
+      {expandido && (
+        <div style={{ marginTop: 8, border: "1px solid #E2E8F0", borderRadius: 9, overflow: "hidden", background: "#fff" }}>
+          {loading ? (
+            <div style={{ padding: "20px 14px", textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>Cargando…</div>
+          ) : sesionesAnteriores.length === 0 ? (
+            <div style={{ padding: "16px 14px", textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>
+              {sesiones.length === 0 ? "No hay sesiones anteriores para esta fecha." : "Esta es la única sesión del día."}
+            </div>
+          ) : sesionesAnteriores.map((s, i) => {
+            const c = conteosPorId[s.id] || { entradas: 0, salidas: 0 };
+            const total = c.entradas + c.salidas;
+            const turnoConf = TURNOS_CONFIG.find(t => t.id === s.turno);
+            return (
+              <div key={s.id} style={{ padding: "11px 14px", borderBottom: i < sesionesAnteriores.length - 1 ? "1px solid #F1F5F9" : "none", display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: s.activa ? "#22C55E" : "#94A3B8", flexShrink: 0, marginTop: 4 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>
+                    {turnoConf?.label || s.turno}
+                    {s.programa ? <span style={{ color: "#6B7280", fontWeight: 500 }}> · {s.programa.replace("PNF ", "")}</span> : ""}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>
+                    Iniciada {new Date(s.created_at).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" })}
+                    {" · "}<span style={{ color: s.activa ? "#15803D" : "#6B7280", fontWeight: 600 }}>{s.activa ? "activa" : "cerrada"}</span>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: total > 0 ? "#1D4ED8" : "#9CA3AF" }}>{total}</div>
+                  <div style={{ fontSize: 10, color: "#9CA3AF" }}>{c.entradas}E · {c.salidas}S</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Panel principal ──────────────────────────────────────────────────────────
 export default function AdminQRPanel({
   profile, onVerReporte, onVerProyeccion,
@@ -215,7 +303,9 @@ export default function AdminQRPanel({
   const hoy = fechaHoyVE();
   const minHoy = horaActualVE();
 
-  const turnoDefault = minHoy < TURNO_FIN.DIURNO ? "DIURNO" : "VESPERTINO";
+  const turnoDefault = TURNOS_VISIBLES.find(t => !t.finMin || minHoy < t.finMin)?.id
+    || TURNOS_VISIBLES[0]?.id
+    || "DIURNO";
 
   const [turno,    setTurno]    = useState(turnoDefault);
   const [programa, setPrograma] = useState(profile?.programa || "");
@@ -227,7 +317,8 @@ export default function AdminQRPanel({
   const esHoy = fecha === hoy;
   function turnoDisponible(tId) {
     if (!esHoy) return true;
-    return minHoy < TURNO_FIN[tId];
+    const conf = TURNOS_CONFIG.find(t => t.id === tId);
+    return !conf?.finMin || minHoy < conf.finMin;
   }
 
   // Cargar y suscribir feed en tiempo real
@@ -388,6 +479,9 @@ export default function AdminQRPanel({
 
           {/* Feed de actividad — CRÍTICO #6 */}
           {activa && <FeedActividad registros={feedRegistros} />}
+
+          {/* Historial de sesiones del día — MEJORA #12 */}
+          <HistorialSesiones fecha={fecha} sessionIdActiva={sessionId} />
         </div>
 
         {/* ── Columna derecha: estado de la sesión (SIN el QR) ── */}
