@@ -9,6 +9,31 @@ export function timeToMin(s) {
   return hh * 60 + mi;
 }
 
+// FIX (fecha-hoy-timezone):
+// Varios archivos calculaban "hoy" con `new Date().toISOString().slice(0,10)`,
+// que da la fecha en UTC, NO en hora de Venezuela (America/Caracas, UTC-4).
+// Venezuela está 4 horas detrás de UTC, así que entre las 8:00pm y la
+// medianoche (hora de Venezuela), UTC ya cambió de día — `hoy` calculaba
+// la fecha de MAÑANA en vez de la de hoy.
+//
+// Síntoma real reportado: en "Configuración de la sesión" (Panel QR), el
+// selector de fecha usa `min={hoy}` — si `hoy` se adelantó un día por este
+// bug, el día real de hoy quedaba ANTES del mínimo permitido (bloqueado en
+// el calendario), mientras que el día siguiente (el que el sistema creía
+// que era "hoy") sí se podía seleccionar. Por eso un sábado se veía
+// bloqueado pero el domingo sí estaba disponible: dependía de a qué hora
+// de la noche se abriera el panel.
+//
+// Esta función usa el nombre de zona horaria IANA ("America/Caracas") en
+// vez de matemática manual de offset, para quedar protegida ante cualquier
+// cambio futuro de huso horario y ser consistente con horaActualVE() en
+// AdminQRPanel.jsx, que ya usa el mismo enfoque.
+export function fechaHoyVE() {
+  // en-CA formatea como YYYY-MM-DD, igual que el formato que usan los
+  // <input type="date"> y las columnas `fecha` de la base de datos.
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Caracas" });
+}
+
 export function countBlocks(horaStr) {
   if (!horaStr) return 1;
   const parts = horaStr.trim().split(/[-–]/);
