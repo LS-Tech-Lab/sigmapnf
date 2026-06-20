@@ -561,6 +561,7 @@ export default function App() {
             <AdminQRPanel
               profile={profile}
               onVerReporte={() => setAsistenciasSubView("reporte")}
+              onVerProyeccion={() => setAsistenciasSubView("proyeccion")}
               {...qrSession}
             />
           )}
@@ -570,6 +571,7 @@ export default function App() {
               qrUrl={qrSession.qrUrl}
               segundosRestantes={qrSession.segundosRestantes}
               ttlMinutes={qrSession.ttlMinutes}
+              meta={qrSession.meta}
             />
           )}
           {asistenciasSubView === "reporte" && (
