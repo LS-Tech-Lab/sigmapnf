@@ -63,28 +63,28 @@ export const ROL_SIDEBAR = {
 };
 
 export const NAV_ITEMS = [
-  { id: "resumen",    emoji: "📊", label: "Resumen" },
-  { id: "horarios",  emoji: "📅", label: "Horarios" },
-  { id: "secciones", emoji: "🏫", label: "Secciones" },
-  { id: "docentes",  emoji: "👥", label: "Docentes" },
-  { id: "materias",  emoji: "📖", label: "Materias" },
-  { id: "asistencias", emoji: "🖨️", label: "Asistencias" },
-  { id: "conflictos", emoji: "⚠️", label: "Conflictos", hasBadge: true }, // badge = nº de conflictos detectados
+  { id: "resumen",    icon: "ti-layout-dashboard", label: "Resumen" },
+  { id: "horarios",  icon: "ti-calendar-event",   label: "Horarios" },
+  { id: "secciones", icon: "ti-school",           label: "Secciones" },
+  { id: "docentes",  icon: "ti-users",            label: "Docentes" },
+  { id: "materias",  icon: "ti-book-2",           label: "Materias" },
+  { id: "asistencias", icon: "ti-printer",        label: "Asistencias" },
+  { id: "conflictos", icon: "ti-alert-triangle",  label: "Conflictos", hasBadge: true }, // badge = nº de conflictos detectados
 ];
 
 export const S = {
-  card: { background: "#fff", borderRadius: 10, border: "1px solid #E5E7EB", overflow: "hidden" },
-  th: { padding: "10px 14px", fontSize: 12, fontWeight: 700, color: "#374151", textAlign: "left", borderBottom: "2px solid #E5E7EB", background: "#F9FAFB", textTransform: "uppercase", letterSpacing: "0.05em" },
-  td: { padding: "10px 14px", fontSize: 13, borderTop: "1px solid #F3F4F6", color: "#374151" },
-  badge: (bg, col) => ({ background: bg, color: col, borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600 }),
+  card: { background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", boxShadow: "0 1px 2px rgba(15,23,42,0.04)", overflow: "hidden" },
+  th: { padding: "11px 14px", fontSize: 11, fontWeight: 700, color: "#475569", textAlign: "left", borderBottom: "1px solid #E2E8F0", background: "#F8FAFC", textTransform: "uppercase", letterSpacing: "0.06em" },
+  td: { padding: "11px 14px", fontSize: 13, borderTop: "1px solid #F1F5F9", color: "#334155" },
+  badge: (bg, col) => ({ background: bg, color: col, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }),
   btn: (active) => ({
-    padding: "7px 16px", borderRadius: 20, border: "1px solid",
-    borderColor: active ? "#2563EB" : "#E5E7EB", background: active ? "#EFF6FF" : "#fff",
-    color: active ? "#1D4ED8" : "#374151", cursor: "pointer", fontSize: 13,
+    padding: "7px 16px", borderRadius: 8, border: "1px solid",
+    borderColor: active ? "#2563EB" : "#E2E8F0", background: active ? "#EFF6FF" : "#fff",
+    color: active ? "#1D4ED8" : "#334155", cursor: "pointer", fontSize: 13,
     fontWeight: active ? 600 : 500, transition: "all 0.15s",
   }),
-  select: { fontSize: 13, padding: "7px 12px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", color: "#111827", cursor: "pointer", fontWeight: 500 },
-  input: { fontSize: 13, padding: "7px 12px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", color: "#111827", outline: "none", fontWeight: 500 },
+  select: { fontSize: 13, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#fff", color: "#0F172A", cursor: "pointer", fontWeight: 500 },
+  input: { fontSize: 13, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#fff", color: "#0F172A", outline: "none", fontWeight: 500 },
 };
 
 export const responsiveCSS = `
