@@ -1,6 +1,4 @@
-// Contenedor centrado de pantalla completa usado por todas las vistas de
-// DocenteScan (formulario, confirmación, resultado, etc).
-// Extraído de DocenteScan.jsx.
+// Contenedor centrado de pantalla completa usado por todas las vistas de DocenteScan.
 
 function Shell({ children, ancho = 480 }) {
   return (
@@ -10,14 +8,14 @@ function Shell({ children, ancho = 480 }) {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "clamp(12px, 4vw, 24px)",
-      fontFamily: "system-ui,-apple-system,sans-serif",
+      padding: "clamp(12px,4vw,24px)",
+      fontFamily: "Inter,system-ui,-apple-system,sans-serif",
       boxSizing: "border-box",
     }}>
       <div style={{
         background: "#fff",
-        borderRadius: "clamp(16px, 4vw, 24px)",
-        padding: "clamp(24px, 6vw, 44px) clamp(20px, 5vw, 36px)",
+        borderRadius: "clamp(16px,4vw,24px)",
+        padding: "clamp(24px,6vw,44px) clamp(20px,5vw,36px)",
         width: "100%",
         maxWidth: ancho,
         boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
