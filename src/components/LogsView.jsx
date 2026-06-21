@@ -29,44 +29,46 @@ function fmtDate(iso) {
 
 // ── Configuraciones de eventos y acciones ─────────────────────────────
 const EVENTO_CONFIG = {
-  login:          { label: "Inicio de sesión", emoji: "🟢", color: "#16A34A", bg: "#F0FDF4" },
-  logout:         { label: "Cierre de sesión", emoji: "🔴", color: "#DC2626", bg: "#FEF2F2" },
-  login_fallido:  { label: "Intento fallido",  emoji: "⚠️",  color: "#D97706", bg: "#FFFBEB" },
+  login:          { label: "Inicio de sesión", icon: "ti-circle-check",    color: "#16A34A", bg: "#F0FDF4" },
+  logout:         { label: "Cierre de sesión", icon: "ti-circle-x",        color: "#DC2626", bg: "#FEF2F2" },
+  login_fallido:  { label: "Intento fallido",  icon: "ti-alert-triangle",  color: "#D97706", bg: "#FFFBEB" },
 };
 
 const ACCION_CONFIG = {
-  IMPORTAR_EXCEL:      { emoji: "📥", color: "#1D4ED8" },
-  BORRAR_HORARIOS:     { emoji: "🗑️",  color: "#DC2626" },
-  EDITAR_DOCENTE:      { emoji: "✏️",  color: "#0F766E" },
-  EDITAR_MATERIA:      { emoji: "✏️",  color: "#0F766E" },
-  CERRAR_TRIMESTRE:    { emoji: "🔒", color: "#7C3AED" },
-  CREAR_TRIMESTRE:     { emoji: "🎓", color: "#2563EB" },
-  RESTAURAR_BACKUP:    { emoji: "🔄", color: "#D97706" },
-  EXPORTAR_BACKUP:     { emoji: "📦", color: "#64748B" },
-  CREAR_USUARIO:       { emoji: "👤", color: "#2563EB" },
-  EDITAR_USUARIO:      { emoji: "✏️",  color: "#374151" },
-  ACTIVAR_USUARIO:     { emoji: "✅", color: "#16A34A" },
-  DESACTIVAR_USUARIO:  { emoji: "🚫", color: "#DC2626" },
-  GESTIONAR_USUARIO:   { emoji: "👤", color: "#7C3AED" },
+  IMPORTAR_EXCEL:      { icon: "ti-file-import",   color: "#1D4ED8" },
+  BORRAR_HORARIOS:     { icon: "ti-trash",          color: "#DC2626" },
+  EDITAR_DOCENTE:      { icon: "ti-pencil",         color: "#0F766E" },
+  EDITAR_MATERIA:      { icon: "ti-pencil",         color: "#0F766E" },
+  CERRAR_TRIMESTRE:    { icon: "ti-lock",           color: "#7C3AED" },
+  CREAR_TRIMESTRE:     { icon: "ti-school",         color: "#2563EB" },
+  RESTAURAR_BACKUP:    { icon: "ti-restore",        color: "#D97706" },
+  EXPORTAR_BACKUP:     { icon: "ti-package-export", color: "#64748B" },
+  CREAR_USUARIO:       { icon: "ti-user-plus",      color: "#2563EB" },
+  EDITAR_USUARIO:      { icon: "ti-user-edit",      color: "#475569" },
+  ACTIVAR_USUARIO:     { icon: "ti-user-check",     color: "#16A34A" },
+  DESACTIVAR_USUARIO:  { icon: "ti-user-off",       color: "#DC2626" },
+  GESTIONAR_USUARIO:   { icon: "ti-users",          color: "#7C3AED" },
 };
 
 function EventoBadge({ evento }) {
-  const cfg = EVENTO_CONFIG[evento] || { label: evento, emoji: "ℹ️", color: "#374151", bg: "#F9FAFB" };
+  const cfg = EVENTO_CONFIG[evento] || { label: evento, icon: "ti-info-circle", color: "#475569", bg: "#F8FAFC" };
   return (
     <span style={{ background: cfg.bg, color: cfg.color, borderRadius: 6,
       padding: "2px 8px", fontSize: 11, fontWeight: 700,
       display: "inline-flex", alignItems: "center", gap: 4 }}>
-      {cfg.emoji} {cfg.label}
+      <i className={`ti ${cfg.icon}`} style={{ fontSize: 12 }} aria-hidden="true" />
+      {cfg.label}
     </span>
   );
 }
 
 function AccionBadge({ accion }) {
-  const cfg = ACCION_CONFIG[accion] || { emoji: "ℹ️", color: "#374151" };
+  const cfg = ACCION_CONFIG[accion] || { icon: "ti-info-circle", color: "#475569" };
   return (
     <span style={{ color: cfg.color, fontSize: 13, display: "inline-flex",
       alignItems: "center", gap: 4, fontWeight: 600 }}>
-      {cfg.emoji} {accion.replace(/_/g, " ")}
+      <i className={`ti ${cfg.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
+      {accion.replace(/_/g, " ")}
     </span>
   );
 }
@@ -92,7 +94,6 @@ function TabSesiones({ permisos }) {
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  // Stats rápidos
   const stats = logs.reduce((acc, l) => {
     acc[l.evento] = (acc[l.evento] || 0) + 1;
     return acc;
@@ -107,8 +108,10 @@ function TabSesiones({ permisos }) {
           placeholder="Filtrar por correo…"
           style={{ ...S.input, flex: 1, minWidth: 200 }}
         />
-        <button onClick={cargar} style={{ ...S.btn(false), flexShrink: 0 }}>
-          🔄 Actualizar
+        <button onClick={cargar} style={{ ...S.btn(false), flexShrink: 0,
+          display: "flex", alignItems: "center", gap: 6 }}>
+          <i className="ti ti-refresh" style={{ fontSize: 14 }} aria-hidden="true" />
+          Actualizar
         </button>
       </div>
 
@@ -116,9 +119,10 @@ function TabSesiones({ permisos }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
         {Object.entries(EVENTO_CONFIG).map(([k, v]) => (
           <div key={k} style={{ background: v.bg, color: v.color, borderRadius: 8,
-            padding: "8px 14px", fontSize: 12 }}>
+            padding: "8px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontWeight: 700, fontSize: 18 }}>{stats[k] || 0}</span>
-            <span style={{ marginLeft: 6 }}>{v.emoji} {v.label}</span>
+            <i className={`ti ${v.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
+            <span>{v.label}</span>
           </div>
         ))}
       </div>
@@ -127,7 +131,7 @@ function TabSesiones({ permisos }) {
         <div style={{ textAlign: "center", padding: 32, color: "#94A3B8" }}>Cargando…</div>
       ) : logs.length === 0 ? (
         <div style={{ textAlign: "center", padding: 40, color: "#94A3B8" }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
+          <i className="ti ti-clipboard-list" style={{ fontSize: 28, display: "block", marginBottom: 8 }} aria-hidden="true" />
           No hay registros de sesión.
         </div>
       ) : (
@@ -146,7 +150,7 @@ function TabSesiones({ permisos }) {
                   onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <td style={S.td}>
-                    <div style={{ fontSize: 13, color: "#374151" }}>
+                    <div style={{ fontSize: 13, color: "#475569" }}>
                       {fmtDateTime(log.created_at)}
                     </div>
                   </td>
@@ -162,7 +166,7 @@ function TabSesiones({ permisos }) {
                     )}
                   </td>
                   <td style={S.td}>
-                    <span style={{ fontSize: 12, color: "#374151" }}>
+                    <span style={{ fontSize: 12, color: "#475569" }}>
                       {log.rol || "—"}
                     </span>
                   </td>
@@ -182,7 +186,7 @@ function TabSesiones({ permisos }) {
           disabled={page === 0} style={S.btn(false)}>
           ← Anterior
         </button>
-        <span style={{ padding: "7px 14px", fontSize: 13, color: "#374151" }}>
+        <span style={{ padding: "7px 14px", fontSize: 13, color: "#475569" }}>
           Página {page + 1}
         </span>
         <button onClick={() => setPage(p => p + 1)}
@@ -246,10 +250,12 @@ function TabAuditoria({ permisos }) {
         />
         <button onClick={() => { setFiltroEmail(""); setFiltroAccion(""); setFiltroLapso(""); setPage(0); }}
           style={{ ...S.btn(false), flexShrink: 0 }}>
-          ✕ Limpiar
+          Limpiar
         </button>
-        <button onClick={cargar} style={{ ...S.btn(false), flexShrink: 0 }}>
-          🔄 Actualizar
+        <button onClick={cargar} style={{ ...S.btn(false), flexShrink: 0,
+          display: "flex", alignItems: "center", gap: 6 }}>
+          <i className="ti ti-refresh" style={{ fontSize: 14 }} aria-hidden="true" />
+          Actualizar
         </button>
       </div>
 
@@ -257,14 +263,14 @@ function TabAuditoria({ permisos }) {
         <div style={{ textAlign: "center", padding: 32, color: "#94A3B8" }}>Cargando…</div>
       ) : logs.length === 0 ? (
         <div style={{ textAlign: "center", padding: 40, color: "#94A3B8" }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>🗂️</div>
+          <i className="ti ti-folders" style={{ fontSize: 28, display: "block", marginBottom: 8 }} aria-hidden="true" />
           No hay registros de auditoría.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {logs.map(log => {
             const isOpen = expandido === log.id;
-            const cfg = ACCION_CONFIG[log.accion] || { emoji: "ℹ️", color: "#374151" };
+            const cfg = ACCION_CONFIG[log.accion] || { icon: "ti-info-circle", color: "#475569" };
 
             return (
               <div key={log.id} style={{ ...S.card, borderLeft: `3px solid ${cfg.color}` }}>
@@ -274,7 +280,8 @@ function TabAuditoria({ permisos }) {
                   style={{ display: "flex", alignItems: "center", padding: "12px 16px",
                     cursor: "pointer", gap: 12, userSelect: "none" }}>
 
-                  <div style={{ fontSize: 20, flexShrink: 0 }}>{cfg.emoji}</div>
+                  <i className={`ti ${cfg.icon}`}
+                     style={{ fontSize: 20, color: cfg.color, flexShrink: 0 }} aria-hidden="true" />
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -300,7 +307,7 @@ function TabAuditoria({ permisos }) {
                   </div>
 
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>
+                    <div style={{ fontSize: 12, color: "#475569", fontWeight: 600 }}>
                       {log.nombre || log.email}
                     </div>
                     <div style={{ fontSize: 11, color: "#94A3B8" }}>
@@ -308,9 +315,8 @@ function TabAuditoria({ permisos }) {
                     </div>
                   </div>
 
-                  <span style={{ color: "#94A3B8", fontSize: 12, flexShrink: 0 }}>
-                    {isOpen ? "▲" : "▼"}
-                  </span>
+                  <i className={`ti ${isOpen ? "ti-chevron-up" : "ti-chevron-down"}`}
+                     style={{ color: "#94A3B8", fontSize: 14, flexShrink: 0 }} aria-hidden="true" />
                 </div>
 
                 {/* Detalle expandible */}
@@ -330,12 +336,11 @@ function TabAuditoria({ permisos }) {
                             textTransform: "uppercase", letterSpacing: "0.06em" }}>
                             {label}
                           </div>
-                          <div style={{ fontSize: 13, color: "#374151", marginTop: 2 }}>{val}</div>
+                          <div style={{ fontSize: 13, color: "#475569", marginTop: 2 }}>{val}</div>
                         </div>
                       ))}
                     </div>
 
-                    {/* Datos antes / después */}
                     {(log.datos_antes || log.datos_despues) && (
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                         {log.datos_antes && (
@@ -376,7 +381,7 @@ function TabAuditoria({ permisos }) {
           disabled={page === 0} style={S.btn(false)}>
           ← Anterior
         </button>
-        <span style={{ padding: "7px 14px", fontSize: 13, color: "#374151" }}>
+        <span style={{ padding: "7px 14px", fontSize: 13, color: "#475569" }}>
           Página {page + 1}
         </span>
         <button onClick={() => setPage(p => p + 1)}
@@ -395,7 +400,7 @@ export default function LogsView({ permisos }) {
   if (!permisos.puedeVerLogs) {
     return (
       <div style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
+        <i className="ti ti-lock" style={{ fontSize: 40, display: "block", marginBottom: 12 }} aria-hidden="true" />
         <div style={{ fontSize: 14 }}>No tienes permiso para ver los registros del sistema.</div>
       </div>
     );
@@ -416,8 +421,8 @@ export default function LogsView({ permisos }) {
       {/* Tabs */}
       <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: "2px solid #E5E7EB" }}>
         {[
-          { id: "sesiones",   label: "🔐 Registros de sesión" },
-          { id: "auditoria",  label: "🗂️ Auditoría de cambios" },
+          { id: "sesiones",  icon: "ti-key",         label: "Registros de sesión" },
+          { id: "auditoria", icon: "ti-list-details", label: "Auditoría de cambios" },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             style={{
@@ -425,8 +430,9 @@ export default function LogsView({ permisos }) {
               fontSize: 13, fontWeight: tab === t.id ? 700 : 400,
               color: tab === t.id ? "#2563EB" : "#64748B",
               borderBottom: tab === t.id ? "2px solid #2563EB" : "2px solid transparent",
-              marginBottom: -2,
+              marginBottom: -2, display: "flex", alignItems: "center", gap: 6,
             }}>
+            <i className={`ti ${t.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
             {t.label}
           </button>
         ))}
