@@ -160,7 +160,7 @@ export default function LoginScreen() {
           <img
             src="/logo-coordinacion.png"
             alt="Logo Coordinación"
-            style={{ width: 90, height: 90, objectFit: "contain", margin: "0 auto 18px", display: "block" }}
+            style={{ width: 140, height: 140, objectFit: "contain", margin: "0 auto 18px", display: "block" }}
           />
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.01em", lineHeight: 1.3 }}>
             Gestión de Horarios Académicos y Asistencias Docentes
