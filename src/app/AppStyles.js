@@ -9,10 +9,16 @@ const GLOBAL_CSS = `
   .nav-item i.ti, .admin-item i.ti, .pin-btn i.ti { font-size: 15px; line-height: 1; }
   .admin-item i.ti { width: 16px; text-align: center; flex-shrink: 0; }
 
+  /* Spacer siempre oculto: el aside está en el flujo normal (position:relative),
+     ocupa su propio espacio; el spacer era redundante y causaba doble espacio */
+  .sb-flow-spacer { display: none !important; }
+
   /* Sidebar */
   .sb { transition: width 0.22s cubic-bezier(.4,0,.2,1); overflow: hidden; }
   .sb-collapsed { width: 56px !important; }
   .sb-expanded  { width: 220px !important; }
+
+
 
   .sb-label { transition: opacity 0.15s, width 0.15s; white-space: nowrap; overflow: hidden; }
   .sb-collapsed .sb-label  { opacity: 0; width: 0; }
@@ -91,7 +97,7 @@ const GLOBAL_CSS = `
           transform: translateX(-100%); transition: transform .25s; }
     .sb.mobile-open { transform: translateX(0); }
     /* width: 0 en el flujo para que el sidebar fixed no deje espacio en blanco */
-    .sb-flow-spacer { display: none !important; }
+    .sb-flow-spacer { display: none !important; } /* hidden on mobile: aside is fixed overlay */
     .hamburger { display: flex !important; }
     .global-search { max-width: 200px !important; }
     .stats-grid-4 { grid-template-columns: repeat(2,1fr) !important; }
