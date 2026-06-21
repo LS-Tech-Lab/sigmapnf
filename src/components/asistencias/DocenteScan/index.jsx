@@ -183,7 +183,7 @@ export default function DocenteScan() {
     return (
       <Shell>
         <IconError />
-        <h2 style={{ margin:"16px 0 8px", fontSize:18, color:"#991B1B", textAlign:"center" }}>Enlace inválido</h2>
+        <h2 style={{ margin:"16px 0 8px", fontSize:"clamp(19px,5vw,24px)", color:"#991B1B", textAlign:"center" }}>Enlace inválido</h2>
         <p style={{ margin:0, fontSize:14, color:"#6B7280", textAlign:"center" }}>
           Escanea el código QR desde la pantalla del aula para registrar tu asistencia.
         </p>
@@ -214,8 +214,8 @@ export default function DocenteScan() {
     return (
       <Shell ancho={420}>
         <Icon />
-        <h2 style={{ margin:"16px 0 6px", fontSize:19, fontWeight:700, color, textAlign:"center" }}>{titulo}</h2>
-        <p style={{ margin:0, fontSize:14, color:"#374151", textAlign:"center", lineHeight:1.55 }}>{resultado.mensaje}</p>
+        <h2 style={{ margin:"16px 0 6px", fontSize:"clamp(20px,5vw,26px)", fontWeight:800, color, textAlign:"center" }}>{titulo}</h2>
+        <p style={{ margin:0, fontSize:"clamp(15px,3.5vw,18px)", color:"#374151", textAlign:"center", lineHeight:1.55 }}>{resultado.mensaje}</p>
         {hint && <p style={{ margin:"10px 0 0", fontSize:13, color:"#6B7280", textAlign:"center" }}>{hint}</p>}
 
         {/* Si fue exitoso, mostrar datos registrados */}
@@ -254,9 +254,9 @@ export default function DocenteScan() {
     return (
       <Shell>
         <div style={{ textAlign:"center", marginBottom:20 }}>
-          <div style={{ width:52, height:52, borderRadius:14, background:"linear-gradient(135deg,#1E3A8A,#2563EB)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, margin:"0 auto 12px" }}>👀</div>
-          <h1 style={{ margin:0, fontSize:19, fontWeight:700, color:"#111827" }}>Verifica tus datos</h1>
-          <p style={{ margin:"5px 0 0", fontSize:13, color:"#6B7280" }}>Revisa especialmente tu cédula antes de continuar</p>
+          <div style={{ width:"clamp(60px,14vw,76px)", height:"clamp(60px,14vw,76px)", borderRadius:14, background:"linear-gradient(135deg,#1E3A8A,#2563EB)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"clamp(28px,7vw,36px)", margin:"0 auto clamp(14px,3vw,18px)" }}>👀</div>
+          <h1 style={{ margin:0, fontSize:"clamp(20px,5vw,26px)", fontWeight:800, color:"#111827" }}>Verifica tus datos</h1>
+          <p style={{ margin:"5px 0 0", fontSize:"clamp(15px,3.5vw,17px)", color:"#6B7280" }}>Revisa especialmente tu cédula antes de continuar</p>
         </div>
 
         <div style={{ width:"100%", background:"#FFFBEB", border:"1.5px solid #FCD34D", borderRadius:10, padding:"10px 14px", marginBottom:16, display:"flex", gap:8, alignItems:"flex-start" }}>
@@ -268,18 +268,18 @@ export default function DocenteScan() {
 
         <div style={{ width:"100%", background:"#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:12, padding:"18px", marginBottom:20, textAlign:"center" }}>
           <div style={{ fontSize:11, fontWeight:700, color:"#94A3B8", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Tu cédula</div>
-          <div style={{ fontSize:28, fontWeight:800, color:"#111827", fontFamily:"monospace", letterSpacing:"0.04em" }}>
+          <div style={{ fontSize:"clamp(28px,7vw,36px)", fontWeight:800, color:"#111827", fontFamily:"monospace", letterSpacing:"0.04em" }}>
             {datosNuevos.cedula}
           </div>
           <div style={{ height:1, background:"#E2E8F0", margin:"14px 0" }} />
           <div style={{ fontSize:11, fontWeight:700, color:"#94A3B8", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Tu nombre</div>
-          <div style={{ fontSize:16, fontWeight:700, color:"#111827" }}>{datosNuevos.nombre}</div>
+          <div style={{ fontSize:"clamp(17px,4vw,20px)", fontWeight:700, color:"#111827" }}>{datosNuevos.nombre}</div>
         </div>
 
         <button
           onClick={handleConfirmarNuevo}
           disabled={loading}
-          style={{ width:"100%", padding:"13px 0", background: loading ? "#93C5FD" : "#2563EB", color:"#fff", border:"none", borderRadius:10, fontSize:15, fontWeight:700, cursor: loading ? "not-allowed" : "pointer", marginBottom:10 }}
+          style={{ width:"100%", padding:"clamp(16px,4vw,20px) 0", background: loading ? "#93C5FD" : "#2563EB", color:"#fff", border:"none", borderRadius:12, fontSize:"clamp(17px,4.5vw,20px)", fontWeight:800, cursor: loading ? "not-allowed" : "pointer", marginBottom:10 }}
         >
           {loading ? "Registrando…" : `✅ Confirmar y registrar mi ${tipo === "SALIDA" ? "salida" : "entrada"}`}
         </button>
@@ -300,9 +300,9 @@ export default function DocenteScan() {
       <Shell>
         {/* Header */}
         <div style={{ textAlign:"center", marginBottom:24 }}>
-          <div style={{ width:52, height:52, borderRadius:14, background:"linear-gradient(135deg,#1E3A8A,#2563EB)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, margin:"0 auto 12px" }}>{tipo === "SALIDA" ? "🔴" : "🟢"}</div>
-          <h1 style={{ margin:0, fontSize:19, fontWeight:700, color:"#111827" }}>{tipo === "SALIDA" ? "Registrar Salida" : "Registrar Entrada"}</h1>
-          <p style={{ margin:"5px 0 0", fontSize:13, color:"#6B7280" }}>Confirma que eres tú para continuar</p>
+          <div style={{ width:"clamp(60px,14vw,76px)", height:"clamp(60px,14vw,76px)", borderRadius:14, background:"linear-gradient(135deg,#1E3A8A,#2563EB)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"clamp(28px,7vw,36px)", margin:"0 auto clamp(14px,3vw,18px)" }}>{tipo === "SALIDA" ? "🔴" : "🟢"}</div>
+          <h1 style={{ margin:0, fontSize:"clamp(20px,5vw,26px)", fontWeight:800, color:"#111827" }}>{tipo === "SALIDA" ? "Registrar Salida" : "Registrar Entrada"}</h1>
+          <p style={{ margin:"5px 0 0", fontSize:"clamp(15px,3.5vw,17px)", color:"#6B7280" }}>Confirma que eres tú para continuar</p>
         </div>
 
         {/* Aviso de datos viejos o de otro día — MEJORA #7 */}
@@ -316,15 +316,15 @@ export default function DocenteScan() {
         {/* Tarjeta de datos */}
         <div style={{ width:"100%", background:"#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:12, padding:"16px 18px", marginBottom:20 }}>
           <div style={{ fontSize:11, fontWeight:700, color:"#94A3B8", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Datos guardados en este dispositivo</div>
-          <div style={{ fontSize:16, fontWeight:700, color:"#111827", marginBottom:3 }}>{datosGuardados.nombre}</div>
-          <div style={{ fontSize:13, color:"#6B7280", fontFamily:"monospace", fontWeight:600 }}>{datosGuardados.cedula}</div>
+          <div style={{ fontSize:"clamp(17px,4vw,21px)", fontWeight:700, color:"#111827", marginBottom:4 }}>{datosGuardados.nombre}</div>
+          <div style={{ fontSize:"clamp(15px,3.5vw,18px)", color:"#6B7280", fontFamily:"monospace", fontWeight:700 }}>{datosGuardados.cedula}</div>
         </div>
 
         {/* Botón confirmar */}
         <button
           onClick={handleConfirmar}
           disabled={loading}
-          style={{ width:"100%", padding:"13px 0", background: loading ? "#93C5FD" : "#2563EB", color:"#fff", border:"none", borderRadius:10, fontSize:15, fontWeight:700, cursor: loading ? "not-allowed" : "pointer", marginBottom:10 }}
+          style={{ width:"100%", padding:"clamp(16px,4vw,20px) 0", background: loading ? "#93C5FD" : "#2563EB", color:"#fff", border:"none", borderRadius:12, fontSize:"clamp(17px,4.5vw,20px)", fontWeight:800, cursor: loading ? "not-allowed" : "pointer", marginBottom:10 }}
         >
           {loading ? "Registrando…" : `${tipo === "SALIDA" ? "🔴" : "✅"} Confirmar mi ${tipo === "SALIDA" ? "salida" : "entrada"}`}
         </button>
@@ -353,9 +353,9 @@ export default function DocenteScan() {
     <Shell>
       {/* Header */}
       <div style={{ textAlign:"center", marginBottom:24, width:"100%" }}>
-        <div style={{ width:52, height:52, borderRadius:14, background:"linear-gradient(135deg,#1E3A8A,#2563EB)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, margin:"0 auto 12px" }}>{tipo === "SALIDA" ? "🔴" : "🟢"}</div>
-        <h1 style={{ margin:0, fontSize:19, fontWeight:700, color:"#111827" }}>{tipo === "SALIDA" ? "Registro de Salida" : "Registro de Entrada"}</h1>
-        <p style={{ margin:"5px 0 0", fontSize:13, color:"#6B7280" }}>Primera vez — ingresa tus datos</p>
+        <div style={{ width:"clamp(60px,14vw,76px)", height:"clamp(60px,14vw,76px)", borderRadius:14, background:"linear-gradient(135deg,#1E3A8A,#2563EB)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"clamp(28px,7vw,36px)", margin:"0 auto clamp(14px,3vw,18px)" }}>{tipo === "SALIDA" ? "🔴" : "🟢"}</div>
+        <h1 style={{ margin:0, fontSize:"clamp(20px,5vw,26px)", fontWeight:800, color:"#111827" }}>{tipo === "SALIDA" ? "Registro de Salida" : "Registro de Entrada"}</h1>
+        <p style={{ margin:"5px 0 0", fontSize:"clamp(15px,3.5vw,17px)", color:"#6B7280" }}>Primera vez — ingresa tus datos</p>
       </div>
 
       <form onSubmit={handleFormulario} style={{ width:"100%" }}>
@@ -384,7 +384,7 @@ export default function DocenteScan() {
         <button
           type="submit"
           disabled={loading || !cedula.trim() || !nombre.trim()}
-          style={{ width:"100%", padding:"13px 0", background: loading || !cedula.trim() || !nombre.trim() ? "#93C5FD" : "#2563EB", color:"#fff", border:"none", borderRadius:10, fontSize:15, fontWeight:700, cursor: loading || !cedula.trim() || !nombre.trim() ? "not-allowed" : "pointer" }}
+          style={{ width:"100%", padding:"clamp(16px,4vw,20px) 0", background: loading || !cedula.trim() || !nombre.trim() ? "#93C5FD" : "#2563EB", color:"#fff", border:"none", borderRadius:12, fontSize:"clamp(17px,4.5vw,20px)", fontWeight:800, cursor: loading || !cedula.trim() || !nombre.trim() ? "not-allowed" : "pointer" }}
         >
           {loading ? "Registrando…" : `Registrar mi ${tipo === "SALIDA" ? "salida" : "entrada"}`}
         </button>
