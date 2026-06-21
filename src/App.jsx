@@ -32,6 +32,7 @@ import GLOBAL_CSS from "./app/AppStyles";
 import AdminMenu from "./app/AdminMenu";
 import CuentaDesactivada from "./app/CuentaDesactivada";
 import SinPerfilAsignado from "./app/SinPerfilAsignado";
+import ModalCambiarPassword from "./components/ModalCambiarPassword";
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function App() {
@@ -56,6 +57,7 @@ export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [adminOpen,  setAdminOpen]  = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [cambiarPwdOpen, setCambiarPwdOpen] = useState(false);
 
   const fileRef   = useRef(null);
   const backupRef = useRef(null);
@@ -340,6 +342,13 @@ export default function App() {
       {appData.toast && (
         <Toast message={appData.toast.message} type={appData.toast.type} onClose={appData.hideToast} />
       )}
+      {cambiarPwdOpen && (
+        <ModalCambiarPassword
+          onCerrar={() => setCambiarPwdOpen(false)}
+          showToast={(msg, type) => appData.showToast?.(msg, type)}
+        />
+      )}
+
       <ConfirmModal
         open={!!appData.confirmModal}
         title={appData.confirmModal?.title}
@@ -621,7 +630,7 @@ export default function App() {
                     </button>
                   )}
                   {/* Cambiar contraseña */}
-                  <button onClick={() => { /* TODO: modal cambiar pwd */ setUserMenuOpen(false); }}
+                  <button onClick={() => { setCambiarPwdOpen(true); setUserMenuOpen(false); }}
                     style={{ display:"flex", alignItems:"center", gap:9, width:"100%",
                       padding:"9px 14px", border:"none", background:"transparent",
                       cursor:"pointer", fontSize:13, color:"#374151", textAlign:"left" }}
