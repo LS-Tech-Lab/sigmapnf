@@ -58,7 +58,8 @@ const GLOBAL_CSS = `
     animation: fadeUp .15s ease;
   }
   .sb-collapsed .admin-menu { left: 56px; bottom: 8px; width: 200px; right: auto; }
-  @keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp  { from { opacity:0; transform:translateY(6px);  } to { opacity:1; transform:translateY(0);  } }
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
   .admin-item {
     display: flex; align-items: center; gap: 9px;
     width: 100%; padding: 8px 10px; border-radius: 7px;
