@@ -144,27 +144,38 @@ export default function LoginScreen() {
       minHeight: "100dvh",
       overflowY: "auto",
       padding: "24px 16px",
-      background: "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)",
-      fontFamily: "system-ui, -apple-system, sans-serif",
+      background: "radial-gradient(circle at 18% 14%, #1E3A8A 0%, #0F172A 42%, #0B1220 100%)",
+      fontFamily: "var(--font-sans, system-ui, sans-serif)",
     }}>
       <div style={{
         background: "#fff",
-        borderRadius: 16,
+        borderRadius: 20,
         padding: "40px 32px",
         width: "100%",
         maxWidth: 380,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+        boxShadow: "0 24px 64px rgba(2,6,23,0.35)",
+        border: "1px solid rgba(148,163,184,0.15)",
       }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: "#111827" }}>Gestión de Horarios Académicos y Asistencias Docentes</h1>
-          <p style={{ margin: "6px 0 0", fontSize: 13, color: "#6B7280", fontWeight: 500 }}>
+        <div style={{ textAlign: "center", marginBottom: 30 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 14, margin: "0 auto 18px",
+            background: "linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 10px 24px rgba(37,99,235,0.3)",
+          }}>
+            <i className="ti ti-school" style={{ fontSize: 26, color: "#fff" }} aria-hidden="true" />
+          </div>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.01em", lineHeight: 1.3 }}>
+            Gestión de Horarios Académicos y Asistencias Docentes
+          </h1>
+          <p style={{ margin: "8px 0 0", fontSize: 13, color: "#64748B", fontWeight: 500 }}>
             Inicia sesión para continuar
           </p>
         </div>
 
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>
               Correo electrónico
             </label>
             <input
@@ -176,18 +187,18 @@ export default function LoginScreen() {
               placeholder="admin@ejemplo.com"
               autoComplete="email"
               onFocus={e => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.15)"; }}
-              onBlur={e  => { e.target.style.borderColor = "#D1D5DB"; e.target.style.boxShadow = "none"; }}
+              onBlur={e  => { e.target.style.borderColor = "#CBD5E1"; e.target.style.boxShadow = "none"; }}
               style={{
-                width: "100%", padding: "10px 14px", borderRadius: 8,
-                border: "1px solid #D1D5DB", fontSize: 14,
+                width: "100%", padding: "10px 14px", borderRadius: 9,
+                border: "1px solid #CBD5E1", fontSize: 14,
                 outline: "none", boxSizing: "border-box", transition: "border-color .15s, box-shadow .15s",
-                background: isLocked ? "#F3F4F6" : "#fff",
+                background: isLocked ? "#F1F5F9" : "#fff", fontFamily: "inherit",
               }}
             />
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+          <div style={{ marginBottom: 22 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>
               Contraseña
             </label>
             <input
@@ -199,12 +210,12 @@ export default function LoginScreen() {
               placeholder="••••••••"
               autoComplete="current-password"
               onFocus={e => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.15)"; }}
-              onBlur={e  => { e.target.style.borderColor = "#D1D5DB"; e.target.style.boxShadow = "none"; }}
+              onBlur={e  => { e.target.style.borderColor = "#CBD5E1"; e.target.style.boxShadow = "none"; }}
               style={{
-                width: "100%", padding: "10px 14px", borderRadius: 8,
-                border: "1px solid #D1D5DB", fontSize: 14,
+                width: "100%", padding: "10px 14px", borderRadius: 9,
+                border: "1px solid #CBD5E1", fontSize: 14,
                 outline: "none", boxSizing: "border-box", transition: "border-color .15s, box-shadow .15s",
-                background: isLocked ? "#F3F4F6" : "#fff",
+                background: isLocked ? "#F1F5F9" : "#fff", fontFamily: "inherit",
               }}
             />
           </div>
@@ -214,17 +225,21 @@ export default function LoginScreen() {
               background: "#FEF2F2",
               color: "#DC2626",
               padding: "10px 14px",
-              borderRadius: 8,
+              borderRadius: 9,
               fontSize: 13,
               marginBottom: 16,
               fontWeight: 500,
+              display: "flex", alignItems: "flex-start", gap: 8,
             }}>
-              {error}
-              {failedAttempts > 0 && failedAttempts < MAX_ATTEMPTS && (
-                <div style={{ marginTop: 4, fontSize: 12, color: "#B91C1C" }}>
-                  Intento {failedAttempts} de {MAX_ATTEMPTS}.
-                </div>
-              )}
+              <i className="ti ti-alert-circle" style={{ fontSize: 15, marginTop: 1, flexShrink: 0 }} aria-hidden="true" />
+              <div>
+                {error}
+                {failedAttempts > 0 && failedAttempts < MAX_ATTEMPTS && (
+                  <div style={{ marginTop: 4, fontSize: 12, color: "#B91C1C" }}>
+                    Intento {failedAttempts} de {MAX_ATTEMPTS}.
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -233,12 +248,14 @@ export default function LoginScreen() {
               background: "#FFFBEB",
               color: "#92400E",
               padding: "10px 14px",
-              borderRadius: 8,
+              borderRadius: 9,
               fontSize: 13,
               marginBottom: 16,
               fontWeight: 500,
+              display: "flex", alignItems: "center", gap: 8,
             }}>
-              ⏳ Demasiados intentos fallidos. Intenta de nuevo en {remaining} segundo{remaining === 1 ? "" : "s"}.
+              <i className="ti ti-clock-hour-4" style={{ fontSize: 15, flexShrink: 0 }} aria-hidden="true" />
+              Demasiados intentos fallidos. Intenta de nuevo en {remaining} segundo{remaining === 1 ? "" : "s"}.
             </div>
           )}
 
@@ -251,13 +268,19 @@ export default function LoginScreen() {
               background: (loading || isLocked) ? "#93C5FD" : "#2563EB",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
-              fontSize: 15,
+              borderRadius: 9,
+              fontSize: 14,
               fontWeight: 600,
               cursor: (loading || isLocked) ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+              transition: "background .15s",
             }}
           >
-            {isLocked ? `Bloqueado (${remaining}s)` : loading ? "Iniciando sesión..." : "Iniciar sesión"}
+            {isLocked
+              ? `Bloqueado (${remaining}s)`
+              : loading
+                ? "Iniciando sesión…"
+                : (<><i className="ti ti-login-2" aria-hidden="true" /> Iniciar sesión</>)}
           </button>
         </form>
       </div>
