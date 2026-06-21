@@ -1,16 +1,6 @@
-// Alerta de cédulas que marcaron asistencia pero no tienen vínculo con
-// ningún docente del sistema de horarios (la auto-vinculación no pudo
-// resolverlas, ej. nombre ambiguo). Extraído de ReporteAsistencias.jsx.
-//
-// CRÍTICO #3.
-
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 
-// ── CRÍTICO #3: alerta de cédulas sin vincular ───────────────────────────────
-// Consulta qué cédulas de la sesión no tienen fila en docentes.cedula.
-// Esas son las que la auto-vinculación no pudo resolver (nombre ambiguo).
-// El admin necesita ir a Docentes y vincular la cédula manualmente.
 function AlertaSinVincular({ cedulasPresentes, loading }) {
   const [sinVincular, setSinVincular] = useState([]);
 
@@ -18,14 +8,12 @@ function AlertaSinVincular({ cedulasPresentes, loading }) {
     if (loading || cedulasPresentes.size === 0) { setSinVincular([]); return; }
     const fetch = async () => {
       const cedulas = [...cedulasPresentes];
-      // Obtener cuáles de estas cédulas SÍ están en docentes.cedula
       const { data } = await supabase
         .from("docentes")
         .select("cedula, nombre_display")
         .in("cedula", cedulas);
       const vinculadas = new Set((data || []).map(d => d.cedula));
-      const pendientes = cedulas.filter(c => !vinculadas.has(c));
-      setSinVincular(pendientes);
+      setSinVincular(cedulas.filter(c => !vinculadas.has(c)));
     };
     fetch();
   }, [cedulasPresentes, loading]);
@@ -38,7 +26,7 @@ function AlertaSinVincular({ cedulasPresentes, loading }) {
       padding: "12px 16px", marginBottom: 16,
       display: "flex", alignItems: "flex-start", gap: 10,
     }}>
-      <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
+      <i className="ti ti-alert-triangle" style={{ fontSize: 20, color: "#D97706", flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
       <div>
         <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
           {sinVincular.length} cédula{sinVincular.length > 1 ? "s" : ""} sin vincular al sistema de horarios
