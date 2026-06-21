@@ -5,28 +5,28 @@ function buildNavGroups(permisos) {
     {
       label: "Consulta",
       items: [
-        { id: "resumen",    emoji: "📊", label: "Resumen"   },
-        { id: "horarios",  emoji: "📅", label: "Horarios"   },
-        { id: "secciones", emoji: "🏫", label: "Secciones"  },
+        { id: "resumen",   icon: "ti-layout-dashboard", label: "Resumen"   },
+        { id: "horarios",  icon: "ti-calendar-event",   label: "Horarios"  },
+        { id: "secciones", icon: "ti-school",           label: "Secciones" },
       ],
     },
     {
       label: "Académico",
       items: [
-        { id: "docentes",    emoji: "👥", label: "Docentes"    },
-        { id: "materias",    emoji: "📖", label: "Materias"    },
-        { id: "asistencias", emoji: "🖨️", label: "Asistencias" },
+        { id: "docentes",    icon: "ti-users",      label: "Docentes"    },
+        { id: "materias",    icon: "ti-book-2",      label: "Materias"    },
+        { id: "asistencias", icon: "ti-printer",     label: "Asistencias" },
       ],
     },
   ];
 
   const sistema = { label: "Sistema", items: [] };
-  sistema.items.push({ id: "historial", emoji: "🗂️", label: "Historial" });
+  sistema.items.push({ id: "historial", icon: "ti-archive", label: "Historial" });
   if (permisos.puedeVerLogs) {
-    sistema.items.push({ id: "logs", emoji: "🔐", label: "Registros" });
+    sistema.items.push({ id: "logs", icon: "ti-shield-lock", label: "Registros" });
   }
   if (permisos.puedeGestionarUsuarios) {
-    sistema.items.push({ id: "usuarios", emoji: "👑", label: "Usuarios" });
+    sistema.items.push({ id: "usuarios", icon: "ti-crown", label: "Usuarios" });
   }
   grupos.push(sistema);
 
