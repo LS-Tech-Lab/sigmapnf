@@ -26,17 +26,17 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
   }, [bloques, days, filtered, turnoLabel]);
 
   if (!days || !bloques || !filtered) {
-    return <div style={{ padding: 20, textAlign: "center", color: "#9CA3AF" }}>Cargando grilla...</div>;
+    return <div style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>Cargando grilla...</div>;
   }
 
   const ROW_H = 52;
 
   return (
     <div style={{ ...S.card, marginBottom: 16 }}>
-      <div style={{ padding: "10px 16px", background: turnoLabel === "DIURNO" ? "#EFF6FF" : "#FDF2F8", borderBottom: "1px solid #E5E7EB", display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 16 }}>{turnoLabel === "DIURNO" ? "☀️" : "🌙"}</span>
+      <div style={{ padding: "10px 16px", background: turnoLabel === "DIURNO" ? "#EFF6FF" : "#FDF2F8", borderBottom: "1px solid #E2E8F0", display: "flex", alignItems: "center", gap: 8 }}>
+        <i className={`ti ${turnoLabel === "DIURNO" ? "ti-sun-high" : "ti-moon-stars"}`} style={{ fontSize: 16, color: turnoLabel === "DIURNO" ? "#1D4ED8" : "#BE185D" }} aria-hidden="true" />
         <span style={{ fontSize: 14, fontWeight: 700, color: turnoLabel === "DIURNO" ? "#1D4ED8" : "#BE185D" }}>{turnoLabel === "DIURNO" ? "Turno Diurno" : "Turno Vespertino"}</span>
-        <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 500 }}>{turnoLabel === "DIURNO" ? "7:30 AM – 12:00 PM" : "1:00 PM – 5:30 PM"}</span>
+        <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>{turnoLabel === "DIURNO" ? "7:30 AM – 12:00 PM" : "1:00 PM – 5:30 PM"}</span>
       </div>
       <div className="turno-grid-wrapper" style={{ overflowX: "auto" }}>
         <table className="turno-grid-table" style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", minWidth: 600 }}>
@@ -45,9 +45,9 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
             {days.map(d => <col key={d} />)}
           </colgroup>
           <thead>
-            <tr style={{ background: "#F9FAFB" }}>
+            <tr style={{ background: "#F8FAFC" }}>
               <th style={{ ...S.th, padding: "10px 12px", fontSize: 12, width: 110 }}>Hora</th>
-              {days.map(d => <th key={d} style={{ ...S.th, padding: "10px 10px", fontSize: 13, borderLeft: "1px solid #E5E7EB", textAlign: "center" }}>{d.charAt(0) + d.slice(1).toLowerCase()}</th>)}
+              {days.map(d => <th key={d} style={{ ...S.th, padding: "10px 10px", fontSize: 13, borderLeft: "1px solid #E2E8F0", textAlign: "center" }}>{d.charAt(0) + d.slice(1).toLowerCase()}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -61,18 +61,18 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
               const rowBg = bi % 2 === 0 ? "#fff" : "#FAFAFA";
               return (
                 <tr key={bi} style={{ height: ROW_H }}>
-                  <td style={{ padding: "6px 10px", fontSize: 12, fontWeight: 700, color: "#374151", background: rowBg, verticalAlign: "middle", whiteSpace: "nowrap", borderTop: "1px solid #E5E7EB", lineHeight: 1.4 }}>
+                  <td style={{ padding: "6px 10px", fontSize: 12, fontWeight: 700, color: "#334155", background: rowBg, verticalAlign: "middle", whiteSpace: "nowrap", borderTop: "1px solid #E2E8F0", lineHeight: 1.4 }}>
                     <div>{bloque.inicio.replace(/(\d)(AM|PM)/gi, '$1 $2')}</div>
-                    <div style={{ color: "#9CA3AF", fontWeight: 400, fontSize: 10 }}>{bloque.fin.replace(/(\d)(AM|PM)/gi, '$1 $2')}</div>
+                    <div style={{ color: "#94A3B8", fontWeight: 400, fontSize: 10 }}>{bloque.fin.replace(/(\d)(AM|PM)/gi, '$1 $2')}</div>
                   </td>
                   {cells.map((cell, ci) => {
                     const day = days[ci];
                     if (cell.skip) return null;
                     const cellKey = `${turnoLabel}__${bi}__${day}`, isExp = expandedCell === cellKey;
-                    if (cell.empty) return <td key={day} style={{ padding: "4px", borderTop: "1px solid #E5E7EB", borderLeft: "1px solid #E5E7EB", background: rowBg }} />;
+                    if (cell.empty) return <td key={day} style={{ padding: "4px", borderTop: "1px solid #E2E8F0", borderLeft: "1px solid #E2E8F0", background: rowBg }} />;
                     const { entries, span } = cell.data;
                     return (
-                      <td key={day} rowSpan={span} style={{ padding: "4px", borderTop: "1px solid #E5E7EB", borderLeft: "1px solid #E5E7EB", verticalAlign: "top", height: span * ROW_H }}>
+                      <td key={day} rowSpan={span} style={{ padding: "4px", borderTop: "1px solid #E2E8F0", borderLeft: "1px solid #E2E8F0", verticalAlign: "top", height: span * ROW_H }}>
                         {entries.map((e, i) => {
                           const { materia: rawMateria, docente: rawDoc } = parseClase(e.clase);
                           const materia = getMateriaName(rawMateria), docente = getDocName(rawDoc);
@@ -100,9 +100,9 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
                               {docente && <div style={{ fontSize: 12, fontWeight: 600, color: col, opacity: 0.85, lineHeight: 1.2, marginTop: 1, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{docente}</div>}
                               {isExp && (
                                 <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${col}30`, fontSize: 12, display: "flex", flexDirection: "column", gap: 3, fontWeight: 500 }}>
-                                  <div>📂 {e.sheet.trim()} · T.{e.trayecto}</div>
-                                  <div>⏰ {getHoraDisplayDeRegistro(e)}</div>
-                                  <div>🏫 {e.aula || "Sin aula"}</div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}><i className="ti ti-folder" aria-hidden="true" /> {e.sheet.trim()} · T.{e.trayecto}</div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}><i className="ti ti-clock" aria-hidden="true" /> {getHoraDisplayDeRegistro(e)}</div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}><i className="ti ti-door" aria-hidden="true" /> {e.aula || "Sin aula"}</div>
                                 </div>
                               )}
                             </div>
