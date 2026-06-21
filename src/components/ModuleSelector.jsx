@@ -14,7 +14,7 @@ import React, { useState } from "react";
 const MODULES = [
   {
     id: "horarios",
-    emoji: "📅",
+    icon: "ti-calendar-event",
     title: "Gestión de Horarios",
     description: "Administra los horarios académicos del trimestre: docentes, materias, secciones, conflictos y reportes.",
     color: "#2563EB",
@@ -23,7 +23,7 @@ const MODULES = [
   },
   {
     id: "asistencias",
-    emoji: "✅",
+    icon: "ti-circle-check",
     title: "Control de Asistencias",
     description: "Registro diario de presencia docente mediante código QR rotativo. Reportes y exportación por turno y programa.",
     color: "#059669",
@@ -64,7 +64,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
             boxShadow: "0 8px 32px rgba(37,99,235,0.35)",
           }}
         >
-          🎓
+          <i className="ti ti-school" style={{ fontSize: 28, color: "#fff" }} aria-hidden="true" />
         </div>
         <h1
           style={{
@@ -139,7 +139,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
                   transition: "all 0.18s",
                 }}
               >
-                {mod.emoji}
+                {mod.icon ? <i className={`ti ${mod.icon}`} style={{ fontSize: 24 }} aria-hidden="true" /> : null}
               </div>
 
               {/* Título */}
@@ -180,7 +180,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
                   transition: "color 0.18s",
                 }}
               >
-                Entrar <span style={{ fontSize: 16 }}>→</span>
+                Entrar <i className="ti ti-arrow-right" style={{ fontSize: 14 }} aria-hidden="true" />
               </div>
             </button>
           );
@@ -207,7 +207,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
         onMouseEnter={(e) => (e.currentTarget.style.color = "#94A3B8")}
         onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
       >
-        🔓 Cerrar sesión
+        <i className="ti ti-logout" aria-hidden="true" /> Cerrar sesión
       </button>
     </div>
   );
