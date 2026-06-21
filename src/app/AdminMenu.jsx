@@ -26,7 +26,7 @@ function AdminMenu({ appData, onClose, modoConsulta, fileRef, backupRef, permiso
       {!modoConsulta && permisos.puedeImportarExcel && (
         <button className="admin-item" disabled={disabled}
           onClick={() => { fileRef.current?.click(); setTimeout(onClose, 0); }}>
-          <span>📂</span> Cargar Excel
+          <i className="ti ti-file-upload" aria-hidden="true" /> Cargar Excel
         </button>
       )}
 
@@ -34,7 +34,7 @@ function AdminMenu({ appData, onClose, modoConsulta, fileRef, backupRef, permiso
       {permisos.puedeHacerBackup && (
         <button className="admin-item" disabled={disabled || !appData.data.length}
           onClick={() => { appData.exportarDatos(); onClose(); }}>
-          <span>💾</span> Exportar backup
+          <i className="ti ti-device-floppy" aria-hidden="true" /> Exportar backup
         </button>
       )}
 
@@ -42,7 +42,7 @@ function AdminMenu({ appData, onClose, modoConsulta, fileRef, backupRef, permiso
       {!modoConsulta && permisos.puedeRestaurarBackup && (
         <button className="admin-item" disabled={disabled}
           onClick={() => { backupRef.current?.click(); setTimeout(onClose, 0); }}>
-          <span>📥</span> Restaurar backup
+          <i className="ti ti-upload" aria-hidden="true" /> Restaurar backup
         </button>
       )}
 
@@ -56,7 +56,7 @@ function AdminMenu({ appData, onClose, modoConsulta, fileRef, backupRef, permiso
           </div>
           <button className="admin-item danger" disabled={disabled || !appData.data.length}
             onClick={() => { appData.clearAllData(); onClose(); }}>
-            <span>🗑️</span> Borrar datos del trimestre
+            <i className="ti ti-trash" aria-hidden="true" /> Borrar datos del trimestre
           </button>
         </>
       )}
