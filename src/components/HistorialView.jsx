@@ -35,12 +35,11 @@ function StatusBadge({ estado }) {
 
 function ModalTrimestre({ modo, lapsoSugerido, onConfirm, onCancel, loading }) {
   const esCrear = modo === "crear";
-  const [lapso,      setLapso]      = useState(lapsoSugerido || "");
+  const [lapso,       setLapso]       = useState(lapsoSugerido || "");
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin,    setFechaFin]    = useState("");
   const [observacion, setObservacion] = useState("");
 
-  // cierre: campos pre-rellenados con hoy como fin
   useEffect(() => {
     if (!esCrear) setFechaFin(new Date().toISOString().slice(0, 10));
   }, [esCrear]);
@@ -56,7 +55,10 @@ function ModalTrimestre({ modo, lapsoSugerido, onConfirm, onCancel, loading }) {
     }}>
       <div style={{ background: "#fff", borderRadius: 14, padding: 28, maxWidth: 460, width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }}>
 
-        <div style={{ fontSize: 26, marginBottom: 8 }}>{esCrear ? "🎓" : "🔒"}</div>
+        <div style={{ marginBottom: 8 }}>
+          <i className={`ti ${esCrear ? "ti-school" : "ti-lock"}`}
+             style={{ fontSize: 28, color: esCrear ? "#2563EB" : "#DC2626" }} aria-hidden="true" />
+        </div>
         <h2 style={{ margin: "0 0 6px", fontSize: 17, fontWeight: 700, color: "#0F172A" }}>
           {esCrear ? "Activar nuevo trimestre" : `Cerrar trimestre ${formatLapso(lapsoSugerido)}`}
         </h2>
@@ -68,7 +70,6 @@ function ModalTrimestre({ modo, lapsoSugerido, onConfirm, onCancel, loading }) {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-          {/* Código del trimestre (solo en crear) */}
           {esCrear && (
             <div>
               <label style={labelStyle}>Código del trimestre *</label>
@@ -79,14 +80,12 @@ function ModalTrimestre({ modo, lapsoSugerido, onConfirm, onCancel, loading }) {
             </div>
           )}
 
-          {/* Fecha inicio */}
           <div>
             <label style={labelStyle}>{esCrear ? "Fecha de inicio *" : "Fecha de inicio"}</label>
             <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
               style={{ ...S.input, width: "100%", boxSizing: "border-box" }} />
           </div>
 
-          {/* Fecha fin */}
           <div>
             <label style={labelStyle}>{esCrear ? "Fecha estimada de culminación" : "Fecha de culminación *"}</label>
             <input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)}
@@ -98,7 +97,6 @@ function ModalTrimestre({ modo, lapsoSugerido, onConfirm, onCancel, loading }) {
             )}
           </div>
 
-          {/* Observaciones */}
           <div>
             <label style={labelStyle}>Observaciones {esCrear ? "" : "(opcional)"}</label>
             <textarea value={observacion} onChange={e => setObservacion(e.target.value)}
@@ -112,14 +110,24 @@ function ModalTrimestre({ modo, lapsoSugerido, onConfirm, onCancel, loading }) {
 
         <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
           <button onClick={onCancel}
-            style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+            style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F8FAFC", color: "#475569", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
             Cancelar
           </button>
           <button
             onClick={() => onConfirm({ lapso: esCrear ? lapso : lapsoSugerido, fechaInicio, fechaFin, observacion })}
             disabled={!valido || loading}
-            style={{ flex: 2, padding: "10px 0", borderRadius: 8, border: "none", background: valido ? (esCrear ? "#2563EB" : "#DC2626") : "#E5E7EB", color: valido ? "#fff" : "#94A3B8", cursor: valido ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 700 }}>
-            {loading ? "Procesando…" : esCrear ? `✅ Activar ${lapso || "…"}` : "🔒 Confirmar cierre"}
+            style={{ flex: 2, padding: "10px 0", borderRadius: 8, border: "none",
+              background: valido ? (esCrear ? "#2563EB" : "#DC2626") : "#E5E7EB",
+              color: valido ? "#fff" : "#94A3B8",
+              cursor: valido ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 700,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            {loading ? "Procesando…" : (
+              <>
+                <i className={`ti ${esCrear ? "ti-circle-check" : "ti-lock"}`}
+                   style={{ fontSize: 15 }} aria-hidden="true" />
+                {esCrear ? `Activar ${lapso || "…"}` : "Confirmar cierre"}
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -127,7 +135,7 @@ function ModalTrimestre({ modo, lapsoSugerido, onConfirm, onCancel, loading }) {
   );
 }
 
-const labelStyle = { fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 };
+const labelStyle = { fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 5 };
 const hintStyle  = { fontSize: 11, color: "#94A3B8", marginTop: 4, display: "block" };
 
 // ── Panel de comparación entre trimestres ─────────────────────────────────────
@@ -147,10 +155,10 @@ function ComparadorPanel({ trimestres, detalles }) {
   const dB = detalles[selB];
 
   const metrics = [
-    { key: "total",    label: "Clases",    color: "#60A5FA" },
+    { key: "total",     label: "Clases",    color: "#60A5FA" },
     { key: "secciones", label: "Secciones", color: "#34D399" },
-    { key: "docentes", label: "Docentes",  color: "#A78BFA" },
-    { key: "materias", label: "Materias",  color: "#FBBF24" },
+    { key: "docentes",  label: "Docentes",  color: "#A78BFA" },
+    { key: "materias",  label: "Materias",  color: "#FBBF24" },
   ];
 
   if (cerrados.length < 2) return (
@@ -178,12 +186,10 @@ function ComparadorPanel({ trimestres, detalles }) {
         ))}
       </div>
 
-      {/* Tabla comparativa */}
       {selA && selB && selA !== selB ? (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, background: "#E5E7EB", borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
-            {/* Header */}
-            <div style={thComp("#F9FAFB", "#374151")}>Métrica</div>
+            <div style={thComp("#F9FAFB", "#475569")}>Métrica</div>
             <div style={thComp("#EFF6FF", "#1D4ED8")}>{formatLapso(selA)}</div>
             <div style={thComp("#F5F3FF", "#6D28D9")}>{formatLapso(selB)}</div>
 
@@ -208,18 +214,20 @@ function ComparadorPanel({ trimestres, detalles }) {
             })}
 
             {/* Duración */}
-            <div style={tdComp("#fff")}>⏱ Duración</div>
+            <div style={tdComp("#fff")}>
+              <i className="ti ti-clock" style={{ fontSize: 12, marginRight: 4, color: "#64748B" }} aria-hidden="true" />
+              Duración
+            </div>
             <div style={tdComp("#EFF6FF", true)}>{dA ? duracion(dA.fechaInicio, dA.fechaFin) || "—" : "…"}</div>
             <div style={tdComp("#F5F3FF", true)}>{dB ? duracion(dB.fechaInicio, dB.fechaFin) || "—" : "…"}</div>
           </div>
 
-          {/* Programas en común / exclusivos */}
           {dA?.programas && dB?.programas && (() => {
             const setA = new Set(dA.programas);
             const setB = new Set(dB.programas);
-            const comunes   = dA.programas.filter(p => setB.has(p));
-            const soloEnA   = dA.programas.filter(p => !setB.has(p));
-            const soloEnB   = dB.programas.filter(p => !setA.has(p));
+            const comunes  = dA.programas.filter(p => setB.has(p));
+            const soloEnA  = dA.programas.filter(p => !setB.has(p));
+            const soloEnB  = dB.programas.filter(p => !setA.has(p));
             return (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 4 }}>
                 {[
@@ -249,23 +257,22 @@ function ComparadorPanel({ trimestres, detalles }) {
 }
 
 const thComp = (bg, col) => ({ background: bg, padding: "10px 14px", fontSize: 11, fontWeight: 700, color: col, textTransform: "uppercase", letterSpacing: "0.05em" });
-const tdComp = (bg, center = false) => ({ background: bg, padding: "10px 14px", fontSize: 13, fontWeight: center ? 700 : 400, color: "#374151", textAlign: center ? "center" : "left" });
+const tdComp = (bg, center = false) => ({ background: bg, padding: "10px 14px", fontSize: 13, fontWeight: center ? 700 : 400, color: "#475569", textAlign: center ? "center" : "left" });
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, openConfirm, closeConfirm, user, modoConsulta = false, logAudit = null }) {
-  const [trimestres,   setTrimestres]   = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [expandido,    setExpandido]    = useState(null);
-  const [detalles,     setDetalles]     = useState({});
-  const [loadingDet,   setLoadingDet]   = useState(false);
-  const [procesando,   setProcesando]   = useState(false);
-  const [busqueda,     setBusqueda]     = useState("");
-  const [tab,          setTab]          = useState("lista");   // "lista" | "comparar"
-  const [modal,        setModal]        = useState(null);      // null | "cerrar" | "crear"
+  const [trimestres,     setTrimestres]     = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [expandido,      setExpandido]      = useState(null);
+  const [detalles,       setDetalles]       = useState({});
+  const [loadingDet,     setLoadingDet]     = useState(false);
+  const [procesando,     setProcesando]     = useState(false);
+  const [busqueda,       setBusqueda]       = useState("");
+  const [tab,            setTab]            = useState("lista");
+  const [modal,          setModal]          = useState(null);
   const [lapsoSiguiente, setLapsoSiguiente] = useState("");
 
-  // ── Carga trimestres ────────────────────────────────────────────────────────
   const cargarTrimestres = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -280,7 +287,6 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
 
   useEffect(() => { cargarTrimestres(); }, [cargarTrimestres]);
 
-  // ── Carga detalle de un trimestre ────────────────────────────────────────────
   const cargarDetalle = async (lapso) => {
     if (detalles[lapso]) { setExpandido(lapso); return; }
     setLoadingDet(true);
@@ -297,7 +303,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
         [lapso]: {
           total:      horarios.length,
           secciones:  new Set(horarios.map(h => h.sheet?.trim())).size,
-          docentes:   new Set(horarios.map(h => h.trayecto)).size,   // proxy hasta tener docentes por lapso
+          docentes:   new Set(horarios.map(h => h.trayecto)).size,
           materias:   0,
           programas:  [...new Set(horarios.map(h => h.programa).filter(Boolean))].sort(),
           trayectos:  [...new Set(horarios.map(h => h.trayecto).filter(Boolean))].sort(),
@@ -310,15 +316,13 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     setLoadingDet(false);
   };
 
-  // ── Acciones ────────────────────────────────────────────────────────────────
-
   const handleCerrar = async ({ lapso, fechaInicio, fechaFin, observacion }) => {
     setProcesando(true);
     const [num, anio] = lapso.split("-").map(Number);
     const { error } = await supabase.from("trimestres").upsert(
       {
         lapso, numero: num, anio,
-        estado:      "cerrado",
+        estado:       "cerrado",
         fecha_inicio: fechaInicio || null,
         fecha_fin:    fechaFin || null,
         notas:        observacion || null,
@@ -332,7 +336,6 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     logAudit?.({ accion: "CERRAR_TRIMESTRE", entidad: "trimestres", lapso, resumen: `Trimestre cerrado: ${formatLapso(lapso)}` });
     setModal(null);
     await cargarTrimestres();
-    // Proponer el siguiente automáticamente
     setLapsoSiguiente(getSiguienteLapso(lapso));
     setTimeout(() => setModal("crear"), 300);
     setProcesando(false);
@@ -365,7 +368,6 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     setProcesando(false);
   };
 
-  // ── Filtrado ────────────────────────────────────────────────────────────────
   const filtrados = trimestres.filter(t =>
     !busqueda ||
     t.lapso.includes(busqueda) ||
@@ -374,10 +376,8 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
 
   const trimestreActual = trimestres.find(t => t.lapso === lapsoActivo);
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Modales */}
       {modal === "cerrar" && (
         <ModalTrimestre
           modo="cerrar"
@@ -409,12 +409,16 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
             {!modoConsulta && (
               <>
                 <button onClick={() => { setLapsoSiguiente(getSiguienteLapso(lapsoActivo)); setModal("crear"); }}
-                  style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#2563EB", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
-                  + Nuevo trimestre
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#2563EB", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                    display: "flex", alignItems: "center", gap: 6 }}>
+                  <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+                  Nuevo trimestre
                 </button>
                 <button onClick={() => setModal("cerrar")}
-                  style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #FECACA", background: "#FFF5F5", color: "#DC2626", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
-                  🔒 Cerrar trimestre activo
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #FECACA", background: "#FFF5F5", color: "#DC2626", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                    display: "flex", alignItems: "center", gap: 6 }}>
+                  <i className="ti ti-lock" style={{ fontSize: 14 }} aria-hidden="true" />
+                  Cerrar trimestre activo
                 </button>
               </>
             )}
@@ -429,17 +433,29 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
               <div style={{ fontSize: 22, fontWeight: 800, color: "#1E40AF" }}>{formatLapso(lapsoActivo)}</div>
               <div style={{ display: "flex", gap: 16, marginTop: 8, flexWrap: "wrap" }}>
                 {trimestreActual?.fecha_inicio && (
-                  <span style={{ fontSize: 12, color: "#475569" }}>📅 Inicio: <strong>{fmt(trimestreActual.fecha_inicio)}</strong></span>
+                  <span style={{ fontSize: 12, color: "#475569", display: "flex", alignItems: "center", gap: 4 }}>
+                    <i className="ti ti-calendar" style={{ fontSize: 13 }} aria-hidden="true" />
+                    Inicio: <strong>{fmt(trimestreActual.fecha_inicio)}</strong>
+                  </span>
                 )}
                 {trimestreActual?.fecha_fin && (
-                  <span style={{ fontSize: 12, color: "#475569" }}>🏁 Fin estimado: <strong>{fmt(trimestreActual.fecha_fin)}</strong></span>
+                  <span style={{ fontSize: 12, color: "#475569", display: "flex", alignItems: "center", gap: 4 }}>
+                    <i className="ti ti-flag-finish" style={{ fontSize: 13 }} aria-hidden="true" />
+                    Fin estimado: <strong>{fmt(trimestreActual.fecha_fin)}</strong>
+                  </span>
                 )}
                 {trimestreActual?.fecha_inicio && trimestreActual?.fecha_fin && (
-                  <span style={{ fontSize: 12, color: "#3B82F6" }}>⏱ {duracion(trimestreActual.fecha_inicio, trimestreActual.fecha_fin)}</span>
+                  <span style={{ fontSize: 12, color: "#3B82F6", display: "flex", alignItems: "center", gap: 4 }}>
+                    <i className="ti ti-clock" style={{ fontSize: 13 }} aria-hidden="true" />
+                    {duracion(trimestreActual.fecha_inicio, trimestreActual.fecha_fin)}
+                  </span>
                 )}
               </div>
               {trimestreActual?.notas && (
-                <div style={{ fontSize: 12, color: "#64748B", marginTop: 6, fontStyle: "italic" }}>📝 {trimestreActual.notas}</div>
+                <div style={{ fontSize: 12, color: "#64748B", marginTop: 6, fontStyle: "italic", display: "flex", alignItems: "flex-start", gap: 4 }}>
+                  <i className="ti ti-notes" style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+                  {trimestreActual.notas}
+                </div>
               )}
             </div>
             <StatusBadge estado="activo" />
@@ -448,15 +464,19 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "2px solid #E5E7EB", paddingBottom: 0 }}>
-          {[{ id: "lista", label: "📋 Historial" }, { id: "comparar", label: "📊 Comparar trimestres" }].map(t => (
+          {[
+            { id: "lista",    icon: "ti-list",        label: "Historial" },
+            { id: "comparar", icon: "ti-chart-bar",   label: "Comparar trimestres" },
+          ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               style={{
                 padding: "8px 18px", border: "none", background: "none", cursor: "pointer",
                 fontSize: 13, fontWeight: tab === t.id ? 700 : 400,
                 color: tab === t.id ? "#2563EB" : "#64748B",
                 borderBottom: tab === t.id ? "2px solid #2563EB" : "2px solid transparent",
-                marginBottom: -2,
+                marginBottom: -2, display: "flex", alignItems: "center", gap: 6,
               }}>
+              <i className={`ti ${t.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
               {t.label}
             </button>
           ))}
@@ -473,7 +493,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
               <div style={{ textAlign: "center", padding: 48, color: "#94A3B8", fontSize: 14 }}>Cargando historial…</div>
             ) : filtrados.length === 0 ? (
               <div style={{ textAlign: "center", padding: 48 }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>📂</div>
+                <i className="ti ti-folder-open" style={{ fontSize: 32, color: "#CBD5E1", display: "block", marginBottom: 12 }} aria-hidden="true" />
                 <div style={{ fontSize: 14, color: "#64748B" }}>
                   {busqueda ? "No se encontraron trimestres." : "No hay trimestres en el historial aún."}
                 </div>
@@ -492,25 +512,38 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
                         style={{ display: "flex", alignItems: "center", padding: "14px 18px", cursor: "pointer", gap: 12, userSelect: "none" }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{formatLapso(t.lapso)}</div>
-                          <div style={{ display: "flex", gap: 14, marginTop: 4, flexWrap: "wrap" }}>
-                            {t.fecha_inicio && <span style={{ fontSize: 11, color: "#64748B" }}>📅 {fmt(t.fecha_inicio)}</span>}
-                            {t.fecha_fin    && <span style={{ fontSize: 11, color: "#64748B" }}>→ {fmt(t.fecha_fin)}</span>}
-                            {t.fecha_inicio && t.fecha_fin && <span style={{ fontSize: 11, color: "#94A3B8" }}>({duracion(t.fecha_inicio, t.fecha_fin)})</span>}
-                            {t.cerrado_por  && <span style={{ fontSize: 11, color: "#94A3B8" }}>Cerrado por {t.cerrado_por}</span>}
+                          <div style={{ display: "flex", gap: 14, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
+                            {t.fecha_inicio && (
+                              <span style={{ fontSize: 11, color: "#64748B", display: "flex", alignItems: "center", gap: 3 }}>
+                                <i className="ti ti-calendar" style={{ fontSize: 11 }} aria-hidden="true" />
+                                {fmt(t.fecha_inicio)}
+                              </span>
+                            )}
+                            {t.fecha_fin && (
+                              <span style={{ fontSize: 11, color: "#64748B" }}>→ {fmt(t.fecha_fin)}</span>
+                            )}
+                            {t.fecha_inicio && t.fecha_fin && (
+                              <span style={{ fontSize: 11, color: "#94A3B8" }}>({duracion(t.fecha_inicio, t.fecha_fin)})</span>
+                            )}
+                            {t.cerrado_por && (
+                              <span style={{ fontSize: 11, color: "#94A3B8" }}>Cerrado por {t.cerrado_por}</span>
+                            )}
                           </div>
                         </div>
                         <StatusBadge estado={t.estado} />
-                        <span style={{ color: "#94A3B8", fontSize: 14 }}>{isOpen ? "▲" : "▼"}</span>
+                        <i className={`ti ${isOpen ? "ti-chevron-up" : "ti-chevron-down"}`}
+                           style={{ color: "#94A3B8", fontSize: 14 }} aria-hidden="true" />
                       </div>
 
                       {/* Detalle expandible */}
                       {isOpen && (
                         <div style={{ borderTop: "1px solid #F1F5F9", padding: "16px 18px" }}>
 
-                          {/* Observaciones */}
                           {t.notas && (
-                            <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#92400E" }}>
-                              📝 {t.notas}
+                            <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#92400E",
+                              display: "flex", alignItems: "flex-start", gap: 6 }}>
+                              <i className="ti ti-notes" style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+                              {t.notas}
                             </div>
                           )}
 
@@ -518,10 +551,9 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
                             <div style={{ color: "#94A3B8", fontSize: 13 }}>Cargando estadísticas…</div>
                           ) : d ? (
                             <>
-                              {/* Stats */}
                               <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 14 }}>
                                 {[
-                                  { label: "Clases",    val: d.total,    color: "#60A5FA" },
+                                  { label: "Clases",    val: d.total,     color: "#60A5FA" },
                                   { label: "Secciones", val: d.secciones, color: "#34D399" },
                                 ].map(s => (
                                   <div key={s.label} style={{ background: "#F8FAFC", borderRadius: 8, padding: "10px 14px" }}>
@@ -531,10 +563,9 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
                                 ))}
                               </div>
 
-                              {/* Programas */}
                               {d.programas?.length > 0 && (
                                 <div style={{ marginBottom: 12 }}>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Programas</div>
+                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Programas</div>
                                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                                     {d.programas.map(p => (
                                       <span key={p} style={S.badge("#F0FDF4", "#166534")}>{p}</span>
@@ -543,10 +574,9 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
                                 </div>
                               )}
 
-                              {/* Trayectos */}
                               {d.trayectos?.length > 0 && (
                                 <div style={{ marginBottom: 14 }}>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Trayectos</div>
+                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Trayectos</div>
                                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                                     {d.trayectos.map(t2 => (
                                       <span key={t2} style={S.badge("#EFF6FF", "#1D4ED8")}>{t2}</span>
@@ -555,11 +585,12 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
                                 </div>
                               )}
 
-                              {/* Acción: ver en sistema */}
                               {!esCurrent && (
                                 <button onClick={() => onCambiarLapso(t.lapso)}
-                                  style={{ padding: "7px 14px", borderRadius: 7, border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                                  👁️ Consultar horarios de este trimestre
+                                  style={{ padding: "7px 14px", borderRadius: 7, border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                                    display: "flex", alignItems: "center", gap: 6 }}>
+                                  <i className="ti ti-eye" style={{ fontSize: 13 }} aria-hidden="true" />
+                                  Consultar horarios de este trimestre
                                 </button>
                               )}
                             </>
@@ -581,8 +612,10 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
           <div style={{ ...S.card, padding: 20 }}>
             <ComparadorPanel trimestres={trimestres} detalles={detalles} />
             {Object.keys(detalles).length === 0 && trimestres.filter(t => t.estado !== "activo").length >= 2 && (
-              <p style={{ fontSize: 12, color: "#94A3B8", marginTop: 12, textAlign: "center" }}>
-                💡 Expande los trimestres en la pestaña Historial para cargar sus estadísticas y poder comparar.
+              <p style={{ fontSize: 12, color: "#94A3B8", marginTop: 12, textAlign: "center",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                <i className="ti ti-info-circle" style={{ fontSize: 13 }} aria-hidden="true" />
+                Expande los trimestres en la pestaña Historial para cargar sus estadísticas y poder comparar.
               </p>
             )}
           </div>
