@@ -55,6 +55,7 @@ export default function App() {
   const [pinned,     setPinned]     = useState(() => localStorage.getItem("sb_pinned") === "1");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [adminOpen,  setAdminOpen]  = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const fileRef   = useRef(null);
   const backupRef = useRef(null);
@@ -518,30 +519,15 @@ export default function App() {
             e.target.value = "";
           }} />
 
-        {/* Footer: botón admin + usuario */}
-        <div style={{ borderTop:"1px solid #1E293B", padding:"8px 8px", flexShrink:0 }}>
-          {/* Botón "Cambiar módulo" solo para admins */}
-          {profile.rol === "admin" && (
-            <button
-              onClick={() => setModuloActivo(null)}
-              className="nav-item"
-              style={{ marginBottom: 4, color: "#64748B" }}
-              title="Cambiar módulo"
-            >
-              <i className="ti ti-switch-horizontal" style={{ fontSize:15, flexShrink:0, width:20, textAlign:"center" }} aria-hidden="true" />
-              <span className="sb-label" style={{ flex:1 }}>Cambiar módulo</span>
-              <span className="tooltip">Cambiar módulo</span>
-            </button>
-          )}
-
-          {/* Botón de administración — visible solo si tiene algo que hacer */}
-          {(permisos.puedeImportarExcel || permisos.puedeHacerBackup || permisos.puedeBorrarHorarios) && (
+        {/* Footer: botón de administración del sistema */}
+        {(permisos.puedeImportarExcel || permisos.puedeHacerBackup || permisos.puedeBorrarHorarios) && (
+          <div style={{ borderTop:"1px solid #1E293B", padding:"8px", flexShrink:0 }}>
             <button
               onClick={() => setAdminOpen(o => !o)}
               className="nav-item"
-              style={{ marginBottom:6, color: adminOpen ? "#93C5FD" : "#64748B",
+              style={{ color: adminOpen ? "#93C5FD" : "#64748B",
                 background: adminOpen ? "#1E293B" : "transparent" }}
-              title="Administración"
+              title="Administración del sistema"
             >
               <i className="ti ti-settings" style={{ fontSize:15, flexShrink:0, width:20, textAlign:"center" }} aria-hidden="true" />
               <span className="sb-label" style={{ flex:1 }}>Administración</span>
@@ -552,36 +538,8 @@ export default function App() {
               )}
               <span className="tooltip">Administración</span>
             </button>
-          )}
-
-          {/* Usuario + rol */}
-          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"4px 4px 0" }}>
-            <div style={{ width:28, height:28, borderRadius:"50%", flexShrink:0,
-              background:"linear-gradient(135deg,#2563EB,#7C3AED)",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:12, fontWeight:700, color:"#fff" }}>
-              {profile.nombre?.[0]?.toUpperCase() ?? "?"}
-            </div>
-            <div className="sb-label" style={{ flex:1, overflow:"hidden" }}>
-              <div style={{ fontSize:11, color:"#E2E8F0", overflow:"hidden",
-                textOverflow:"ellipsis", whiteSpace:"nowrap", fontWeight:600 }}>
-                {profile.nombre}
-              </div>
-              <div style={{ fontSize:10, color: rolInfo.color, fontWeight:600, whiteSpace:"nowrap" }}>
-                {rolInfo.label}
-                {profile.programa ? ` · ${profile.programa.replace("PNF ", "")}` : ""}
-              </div>
-            </div>
-            {expanded && (
-              <button onClick={handleLogout} title="Cerrar sesión"
-                style={{ background:"none", border:"1px solid #1E293B", borderRadius:6,
-                  cursor:"pointer", color:"#475569", fontSize:12,
-                  padding:"3px 7px", flexShrink:0, display:"flex", alignItems:"center" }}>
-                <i className="ti ti-logout" style={{ fontSize:13 }} aria-hidden="true" />
-              </button>
-            )}
           </div>
-        </div>
+        )}
       </aside>
 
       {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────── */}
@@ -606,15 +564,86 @@ export default function App() {
             />
           </div>
 
-          {/* Badge de rol en topbar */}
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginLeft:"auto" }}>
-            <span style={{ fontSize:11, fontWeight:600, color: rolInfo.color,
-              background:"#1E293B", borderRadius:6, padding:"3px 10px",
-              display:"flex", alignItems:"center", gap:4 }}>
-              {profile.programa
-                ? profile.programa.replace("PNF ", "")
-                : rolInfo.label}
-            </span>
+          {/* Menú de usuario en topbar */}
+          <div style={{ marginLeft:"auto", position:"relative" }}>
+            <button
+              onClick={() => setUserMenuOpen(o => !o)}
+              title="Menú de usuario"
+              style={{ display:"flex", alignItems:"center", gap:7, cursor:"pointer",
+                background: userMenuOpen ? "#F1F5F9" : "transparent",
+                border:"1px solid " + (userMenuOpen ? "#CBD5E1" : "#E5E7EB"),
+                borderRadius:8, padding:"4px 10px 4px 6px",
+                transition:"background .13s, border-color .13s" }}>
+              <div style={{ width:26, height:26, borderRadius:"50%", flexShrink:0,
+                background:"linear-gradient(135deg,#2563EB,#7C3AED)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:11, fontWeight:700, color:"#fff" }}>
+                {profile.nombre?.[0]?.toUpperCase() ?? "?"}
+              </div>
+              <div style={{ textAlign:"left", lineHeight:1.3 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:"#111827", whiteSpace:"nowrap" }}>
+                  {profile.nombre && profile.nombre !== rolInfo.label ? profile.nombre : rolInfo.label}
+                </div>
+                <div style={{ fontSize:10, color: rolInfo.color, fontWeight:600, whiteSpace:"nowrap" }}>
+                  {rolInfo.label}{profile.programa ? ` · ${profile.programa.replace("PNF ","")}` : ""}
+                </div>
+              </div>
+              <i className="ti ti-chevron-down" style={{ fontSize:12, color:"#94A3B8",
+                transform: userMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition:"transform .15s" }} aria-hidden="true" />
+            </button>
+
+            {userMenuOpen && (
+              <>
+                <div onClick={() => setUserMenuOpen(false)}
+                  style={{ position:"fixed", inset:0, zIndex:398 }} />
+                <div style={{ position:"absolute", top:"calc(100% + 6px)", right:0, minWidth:200,
+                  background:"#fff", border:"1px solid #E5E7EB", borderRadius:10,
+                  boxShadow:"0 8px 24px rgba(0,0,0,0.12)", zIndex:399, overflow:"hidden",
+                  animation:"fadeDown .15s ease" }}>
+                  {/* Info usuario */}
+                  <div style={{ padding:"12px 14px 10px", borderBottom:"1px solid #F1F5F9" }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:"#111827" }}>
+                      {profile.nombre && profile.nombre !== rolInfo.label ? profile.nombre : rolInfo.label}
+                    </div>
+                    <div style={{ fontSize:11, color:"#6B7280", marginTop:2 }}>{profile.email}</div>
+                  </div>
+                  {/* Cambiar módulo (solo admin) */}
+                  {profile.rol === "admin" && (
+                    <button onClick={() => { setModuloActivo(null); setUserMenuOpen(false); }}
+                      style={{ display:"flex", alignItems:"center", gap:9, width:"100%",
+                        padding:"9px 14px", border:"none", background:"transparent",
+                        cursor:"pointer", fontSize:13, color:"#374151", textAlign:"left" }}
+                      onMouseEnter={e => e.currentTarget.style.background="#F8FAFC"}
+                      onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                      <i className="ti ti-switch-horizontal" style={{ fontSize:15, color:"#6B7280" }} aria-hidden="true" />
+                      Cambiar módulo
+                    </button>
+                  )}
+                  {/* Cambiar contraseña */}
+                  <button onClick={() => { /* TODO: modal cambiar pwd */ setUserMenuOpen(false); }}
+                    style={{ display:"flex", alignItems:"center", gap:9, width:"100%",
+                      padding:"9px 14px", border:"none", background:"transparent",
+                      cursor:"pointer", fontSize:13, color:"#374151", textAlign:"left" }}
+                    onMouseEnter={e => e.currentTarget.style.background="#F8FAFC"}
+                    onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                    <i className="ti ti-key" style={{ fontSize:15, color:"#6B7280" }} aria-hidden="true" />
+                    Cambiar contraseña
+                  </button>
+                  <div style={{ height:1, background:"#F1F5F9" }} />
+                  {/* Cerrar sesión */}
+                  <button onClick={() => { handleLogout(); setUserMenuOpen(false); }}
+                    style={{ display:"flex", alignItems:"center", gap:9, width:"100%",
+                      padding:"9px 14px", border:"none", background:"transparent",
+                      cursor:"pointer", fontSize:13, color:"#EF4444", textAlign:"left" }}
+                    onMouseEnter={e => e.currentTarget.style.background="#FFF5F5"}
+                    onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                    <i className="ti ti-logout" style={{ fontSize:15 }} aria-hidden="true" />
+                    Cerrar sesión
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {appData.isSyncing && (
