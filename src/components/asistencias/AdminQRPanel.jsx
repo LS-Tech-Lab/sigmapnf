@@ -2,12 +2,6 @@
  * AdminQRPanel.jsx
  *
  * Panel del admin/operador_qr para gestionar la sesión QR.
- *
- * CRÍTICO #2 FIX: El contador ahora separa docentes únicos con ENTRADA
- * vs marcas de SALIDA, en vez de sumar todo como un número sin contexto.
- *
- * CRÍTICO #6 FIX: Feed en tiempo real de los últimos registros, para que
- * el operador vea actividad sin tener que ir al reporte.
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -15,31 +9,19 @@ import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../constants";
 import { supabase } from "../../lib/supabase";
 import { fechaHoyVE } from "../../utils/time";
 
-// ── Hora actual en Venezuela (UTC-4) ────────────────────────────────────────
 function horaActualVE() {
   const ve = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Caracas" }));
   return ve.getHours() * 60 + ve.getMinutes();
 }
 
-// MEJORA #11: turnos desde constants — NOCTURNO se activa con habilitado:true
-// en constants/index.js sin tocar este archivo.
-// finMin reemplaza al anterior TURNO_FIN hardcoded.
-// Se mantiene `export` en TURNOS_VISIBLES porque QRProyeccion.jsx lo importa.
 export const TURNOS_VISIBLES = TURNOS_CONFIG.filter(t => t.habilitado);
 
-// FIX (qr-solo-en-proyeccion): exportadas para reutilizarlas en
-// QRProyeccion.jsx sin duplicar el formato de fecha/turno.
 export function formatFechaVE(isoStr) {
   if (!isoStr) return "";
   const [y, m, d] = isoStr.split("-");
   return `${d}-${m}-${y}`;
 }
 
-// FIX (realtime-fallback-polling-panel-qr): si la tabla asistencias_diarias
-// no está en la publicación supabase_realtime (ver migración
-// 0010_realtime_asistencias_qr.sql) o se cae el websocket, el contador y el
-// feed de actividad se quedaban congelados en 0 para siempre. Este poll de
-// respaldo asegura que igual se actualicen cada pocos segundos.
 const POLL_FALLBACK_MS = 5000;
 
 // ── Barra de cuenta regresiva ────────────────────────────────────────────────
@@ -62,8 +44,6 @@ function CountdownBar({ segundos, total }) {
 }
 
 // ── QR canvas ───────────────────────────────────────────────────────────────
-// FIX (qr-pill-proyeccion): se exporta para reutilizarlo, sin duplicar
-// código, en la vista de solo-proyección (QRProyeccion.jsx).
 export function QRDisplay({ qrUrl, segundos, ttlMinutes }) {
   const canvasRef = useRef(null);
 
@@ -93,7 +73,7 @@ export function QRDisplay({ qrUrl, segundos, ttlMinutes }) {
         <canvas ref={canvasRef} style={{ display: "block", borderRadius: 6 }} />
       </div>
       <CountdownBar segundos={segundos} total={ttlMinutes * 60} />
-      <p style={{ marginTop: 6, fontSize: 11, color: "#9CA3AF", textAlign: "center" }}>
+      <p style={{ marginTop: 6, fontSize: 11, color: "#64748B", textAlign: "center" }}>
         Se regenera automáticamente tras cada escaneo. Las fotos compartidas no son válidas.
       </p>
     </div>
@@ -101,8 +81,6 @@ export function QRDisplay({ qrUrl, segundos, ttlMinutes }) {
 }
 
 // ── Feed de actividad reciente ───────────────────────────────────────────────
-// CRÍTICO #6: muestra los últimos registros en tiempo real para que el
-// operador vea que los docentes están escaneando sin ir al reporte.
 function FeedActividad({ registros }) {
   if (registros.length === 0) return null;
 
@@ -123,14 +101,16 @@ function FeedActividad({ registros }) {
               transition: "background 0.3s",
             }}
           >
-            <span style={{ fontSize: 16, flexShrink: 0 }}>
-              {r.tipo === "SALIDA" ? "🔴" : "🟢"}
-            </span>
+            <i
+              className={r.tipo === "SALIDA" ? "ti ti-circle-x" : "ti ti-circle-check"}
+              style={{ fontSize: 18, color: r.tipo === "SALIDA" ? "#DC2626" : "#16A34A", flexShrink: 0 }}
+              aria-hidden="true"
+            />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {r.nombre_docente}
               </div>
-              <div style={{ fontSize: 11, color: "#6B7280", fontFamily: "monospace" }}>
+              <div style={{ fontSize: 11, color: "#64748B", fontFamily: "monospace" }}>
                 {r.cedula_docente}
               </div>
             </div>
@@ -138,7 +118,7 @@ function FeedActividad({ registros }) {
               <div style={{ fontSize: 12, fontWeight: 700, color: r.tipo === "SALIDA" ? "#DC2626" : "#15803D" }}>
                 {r.tipo === "SALIDA" ? "Salida" : "Entrada"}
               </div>
-              <div style={{ fontSize: 11, color: "#9CA3AF" }}>
+              <div style={{ fontSize: 11, color: "#64748B" }}>
                 {new Date(r.hora_registro).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
@@ -150,7 +130,6 @@ function FeedActividad({ registros }) {
 }
 
 // ── Contador separado: docentes únicos con entrada y marcas de salida ────────
-// CRÍTICO #2: en vez de un número ambiguo, muestra qué hay realmente.
 function ContadorSesion({ sessionId }) {
   const [stats, setStats] = useState({ entradas: 0, salidas: 0 });
 
@@ -178,7 +157,6 @@ function ContadorSesion({ sessionId }) {
       }, fetchStats)
       .subscribe();
 
-    // FIX (realtime-fallback-polling-panel-qr): poll de respaldo.
     const pollId = setInterval(fetchStats, POLL_FALLBACK_MS);
 
     return () => { supabase.removeChannel(ch); clearInterval(pollId); };
@@ -188,23 +166,23 @@ function ContadorSesion({ sessionId }) {
     <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
       <div style={{ padding: "12px 14px", background: "#F0FDF4", borderRadius: 10, border: "1px solid #BBF7D0", textAlign: "center" }}>
         <div style={{ fontSize: 26, fontWeight: 800, color: "#15803D" }}>{stats.entradas}</div>
-        <div style={{ fontSize: 11, color: "#166534", fontWeight: 600, marginTop: 2 }}>
-          🟢 {stats.entradas === 1 ? "docente" : "docentes"} entraron
+        <div style={{ fontSize: 11, color: "#166534", fontWeight: 600, marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+          <i className="ti ti-login" style={{ fontSize: 12 }} aria-hidden="true" />
+          {stats.entradas === 1 ? "docente entró" : "docentes entraron"}
         </div>
       </div>
       <div style={{ padding: "12px 14px", background: "#FFF1F2", borderRadius: 10, border: "1px solid #FECDD3", textAlign: "center" }}>
         <div style={{ fontSize: 26, fontWeight: 800, color: "#BE123C" }}>{stats.salidas}</div>
-        <div style={{ fontSize: 11, color: "#9F1239", fontWeight: 600, marginTop: 2 }}>
-          🔴 {stats.salidas === 1 ? "docente" : "docentes"} salieron
+        <div style={{ fontSize: 11, color: "#9F1239", fontWeight: 600, marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+          <i className="ti ti-logout" style={{ fontSize: 12 }} aria-hidden="true" />
+          {stats.salidas === 1 ? "docente salió" : "docentes salieron"}
         </div>
       </div>
     </div>
   );
 }
 
-// ── MEJORA #12: Historial de sesiones del día ────────────────────────────────
-// Si el operador cierra accidentalmente el panel, puede ver todas las sesiones
-// anteriores de la jornada con estado, ventana horaria y conteo de registros.
+// ── Historial de sesiones del día ────────────────────────────────────────────
 function HistorialSesiones({ fecha, sessionIdActiva }) {
   const [sesiones,     setSesiones]     = useState([]);
   const [loading,      setLoading]      = useState(false);
@@ -248,17 +226,20 @@ function HistorialSesiones({ fecha, sessionIdActiva }) {
     <div style={{ marginTop: 16 }}>
       <button
         onClick={() => setExpandido(v => !v)}
-        style={{ width: "100%", padding: "9px 14px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, fontSize: 12, fontWeight: 600, color: "#374151", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+        style={{ width: "100%", padding: "9px 14px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, fontSize: 12, fontWeight: 600, color: "#334155", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
       >
-        <span>🕓 Historial de sesiones hoy</span>
-        <span style={{ color: "#9CA3AF" }}>{expandido ? "▲" : "▼"}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <i className="ti ti-history" style={{ fontSize: 14 }} aria-hidden="true" />
+          Historial de sesiones hoy
+        </span>
+        <i className={`ti ti-chevron-${expandido ? "up" : "down"}`} style={{ fontSize: 12, color: "#64748B" }} aria-hidden="true" />
       </button>
       {expandido && (
         <div style={{ marginTop: 8, border: "1px solid #E2E8F0", borderRadius: 9, overflow: "hidden", background: "#fff" }}>
           {loading ? (
-            <div style={{ padding: "20px 14px", textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>Cargando…</div>
+            <div style={{ padding: "20px 14px", textAlign: "center", color: "#64748B", fontSize: 13 }}>Cargando…</div>
           ) : sesionesAnteriores.length === 0 ? (
-            <div style={{ padding: "16px 14px", textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>
+            <div style={{ padding: "16px 14px", textAlign: "center", color: "#64748B", fontSize: 13 }}>
               {sesiones.length === 0 ? "No hay sesiones anteriores para esta fecha." : "Esta es la única sesión del día."}
             </div>
           ) : sesionesAnteriores.map((s, i) => {
@@ -269,18 +250,18 @@ function HistorialSesiones({ fecha, sessionIdActiva }) {
               <div key={s.id} style={{ padding: "11px 14px", borderBottom: i < sesionesAnteriores.length - 1 ? "1px solid #F1F5F9" : "none", display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: s.activa ? "#22C55E" : "#94A3B8", flexShrink: 0, marginTop: 4 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>
                     {turnoConf?.label || s.turno}
-                    {s.programa ? <span style={{ color: "#6B7280", fontWeight: 500 }}> · {s.programa.replace("PNF ", "")}</span> : ""}
+                    {s.programa ? <span style={{ color: "#64748B", fontWeight: 500 }}> · {s.programa.replace("PNF ", "")}</span> : ""}
                   </div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>
                     Iniciada {new Date(s.created_at).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" })}
-                    {" · "}<span style={{ color: s.activa ? "#15803D" : "#6B7280", fontWeight: 600 }}>{s.activa ? "activa" : "cerrada"}</span>
+                    {" · "}<span style={{ color: s.activa ? "#15803D" : "#64748B", fontWeight: 600 }}>{s.activa ? "activa" : "cerrada"}</span>
                   </div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: total > 0 ? "#1D4ED8" : "#9CA3AF" }}>{total}</div>
-                  <div style={{ fontSize: 10, color: "#9CA3AF" }}>{c.entradas}E · {c.salidas}S</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: total > 0 ? "#1D4ED8" : "#64748B" }}>{total}</div>
+                  <div style={{ fontSize: 10, color: "#64748B" }}>{c.entradas}E · {c.salidas}S</div>
                 </div>
               </div>
             );
@@ -297,9 +278,6 @@ export default function AdminQRPanel({
   activa, loading, error, sessionId,
   crearSesion, renovarManual, cerrarSesion,
 }) {
-  // FIX (fecha-hoy-timezone): antes usaba new Date().toISOString().slice(0,10)
-  // (fecha en UTC), lo que adelantaba "hoy" un día durante la noche en
-  // Venezuela y bloqueaba el día real en el selector de fecha.
   const hoy = fechaHoyVE();
   const minHoy = horaActualVE();
 
@@ -311,7 +289,6 @@ export default function AdminQRPanel({
   const [programa, setPrograma] = useState(profile?.programa || "");
   const [fecha,    setFecha]    = useState(hoy);
 
-  // Feed de actividad reciente — CRÍTICO #6
   const [feedRegistros, setFeedRegistros] = useState([]);
 
   const esHoy = fecha === hoy;
@@ -321,7 +298,6 @@ export default function AdminQRPanel({
     return !conf?.finMin || minHoy < conf.finMin;
   }
 
-  // Cargar y suscribir feed en tiempo real
   useEffect(() => {
     if (!sessionId) { setFeedRegistros([]); return; }
 
@@ -344,7 +320,6 @@ export default function AdminQRPanel({
       }, fetchFeed)
       .subscribe();
 
-    // FIX (realtime-fallback-polling-panel-qr): poll de respaldo.
     const pollId = setInterval(fetchFeed, POLL_FALLBACK_MS);
 
     return () => { supabase.removeChannel(ch); clearInterval(pollId); };
@@ -362,26 +337,30 @@ export default function AdminQRPanel({
       {/* Cabecera */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#111827" }}>📲 Control de Asistencias QR</h1>
-          <p style={{ margin: "4px 0 0", fontSize: 14, color: "#6B7280" }}>Genera el código QR y proyéctalo. Los docentes escanean y eligen Entrada o Salida.</p>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0F172A", display: "flex", alignItems: "center", gap: 8 }}>
+            <i className="ti ti-qrcode" style={{ fontSize: 22 }} aria-hidden="true" />
+            Control de Asistencias QR
+          </h1>
+          <p style={{ margin: "4px 0 0", fontSize: 14, color: "#64748B" }}>Genera el código QR y proyéctalo. Los docentes escanean y eligen Entrada o Salida.</p>
         </div>
         {onVerReporte && (
-          <button onClick={onVerReporte} style={{ padding: "8px 16px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#374151" }}>
-            📋 Ver reporte del día
+          <button onClick={onVerReporte} style={{ padding: "8px 16px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#334155", display: "flex", alignItems: "center", gap: 6 }}>
+            <i className="ti ti-clipboard-list" style={{ fontSize: 15 }} aria-hidden="true" />
+            Ver reporte del día
           </button>
         )}
       </div>
 
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
         {/* ── Columna izquierda: configuración ── */}
-        <div style={{ flex: "0 0 320px", background: "#fff", borderRadius: 12, border: "1px solid #E5E7EB", padding: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>
+        <div style={{ flex: "0 0 320px", background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", padding: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>
             Configuración de la sesión
           </div>
 
           {/* Fecha */}
           <label style={{ display: "block", marginBottom: 14 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Fecha</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#334155", display: "block", marginBottom: 5 }}>Fecha</span>
             <input
               type="date"
               value={fecha}
@@ -389,13 +368,13 @@ export default function AdminQRPanel({
               max={hoy}
               onChange={e => setFecha(e.target.value)}
               disabled={activa}
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 13, color: "#111827", background: activa ? "#F9FAFB" : "#fff", cursor: activa ? "not-allowed" : "auto", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #E2E8F0", fontSize: 13, color: "#0F172A", background: activa ? "#F8FAFC" : "#fff", cursor: activa ? "not-allowed" : "auto", boxSizing: "border-box" }}
             />
           </label>
 
           {/* Turno */}
           <div style={{ marginBottom: 14 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 8 }}>Turno</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#334155", display: "block", marginBottom: 8 }}>Turno</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {TURNOS_VISIBLES.map(t => {
                 const disponible = turnoDisponible(t.id);
@@ -408,9 +387,9 @@ export default function AdminQRPanel({
                     title={!disponible ? "Este turno ya finalizó hoy" : ""}
                     style={{
                       padding: "9px 14px", borderRadius: 8,
-                      border: `1.5px solid ${seleccionado ? "#2563EB" : disponible ? "#E5E7EB" : "#F3F4F6"}`,
-                      background: seleccionado ? "#EFF6FF" : disponible ? "#fff" : "#F9FAFB",
-                      color: seleccionado ? "#1D4ED8" : disponible ? "#374151" : "#9CA3AF",
+                      border: `1.5px solid ${seleccionado ? "#2563EB" : disponible ? "#E2E8F0" : "#F1F5F9"}`,
+                      background: seleccionado ? "#EFF6FF" : disponible ? "#fff" : "#F8FAFC",
+                      color: seleccionado ? "#1D4ED8" : disponible ? "#334155" : "#64748B",
                       cursor: activa || !disponible ? "not-allowed" : "pointer",
                       fontSize: 13, fontWeight: seleccionado ? 600 : 500,
                       textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -419,7 +398,7 @@ export default function AdminQRPanel({
                     }}
                   >
                     <span>{t.label}{!disponible && esHoy ? " · ya finalizó" : ""}</span>
-                    <span style={{ fontSize: 11, color: seleccionado ? "#3B82F6" : "#9CA3AF", fontWeight: 500 }}>{t.hora}</span>
+                    <span style={{ fontSize: 11, color: seleccionado ? "#3B82F6" : "#64748B", fontWeight: 500 }}>{t.hora}</span>
                   </button>
                 );
               })}
@@ -428,12 +407,12 @@ export default function AdminQRPanel({
 
           {/* Programa */}
           <label style={{ display: "block", marginBottom: 20 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Programa (opcional)</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#334155", display: "block", marginBottom: 5 }}>Programa (opcional)</span>
             <select
               value={programa}
               onChange={e => setPrograma(e.target.value)}
               disabled={activa}
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 13, color: "#111827", background: activa ? "#F9FAFB" : "#fff", cursor: activa ? "not-allowed" : "pointer", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #E2E8F0", fontSize: 13, color: "#0F172A", background: activa ? "#F8FAFC" : "#fff", cursor: activa ? "not-allowed" : "pointer", boxSizing: "border-box" }}
             >
               <option value="">Todos los programas</option>
               {DEFAULT_PROGRAMAS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -442,8 +421,9 @@ export default function AdminQRPanel({
 
           {/* Error */}
           {error && (
-            <div style={{ background: "#FEF2F2", color: "#DC2626", padding: "10px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500, marginBottom: 14 }}>
-              ⚠️ {error}
+            <div style={{ background: "#FEF2F2", color: "#DC2626", padding: "10px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500, marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+              <i className="ti ti-alert-triangle" style={{ fontSize: 15, flexShrink: 0 }} aria-hidden="true" />
+              {error}
             </div>
           )}
 
@@ -457,47 +437,37 @@ export default function AdminQRPanel({
                 background: loading || fecha < hoy || (esHoy && !turnoDisponible(turno)) ? "#93C5FD" : "#2563EB",
                 color: "#fff", border: "none", borderRadius: 9, fontSize: 14, fontWeight: 600,
                 cursor: loading || fecha < hoy || (esHoy && !turnoDisponible(turno)) ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
               }}
             >
-              {loading ? "Iniciando…" : "▶ Iniciar sesión QR"}
+              <i className="ti ti-player-play" style={{ fontSize: 15 }} aria-hidden="true" />
+              {loading ? "Iniciando…" : "Iniciar sesión QR"}
             </button>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <button onClick={renovarManual} disabled={loading} style={{ width: "100%", padding: "10px 0", background: "#F0FDF4", color: "#15803D", border: "1.5px solid #86EFAC", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
-                🔄 Regenerar QR ahora
+              <button onClick={renovarManual} disabled={loading} style={{ width: "100%", padding: "10px 0", background: "#F0FDF4", color: "#15803D", border: "1.5px solid #86EFAC", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <i className="ti ti-refresh" style={{ fontSize: 14 }} aria-hidden="true" />
+                Regenerar QR ahora
               </button>
-              <button onClick={cerrarSesion} style={{ width: "100%", padding: "10px 0", background: "#FFF1F2", color: "#BE123C", border: "1.5px solid #FECDD3", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                ⏹ Cerrar sesión
+              <button onClick={cerrarSesion} style={{ width: "100%", padding: "10px 0", background: "#FFF1F2", color: "#BE123C", border: "1.5px solid #FECDD3", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <i className="ti ti-player-stop" style={{ fontSize: 14 }} aria-hidden="true" />
+                Cerrar sesión
               </button>
             </div>
           )}
 
-          {/* Contador separado ENTRADA / SALIDA — CRÍTICO #2 */}
           {activa && <ContadorSesion sessionId={sessionId} />}
-
-          {/* Feed de actividad — CRÍTICO #6 */}
           {activa && <FeedActividad registros={feedRegistros} />}
-
-          {/* Historial de sesiones del día — MEJORA #12 */}
           <HistorialSesiones fecha={fecha} sessionIdActiva={sessionId} />
         </div>
 
         {/* ── Columna derecha: estado de la sesión (SIN el QR) ── */}
-        {/*
-          FIX (qr-solo-en-proyeccion): antes el QR y las "Instrucciones para
-          el docente" se mostraban aquí, en el mismo panel donde están los
-          botones de Iniciar/Regenerar/Cerrar sesión. Eso es justo lo que
-          hacía riesgoso proyectar esta pantalla (ver fix qr-pill-proyeccion).
-          Ahora el control solo muestra un resumen de estado — el QR real
-          vive exclusivamente en la pestaña "🖥️ Proyección", que no tiene
-          ningún botón.
-        */}
         <div style={{ flex: 1, minWidth: 280 }}>
           {!activa ? (
             <div style={{ background: "#fff", borderRadius: 12, border: "2px dashed #E2E8F0", padding: "60px 24px", textAlign: "center" }}>
-              <div style={{ fontSize: 56, marginBottom: 16 }}>📲</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Sin sesión activa</div>
-              <div style={{ fontSize: 14, color: "#9CA3AF", maxWidth: 280, margin: "0 auto" }}>
+              <i className="ti ti-qrcode" style={{ fontSize: 48, color: "#CBD5E1", display: "block", marginBottom: 16 }} aria-hidden="true" />
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#334155", marginBottom: 8 }}>Sin sesión activa</div>
+              <div style={{ fontSize: 14, color: "#64748B", maxWidth: 280, margin: "0 auto" }}>
                 Configura el turno y la fecha, luego pulsa <strong>Iniciar sesión QR</strong>.
               </div>
             </div>
@@ -513,19 +483,20 @@ export default function AdminQRPanel({
                 </span>
               </div>
 
-              {/* Aviso + enlace a Proyección, en vez del QR */}
-              <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E5E7EB", padding: "32px 24px", textAlign: "center" }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🖥️</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#374151", marginBottom: 6 }}>El código QR está listo</div>
-                <div style={{ fontSize: 13, color: "#9CA3AF", maxWidth: 300, margin: "0 auto 18px" }}>
+              {/* Aviso + enlace a Proyección */}
+              <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", padding: "32px 24px", textAlign: "center" }}>
+                <i className="ti ti-device-desktop" style={{ fontSize: 40, color: "#2563EB", display: "block", marginBottom: 12 }} aria-hidden="true" />
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#334155", marginBottom: 6 }}>El código QR está listo</div>
+                <div style={{ fontSize: 13, color: "#64748B", maxWidth: 300, margin: "0 auto 18px" }}>
                   Para mantener este panel de control fuera del alcance de los docentes, el QR y las instrucciones se muestran solo en la pestaña de proyección.
                 </div>
                 {onVerProyeccion && (
                   <button
                     onClick={onVerProyeccion}
-                    style={{ padding: "10px 20px", background: "#2563EB", color: "#fff", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                    style={{ padding: "10px 20px", background: "#2563EB", color: "#fff", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
                   >
-                    🖥️ Abrir Proyección
+                    <i className="ti ti-device-desktop" style={{ fontSize: 15 }} aria-hidden="true" />
+                    Abrir Proyección
                   </button>
                 )}
               </div>
