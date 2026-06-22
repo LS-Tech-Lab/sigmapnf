@@ -77,7 +77,7 @@ const hex2rgba = (hex, a) => {
 };
 
 const COLORES_PRESET = [
-  "#7C3AED","#1D4ED8","#0F766E","#334155","#059669",
+  "#7C3AED","#1D4ED8","#0F766E","#374151","#059669",
   "#DC2626","#D97706","#0891B2","#9333EA","#BE185D",
 ];
 
@@ -86,9 +86,9 @@ const EMOJIS_PRESET = ["👤","👑","🏛️","📋","📷","🔑","🛡️","�
 function Badge({ color, children }) {
   return (
     <span style={{
-      background: hex2rgba(color || "#475569", 0.12),
-      color: color || "#475569",
-      border: `1px solid ${hex2rgba(color || "#475569", 0.25)}`,
+      background: hex2rgba(color || "#374151", 0.12),
+      color: color || "#374151",
+      border: `1px solid ${hex2rgba(color || "#374151", 0.25)}`,
       borderRadius: 999, padding: "2px 10px",
       fontSize: 12, fontWeight: 600,
       display: "inline-flex", alignItems: "center", gap: 4,
@@ -158,21 +158,22 @@ function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, l
       const programa = rolSeleccionado?.restringe_programa ? form.programa : null;
 
       if (esNuevo) {
-        // La Edge Function crea el usuario en Auth Y llama admin_upsert_user_profile
-        // internamente — no hay que llamar a la RPC por separado.
-        const { data: result, error: fnError } = await supabase.functions.invoke("admin-users", {
-          body: { action: "create", email: form.email.trim(), password: form.password,
-                  nombre: form.nombre.trim(), rol: form.rol, programa },
+        // Crear usuario via RPC SQL (no requiere CLI para redesplegar)
+        const { data: nuevoId, error: rpcError } = await supabase.rpc("admin_create_auth_user", {
+          p_email:    form.email.trim(),
+          p_password: form.password,
+          p_nombre:   form.nombre.trim(),
+          p_rol:      form.rol,
+          p_programa: rolSeleccionado?.restringe_programa ? form.programa : null,
         });
-        if (fnError) throw new Error("No se pudo contactar la función admin-users: " + fnError.message);
-        if (result?.error) throw new Error(result.error);
+        if (rpcError) throw new Error(rpcError.message);
 
         await logAudit?.({
           accion:  "CREAR_USUARIO",
           entidad: "usuarios",
-          resumen: `Usuario creado: ${form.email.trim()} (${form.rol}${programa ? ` - ${programa}` : ""})`,
+          resumen: `Usuario creado: ${form.email.trim()} (${form.rol}${rolSeleccionado?.restringe_programa ? ` - ${form.programa}` : ""})`,
         });
-        showToast?.(`Usuario ${form.email.trim()} creado correctamente.`, "success");
+        showToast?.(`✅ Usuario ${form.email.trim()} creado.`, "success");
 
       } else {
         // Actualizar perfil via RPC
@@ -189,14 +190,13 @@ function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, l
         if (form.password.trim()) {
           if (form.password.length < 8)
             throw new Error("La nueva contraseña debe tener al menos 8 caracteres.");
-          const { data: pwResult, error: pwFnError } = await supabase.functions.invoke("admin-users", {
-            body: { action: "reset_password", user_id: usuario.id, password: form.password },
+          const { error: pwError } = await supabase.rpc("admin_reset_user_password", {
+            p_user_id: usuario.id,
+            p_password: form.password,
           });
-          if (pwFnError || pwResult?.error) {
-            // El perfil ya se actualizó — avisar sin tirar todo
+          if (pwError) {
             showToast?.(
-              "Perfil actualizado pero no se pudo cambiar la contraseña: " +
-                (pwResult?.error || pwFnError.message),
+              "⚠️ Perfil actualizado pero no se pudo cambiar la contraseña: " + pwError.message,
               "warning"
             );
             onSave();
@@ -210,7 +210,7 @@ function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, l
           entidad_id: usuario.id,
           resumen: `Usuario editado: ${form.email.trim()} (${form.rol}${programa ? ` - ${programa}` : ""})`,
         });
-        showToast?.(`Usuario ${form.email.trim()} actualizado correctamente.`, "success");
+        showToast?.(`✅ Usuario ${form.email.trim()} actualizado.`, "success");
       }
       onSave();
     } catch (e) {
@@ -232,8 +232,7 @@ function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, l
             {esNuevo ? "Nuevo usuario" : "Editar usuario"}
           </h2>
           <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer",
-            fontSize:20, color:"#94A3B8", lineHeight:1 }}>
-            <i className="ti ti-x" style={{ fontSize:16 }} aria-hidden="true" /></button>
+            fontSize:20, color:"#94A3B8", lineHeight:1 }}>✕</button>
         </div>
 
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -269,7 +268,7 @@ function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, l
             {rolSeleccionado && (
               <p style={{ margin:"6px 0 0", fontSize:11, color:"#64748B" }}>
                 {rolSeleccionado.restringe_programa
-                  ? <><i className="ti ti-alert-triangle" style={{fontSize:13,marginRight:5,color:"#D97706"}} aria-hidden="true"/>Este rol restringe la vista a un solo programa — debes asignar uno.</>
+                  ? "⚠️ Este rol restringe la vista a un solo programa — debes asignar uno."
                   : "✓ Acceso sin restricción de programa."}
               </p>
             )}
@@ -316,8 +315,8 @@ function ModalRol({ rol, onSave, onClose }) {
   const [form, setForm] = useState({
     nombre:             rol?.nombre             || "",
     label:              rol?.label              || "",
-    emoji:              rol?.emoji              || "",
-    color:              rol?.color              || "#475569",
+    emoji:              rol?.emoji              || "👤",
+    color:              rol?.color              || "#374151",
     restringe_programa: rol?.restringe_programa || false,
     permisos:           { ...Object.fromEntries(TODOS_LOS_PERMISOS.map(k => [k, false])),
                           ...(rol?.permisos || {}) },
@@ -370,8 +369,7 @@ function ModalRol({ rol, onSave, onClose }) {
             {esNuevo ? "Nuevo rol" : `Editar rol: ${rol.label}`}
           </h2>
           <button onClick={onClose} style={{ background:"none", border:"none",
-            cursor:"pointer", fontSize:20, color:"#94A3B8" }}>
-            <i className="ti ti-x" style={{ fontSize:16 }} aria-hidden="true" /></button>
+            cursor:"pointer", fontSize:20, color:"#94A3B8" }}>✕</button>
         </div>
 
         {/* Campos básicos */}
@@ -584,10 +582,10 @@ function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp,
         entidad_id: u.id,
         resumen:    `Usuario ${accion}do: ${u.email}`,
       });
-      toast(nuevoActivo ? `${u.nombre} activado.` : `${u.nombre} desactivado.`, "success");
+      toast(nuevoActivo ? `✅ ${u.nombre} activado.` : `${u.nombre} desactivado.`, "success");
       cargar();
     } catch (e) {
-      toast(`${e.message}`, "error");
+      toast(`⚠️ ${e.message}`, "error");
     }
   };
 
@@ -667,10 +665,7 @@ function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp,
                     </td>
                     <td style={S.td}>
                       <Badge color={rolInfo?.color}>
-                        {rolInfo?.emoji
-                          ? <>{rolInfo.emoji} {rolInfo?.label || u.rol}</>
-                          : <><i className="ti ti-user" style={{ fontSize:12 }} aria-hidden="true" /> {rolInfo?.label || u.rol}</>
-                        }
+                        {rolInfo?.emoji || "👤"} {rolInfo?.label || u.rol}
                       </Badge>
                     </td>
                     <td style={S.td}>
@@ -691,7 +686,7 @@ function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp,
                             <button onClick={() => setModalEditar(u)}
                               title="Editar"
                               style={{ background:"none", border:"1px solid #E2E8F0", borderRadius:7,
-                                padding:"5px 10px", cursor:"pointer", fontSize:13, color:"#475569" }}>
+                                padding:"5px 10px", cursor:"pointer", fontSize:13, color:"#374151" }}>
                               <i className="ti ti-pencil" />
                             </button>
                             <button
@@ -789,7 +784,7 @@ function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: sh
       toast("✓ Rol eliminado.");
       cargar();
     } catch (e) {
-      toast(`${e.message}`);
+      toast(`⚠️ ${e.message}`);
     }
   };
 
@@ -797,7 +792,7 @@ function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: sh
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
         <p style={{ margin:0, fontSize:13, color:"#64748B" }}>
-          Los roles del sistema (marcados con <i className="ti ti-lock" style={{ fontSize:11, color:"#94A3B8" }} aria-hidden="true" />) no se pueden eliminar ni renombrar, pero sí puedes
+          Los roles del sistema (marcados con 🔒) no se pueden eliminar ni renombrar, pero sí puedes
           editar sus permisos. Los roles personalizados son totalmente gestionables.
         </p>
         {permisosUsuario.puedeGestionarRoles && (
@@ -832,9 +827,7 @@ function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: sh
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                       <span style={{ fontSize:14, fontWeight:700, color:"#0F172A" }}>{r.label}</span>
                       {r.es_sistema && (
-                        <span title="Rol del sistema" style={{ fontSize:11, color:"#94A3B8" }}>
-                          <i className="ti ti-lock" style={{ fontSize:11 }} aria-hidden="true" />
-                        </span>
+                        <span title="Rol del sistema" style={{ fontSize:11, color:"#94A3B8" }}>🔒</span>
                       )}
                       {r.restringe_programa && (
                         <span style={{ ...S.badge("#FEF3C7","#92400E"), fontSize:11 }}>
@@ -854,7 +847,7 @@ function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: sh
                       <>
                         <button onClick={() => setModalRol(r)} title="Editar"
                           style={{ background:"none", border:"1px solid #E2E8F0", borderRadius:7,
-                            padding:"5px 10px", cursor:"pointer", fontSize:13, color:"#475569" }}>
+                            padding:"5px 10px", cursor:"pointer", fontSize:13, color:"#374151" }}>
                           <i className="ti ti-pencil" />
                         </button>
                         {!r.es_sistema && (
