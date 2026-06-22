@@ -147,5 +147,86 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── action: delete ──────────────────────────────────────────────
+  if (action === "delete") {
+    const { user_id } = body;
+
+    if (!user_id) {
+      return res.status(400).json({ error: "Falta el campo user_id." });
+    }
+
+    // Evitar auto-eliminación
+    if (user_id === userData.id) {
+      return res.status(400).json({ error: "No puedes eliminar tu propia cuenta." });
+    }
+
+    // Borrar perfil primero
+    const delProfileRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${user_id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          apikey: SERVICE_ROLE_KEY,
+        },
+      }
+    );
+
+    // Borrar de auth.users
+    const delAuthRes = await fetch(
+      `${SUPABASE_URL}/auth/v1/admin/users/${user_id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          apikey: SERVICE_ROLE_KEY,
+        },
+      }
+    );
+
+    if (!delAuthRes.ok) {
+      const delAuthErr = await delAuthRes.json().catch(() => ({}));
+      return res.status(400).json({
+        error: delAuthErr.msg || delAuthErr.message || "Error al eliminar el usuario de Auth.",
+      });
+    }
+
+    return res.status(200).json({ ok: true });
+  }
+
+  // ── action: delete_orphan ────────────────────────────────────────
+  // Elimina un usuario que solo existe en auth.users (sin perfil en user_profiles).
+  if (action === "delete_orphan") {
+    const { user_id } = body;
+
+    if (!user_id) {
+      return res.status(400).json({ error: "Falta el campo user_id." });
+    }
+
+    if (user_id === userData.id) {
+      return res.status(400).json({ error: "No puedes eliminar tu propia cuenta." });
+    }
+
+    const delAuthRes = await fetch(
+      `${SUPABASE_URL}/auth/v1/admin/users/${user_id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          apikey: SERVICE_ROLE_KEY,
+        },
+      }
+    );
+
+    if (!delAuthRes.ok) {
+      const delAuthErr = await delAuthRes.json().catch(() => ({}));
+      return res.status(400).json({
+        error: delAuthErr.msg || delAuthErr.message || "Error al eliminar el usuario.",
+      });
+    }
+
+    return res.status(200).json({ ok: true });
+  }
+
   return res.status(400).json({ error: `Acción desconocida: "${action}".` });
 }
