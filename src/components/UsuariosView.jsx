@@ -555,13 +555,14 @@ function ModalRol({ rol, onSave, onClose }) {
 
 // ─── Pestaña Usuarios ─────────────────────────────────────────────────────────
 function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp, logAudit }) {
-  const [usuarios, setUsuarios]     = useState([]);
-  const [loading,  setLoading]      = useState(true);
-  const [busqueda, setBusqueda]     = useState("");
-  const [filtroRol, setFiltroRol]   = useState("todos");
+  const [usuarios, setUsuarios]       = useState([]);
+  const [huerfanos, setHuerfanos]     = useState([]); // usuarios en auth sin perfil
+  const [loading,   setLoading]       = useState(true);
+  const [busqueda,  setBusqueda]      = useState("");
+  const [filtroRol, setFiltroRol]     = useState("todos");
   const [modalEditar,   setModalEditar]   = useState(null);
   const [modalNuevo,    setModalNuevo]    = useState(false);
-  const [confirm,       setConfirm]       = useState(null); // { usuario, nuevoActivo }
+  const [confirm,       setConfirm]       = useState(null); // { usuario, nuevoActivo } | { usuario, accion: "delete" } | { usuario, accion: "delete_orphan" }
   const [toastMsg,      setToastMsg]      = useState("");
 
   // Usar showToast de props si existe (integrado con el sistema global de la app),
@@ -579,6 +580,13 @@ function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp,
       setUsuarios(data || []);
     } catch (e) {
       toast(`Error al cargar usuarios: ${e.message}`);
+    }
+    // Cargar usuarios huérfanos (auth sin perfil) — para diagnóstico/limpieza
+    try {
+      const { data: orphans } = await supabase.rpc("admin_get_orphan_auth_users");
+      setHuerfanos(orphans || []);
+    } catch {
+      setHuerfanos([]);
     }
     setLoading(false);
   }, []);
@@ -599,6 +607,52 @@ function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp,
         resumen:    `Usuario ${accion}do: ${u.email}`,
       });
       toast(nuevoActivo ? `✅ ${u.nombre} activado.` : `${u.nombre} desactivado.`, "success");
+      cargar();
+    } catch (e) {
+      toast(`⚠️ ${e.message}`, "error");
+    }
+  };
+
+  const eliminarUsuario = async (u) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/admin-users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ action: "delete", user_id: u.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Error al eliminar.");
+      await logAudit?.({
+        accion:     "ELIMINAR_USUARIO",
+        entidad:    "usuarios",
+        entidad_id: u.id,
+        resumen:    `Usuario eliminado permanentemente: ${u.email}`,
+      });
+      toast(`🗑️ Usuario ${u.email} eliminado.`, "success");
+      cargar();
+    } catch (e) {
+      toast(`⚠️ ${e.message}`, "error");
+    }
+  };
+
+  const eliminarHuerfano = async (u) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/admin-users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ action: "delete_orphan", user_id: u.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Error al eliminar.");
+      toast(`🗑️ Usuario huérfano ${u.email} eliminado.`, "success");
       cargar();
     } catch (e) {
       toast(`⚠️ ${e.message}`, "error");
@@ -652,6 +706,44 @@ function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp,
           </div>
         ))}
       </div>
+
+      {/* Banner de usuarios huérfanos (auth sin perfil → no pueden entrar) */}
+      {huerfanos.length > 0 && (
+        <div style={{ background:"#FEF9EC", border:"1px solid #F59E0B", borderRadius:10,
+          padding:"12px 16px", marginBottom:16, display:"flex", flexDirection:"column", gap:8 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <i className="ti ti-alert-triangle" style={{ color:"#D97706", fontSize:16 }} />
+            <span style={{ fontSize:13, fontWeight:700, color:"#92400E" }}>
+              {huerfanos.length} usuario{huerfanos.length !== 1 ? "s" : ""} sin perfil detectado{huerfanos.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <p style={{ margin:0, fontSize:12, color:"#78350F", lineHeight:1.5 }}>
+            Estos usuarios existen en el sistema de autenticación pero <strong>no tienen perfil en la base de datos</strong>,
+            por lo que no pueden iniciar sesión. Probablemente se crearon antes de la corrección del constraint de roles.
+            Puedes eliminarlos permanentemente:
+          </p>
+          <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+            {huerfanos.map(h => (
+              <div key={h.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                background:"#FFFBEB", border:"1px solid #FDE68A", borderRadius:7, padding:"6px 10px" }}>
+                <div>
+                  <span style={{ fontSize:12, fontWeight:600, color:"#0F172A" }}>{h.email}</span>
+                  <span style={{ fontSize:11, color:"#92400E", marginLeft:8 }}>
+                    Creado: {new Date(h.created_at).toLocaleDateString("es-VE")}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setConfirm({ usuario: h, accion: "delete_orphan" })}
+                  style={{ background:"none", border:"1px solid #F59E0B", borderRadius:6,
+                    padding:"4px 10px", cursor:"pointer", fontSize:12, color:"#B45309",
+                    display:"flex", alignItems:"center", gap:4, fontWeight:600 }}>
+                  <i className="ti ti-trash" /> Eliminar
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tabla */}
       {loading ? (
@@ -713,6 +805,13 @@ function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp,
                                 color: u.activo ? "#DC2626" : "#059669" }}>
                               <i className={u.activo ? "ti ti-user-off" : "ti ti-user-check"} />
                             </button>
+                            <button
+                              onClick={() => setConfirm({ usuario: u, accion: "delete" })}
+                              title="Eliminar permanentemente"
+                              style={{ background:"none", border:"1px solid #FCA5A5", borderRadius:7,
+                                padding:"5px 10px", cursor:"pointer", fontSize:13, color:"#DC2626" }}>
+                              <i className="ti ti-trash" />
+                            </button>
                           </>
                         )}
                       </div>
@@ -738,7 +837,27 @@ function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp,
         />
       )}
 
-      {confirm && (
+      {confirm && confirm.accion === "delete" && (
+        <ModalConfirm
+          titulo="Eliminar usuario permanentemente"
+          mensaje={`¿Eliminar la cuenta de ${confirm.usuario.nombre || confirm.usuario.email} de forma PERMANENTE? Se borrará tanto el perfil como el acceso al sistema. Esta acción no se puede deshacer.`}
+          peligro={true}
+          onConfirm={() => { eliminarUsuario(confirm.usuario); setConfirm(null); }}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+
+      {confirm && confirm.accion === "delete_orphan" && (
+        <ModalConfirm
+          titulo="Eliminar usuario sin perfil"
+          mensaje={`¿Eliminar permanentemente la cuenta huérfana "${confirm.usuario.email}"? No tiene perfil en la BD y no puede acceder al sistema de todas formas.`}
+          peligro={true}
+          onConfirm={() => { eliminarHuerfano(confirm.usuario); setConfirm(null); }}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+
+      {confirm && !confirm.accion && (
         <ModalConfirm
           titulo={confirm.nuevoActivo ? "Activar usuario" : "Desactivar usuario"}
           mensaje={`¿Confirmas ${confirm.nuevoActivo ? "activar" : "desactivar"} la cuenta de ${confirm.usuario.nombre}?`}
