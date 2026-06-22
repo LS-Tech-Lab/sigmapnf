@@ -159,7 +159,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
               <div
                 style={{
                   fontSize: 13,
-                  color: isHovered ? "#374151" : "#94A3B8",
+                  color: isHovered ? "#334155" : "#94A3B8",
                   lineHeight: 1.55,
                   transition: "color 0.18s",
                 }}
