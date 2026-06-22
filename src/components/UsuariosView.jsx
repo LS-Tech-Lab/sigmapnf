@@ -158,15 +158,25 @@ function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, l
       const programa = rolSeleccionado?.restringe_programa ? form.programa : null;
 
       if (esNuevo) {
-        // Crear usuario via RPC SQL (no requiere CLI para redesplegar)
-        const { data: nuevoId, error: rpcError } = await supabase.rpc("admin_create_auth_user", {
-          p_email:    form.email.trim(),
-          p_password: form.password,
-          p_nombre:   form.nombre.trim(),
-          p_rol:      form.rol,
-          p_programa: rolSeleccionado?.restringe_programa ? form.programa : null,
+        // Crear usuario via Vercel Serverless Function
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch("/api/admin-users", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action:   "create",
+            email:    form.email.trim(),
+            password: form.password,
+            nombre:   form.nombre.trim(),
+            rol:      form.rol,
+            programa: rolSeleccionado?.restringe_programa ? form.programa : null,
+          }),
         });
-        if (rpcError) throw new Error(rpcError.message);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Error al crear usuario.");
 
         await logAudit?.({
           accion:  "CREAR_USUARIO",
@@ -190,13 +200,19 @@ function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, l
         if (form.password.trim()) {
           if (form.password.length < 8)
             throw new Error("La nueva contraseña debe tener al menos 8 caracteres.");
-          const { error: pwError } = await supabase.rpc("admin_reset_user_password", {
-            p_user_id: usuario.id,
-            p_password: form.password,
+          const { data: { session } } = await supabase.auth.getSession();
+          const pwRes = await fetch("/api/admin-users", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ action: "reset_password", user_id: usuario.id, password: form.password }),
           });
-          if (pwError) {
+          const pwJson = await pwRes.json();
+          if (!pwRes.ok) {
             showToast?.(
-              "⚠️ Perfil actualizado pero no se pudo cambiar la contraseña: " + pwError.message,
+              "⚠️ Perfil actualizado pero no se pudo cambiar la contraseña: " + pwJson.error,
               "warning"
             );
             onSave();
