@@ -5,7 +5,7 @@ function buildNavGroups(permisos) {
     {
       label: "Consulta",
       items: [
-        { id: "resumen",   icon: "ti-layout-dashboard", label: "Resumen",    hasBadge: true },
+        { id: "resumen",   icon: "ti-layout-dashboard", label: "Resumen"   },
         { id: "horarios",  icon: "ti-calendar-event",   label: "Horarios"  },
         { id: "secciones", icon: "ti-school",           label: "Secciones" },
       ],
@@ -13,19 +13,22 @@ function buildNavGroups(permisos) {
     {
       label: "Académico",
       items: [
-        { id: "docentes",    icon: "ti-users",        label: "Docentes"    },
-        { id: "materias",    icon: "ti-book-2",       label: "Materias"    },
-        { id: "asistencias", icon: "ti-printer",      label: "Asistencias" },
-        { id: "historial",   icon: "ti-archive",      label: "Historial"   },
-        ...(permisos.puedeVerLogs
-          ? [{ id: "logs",      icon: "ti-shield-lock", label: "Registros" }]
-          : []),
-        ...(permisos.puedeGestionarUsuarios
-          ? [{ id: "usuarios",  icon: "ti-crown",       label: "Usuarios"  }]
-          : []),
+        { id: "docentes",    icon: "ti-users",      label: "Docentes"    },
+        { id: "materias",    icon: "ti-book-2",      label: "Materias"    },
+        { id: "asistencias", icon: "ti-printer",     label: "Asistencias" },
       ],
     },
   ];
+
+  const sistema = { label: "Sistema", items: [] };
+  sistema.items.push({ id: "historial", icon: "ti-archive", label: "Historial" });
+  if (permisos.puedeVerLogs) {
+    sistema.items.push({ id: "logs", icon: "ti-shield-lock", label: "Registros" });
+  }
+  if (permisos.puedeGestionarUsuarios || permisos.puedeGestionarRoles) {
+    sistema.items.push({ id: "usuarios", icon: "ti-crown", label: "Usuarios y Roles" });
+  }
+  grupos.push(sistema);
 
   return grupos;
 }
