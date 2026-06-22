@@ -62,7 +62,7 @@ export default function ConfirmModal({
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
           <i className={`ti ${danger ? "ti-alert-triangle" : "ti-help-circle"}`}
             style={{ fontSize: 22, color: danger ? "#DC2626" : "#2563EB" }} aria-hidden="true" />
-          <h2 id="confirm-modal-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#111827" }}>{title}</h2>
+          <h2 id="confirm-modal-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0F172A" }}>{title}</h2>
         </div>
 
         {/* Mensaje */}
@@ -76,7 +76,7 @@ export default function ConfirmModal({
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <button
             ref={cancelBtnRef}
-            style={{ ...btnBase, background: "#F3F4F6", color: "#374151" }}
+            style={{ ...btnBase, background: "#F1F5F9", color: "#334155" }}
             onClick={onCancel}
           >
             Cancelar
