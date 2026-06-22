@@ -4,76 +4,61 @@
  * Hook central de autenticación y autorización.
  * Provee:
  *   - user: sesión de Supabase Auth
- *   - profile: perfil extendido con rol y programa
- *   - permisos: objeto calculado con flags de acceso
+ *   - profile: perfil extendido con rol, programa, y la info del rol
+ *     (label/emoji/color/restringe_programa) embebida en `profile.rol_info`
+ *   - permisos: objeto calculado a partir de los permisos del rol del
+ *     usuario, leídos en vivo desde la tabla `roles` (editable desde el
+ *     panel de Gestión de Usuarios → Roles, sin necesidad de tocar código)
  *   - handleLogin / handleLogout
  *   - logAudit: registrar acción de auditoría
+ *
+ * Los roles dejaron de ser una lista fija en este archivo: viven en la
+ * tabla `roles` (ver supabase/migrations/0013_*.sql) y se pueden crear,
+ * editar o borrar desde la app. Este hook solo sabe leer el mapa de
+ * permisos del rol que tenga el usuario logueado.
  */
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 
-// ── Constantes de roles ─────────────────────────────────────────────
-export const ROLES = {
-  ADMIN:          "admin",
-  COORDINADOR:    "coordinador",
-  SECRETARIO:     "secretario",
-  ADMINISTRATIVO: "administrativo",
-  OPERADOR_QR:    "operador_qr",
+// Valores por defecto: si una clave de permiso no está presente en el
+// jsonb del rol (por ejemplo, un rol viejo al que aún no se le agregó
+// un permiso nuevo agregado luego), se asume `false` en vez de explotar.
+const PERMISOS_BASE = {
+  puedeVerTodo:              false,
+  puedeImportarExcel:        false,
+  puedeEditarHorarios:       false,
+  puedeBorrarHorarios:       false,
+  puedeEditarDocentes:       false,
+  puedeEditarMaterias:       false,
+  puedeGestionarTrimestres:  false,
+  puedeHacerBackup:          false,
+  puedeRestaurarBackup:      false,
+  puedeGestionarUsuarios:    false,
+  puedeGestionarRoles:       false,
+  puedeVerLogs:              false,
+  puedeVerAuditoria:         false,
+  puedeGestionarQR:          false,
+  puedeVerReporteAsistencias: false,
 };
 
-// ── Permisos derivados del rol ───────────────────────────────────────
+// ── Permisos derivados del rol cargado desde la BD ───────────────────
 function calcularPermisos(profile) {
-  if (!profile) return {
-    puedeVerTodo:          false,
-    puedeEditarHorarios:   false,
-    puedeImportarExcel:    false,
-    puedeBorrarHorarios:   false,
-    puedeEditarDocentes:   false,
-    puedeEditarMaterias:   false,
-    puedeGestionarTrimestres: false,
-    puedeHacerBackup:      false,
-    puedeGestionarUsuarios: false,
-    puedeVerLogs:          false,
-    puedeVerSoloSuPrograma: false,
-    esAdmin:               false,
-    esCoordinador:         false,
-    esSecretario:          false,
-    esAdministrativo:      false,
-    esOperadorQR:          false,
-    programaRestringido:   null,
-  };
+  if (!profile || !profile.rol_info) {
+    return {
+      ...PERMISOS_BASE,
+      puedeVerSoloSuPrograma: false,
+      programaRestringido:    null,
+    };
+  }
 
-  const rol = profile.rol;
-  const esAdmin          = rol === ROLES.ADMIN;
-  const esCoordinador    = rol === ROLES.COORDINADOR;
-  const esSecretario     = rol === ROLES.SECRETARIO;
-  const esAdministrativo = rol === ROLES.ADMINISTRATIVO;
-  const esOperadorQR     = rol === ROLES.OPERADOR_QR;
+  const rolInfo = profile.rol_info;
 
   return {
-    // Vista y datos
-    puedeVerTodo:           esAdmin || esCoordinador,
-    puedeVerSoloSuPrograma: esSecretario,
-    programaRestringido:    esSecretario ? profile.programa : null,
-
-    // Operaciones de escritura
-    puedeEditarHorarios:      esAdmin || esCoordinador || esSecretario,
-    puedeImportarExcel:       esAdmin || esCoordinador || esSecretario,
-    puedeBorrarHorarios:      esAdmin || esCoordinador,
-    puedeEditarDocentes:      esAdmin || esCoordinador || esSecretario,
-    puedeEditarMaterias:      esAdmin || esCoordinador || esSecretario,
-    puedeGestionarTrimestres: esAdmin || esCoordinador,
-    puedeHacerBackup:         esAdmin || esCoordinador,
-    puedeRestaurarBackup:     esAdmin,
-
-    // Administración
-    puedeGestionarUsuarios:   esAdmin,
-    puedeVerLogs:             esAdmin || esCoordinador,
-    puedeVerAuditoria:        esAdmin || esCoordinador || esSecretario,
-
-    // Flags de rol
-    esAdmin, esCoordinador, esSecretario, esAdministrativo, esOperadorQR,
+    ...PERMISOS_BASE,
+    ...(rolInfo.permisos || {}),
+    puedeVerSoloSuPrograma: !!rolInfo.restringe_programa,
+    programaRestringido:    rolInfo.restringe_programa ? profile.programa : null,
   };
 }
 
@@ -83,14 +68,16 @@ export default function useAuth() {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
 
-  // Cargar perfil extendido desde user_profiles
+  // Cargar perfil extendido desde user_profiles, con el rol embebido
+  // (label/emoji/color/permisos/restringe_programa) para no necesitar
+  // una segunda consulta cada vez que se calculan permisos.
   const cargarProfile = useCallback(async (authUser) => {
     if (!authUser) { setProfile(null); return; }
     setLoadingProfile(true);
     try {
       const { data, error } = await supabase
         .from("user_profiles")
-        .select("*")
+        .select("*, rol_info:roles(nombre, label, emoji, color, restringe_programa, permisos)")
         .eq("id", authUser.id)
         .single();
 
@@ -101,6 +88,11 @@ export default function useAuth() {
       } else if (!data.activo) {
         // Cuenta desactivada
         setProfile({ ...data, _desactivado: true });
+      } else if (!data.rol_info) {
+        // Perfil con un rol que ya no existe en la tabla `roles`
+        // (por ejemplo, fue borrado). Tratar como sin acceso.
+        console.warn("⚠️ El rol del usuario no existe en la tabla roles:", data.rol);
+        setProfile({ ...data, _rolInvalido: true });
       } else {
         setProfile(data);
       }
