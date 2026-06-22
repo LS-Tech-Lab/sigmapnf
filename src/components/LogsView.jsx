@@ -419,7 +419,7 @@ export default function LogsView({ permisos }) {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: "2px solid #E5E7EB" }}>
+      <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: "2px solid #E2E8F0" }}>
         {[
           { id: "sesiones",  icon: "ti-key",         label: "Registros de sesión" },
           { id: "auditoria", icon: "ti-list-details", label: "Auditoría de cambios" },
