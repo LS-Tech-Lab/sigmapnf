@@ -26,21 +26,30 @@ export function validarVersionCache() {
   }
 }
 
-export function guardarEnCache(key, datos) {
+// Genera la clave de caché con el userId del usuario activo.
+// Esto aísla el caché por identidad: si el usuario B inicia sesión
+// sin que A hiciera logout, B nunca lee el caché de A.
+export function getCacheKey(baseKey, userId) {
+  return userId ? `${baseKey}_u_${userId}` : baseKey;
+}
+
+export function guardarEnCache(key, datos, userId) {
   try {
-    localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), datos }));
+    const storageKey = getCacheKey(key, userId);
+    localStorage.setItem(storageKey, JSON.stringify({ timestamp: Date.now(), datos }));
   } catch (err) {
     console.warn("No se pudo guardar en caché:", key, err);
   }
 }
 
-export function cargarDeCache(key) {
+export function cargarDeCache(key, userId) {
   try {
-    const cacheStr = localStorage.getItem(key);
+    const storageKey = getCacheKey(key, userId);
+    const cacheStr = localStorage.getItem(storageKey);
     if (!cacheStr) return null;
     const cache = JSON.parse(cacheStr);
     if (Date.now() - cache.timestamp > CACHE_EXPIRY) {
-      localStorage.removeItem(key);
+      localStorage.removeItem(storageKey);
       return null;
     }
     return cache.datos;
@@ -50,8 +59,20 @@ export function cargarDeCache(key) {
   }
 }
 
-export function limpiarCache() {
-  Object.values(CACHE_KEYS).forEach(key => localStorage.removeItem(key));
+// Si se pasa userId, limpia solo las claves de ese usuario.
+// Sin userId (ej: logout sin sesión activa) limpia todo lo que sea caché de la app.
+export function limpiarCache(userId) {
+  if (userId) {
+    Object.values(CACHE_KEYS).forEach(key =>
+      localStorage.removeItem(getCacheKey(key, userId))
+    );
+  } else {
+    Object.values(CACHE_KEYS).forEach(key => localStorage.removeItem(key));
+    // Limpiar también claves con sufijo de usuario (_u_*)
+    Object.keys(localStorage)
+      .filter(k => Object.values(CACHE_KEYS).some(base => k.startsWith(`${base}_u_`)))
+      .forEach(k => localStorage.removeItem(k));
+  }
 }
 
 export function obtenerUltimaSincronizacion() {
