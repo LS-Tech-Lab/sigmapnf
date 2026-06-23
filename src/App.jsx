@@ -66,6 +66,18 @@ export default function App() {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const { user, profile, permisos, loadingProfile, handleLogin, handleLogout, logAudit } = useAuth();
 
+  // Fix #19: detectar si Supabase está caído o la anon key expiró.
+  // useAuth llama getSession() internamente; si user sigue undefined
+  // después de un timeout razonable, asumimos fallo de conexión con el servicio.
+  const [supabaseDown, setSupabaseDown] = useState(false);
+  useEffect(() => {
+    if (user !== undefined) return; // ya resolvió — no hacer nada
+    const id = setTimeout(() => {
+      if (user === undefined) setSupabaseDown(true);
+    }, 8000); // 8 s sin respuesta → mostrar pantalla de error
+    return () => clearTimeout(id);
+  }, [user]);
+
   const expanded = pinned || hovered || mobileOpen;
 
   const togglePin = () => {
@@ -184,6 +196,25 @@ export default function App() {
   if (window.location.pathname === "/scan") {
     return <DocenteScan />;
   }
+
+  // Fix #19: Supabase no responde (caído, anon key expirada, red sin salida)
+  if (supabaseDown) return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:"#0F172A", color:"#E2E8F0", gap:16, padding:32,
+      textAlign:"center", fontFamily:"system-ui,sans-serif" }}>
+      <i className="ti ti-wifi-off" style={{ fontSize:44, color:"#F87171" }} aria-hidden="true" />
+      <h2 style={{ margin:0, fontSize:20, fontWeight:600, color:"#F1F5F9" }}>Servicio no disponible</h2>
+      <p style={{ margin:0, fontSize:14, color:"#94A3B8", maxWidth:460, lineHeight:1.6 }}>
+        No se pudo conectar con el servidor. Puede ser un problema temporal de red o del servicio.
+      </p>
+      <button
+        onClick={() => { setSupabaseDown(false); window.location.reload(); }}
+        style={{ marginTop:8, padding:"9px 22px", background:"#2563EB", color:"#fff",
+          border:"none", borderRadius:8, fontSize:14, fontWeight:600, cursor:"pointer" }}>
+        Reintentar
+      </button>
+    </div>
+  );
 
   if (supabaseConfigError) return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
