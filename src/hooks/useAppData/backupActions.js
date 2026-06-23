@@ -100,8 +100,46 @@ export function createBackupActions({
         try {
           const text = await file.text();
           const backup = JSON.parse(text);
+
+          // Validación superficial: claves principales
           if (!backup.horarios || !backup.docentes || !backup.materias)
-            throw new Error("El archivo no tiene el formato correcto de backup");
+            throw new Error("El archivo no tiene el formato correcto de backup (faltan claves horarios / docentes / materias)");
+
+          // Validación profunda: deben ser arrays
+          if (!Array.isArray(backup.horarios))
+            throw new Error("El backup está malformado: 'horarios' no es un array");
+          if (!Array.isArray(backup.docentes))
+            throw new Error("El backup está malformado: 'docentes' no es un array");
+          if (!Array.isArray(backup.materias))
+            throw new Error("El backup está malformado: 'materias' no es un array");
+
+          // Validación de campos mínimos en cada registro
+          const camposHorario = ["lapso", "programa", "dia", "hora", "clase"];
+          const horarioInvalido = backup.horarios.find(
+            h => !h || typeof h !== "object" || camposHorario.some(c => !(c in h))
+          );
+          if (horarioInvalido)
+            throw new Error(`Registro de horario inválido o incompleto: ${JSON.stringify(horarioInvalido)}`);
+
+          const horarioConTipoInvalido = backup.horarios.find(
+            h => typeof h.dia !== "string" || typeof h.hora !== "string" || typeof h.clase !== "string"
+          );
+          if (horarioConTipoInvalido)
+            throw new Error("Registro de horario con tipos de campo incorrectos (dia / hora / clase deben ser texto)");
+
+          const camposDocente = ["nombre_raw"];
+          const docenteInvalido = backup.docentes.find(
+            d => !d || typeof d !== "object" || camposDocente.some(c => !(c in d))
+          );
+          if (docenteInvalido)
+            throw new Error(`Registro de docente inválido o incompleto: ${JSON.stringify(docenteInvalido)}`);
+
+          const camposMateria = ["nombre_raw"];
+          const materiaInvalida = backup.materias.find(
+            m => !m || typeof m !== "object" || camposMateria.some(c => !(c in m))
+          );
+          if (materiaInvalida)
+            throw new Error(`Registro de materia inválido o incompleto: ${JSON.stringify(materiaInvalida)}`);
 
           const horariosConLapso = backup.horarios.map(h => ({
             ...h, lapso: lapso || h.lapso || null,
