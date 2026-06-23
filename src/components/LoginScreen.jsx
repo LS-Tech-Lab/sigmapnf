@@ -32,7 +32,7 @@ function getAuthErrorMessage(error) {
   if (msg.includes("network") || msg.includes("fetch")) {
     return "Error de conexión. Verifica tu internet e intenta de nuevo.";
   }
-  return error?.message || "No se pudo iniciar sesión. Intenta de nuevo.";
+  return "No se pudo iniciar sesión. Intenta de nuevo.";
 }
 
 // El bloqueo se persiste en localStorage para que sobreviva recargas (F5).
@@ -191,7 +191,7 @@ export default function LoginScreen() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={isLocked}
-              placeholder="admin@ejemplo.com"
+              placeholder="tucorreo@dominio.com"
               autoComplete="email"
               onFocus={e => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.15)"; }}
               onBlur={e  => { e.target.style.borderColor = "#CBD5E1"; e.target.style.boxShadow = "none"; }}
