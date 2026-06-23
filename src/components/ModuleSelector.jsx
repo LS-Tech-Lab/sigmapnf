@@ -50,22 +50,17 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
     >
       {/* Logo / cabecera */}
       <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <div
+        <img
+          src="/logo-coordinacion.png"
+          alt="Logo Coordinación"
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 16,
-            background: "linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 30,
-            margin: "0 auto 16px",
-            boxShadow: "0 8px 32px rgba(37,99,235,0.35)",
+            width: 80,
+            height: 80,
+            objectFit: "contain",
+            marginBottom: 16,
+            filter: "drop-shadow(0 4px 16px rgba(37,99,235,0.35))",
           }}
-        >
-          <i className="ti ti-school" style={{ fontSize: 28, color: "#fff" }} aria-hidden="true" />
-        </div>
+        />
         <h1
           style={{
             margin: 0,
@@ -75,9 +70,12 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
             letterSpacing: "-0.3px",
           }}
         >
-          Sistema PNF
+          SIGMA
         </h1>
-        <p style={{ margin: "6px 0 0", fontSize: 14, color: "#94A3B8" }}>
+        <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748B", letterSpacing: "0.02em" }}>
+          Sistema Integrado de Gestión y Módulos Académicos
+        </p>
+        <p style={{ margin: "10px 0 0", fontSize: 14, color: "#94A3B8" }}>
           Bienvenido,{" "}
           <span style={{ color: "#93C5FD", fontWeight: 600 }}>
             {profile?.nombre || "Administrador"}
