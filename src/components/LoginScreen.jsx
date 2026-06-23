@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 
+// LIMITACIÓN CONOCIDA — Fix #9 (auditoría Junio 2026)
+// El contador de intentos fallidos y el bloqueo temporal viven en
+// localStorage. Un atacante puede eludirlos borrando localStorage
+// o usando una pestaña privada. Este mecanismo es únicamente una
+// capa de UX para el usuario legítimo — no debe considerarse seguridad
+// real contra brute-force. La protección efectiva la provee Supabase
+// Auth en el backend mediante rate limiting por IP.
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 60;
 const LOCKOUT_STORAGE_KEY = "login_lockout_until";
@@ -28,10 +35,10 @@ function getAuthErrorMessage(error) {
   return error?.message || "No se pudo iniciar sesión. Intenta de nuevo.";
 }
 
-// El bloqueo por intentos fallidos se persiste en localStorage para que
-// sobreviva recargas de página (F5) y no se pueda eludir simplemente
-// refrescando el navegador. La protección real contra brute force la
-// aplica Supabase Auth en el backend; esto es una capa adicional de UX.
+// El bloqueo se persiste en localStorage para que sobreviva recargas (F5).
+
+
+
 function readStoredLockout() {
   try {
     const until = parseInt(localStorage.getItem(LOCKOUT_STORAGE_KEY) || "0", 10);
