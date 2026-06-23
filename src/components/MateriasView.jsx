@@ -5,7 +5,7 @@ import { getTurnoDeRegistro } from '../utils/turno';
 import { parseClase } from '../utils/parsing';
 import Avatar from './Avatar';
 
-export default function MateriasView({ byMateria, initialSel, onConsumeNav, getMateriaName, onSaveMateriaName, data, getDocName }) {
+export default function MateriasView({ byMateria, initialSel, onConsumeNav, getMateriaName, onSaveMateriaName, data, getDocName, modoConsulta, lapso }) {
   const sorted = Object.keys(byMateria).sort();
   const [sel, setSel] = useState(initialSel || null), [search, setSearch] = useState("");
   const [editingName, setEditingName] = useState(false), [editValue, setEditValue] = useState(""), [saving, setSaving] = useState(false);
@@ -41,6 +41,15 @@ export default function MateriasView({ byMateria, initialSel, onConsumeNav, getM
   }, [selEntries]);
 
   return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, height: 0, overflow: "hidden" }}>
+      {modoConsulta && (
+        <div style={{ background: "#FFFBEB", borderBottom: "1px solid #FDE68A", padding: "7px 20px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <i className="ti ti-archive" aria-hidden="true" style={{ color: "#92400E", fontSize: 14 }} />
+          <span style={{ fontSize: 13, color: "#92400E", fontWeight: 600 }}>
+            Modo consulta — trimestre {lapso} (solo lectura)
+          </span>
+        </div>
+      )}
     <div className="materias-layout" style={{ padding: 20, display: "flex", gap: 16, flex: 1, height: 0, overflow: "hidden" }}>
       <div className="materias-left-panel" style={{ width: 250, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrar materia…" style={{ ...S.input, width: "100%", boxSizing: "border-box" }} />
@@ -120,5 +129,6 @@ export default function MateriasView({ byMateria, initialSel, onConsumeNav, getM
         )}
       </div>
     </div>
+    </div>
   );
-                   }
+}
