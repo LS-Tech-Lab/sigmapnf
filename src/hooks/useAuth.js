@@ -20,6 +20,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
+import { limpiarCache } from "../utils/cache";
 
 // Valores por defecto: si una clave de permiso no está presente en el
 // jsonb del rol (por ejemplo, un rol viejo al que aún no se le agregó
@@ -184,11 +185,14 @@ export default function useAuth() {
 
   // Logout
   const handleLogout = useCallback(async () => {
+    // Limpiar caché ANTES de signOut: si signOut falla, el caché
+    // ya fue borrado y el próximo usuario no verá datos de este.
+    limpiarCache(user?.id);
     try {
       await supabase.rpc("log_session_event", { p_evento: "logout", p_detalles: {} });
     } catch { /* no-op */ }
     await supabase.auth.signOut();
-  }, []);
+  }, [user]);
 
   // Registrar acción de auditoría
   const logAudit = useCallback(async ({
