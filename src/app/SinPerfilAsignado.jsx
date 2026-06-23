@@ -11,7 +11,7 @@ function SinPerfilAsignado({ onLogout }) {
       <div style={{ background: "#fff", borderRadius: 16, padding: "40px 32px",
         maxWidth: 420, width: "100%", textAlign: "center",
         boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>⚙️</div>
+        <i className="ti ti-user-off" style={{ fontSize: 48, color: "#6B7280", marginBottom: 16, display: "block" }} aria-hidden="true" />
         <h2 style={{ margin: "0 0 8px", fontSize: 20, color: "#111827" }}>
           Perfil no configurado
         </h2>
