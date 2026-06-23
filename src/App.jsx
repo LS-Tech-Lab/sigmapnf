@@ -78,10 +78,15 @@ export default function App() {
   // Cuando user.id cambia (logout/login de otra cuenta), resetear toda la
   // navegación para que el nuevo usuario empiece desde cero sin heredar
   // la vista ni los permisos de la sesión anterior.
-  const prevUserIdRef = useRef(null);
+  // Resetear navegación cuando cambia el usuario (incluyendo logout→login)
+  // Usamos una ref para trackear el último ID visto, incluyendo null (sin sesión).
+  // La condición: hubo un ID anterior distinto al actual → resetear.
+  // Esto cubre: admin→logout(null)→otrousuario, y también admin→otrousuario directo.
+  const prevUserIdRef = useRef(undefined); // undefined = primera carga, no resetear
   useEffect(() => {
     const currentId = user?.id ?? null;
-    if (prevUserIdRef.current !== null && prevUserIdRef.current !== currentId) {
+    if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== currentId && currentId !== null) {
+      // Cambio de usuario detectado: resetear toda la navegación
       setView("resumen");
       setModuloActivo(null);
       setAsistenciasSubView("panel");
