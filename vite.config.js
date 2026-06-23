@@ -4,5 +4,18 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/', // Asegura que la ruta base siempre sea la raíz
+  base: '/',
+  build: {
+    rollupOptions: {
+      output: {
+        // Code-splitting manual: aísla las vistas lazy en chunks propios
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'view-historial': ['./src/components/HistorialView'],
+          'view-usuarios':  ['./src/components/UsuariosView'],
+          'view-logs':      ['./src/components/LogsView'],
+        },
+      },
+    },
+  },
 })
