@@ -116,6 +116,7 @@ function TopBar({ visible, meta, turnoInfo }) {
           <span style={styles.topBarBadge}>Solo lectura</span>
         </div>
 
+
         {meta && (
           <div style={styles.topBarMeta}>
             <span style={styles.pulseDot} />
@@ -231,7 +232,6 @@ const styles = {
     flex: 1,
     display: "flex",
     alignItems: "stretch",
-    paddingTop: 56, // espacio para el top bar fijo
     minHeight: "100vh",
   },
 
