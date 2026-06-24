@@ -10,8 +10,15 @@ import { supabase } from "../../lib/supabase";
 import { suscribirCambiosRemotos } from "../../lib/realtime";
 import {
   guardarEnCache, cargarDeCache,
-  CACHE_KEYS, limpiarCache, obtenerUltimaSincronizacion,
+  CACHE_KEYS, limpiarCache, obtenerUltimaSincronizacion, getCacheKey,
 } from "../../utils/cache";
+
+// Invalida solo las claves de nombres (docentes/materias) para un usuario dado,
+// sin afectar el caché de horarios. Usado por los listeners realtime de #7.
+function limpiarCacheNombres(userId) {
+  const keys = [CACHE_KEYS.docentes, CACHE_KEYS.docenteCedulas, CACHE_KEYS.materias];
+  keys.forEach(k => localStorage.removeItem(getCacheKey(k, userId)));
+}
 
 const PAGE_SIZE = 500;
 
@@ -98,7 +105,7 @@ export default function useDataSync({
     setIsSyncing(false);
   }, [selectedPrograma, lapso, cacheKey, showToast, userId]);
 
-  useEffect(() => { fetchProgramas(lapso); fetchDocenteNames(); fetchMateriaNames(); }, [lapso]);
+  useEffect(() => { fetchProgramas(lapso); fetchDocenteNames(); fetchMateriaNames(); }, [lapso, fetchProgramas, fetchDocenteNames, fetchMateriaNames]);
   useEffect(() => { fetchHorarios(selectedPrograma); }, [selectedPrograma, lapso, fetchHorarios]);
 
   useEffect(() => {
@@ -124,10 +131,16 @@ export default function useDataSync({
           showToast("🔄 Horarios actualizados por otro usuario.", "info");
         },
         onDocentesChange: () => {
+          // Fix #7: invalidar caché de docentes antes de re-fetch para que
+          // el listener remoto no aplique el caché stale antes del resultado fresco.
+          limpiarCacheNombres(userId);
           fetchDocenteNames();
           setConflictsRefreshKey(k => k + 1);
         },
-        onMateriasChange: () => { fetchMateriaNames(); },
+        onMateriasChange: () => {
+          limpiarCacheNombres(userId);
+          fetchMateriaNames();
+        },
       });
     });
     return () => cancelar();
