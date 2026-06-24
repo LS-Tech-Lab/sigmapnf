@@ -202,16 +202,16 @@ export default function App() {
   // Fix #19: Supabase no responde (caído, anon key expirada, red sin salida)
   if (supabaseDown) return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-      height:"100vh", background:"#0F172A", color:"#E2E8F0", gap:16, padding:32,
+      height:"100vh", background:"var(--color-text-primary)", color:"var(--color-border-tertiary)", gap:16, padding:32,
       textAlign:"center", fontFamily:"var(--font-sans)" }}>
       <i className="ti ti-wifi-off" style={{ fontSize:44, color:"#F87171" }} aria-hidden="true" />
-      <h2 style={{ margin:0, fontSize:20, fontWeight:600, color:"#F1F5F9" }}>Servicio no disponible</h2>
-      <p style={{ margin:0, fontSize:14, color:"#94A3B8", maxWidth:460, lineHeight:1.6 }}>
+      <h2 style={{ margin:0, fontSize:20, fontWeight:600, color:"var(--color-background-tertiary)" }}>Servicio no disponible</h2>
+      <p style={{ margin:0, fontSize:14, color:"var(--color-text-tertiary)", maxWidth:460, lineHeight:1.6 }}>
         No se pudo conectar con el servidor. Puede ser un problema temporal de red o del servicio.
       </p>
       <button
         onClick={() => { setSupabaseDown(false); window.location.reload(); }}
-        style={{ marginTop:8, padding:"9px 22px", background:"#2563EB", color:"#fff",
+        style={{ marginTop:8, padding:"9px 22px", background:"var(--brand-500)", color:"#fff",
           border:"none", borderRadius:8, fontSize:14, fontWeight:600, cursor:"pointer" }}>
         Reintentar
       </button>
@@ -220,11 +220,11 @@ export default function App() {
 
   if (supabaseConfigError) return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-      height:"100vh", background:"#0F172A", color:"#E2E8F0", gap:16, padding:32,
+      height:"100vh", background:"var(--color-text-primary)", color:"var(--color-border-tertiary)", gap:16, padding:32,
       textAlign:"center", fontFamily:"var(--font-sans)" }}>
       <i className="ti ti-alert-triangle" style={{ fontSize:44, color:"#FBBF24" }} aria-hidden="true" />
-      <h2 style={{ margin:0, fontSize:20, fontWeight:600, color:"#F1F5F9" }}>Configuración incompleta</h2>
-      <p style={{ margin:0, fontSize:14, color:"#94A3B8", maxWidth:460, lineHeight:1.6 }}>
+      <h2 style={{ margin:0, fontSize:20, fontWeight:600, color:"var(--color-background-tertiary)" }}>Configuración incompleta</h2>
+      <p style={{ margin:0, fontSize:14, color:"var(--color-text-tertiary)", maxWidth:460, lineHeight:1.6 }}>
         {supabaseConfigError}
       </p>
     </div>
@@ -232,7 +232,7 @@ export default function App() {
 
   // Cargando sesión
   if (user === undefined) return (
-    <div className="full-screen-loading" style={{ color:"#94A3B8", fontSize:15 }}>
+    <div className="full-screen-loading" style={{ color:"var(--color-text-tertiary)", fontSize:15 }}>
       Verificando sesión…
     </div>
   );
@@ -243,9 +243,9 @@ export default function App() {
   // Sesión activa pero cargando perfil
   if (loadingProfile) return (
     <div className="full-screen-loading">
-      <div style={{ width:32, height:32, border:"3px solid #1E3A5F", borderTop:"3px solid #3B82F6",
+      <div style={{ width:32, height:32, border:"3px solid #1E3A5F", borderTop:"3px solid var(--color-accent)",
         borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
-      <span style={{ color:"#94A3B8", fontSize:14 }}>Cargando perfil…</span>
+      <span style={{ color:"var(--color-text-tertiary)", fontSize:14 }}>Cargando perfil…</span>
     </div>
   );
 
@@ -271,9 +271,9 @@ export default function App() {
     if (!(tieneHorarios && tieneQR)) {
       return (
         <div className="full-screen-loading">
-          <div style={{ width:32, height:32, border:"3px solid #1E3A5F", borderTop:"3px solid #3B82F6",
+          <div style={{ width:32, height:32, border:"3px solid #1E3A5F", borderTop:"3px solid var(--color-accent)",
             borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
-          <span style={{ color:"#94A3B8", fontSize:14 }}>Cargando…</span>
+          <span style={{ color:"var(--color-text-tertiary)", fontSize:14 }}>Cargando…</span>
         </div>
       );
     }
@@ -295,7 +295,7 @@ export default function App() {
     const rolColor = profile.rol_info?.color || "#34D399";
 
     return (
-      <div style={{ minHeight: "100vh", background: "#F1F5F9", fontFamily: "var(--font-sans)" }}>
+      <div style={{ minHeight: "100vh", background: "var(--color-background-tertiary)", fontFamily: "var(--font-sans)" }}>
         {/* @keyframes fadeDown ahora en index.css */}
         {cambiarPwdOpen && (
           <ModalCambiarPassword
@@ -304,13 +304,13 @@ export default function App() {
           />
         )}
         {/* Topbar */}
-        <header style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", display: "flex", alignItems: "center", gap: 12, padding: "0 20px", height: 52, flexShrink: 0 }}>
+        <header style={{ background: "#fff", borderBottom: "1px solid var(--color-border-tertiary)", display: "flex", alignItems: "center", gap: 12, padding: "0 20px", height: 52, flexShrink: 0 }}>
 
           {/* Volver al selector — solo si también tiene acceso a horarios */}
           {tieneHorarios && (
             <button
               onClick={() => { qrSession.cerrarSesion(); setModuloActivo(null); }}
-              style={{ background: "none", border: "1px solid #E2E8F0", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#334155", display: "flex", alignItems: "center", gap: 6 }}
+              style={{ background: "none", border: "1px solid var(--color-border-tertiary)", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--navy-700)", display: "flex", alignItems: "center", gap: 6 }}
             >
               <i className="ti ti-arrow-left" aria-hidden="true" /> Módulos
             </button>
@@ -328,8 +328,8 @@ export default function App() {
                 onClick={() => setAsistenciasSubView(tab.id)}
                 style={{
                   padding: "5px 14px", borderRadius: 7, border: "none",
-                  background: asistenciasSubView === tab.id ? "#EFF6FF" : "transparent",
-                  color:      asistenciasSubView === tab.id ? "#1D4ED8" : "#64748B",
+                  background: asistenciasSubView === tab.id ? "var(--color-background-info)" : "transparent",
+                  color:      asistenciasSubView === tab.id ? "var(--brand-600)" : "var(--color-text-tertiary)",
                   fontWeight: asistenciasSubView === tab.id ? 700 : 500,
                   fontSize: 13, cursor: "pointer", transition: "all 0.12s",
                   display: "flex", alignItems: "center", gap: 6,
@@ -355,25 +355,25 @@ export default function App() {
               onClick={() => setAsistUserMenuOpen(o => !o)}
               title="Menú de usuario"
               style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer",
-                background: asistUserMenuOpen ? "#F1F5F9" : "transparent",
-                border: "1px solid " + (asistUserMenuOpen ? "#CBD5E1" : "#E2E8F0"),
+                background: asistUserMenuOpen ? "var(--color-background-tertiary)" : "transparent",
+                border: "1px solid " + (asistUserMenuOpen ? "var(--color-border-secondary)" : "var(--color-border-tertiary)"),
                 borderRadius: 8, padding: "4px 10px 4px 6px",
                 transition: "background .13s, border-color .13s" }}>
               <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-                background: "linear-gradient(135deg,#2563EB,#7C3AED)",
+                background: "linear-gradient(135deg,var(--brand-500),var(--color-role-coord))",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 11, fontWeight: 700, color: "#fff" }}>
                 {profile.nombre?.[0]?.toUpperCase() ?? "?"}
               </div>
               <div style={{ textAlign: "left", lineHeight: 1.3 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-text-primary)", whiteSpace: "nowrap" }}>
                   {profile.nombre && profile.nombre !== rolLabel ? profile.nombre : rolLabel}
                 </div>
                 <div style={{ fontSize: 10, color: rolColor, fontWeight: 600, whiteSpace: "nowrap" }}>
                   {rolLabel}
                 </div>
               </div>
-              <i className="ti ti-chevron-down" style={{ fontSize: 12, color: "#94A3B8",
+              <i className="ti ti-chevron-down" style={{ fontSize: 12, color: "var(--color-text-tertiary)",
                 transform: asistUserMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
                 transition: "transform .15s" }} aria-hidden="true" />
             </button>
@@ -383,28 +383,28 @@ export default function App() {
                 <div onClick={() => setAsistUserMenuOpen(false)}
                   style={{ position: "fixed", inset: 0, zIndex: 398 }} />
                 <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 200,
-                  background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10,
+                  background: "#fff", border: "1px solid var(--color-border-tertiary)", borderRadius: 10,
                   boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 399, overflow: "hidden" }}>
-                  <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid #F1F5F9" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>
+                  <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid var(--color-background-tertiary)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-text-primary)" }}>
                       {profile.nombre && profile.nombre !== rolLabel ? profile.nombre : rolLabel}
                     </div>
-                    <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{profile.email}</div>
+                    <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 2 }}>{profile.email}</div>
                   </div>
                   <button onClick={() => { setCambiarPwdOpen(true); setAsistUserMenuOpen(false); }}
                     style={{ display: "flex", alignItems: "center", gap: 9, width: "100%",
                       padding: "9px 14px", border: "none", background: "transparent",
-                      cursor: "pointer", fontSize: 13, color: "#334155", textAlign: "left" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                      cursor: "pointer", fontSize: 13, color: "var(--navy-700)", textAlign: "left" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "var(--color-background-secondary)"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <i className="ti ti-key" style={{ fontSize: 15, color: "#64748B" }} aria-hidden="true" />
+                    <i className="ti ti-key" style={{ fontSize: 15, color: "var(--color-text-tertiary)" }} aria-hidden="true" />
                     Cambiar contraseña
                   </button>
-                  <div style={{ height: 1, background: "#F1F5F9" }} />
+                  <div style={{ height: 1, background: "var(--color-background-tertiary)" }} />
                   <button onClick={() => { handleLogout(); setAsistUserMenuOpen(false); }}
                     style={{ display: "flex", alignItems: "center", gap: 9, width: "100%",
                       padding: "9px 14px", border: "none", background: "transparent",
-                      cursor: "pointer", fontSize: 13, color: "#EF4444", textAlign: "left" }}
+                      cursor: "pointer", fontSize: 13, color: "var(--color-danger-mid)", textAlign: "left" }}
                     onMouseEnter={e => e.currentTarget.style.background = "#FFF5F5"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <i className="ti ti-logout" style={{ fontSize: 15 }} aria-hidden="true" />
@@ -449,9 +449,9 @@ export default function App() {
   // Datos cargando
   if (appData.loading && !appData.data.length) return (
     <div className="full-screen-loading">
-      <div style={{ width:36, height:36, border:"3px solid #1E3A5F", borderTop:"3px solid #3B82F6",
+      <div style={{ width:36, height:36, border:"3px solid #1E3A5F", borderTop:"3px solid var(--color-accent)",
         borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
-      <span style={{ color:"#94A3B8", fontSize:14 }}>Cargando horarios…</span>
+      <span style={{ color:"var(--color-text-tertiary)", fontSize:14 }}>Cargando horarios…</span>
     </div>
   );
 
@@ -459,7 +459,7 @@ export default function App() {
   const conflictCount = appData.conflicts.length;
   const rolInfo = profile.rol_info
     ? { label: profile.rol_info.label, color: profile.rol_info.color }
-    : ROL_SIDEBAR[profile.rol] || { label: profile.rol, color: "#94A3B8" };
+    : ROL_SIDEBAR[profile.rol] || { label: profile.rol, color: "var(--color-text-tertiary)" };
 
   // Selector de programa: deshabilitado para secretarios
   const puedeSeleccionarPrograma = !permisos.puedeVerSoloSuPrograma;
@@ -467,7 +467,7 @@ export default function App() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={{ display:"flex", height:"100dvh", fontFamily:"var(--font-sans)",
-      background:"#F1F5F9", overflow:"hidden" }}>
+      background:"var(--color-background-tertiary)", overflow:"hidden" }}>
       {/* Estilos globales ahora en index.css — AppStyles.js eliminado */}
 
       {cambiarPwdOpen && (
@@ -507,22 +507,22 @@ export default function App() {
         className={`sb ${expanded ? "sb-expanded" : "sb-collapsed"} ${mobileOpen ? "mobile-open" : ""}`}
         onMouseEnter={() => !pinned && setHovered(true)}
         onMouseLeave={() => { if (!pinned) { setHovered(false); setAdminOpen(false); } }}
-        style={{ background:"#0F172A", display:"flex", flexDirection:"column",
-          flexShrink:0, borderRight:"1px solid #1E293B", position:"relative" }}
+        style={{ background:"var(--color-text-primary)", display:"flex", flexDirection:"column",
+          flexShrink:0, borderRight:"1px solid var(--navy-800)", position:"relative" }}
       >
         {/* Marca + pin */}
         <div style={{ display:"flex", alignItems:"center", gap:8, padding:"14px 10px 12px",
-          borderBottom:"1px solid #1E293B", flexShrink:0 }}>
+          borderBottom:"1px solid var(--navy-800)", flexShrink:0 }}>
           <div style={{ width:32, height:32, borderRadius:8, flexShrink:0,
-            background:"linear-gradient(135deg,#2563EB,#7C3AED)",
+            background:"linear-gradient(135deg,var(--brand-500),var(--color-role-coord))",
             display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>
             <i className="ti ti-school" style={{ color:"#fff", fontSize:17 }} aria-hidden="true" />
           </div>
           <div className="sb-label" style={{ flex:1, overflow:"hidden" }}>
-            <div style={{ fontSize:13, fontWeight:700, color:"#F1F5F9", whiteSpace:"nowrap" }}>
+            <div style={{ fontSize:13, fontWeight:700, color:"var(--color-background-tertiary)", whiteSpace:"nowrap" }}>
               SIGMA
             </div>
-            <div style={{ fontSize:10, color:"#475569", marginTop:1, whiteSpace:"nowrap" }}>
+            <div style={{ fontSize:10, color:"var(--color-text-secondary)", marginTop:1, whiteSpace:"nowrap" }}>
               Gest. y Módulos Académicos
             </div>
           </div>
@@ -536,7 +536,7 @@ export default function App() {
         </div>
 
         {/* Trimestre activo */}
-        <div style={{ padding:"10px 10px 10px", borderBottom:"1px solid #1E293B", flexShrink:0 }}>
+        <div style={{ padding:"10px 10px 10px", borderBottom:"1px solid var(--navy-800)", flexShrink:0 }}>
           {!expanded ? (
             <div style={{ width:32, height:32, borderRadius:7, flexShrink:0,
               background: modoConsulta ? "#451A03" : "#0C1A3A",
@@ -548,20 +548,20 @@ export default function App() {
             </div>
           ) : (
             <div>
-              <div style={{ fontSize:9, fontWeight:700, color:"#334155", textTransform:"uppercase",
+              <div style={{ fontSize:9, fontWeight:700, color:"var(--navy-700)", textTransform:"uppercase",
                 letterSpacing:"0.08em", marginBottom:3 }}>
                 {modoConsulta ? "Consultando historial" : "Trimestre activo"}
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                 <span style={{ fontSize:13, fontWeight:700,
-                  color: modoConsulta ? "#FBBF24" : "#60A5FA", flex:1, whiteSpace:"nowrap" }}>
+                  color: modoConsulta ? "#FBBF24" : "var(--color-accent-light)", flex:1, whiteSpace:"nowrap" }}>
                   {formatLapso(lapso)}
                 </span>
                 {modoConsulta && (
                   <button onClick={() => handleCambiarLapso(getCurrentLapso())}
                     style={{ fontSize:10, padding:"2px 7px", borderRadius:5,
-                      border:"1px solid #334155", background:"#1E293B",
-                      color:"#60A5FA", cursor:"pointer", fontWeight:600, flexShrink:0,
+                      border:"1px solid var(--navy-700)", background:"var(--navy-800)",
+                      color:"var(--color-accent-light)", cursor:"pointer", fontWeight:600, flexShrink:0,
                       display:"flex", alignItems:"center" }}>
                     <i className="ti ti-arrow-back-up" style={{ fontSize:12 }} aria-hidden="true" />
                   </button>
@@ -572,14 +572,14 @@ export default function App() {
         </div>
 
         {/* Selector de programa */}
-        <div style={{ padding:"8px 10px", borderBottom:"1px solid #1E293B", flexShrink:0 }}>
+        <div style={{ padding:"8px 10px", borderBottom:"1px solid var(--navy-800)", flexShrink:0 }}>
           {expanded ? (
             <select
               value={appData.selectedPrograma}
               onChange={e => puedeSeleccionarPrograma && appData.setSelectedPrograma(e.target.value)}
               disabled={!puedeSeleccionarPrograma}
-              style={{ ...S.select, width:"100%", background:"#1E293B", color:"#CBD5E1",
-                borderColor:"#334155", fontSize:12, padding:"6px 8px",
+              style={{ ...S.select, width:"100%", background:"var(--navy-800)", color:"var(--color-border-secondary)",
+                borderColor:"var(--navy-700)", fontSize:12, padding:"6px 8px",
                 opacity: puedeSeleccionarPrograma ? 1 : 0.6,
                 cursor: puedeSeleccionarPrograma ? "pointer" : "not-allowed" }}>
               {puedeSeleccionarPrograma
@@ -592,9 +592,9 @@ export default function App() {
               }
             </select>
           ) : (
-            <div style={{ width:32, height:32, borderRadius:7, background:"#1E293B",
+            <div style={{ width:32, height:32, borderRadius:7, background:"var(--navy-800)",
               display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:13, color:"#475569" }}
+              fontSize:13, color:"var(--color-text-secondary)" }}
               title={`Programa: ${appData.selectedPrograma === "todos" ? "Todos" : appData.selectedPrograma}`}>
               <i className="ti ti-school" aria-hidden="true" />
             </div>
@@ -606,10 +606,10 @@ export default function App() {
           {navGroups.map((group, gi) => (
             <div key={group.label} style={{ marginBottom: gi < navGroups.length - 1 ? 4 : 0 }}>
               {gi > 0 && (
-                <div style={{ height:1, background:"#1E293B", margin:"6px 4px 8px" }} />
+                <div style={{ height:1, background:"var(--navy-800)", margin:"6px 4px 8px" }} />
               )}
               <div className="sb-group-title" style={{
-                fontSize:9, fontWeight:700, color:"#334155", textTransform:"uppercase",
+                fontSize:9, fontWeight:700, color:"var(--navy-700)", textTransform:"uppercase",
                 letterSpacing:"0.1em", padding:"0 8px", marginBottom:4,
                 transition:"opacity 0.15s",
               }}>
@@ -661,20 +661,20 @@ export default function App() {
           }} />
 
         {/* Footer: botón admin + usuario */}
-        <div style={{ borderTop:"1px solid #1E293B", padding:"8px 8px", flexShrink:0 }}>
+        <div style={{ borderTop:"1px solid var(--navy-800)", padding:"8px 8px", flexShrink:0 }}>
           {/* Botón de administración — visible solo si tiene algo que hacer */}
           {(permisos.puedeImportarExcel || permisos.puedeHacerBackup || permisos.puedeBorrarHorarios) && (
             <button
               onClick={() => setAdminOpen(o => !o)}
               className="nav-item"
-              style={{ marginBottom:6, color: adminOpen ? "#93C5FD" : "#64748B",
-                background: adminOpen ? "#1E293B" : "transparent" }}
+              style={{ marginBottom:6, color: adminOpen ? "var(--color-border-info)" : "var(--color-text-tertiary)",
+                background: adminOpen ? "var(--navy-800)" : "transparent" }}
               title="Administración"
             >
               <i className="ti ti-settings" style={{ fontSize:15, flexShrink:0, width:20, textAlign:"center" }} aria-hidden="true" />
               <span className="sb-label" style={{ flex:1 }}>Administración</span>
               {appData.uploading && (
-                <span style={{ width:8, height:8, borderRadius:"50%", border:"1.5px solid #3B82F6",
+                <span style={{ width:8, height:8, borderRadius:"50%", border:"1.5px solid var(--color-accent)",
                   borderTop:"1.5px solid transparent",
                   animation:"spin .7s linear infinite", flexShrink:0 }} />
               )}
@@ -694,9 +694,9 @@ export default function App() {
             onClick={() => setMobileOpen(o => !o)}
             aria-label={mobileOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
             aria-expanded={mobileOpen}
-            style={{ display:"none", background:"none", border:"1px solid #E2E8F0",
+            style={{ display:"none", background:"none", border:"1px solid var(--color-border-tertiary)",
               borderRadius:6, padding:"5px 9px", cursor:"pointer", fontSize:17,
-              color:"#334155", flexShrink:0, alignItems:"center" }}>
+              color:"var(--navy-700)", flexShrink:0, alignItems:"center" }}>
             <i className="ti ti-menu-2" aria-hidden="true" />
           </button>
 
@@ -718,25 +718,25 @@ export default function App() {
               aria-haspopup="menu"
               aria-expanded={userMenuOpen}
               style={{ display:"flex", alignItems:"center", gap:7, cursor:"pointer",
-                background: userMenuOpen ? "#F1F5F9" : "transparent",
-                border:"1px solid " + (userMenuOpen ? "#CBD5E1" : "#E2E8F0"),
+                background: userMenuOpen ? "var(--color-background-tertiary)" : "transparent",
+                border:"1px solid " + (userMenuOpen ? "var(--color-border-secondary)" : "var(--color-border-tertiary)"),
                 borderRadius:8, padding:"4px 10px 4px 6px",
                 transition:"background .13s, border-color .13s" }}>
               <div style={{ width:26, height:26, borderRadius:"50%", flexShrink:0,
-                background:"linear-gradient(135deg,#2563EB,#7C3AED)",
+                background:"linear-gradient(135deg,var(--brand-500),var(--color-role-coord))",
                 display:"flex", alignItems:"center", justifyContent:"center",
                 fontSize:11, fontWeight:700, color:"#fff" }}>
                 {profile.nombre?.[0]?.toUpperCase() ?? "?"}
               </div>
               <div style={{ textAlign:"left", lineHeight:1.3 }}>
-                <div style={{ fontSize:12, fontWeight:700, color:"#0F172A", whiteSpace:"nowrap" }}>
+                <div style={{ fontSize:12, fontWeight:700, color:"var(--color-text-primary)", whiteSpace:"nowrap" }}>
                   {profile.nombre && profile.nombre !== rolInfo.label ? profile.nombre : rolInfo.label}
                 </div>
                 <div style={{ fontSize:10, color: rolInfo.color, fontWeight:600, whiteSpace:"nowrap" }}>
                   {rolInfo.label}{profile.programa ? ` · ${profile.programa.replace("PNF ","")}` : ""}
                 </div>
               </div>
-              <i className="ti ti-chevron-down" style={{ fontSize:12, color:"#94A3B8",
+              <i className="ti ti-chevron-down" style={{ fontSize:12, color:"var(--color-text-tertiary)",
                 transform: userMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
                 transition:"transform .15s" }} aria-hidden="true" />
             </button>
@@ -746,40 +746,40 @@ export default function App() {
                 <div onClick={() => setUserMenuOpen(false)}
                   style={{ position:"fixed", inset:0, zIndex:398 }} />
                 <div style={{ position:"absolute", top:"calc(100% + 6px)", right:0, minWidth:200,
-                  background:"#fff", border:"1px solid #E2E8F0", borderRadius:10,
+                  background:"#fff", border:"1px solid var(--color-border-tertiary)", borderRadius:10,
                   boxShadow:"0 8px 24px rgba(0,0,0,0.12)", zIndex:399, overflow:"hidden",
                   animation:"fadeDown .15s ease" }}>
-                  <div style={{ padding:"12px 14px 10px", borderBottom:"1px solid #F1F5F9" }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:"#0F172A" }}>
+                  <div style={{ padding:"12px 14px 10px", borderBottom:"1px solid var(--color-background-tertiary)" }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:"var(--color-text-primary)" }}>
                       {profile.nombre && profile.nombre !== rolInfo.label ? profile.nombre : rolInfo.label}
                     </div>
-                    <div style={{ fontSize:11, color:"#64748B", marginTop:2 }}>{profile.email}</div>
+                    <div style={{ fontSize:11, color:"var(--color-text-tertiary)", marginTop:2 }}>{profile.email}</div>
                   </div>
                   {tieneHorarios && tieneQR && (
                     <button onClick={() => { setModuloActivo(null); setUserMenuOpen(false); }}
                       style={{ display:"flex", alignItems:"center", gap:9, width:"100%",
                         padding:"9px 14px", border:"none", background:"transparent",
-                        cursor:"pointer", fontSize:13, color:"#334155", textAlign:"left" }}
-                      onMouseEnter={e => e.currentTarget.style.background="#F8FAFC"}
+                        cursor:"pointer", fontSize:13, color:"var(--navy-700)", textAlign:"left" }}
+                      onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"}
                       onMouseLeave={e => e.currentTarget.style.background="transparent"}>
-                      <i className="ti ti-switch-horizontal" style={{ fontSize:15, color:"#64748B" }} aria-hidden="true" />
+                      <i className="ti ti-switch-horizontal" style={{ fontSize:15, color:"var(--color-text-tertiary)" }} aria-hidden="true" />
                       Cambiar módulo
                     </button>
                   )}
                   <button onClick={() => { setCambiarPwdOpen(true); setUserMenuOpen(false); }}
                     style={{ display:"flex", alignItems:"center", gap:9, width:"100%",
                       padding:"9px 14px", border:"none", background:"transparent",
-                      cursor:"pointer", fontSize:13, color:"#334155", textAlign:"left" }}
-                    onMouseEnter={e => e.currentTarget.style.background="#F8FAFC"}
+                      cursor:"pointer", fontSize:13, color:"var(--navy-700)", textAlign:"left" }}
+                    onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"}
                     onMouseLeave={e => e.currentTarget.style.background="transparent"}>
-                    <i className="ti ti-key" style={{ fontSize:15, color:"#64748B" }} aria-hidden="true" />
+                    <i className="ti ti-key" style={{ fontSize:15, color:"var(--color-text-tertiary)" }} aria-hidden="true" />
                     Cambiar contraseña
                   </button>
-                  <div style={{ height:1, background:"#F1F5F9" }} />
+                  <div style={{ height:1, background:"var(--color-background-tertiary)" }} />
                   <button onClick={() => { handleLogout(); setUserMenuOpen(false); }}
                     style={{ display:"flex", alignItems:"center", gap:9, width:"100%",
                       padding:"9px 14px", border:"none", background:"transparent",
-                      cursor:"pointer", fontSize:13, color:"#EF4444", textAlign:"left" }}
+                      cursor:"pointer", fontSize:13, color:"var(--color-danger-mid)", textAlign:"left" }}
                     onMouseEnter={e => e.currentTarget.style.background="#FFF5F5"}
                     onMouseLeave={e => e.currentTarget.style.background="transparent"}>
                     <i className="ti ti-logout" style={{ fontSize:15 }} aria-hidden="true" />
@@ -791,7 +791,7 @@ export default function App() {
           </div>
 
           {appData.isSyncing && (
-            <span style={{ fontSize:11, color:"#94A3B8", whiteSpace:"nowrap", flexShrink:0, display:"flex", alignItems:"center", gap:5 }}>
+            <span style={{ fontSize:11, color:"var(--color-text-tertiary)", whiteSpace:"nowrap", flexShrink:0, display:"flex", alignItems:"center", gap:5 }}>
               <i className="ti ti-refresh" style={{ animation:"spin 1.1s linear infinite" }} aria-hidden="true" /> Actualizando…
             </span>
           )}
@@ -799,14 +799,14 @@ export default function App() {
 
         {/* Banner modo consulta */}
         {modoConsulta && (
-          <div style={{ background:"#FFFBEB", borderBottom:"1px solid #FDE68A",
+          <div style={{ background:"var(--color-warning-bg)", borderBottom:"1px solid var(--color-warning-border)",
             padding:"7px 20px", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-            <span style={{ fontSize:13, color:"#92400E", fontWeight:600, display:"flex", alignItems:"center", gap:6 }}>
+            <span style={{ fontSize:13, color:"var(--color-warning-text)", fontWeight:600, display:"flex", alignItems:"center", gap:6 }}>
               <i className="ti ti-archive" aria-hidden="true" /> Modo consulta — estás viendo el trimestre {formatLapso(lapso)} (solo lectura)
             </span>
             <button onClick={() => handleCambiarLapso(getCurrentLapso())}
               style={{ marginLeft:"auto", fontSize:12, padding:"4px 12px", borderRadius:6,
-                border:"1px solid #FDE68A", background:"#fff", color:"#92400E",
+                border:"1px solid var(--color-warning-border)", background:"#fff", color:"var(--color-warning-text)",
                 cursor:"pointer", fontWeight:600, flexShrink:0, display:"flex", alignItems:"center", gap:5 }}>
               <i className="ti ti-arrow-back-up" aria-hidden="true" /> Volver al trimestre activo
             </button>
@@ -890,7 +890,7 @@ export default function App() {
           {view === "historial" && (
             <Suspense fallback={
               <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
-                height:240, color:"#64748B", fontSize:13, gap:8 }}>
+                height:240, color:"var(--color-text-tertiary)", fontSize:13, gap:8 }}>
                 <i className="ti ti-loader-2" style={{ fontSize:20,
                   animation:"spin 1s linear infinite" }} aria-hidden="true" />
                 Cargando historial…
@@ -910,7 +910,7 @@ export default function App() {
           {view === "logs" && permisos.puedeVerLogs && (
             <Suspense fallback={
               <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
-                height:240, color:"#64748B", fontSize:13, gap:8 }}>
+                height:240, color:"var(--color-text-tertiary)", fontSize:13, gap:8 }}>
                 <i className="ti ti-loader-2" style={{ fontSize:20,
                   animation:"spin 1s linear infinite" }} aria-hidden="true" />
                 Cargando registros…
@@ -922,7 +922,7 @@ export default function App() {
           {view === "usuarios" && (permisos.puedeGestionarUsuarios || permisos.puedeGestionarRoles) && (
             <Suspense fallback={
               <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
-                height:240, color:"#64748B", fontSize:13, gap:8 }}>
+                height:240, color:"var(--color-text-tertiary)", fontSize:13, gap:8 }}>
                 <i className="ti ti-loader-2" style={{ fontSize:20,
                   animation:"spin 1s linear infinite" }} aria-hidden="true" />
                 Cargando usuarios…
