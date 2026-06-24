@@ -17,17 +17,17 @@ const MODULES = [
     icon: "ti-calendar-event",
     title: "Gestión de Horarios",
     description: "Administra los horarios académicos del trimestre: docentes, materias, secciones, conflictos y reportes.",
-    color: "#2563EB",
-    bg: "#EFF6FF",
-    border: "#BFDBFE",
+    color: "var(--brand-500)",
+    bg: "var(--color-background-info)",
+    border: "var(--brand-200)",
   },
   {
     id: "asistencias",
     icon: "ti-circle-check",
     title: "Control de Asistencias",
     description: "Registro diario de presencia docente mediante código QR rotativo. Reportes y exportación por turno y programa.",
-    color: "#059669",
-    bg: "#ECFDF5",
+    color: "var(--color-success)",
+    bg: "var(--color-success-bg)",
     border: "#A7F3D0",
   },
 ];
@@ -43,7 +43,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
         alignItems: "center",
         justifyContent: "center",
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)",
+        background: "linear-gradient(135deg, var(--color-text-primary) 0%, var(--navy-800) 100%)",
         fontFamily: "system-ui, -apple-system, sans-serif",
         padding: 24,
       }}
@@ -66,22 +66,22 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
             margin: 0,
             fontSize: 22,
             fontWeight: 700,
-            color: "#F1F5F9",
+            color: "var(--color-background-tertiary)",
             letterSpacing: "-0.3px",
           }}
         >
           SIGMA
         </h1>
-        <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748B", letterSpacing: "0.02em" }}>
+        <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-text-tertiary)", letterSpacing: "0.02em" }}>
           Sistema Integrado de Gestión y Módulos Académicos
         </p>
-        <p style={{ margin: "10px 0 0", fontSize: 14, color: "#94A3B8" }}>
+        <p style={{ margin: "10px 0 0", fontSize: 14, color: "var(--color-text-tertiary)" }}>
           Bienvenido,{" "}
-          <span style={{ color: "#93C5FD", fontWeight: 600 }}>
+          <span style={{ color: "var(--color-border-info)", fontWeight: 600 }}>
             {profile?.nombre || profile?.email || "Usuario"}
           </span>
         </p>
-        <p style={{ margin: "10px 0 0", fontSize: 13, color: "#64748B" }}>
+        <p style={{ margin: "10px 0 0", fontSize: 13, color: "var(--color-text-tertiary)" }}>
           Selecciona el módulo al que deseas acceder
         </p>
       </div>
@@ -108,8 +108,8 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
               style={{
                 flex: "1 1 260px",
                 maxWidth: 300,
-                background: isHovered ? mod.bg : "#1E293B",
-                border: `2px solid ${isHovered ? mod.color : "#334155"}`,
+                background: isHovered ? mod.bg : "var(--navy-800)",
+                border: `2px solid ${isHovered ? mod.color : "var(--navy-700)"}`,
                 borderRadius: 16,
                 padding: "28px 24px",
                 cursor: "pointer",
@@ -127,7 +127,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
                   width: 52,
                   height: 52,
                   borderRadius: 14,
-                  background: isHovered ? `${mod.color}18` : "#0F172A",
+                  background: isHovered ? `${mod.color}18` : "var(--color-text-primary)",
                   border: `1.5px solid ${isHovered ? mod.border : "#1E3A5F"}`,
                   display: "flex",
                   alignItems: "center",
@@ -145,7 +145,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
                 style={{
                   fontSize: 16,
                   fontWeight: 700,
-                  color: isHovered ? mod.color : "#E2E8F0",
+                  color: isHovered ? mod.color : "var(--color-border-tertiary)",
                   marginBottom: 8,
                   transition: "color 0.18s",
                 }}
@@ -157,7 +157,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
               <div
                 style={{
                   fontSize: 13,
-                  color: isHovered ? "#334155" : "#94A3B8",
+                  color: isHovered ? "var(--navy-700)" : "var(--color-text-tertiary)",
                   lineHeight: 1.55,
                   transition: "color 0.18s",
                 }}
@@ -171,7 +171,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
                   marginTop: 18,
                   fontSize: 13,
                   fontWeight: 600,
-                  color: isHovered ? mod.color : "#475569",
+                  color: isHovered ? mod.color : "var(--color-text-secondary)",
                   display: "flex",
                   alignItems: "center",
                   gap: 4,
@@ -192,7 +192,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
           marginTop: 40,
           background: "none",
           border: "none",
-          color: "#475569",
+          color: "var(--color-text-secondary)",
           fontSize: 13,
           cursor: "pointer",
           display: "flex",
@@ -202,8 +202,8 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
           borderRadius: 8,
           transition: "color 0.15s",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = "#94A3B8")}
-        onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-tertiary)")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-secondary)")}
       >
         <i className="ti ti-logout" aria-hidden="true" /> Cerrar sesión
       </button>
