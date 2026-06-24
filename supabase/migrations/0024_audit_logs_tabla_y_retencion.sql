@@ -96,15 +96,8 @@ CREATE POLICY "Admins pueden leer audit_logs"
   FOR SELECT
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1
-      FROM   user_profiles up
-      WHERE  up.user_id = auth.uid()
-        AND  (
-               up.rol = 'superadmin'
-            OR (up.permisos->>'ver_logs')::boolean = true
-        )
-    )
+    tiene_permiso(auth.uid(), 'puedeVerLogs')
+    OR tiene_permiso(auth.uid(), 'puedeVerAuditoria')
   );
 
 -- Nadie puede insertar directamente (solo via log_audit_event)
@@ -149,7 +142,7 @@ BEGIN
   SELECT au.email, up.nombre
     INTO v_email, v_nombre
     FROM auth.users     au
-    LEFT JOIN user_profiles up ON up.user_id = au.id
+    LEFT JOIN user_profiles up ON up.id = au.id
    WHERE au.id = v_user_id;
 
   INSERT INTO public.audit_logs (
@@ -180,6 +173,8 @@ GRANT EXECUTE ON FUNCTION public.log_audit_event TO authenticated;
 --    Lectura paginada con filtros opcionales.
 --    Usada por LogsView.jsx.
 -- ════════════════════════════════════════════════════════════
+
+DROP FUNCTION IF EXISTS public.get_audit_logs(integer,integer,text,text,text,text);
 
 CREATE OR REPLACE FUNCTION public.get_audit_logs(
   p_limit    INTEGER DEFAULT 50,
