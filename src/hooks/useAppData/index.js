@@ -88,6 +88,7 @@ export default function useAppData(lapso, logAudit = null, userId = null) {
   const { clearAllData, exportarDatos, importarDatos: importarDatosBase } = createBackupActions({
     lapso, selectedPrograma, showToast, openConfirm, closeConfirm,
     setLoading, fetchHorarios, fetchProgramas, fetchDocenteNames, fetchMateriaNames,
+    logAudit,
   });
 
   // Misma firma pública que el useAppData.js original: importarDatos(file).
