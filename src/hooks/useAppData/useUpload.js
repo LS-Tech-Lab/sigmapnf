@@ -89,20 +89,22 @@ export default function useUpload({
     const { error: insertError } = await supabase.from("horarios").insert(newRows);
     if (insertError) {
       showToast("Error al guardar.", "error");
-    } else {
-      showToast(`${newRows.length} clases cargadas.`, "success");
-      await fetchHorarios(selectedPrograma);
-      await fetchProgramas(lapso);
-      const docs = new Set(), mats = new Set();
-      newRows.forEach(r => { const { docente, materia } = parseClase(r.clase); if (docente) docs.add(docente); if (materia) mats.add(materia); });
-      const docsArray = [...docs].map(d => ({ nombre_raw: d, nombre_display: d }));
-      const matsArray = [...mats].map(m => ({ nombre_raw: m, nombre_display: m }));
-      if (docsArray.length) await supabase.from("docentes").upsert(docsArray, { onConflict: "nombre_raw" });
-      if (matsArray.length) await supabase.from("materias").upsert(matsArray, { onConflict: "nombre_raw" });
-      await fetchDocenteNames();
-      await fetchMateriaNames();
-      setConflictsRefreshKey(k => k + 1);
+      clearTimeout(timeoutId);
+      setUploading(false);
+      return;
     }
+    showToast(`${newRows.length} clases cargadas.`, "success");
+    await fetchHorarios(selectedPrograma);
+    await fetchProgramas(lapso);
+    const docs = new Set(), mats = new Set();
+    newRows.forEach(r => { const { docente, materia } = parseClase(r.clase); if (docente) docs.add(docente); if (materia) mats.add(materia); });
+    const docsArray = [...docs].map(d => ({ nombre_raw: d, nombre_display: d }));
+    const matsArray = [...mats].map(m => ({ nombre_raw: m, nombre_display: m }));
+    if (docsArray.length) await supabase.from("docentes").upsert(docsArray, { onConflict: "nombre_raw" });
+    if (matsArray.length) await supabase.from("materias").upsert(matsArray, { onConflict: "nombre_raw" });
+    await fetchDocenteNames();
+    await fetchMateriaNames();
+    setConflictsRefreshKey(k => k + 1);
     clearTimeout(timeoutId);
     setUploading(false);
   };
