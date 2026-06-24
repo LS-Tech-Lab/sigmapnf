@@ -1,59 +1,47 @@
 -- ============================================================
 -- Migración: 0022_indices_asistencias.sql
 --
--- Agrega índices a asistencias_diarias para optimizar las
--- consultas más frecuentes del módulo QR:
+-- Índices sobre asistencias_diarias para optimizar consultas
+-- frecuentes del módulo QR (ReporteAsistencias, AdminQRPanel,
+-- VistaAusentes, cruce nombre→cédula).
 --
---   · ReporteAsistencias filtra por fecha + turno + programa
---   · AdminQRPanel consulta asistencias por qr_session_id
---   · VistaAusentes y ReporteRango filtran por cedula_docente
---   · Conteo rápido de escaneos para rotación del token QR
---
--- Sin estos índices, cualquier consulta a asistencias_diarias
--- hace un full table scan. Con un semestre completo (~150 días
--- × N docentes por turno), los reportes en tiempo real sufren
--- latencia visible en conexiones lentas (VE).
+-- NOTA: Estos índices fueron creados manualmente en Supabase
+-- antes de documentarse aquí. Esta migración es idempotente
+-- (IF NOT EXISTS) y puede aplicarse sin riesgo aunque ya existan.
 -- ============================================================
 
--- ── Índice principal: filtro por fecha (consulta más común) ─
+SET search_path TO public;
+
+-- Filtro por fecha (consulta más común en reportes)
 CREATE INDEX IF NOT EXISTS idx_asistencias_fecha
-  ON asistencias_diarias(fecha);
+  ON public.asistencias_diarias(fecha DESC);
 
--- ── Índice compuesto: fecha + turno (ReporteAsistencias) ────
--- Cubre el filtro combinado más usado en el reporte diario.
+-- Filtro compuesto fecha + turno (ReporteAsistencias diario)
 CREATE INDEX IF NOT EXISTS idx_asistencias_fecha_turno
-  ON asistencias_diarias(fecha, turno);
+  ON public.asistencias_diarias(fecha, turno);
 
--- ── Índice compuesto: fecha + programa ──────────────────────
--- Cubre el filtro de programa en ReporteAsistencias/ReporteRango.
+-- Filtro compuesto fecha + programa (ReporteRango por programa)
 CREATE INDEX IF NOT EXISTS idx_asistencias_fecha_programa
-  ON asistencias_diarias(fecha, programa);
+  ON public.asistencias_diarias(fecha, programa);
 
--- ── Índice por cédula docente ────────────────────────────────
--- Usado por VistaAusentes, exportCSV y búsquedas nominales.
+-- Búsqueda por cédula (VistaAusentes, exportCSV)
 CREATE INDEX IF NOT EXISTS idx_asistencias_cedula
-  ON asistencias_diarias(cedula_docente);
+  ON public.asistencias_diarias(cedula_docente);
 
--- ── Índice por sesión QR ─────────────────────────────────────
--- Usado por AdminQRPanel para contar y listar asistencias de
--- la sesión activa (widget de contador en tiempo real).
+-- Compuesto cédula + fecha + tipo (historial por docente)
+CREATE INDEX IF NOT EXISTS idx_asistencias_cedula_fecha_tipo
+  ON public.asistencias_diarias(cedula_docente, fecha, tipo);
+
+-- Sesión QR activa (contador en tiempo real de AdminQRPanel)
 CREATE INDEX IF NOT EXISTS idx_asistencias_qr_session
-  ON asistencias_diarias(qr_session_id);
+  ON public.asistencias_diarias(qr_session_id);
 
--- ── Índice por tipo (ENTRADA / SALIDA) ───────────────────────
--- Usado por el conteo de "solo_entrada" vs "completo" en el
--- reporte y en VistaAusentes.
+-- Tipo ENTRADA/SALIDA (conteo en reporte y VistaAusentes)
 CREATE INDEX IF NOT EXISTS idx_asistencias_tipo
-  ON asistencias_diarias(tipo);
+  ON public.asistencias_diarias(tipo);
 
-
--- ── Verificación post-migración ──────────────────────────────
--- Ejecutar para confirmar que los índices existen:
---
--- SELECT indexname, indexdef
--- FROM pg_indexes
--- WHERE tablename = 'asistencias_diarias'
---   AND indexname LIKE 'idx_asistencias_%'
--- ORDER BY indexname;
---
--- Resultado esperado: 6 filas.
+-- Cruce nombre_docente → docentes.nombre_raw (docentes_con_cedula RPC)
+-- Creado originalmente en 0009; se re-declara aquí para documentar
+-- el conjunto completo de índices de asistencias_diarias.
+CREATE INDEX IF NOT EXISTS idx_asistencias_nombre_docente
+  ON public.asistencias_diarias(LOWER(nombre_docente));
