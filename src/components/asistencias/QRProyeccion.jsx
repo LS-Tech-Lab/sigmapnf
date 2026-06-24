@@ -6,6 +6,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { QRDisplay, formatFechaVE, TURNOS_VISIBLES } from "./AdminQRPanel";
+import { supabase } from "../../lib/supabase";
+import { playRegistroSound } from "./useRegistroSound";
 
 const PASOS = [
   { icon: "📱", texto: "Abre la cámara de tu celular" },
@@ -17,8 +19,39 @@ const PASOS = [
 
 const OCULTAR_TRAS_MS = 4000; // ms sin movimiento para ocultar el top bar
 
-export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinutes, meta }) {
+export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinutes, meta, sessionId }) {
   const turnoInfo = meta?.turno ? TURNOS_VISIBLES.find(t => t.id === meta.turno) : null;
+
+  /* ── Contador en tiempo real ────────────────────────────────────────────── */
+  const [conteo, setConteo] = useState({ entradas: 0, salidas: 0 });
+  const conteoRef = useRef({ entradas: 0, salidas: 0 });
+
+  useEffect(() => {
+    if (!sessionId || !activa) { setConteo({ entradas: 0, salidas: 0 }); return; }
+
+    const fetchConteo = async () => {
+      const { data } = await supabase
+        .from("asistencias_diarias")
+        .select("cedula_docente, tipo")
+        .eq("qr_session_id", sessionId);
+      if (!data) return;
+      const entradas = new Set(data.filter(r => r.tipo === "ENTRADA").map(r => r.cedula_docente)).size;
+      const salidas  = new Set(data.filter(r => r.tipo === "SALIDA").map(r => r.cedula_docente)).size;
+      const prev = conteoRef.current;
+      if (prev.entradas + prev.salidas > 0 && entradas + salidas > prev.entradas + prev.salidas) {
+        playRegistroSound();
+      }
+      conteoRef.current = { entradas, salidas };
+      setConteo({ entradas, salidas });
+    };
+
+    fetchConteo();
+    const ch = supabase.channel(`proyeccion_conteo_${sessionId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "asistencias_diarias", filter: `qr_session_id=eq.${sessionId}` }, fetchConteo)
+      .subscribe();
+    const poll = setInterval(fetchConteo, 6000);
+    return () => { supabase.removeChannel(ch); clearInterval(poll); };
+  }, [sessionId, activa]);
 
   /* ── Top bar auto-hide ───────────────────────────────────────────────────── */
   const [barVisible, setBarVisible] = useState(true);
@@ -81,6 +114,26 @@ export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinu
                 </div>
               ))}
             </div>
+
+            {activa && (
+              <div style={styles.contadorWrap}>
+                <div style={styles.contadorItem}>
+                  <span style={{ ...styles.contadorNum, color: "#22C55E" }}>{conteo.entradas}</span>
+                  <span style={styles.contadorLabel}>
+                    <i className="ti ti-login" style={{ fontSize: 14 }} aria-hidden="true" />
+                    {conteo.entradas === 1 ? "docente entró" : "docentes entraron"}
+                  </span>
+                </div>
+                <div style={styles.contadorDivider} />
+                <div style={styles.contadorItem}>
+                  <span style={{ ...styles.contadorNum, color: "#F87171" }}>{conteo.salidas}</span>
+                  <span style={styles.contadorLabel}>
+                    <i className="ti ti-logout" style={{ fontSize: 14 }} aria-hidden="true" />
+                    {conteo.salidas === 1 ? "docente salió" : "docentes salieron"}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div style={styles.aviso}>
               <span style={styles.avisoIcon}>⚠️</span>
@@ -294,6 +347,43 @@ const styles = {
     fontWeight: 500,
     color: "#E2E8F0",
     lineHeight: 1.35,
+  },
+  contadorWrap: {
+    display: "flex",
+    alignItems: "center",
+    gap: 0,
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: 14,
+    padding: "18px 28px",
+    marginBottom: 20,
+  },
+  contadorItem: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 6,
+  },
+  contadorNum: {
+    fontSize: 52,
+    fontWeight: 900,
+    lineHeight: 1,
+    letterSpacing: "-0.03em",
+  },
+  contadorLabel: {
+    fontSize: 16,
+    color: "#94A3B8",
+    fontWeight: 500,
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  },
+  contadorDivider: {
+    width: 1,
+    height: 60,
+    background: "rgba(255,255,255,0.1)",
+    margin: "0 20px",
   },
   aviso: {
     display: "flex",
