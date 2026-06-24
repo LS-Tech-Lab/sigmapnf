@@ -5,7 +5,7 @@ import { parseClase } from "../../../utils/parsing";
 import { diaSemana } from "./helpers";
 import SkeletonRow from "./SkeletonRow";
 
-function VistaAusentes({ fecha, programa, cedulasPresentes }) {
+function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) {
   const [ausentes, setAusentes] = useState([]);
   const [loading,  setLoading]  = useState(false);
 
@@ -54,7 +54,9 @@ function VistaAusentes({ fecha, programa, cedulasPresentes }) {
         sinVincular: !cedulaPorNombre[d.nombre],
       }));
 
-      setAusentes(resultado.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      const sorted = resultado.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      setAusentes(sorted);
+      if (onAusentesChange) onAusentesChange(sorted);
       setLoading(false);
     };
 
