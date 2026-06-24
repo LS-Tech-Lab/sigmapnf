@@ -54,6 +54,19 @@ export default function App() {
   // ── Hook de sesión QR — vive AQUÍ para no perderse al cambiar sub-vista ──
   const qrSession = useQRSession();
 
+  // ── Si la URL trae ?proyeccion=1, ir directo a la vista de proyección ────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("proyeccion") === "1") {
+      setModuloActivo("asistencias");
+      setAsistenciasSubView("proyeccion");
+      // Limpiar el param de la URL sin recargar
+      const url = new URL(window.location.href);
+      url.searchParams.delete("proyeccion");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
+
   const [hovered,    setHovered]    = useState(false);
   const [pinned,     setPinned]     = useState(() => localStorage.getItem("sb_pinned") === "1");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -458,6 +471,7 @@ export default function App() {
               segundosRestantes={qrSession.segundosRestantes}
               ttlMinutes={qrSession.ttlMinutes}
               meta={qrSession.meta}
+              sessionId={qrSession.sessionId}
             />
           )}
           {asistenciasSubView === "reporte" && (
