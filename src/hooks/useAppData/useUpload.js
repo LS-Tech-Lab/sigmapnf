@@ -27,14 +27,14 @@ export default function useUpload({
     const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => nameLower.endsWith(ext));
     if (!hasValidExtension) {
       setError("Formato de archivo no válido. Solo se aceptan archivos .xlsx o .xls.");
-      showToast("❌ Formato de archivo no válido. Usa .xlsx o .xls.", "error");
+      showToast("Formato de archivo no válido. Usa .xlsx o .xls.", "error");
       return;
     }
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
       setError(`El archivo es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 10 MB.`);
-      showToast(`❌ Archivo demasiado grande (${sizeMB} MB). Máximo permitido: 10 MB.`, "error");
+      showToast(`Archivo demasiado grande (${sizeMB} MB). Máximo permitido: 10 MB.`, "error");
       return;
     }
 
@@ -45,7 +45,7 @@ export default function useUpload({
     const timeoutId = setTimeout(() => {
       setUploading(false);
       setError("La operación tardó demasiado. Verifica tu conexión e intenta de nuevo.");
-      showToast("❌ Tiempo de espera agotado. Verifica tu conexión.", "error");
+      showToast("Tiempo de espera agotado. Verifica tu conexión.", "error");
     }, UPLOAD_TIMEOUT_MS);
 
     let allRows, advertencias;
@@ -54,18 +54,18 @@ export default function useUpload({
       allRows      = resultado.rows;
       advertencias = resultado.advertencias;
       if (advertencias.length > 0) {
-        showToast(`⚠️ ${advertencias.join(" | ")}`, "warning");
+        showToast(`${advertencias.join(" | ")}`, "warning");
       }
     } catch (err) {
       setError("Error al leer el archivo: " + err.message);
-      showToast("❌ Error al leer el archivo: " + err.message, "error");
+      showToast("Error al leer el archivo: " + err.message, "error");
       setUploading(false);
       return;
     }
 
     if (!allRows.length) {
       setError("No se encontraron datos válidos.");
-      showToast("⚠️ No se encontraron datos válidos en el archivo.", "warning");
+      showToast("No se encontraron datos válidos en el archivo.", "warning");
       setUploading(false);
       return;
     }
@@ -84,13 +84,13 @@ export default function useUpload({
     const existingKeys = new Set(existingData?.map(r => `${r.sheet}|${r.dia}|${r.hora}|${r.clase}|${r.programa}`) || []);
     const newRows = allRows.filter(r => !existingKeys.has(`${r.sheet}|${r.dia}|${r.hora}|${r.clase}|${r.programa}`));
 
-    if (!newRows.length) { showToast("⚠️ Sin registros nuevos.", "warning"); setUploading(false); return; }
+    if (!newRows.length) { showToast("Sin registros nuevos.", "warning"); setUploading(false); return; }
 
     const { error: insertError } = await supabase.from("horarios").insert(newRows);
     if (insertError) {
-      showToast("❌ Error al guardar.", "error");
+      showToast("Error al guardar.", "error");
     } else {
-      showToast(`✅ ${newRows.length} clases cargadas.`, "success");
+      showToast(`${newRows.length} clases cargadas.`, "success");
       await fetchHorarios(selectedPrograma);
       await fetchProgramas(lapso);
       const docs = new Set(), mats = new Set();
