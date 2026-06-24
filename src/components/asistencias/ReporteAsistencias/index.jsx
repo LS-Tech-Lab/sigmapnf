@@ -27,6 +27,7 @@ export default function ReporteAsistencias({ onVolverPanel }) {
   const [error,    setError]    = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [tab,      setTab]      = useState("presentes");
+  const [ausentesParaPDF, setAusentesParaPDF] = useState([]);
 
   const fetchAsistencias = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -108,7 +109,7 @@ export default function ReporteAsistencias({ onVolverPanel }) {
             Vista semanal / rango
           </button>
           <button
-            onClick={() => exportarPDFDiario(filtrados, fecha, turno, programa)}
+            onClick={() => exportarPDFDiario(filtrados, fecha, turno, programa, ausentesParaPDF)}
             disabled={filtrados.length === 0}
             style={{ padding: "8px 14px", background: filtrados.length === 0 ? "#F1F5F9" : "#DC2626", border: "none", borderRadius: 8, cursor: filtrados.length === 0 ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, color: filtrados.length === 0 ? "#64748B" : "#fff", display: "flex", alignItems: "center", gap: 5 }}
           >
@@ -284,7 +285,7 @@ export default function ReporteAsistencias({ onVolverPanel }) {
 
       {/* Vista Ausentes */}
       {tab === "ausentes" && (
-        <VistaAusentes fecha={fecha} programa={programa} cedulasPresentes={cedulasPresentes} />
+        <VistaAusentes fecha={fecha} programa={programa} cedulasPresentes={cedulasPresentes} onAusentesChange={setAusentesParaPDF} />
       )}
     </div>
   );
