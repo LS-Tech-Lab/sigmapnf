@@ -28,7 +28,7 @@ import useUpload from "./useUpload";
 import { createNameEditingActions } from "./nameEditing";
 import { createBackupActions } from "./backupActions";
 
-export default function useAppData(lapso, logAudit = null) {
+export default function useAppData(lapso, logAudit = null, userId = null) {
   useEffect(() => { validarVersionCache(); }, []);
 
   const [selectedPrograma, setSelectedPrograma] = useState("todos");
@@ -42,7 +42,7 @@ export default function useAppData(lapso, logAudit = null) {
     setDocenteNames, setDocenteCedulas, setMateriaNames,
     fetchProgramas, fetchDocenteNames, fetchMateriaNames,
     getDocName, getDocCedula, getDocCedulaFuente, getMateriaName,
-  } = useNombresCache();
+  } = useNombresCache(userId);
 
   const {
     data, loading, setLoading, isSyncing, error, setError,
@@ -52,6 +52,7 @@ export default function useAppData(lapso, logAudit = null) {
     lapso, selectedPrograma, showToast,
     fetchDocenteNames, fetchMateriaNames, fetchProgramas,
     setConflictsRefreshKey,
+    userId,
   });
 
   const { conflicts, usingFallback: usingFallbackConflicts, refetchConflictos } = useConflictos({
