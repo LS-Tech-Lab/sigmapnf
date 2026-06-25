@@ -1,16 +1,80 @@
-// Mejora 6: guard defensivo — si clase es null/undefined/vacío, devuelve vacíos
-// en lugar de lanzar una excepción que tumbaría toda la app.
-export function parseClase(clase) {
+// =====================================================================
+// parsing.js
+//
+// parseClase(clase, catalogoDocentes?)
+//   Separa el texto de una celda de horario en { materia, docente }.
+//
+//   Estrategia (en orden de prioridad):
+//
+//   1. Separador textual "Prof / Profa / Profes" (comportamiento original).
+//      Cubre la mayoría de celdas en formato v1.
+//
+//   2. Matching por catálogo de docentes (nuevo formato v2).
+//      Si el separador no encontró un docente Y se provee un catálogo
+//      (array de strings con nombres canónicos), busca cuál nombre del
+//      catálogo aparece en la cadena y lo usa como punto de corte.
+//      Esto resuelve celdas como:
+//        "PROYECTO II ANILETH CALDERA"
+//        "Proyecto IV GLORIA FALCON"
+//      donde el nombre del docente no va precedido de "Prof".
+//
+//   El catálogo se pasa como argumento opcional para no acoplar este
+//   módulo a Supabase ni al estado global — la llamada en useUpload
+//   ya tendrá los nombres disponibles en memoria.
+//
+// normalizarPrograma(raw)
+//   Sin cambios respecto a v1.
+// =====================================================================
+
+/**
+ * @param {string} clase           - Texto crudo de la celda de horario.
+ * @param {string[]} [catalogoDocentes] - Nombres canónicos (nombre_raw) del
+ *                                        catálogo DOCENTES, en cualquier orden.
+ * @returns {{ materia: string, docente: string }}
+ */
+export function parseClase(clase, catalogoDocentes = []) {
   if (!clase || typeof clase !== "string") return { materia: "", docente: "" };
   const trimmed = clase.trim();
   if (!trimmed) return { materia: "", docente: "" };
-  // Mejora 9: el regex original no contemplaba "Profa." (forma femenina),
-  // detectado al escribir tests de cobertura — separaba "Materia Profa.
-  // Nombre" como una sola cadena en lugar de dividir materia/docente.
+
+  // ── Estrategia 1: separador "Prof / Profa / Profes" ─────────────────────
   // Orden de alternancia importante: "Profes?" antes que "Prof" evita que
   // "Profe"/"Profes" colapse prematuramente; "Profa?" cubre "Prof"/"Profa".
   const parts = trimmed.split(/\s+(?:Profes?\.?|Profa\.?|Prof\.?)\s+/i);
-  return { materia: parts[0].trim(), docente: parts[1] ? parts[1].trim() : "" };
+  if (parts.length >= 2) {
+    return { materia: parts[0].trim(), docente: parts[1].trim() };
+  }
+
+  // ── Estrategia 2: matching por catálogo canónico ─────────────────────────
+  // Solo se intenta si se proveyó un catálogo con al menos un nombre.
+  if (catalogoDocentes.length > 0) {
+    const upper = trimmed.toUpperCase();
+
+    // Ordenar por longitud descendente para evitar que un apellido corto
+    // haga match dentro de un nombre más largo (ej. "LEON" dentro de "VALDELON").
+    const ordenado = [...catalogoDocentes].sort((a, b) => b.length - a.length);
+
+    for (const nombre of ordenado) {
+      const nombreUpper = nombre.trim().toUpperCase();
+      if (!nombreUpper) continue;
+
+      const idx = upper.indexOf(nombreUpper);
+      if (idx === -1) continue;
+
+      // Verificar que el match empiece en un límite de palabra
+      const charAntes = idx > 0 ? upper[idx - 1] : " ";
+      if (charAntes !== " ") continue;
+
+      // materia = todo lo que precede al nombre del docente, sin trailing spaces
+      const materia = trimmed.slice(0, idx).trim();
+      const docente = trimmed.slice(idx).trim();
+
+      if (materia) return { materia, docente };
+    }
+  }
+
+  // ── Fallback: sin docente identificable ─────────────────────────────────
+  return { materia: trimmed, docente: "" };
 }
 
 export function normalizarPrograma(raw) {
