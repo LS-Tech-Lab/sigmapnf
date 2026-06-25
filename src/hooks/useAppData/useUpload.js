@@ -204,14 +204,44 @@ export default function useUpload({
             return;
           }
 
+          // ── Resolver docente_id / materia_id ──────────────────────────────
+          // Las filas ya traen r.docente y r.materia como strings canónicos.
+          // Consultamos los IDs reales de las tablas docentes y materias para
+          // poblar las FK antes de insertar. Cualquier nombre sin match en BD
+          // queda con null (se puede corregir luego en la vista de Docentes).
+
+          // Recopilar nombres únicos presentes en las filas nuevas
+          const nombresDocentes = [...new Set(newRows.map(r => r.docente).filter(Boolean))];
+          const nombresMaterias = [...new Set(newRows.map(r => r.materia).filter(Boolean))];
+
+          // Fetch IDs desde Supabase
+          const [{ data: docsDB }, { data: matsDB }] = await Promise.all([
+            nombresDocentes.length
+              ? supabase.from("docentes").select("id, nombre_raw").in("nombre_raw", nombresDocentes)
+              : Promise.resolve({ data: [] }),
+            nombresMaterias.length
+              ? supabase.from("materias").select("id, nombre_raw").in("nombre_raw", nombresMaterias)
+              : Promise.resolve({ data: [] }),
+          ]);
+
+          const docenteIdMap = Object.fromEntries((docsDB || []).map(d => [d.nombre_raw, d.id]));
+          const materiaIdMap = Object.fromEntries((matsDB || []).map(m => [m.nombre_raw, m.id]));
+
+          // Construir payload limpio: solo columnas que existen en la tabla horarios
+          const rowsParaInsertar = newRows.map(({ docente, materia, ...rest }) => ({
+            ...rest,
+            docente_id: (docente && docenteIdMap[docente]) || null,
+            materia_id: (materia && materiaIdMap[materia]) || null,
+          }));
+
           // Asegurar partición del lapso
           if (lapso) {
             const { error: partError } = await supabase.rpc("asegurar_particion_lapso", { p_lapso: lapso });
             if (partError) console.warn("asegurar_particion_lapso no disponible:", partError.message);
           }
 
-          // Insertar filas nuevas
-          const { error: insertError } = await supabase.from("horarios").insert(newRows);
+          // Insertar filas con IDs resueltos
+          const { error: insertError } = await supabase.from("horarios").insert(rowsParaInsertar);
           if (insertError) {
             if (timedOut) return;
             showToast("Error al guardar.", "error");
@@ -223,18 +253,6 @@ export default function useUpload({
 
           await fetchHorarios(selectedPrograma);
           await fetchProgramas(lapso);
-
-          // Upsert de nombres extraídos — ya resueltos en el parseo, no recalcular
-          const docs = new Set(), mats = new Set();
-          newRows.forEach(r => {
-            if (r.docente) docs.add(r.docente);
-            if (r.materia) mats.add(r.materia);
-          });
-          const docsArray = [...docs].map(d => ({ nombre_raw: d, nombre_display: d }));
-          const matsArray = [...mats].map(m => ({ nombre_raw: m, nombre_display: m }));
-          if (docsArray.length) await supabase.from("docentes").upsert(docsArray, { onConflict: "nombre_raw" });
-          if (matsArray.length) await supabase.from("materias").upsert(matsArray, { onConflict: "nombre_raw" });
-
           await fetchDocenteNames();
           await fetchMateriaNames();
           setConflictsRefreshKey(k => k + 1);
