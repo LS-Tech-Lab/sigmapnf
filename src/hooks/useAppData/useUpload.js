@@ -76,6 +76,8 @@ export default function useUpload({
       showToast("Tiempo de espera agotado. Verifica tu conexión.", "error");
     }, UPLOAD_TIMEOUT_MS);
 
+    try {
+
     // ── 1. Parsear filas de horario + workbook raw (en paralelo) ────────────
     let allRows, advertencias, workbookRaw;
     try {
@@ -89,16 +91,12 @@ export default function useUpload({
     } catch (err) {
       setError("Error al leer el archivo: " + err.message);
       showToast("Error al leer el archivo: " + err.message, "error");
-      setUploading(false);
-      clearTimeout(timeoutId);
       return;
     }
 
     if (!allRows.length) {
       setError("No se encontraron datos válidos.");
       showToast("No se encontraron datos válidos en el archivo.", "warning");
-      setUploading(false);
-      clearTimeout(timeoutId);
       return;
     }
 
@@ -174,8 +172,6 @@ export default function useUpload({
 
     if (!newRows.length) {
       showToast("Sin registros nuevos.", "warning");
-      setUploading(false);
-      clearTimeout(timeoutId);
       return;
     }
 
@@ -183,20 +179,13 @@ export default function useUpload({
       .from("horarios")
       .insert(newRows);
     if (insertError) {
-      clearTimeout(timeoutId);
       if (timedOut) return;
       showToast("Error al guardar.", "error");
-      setUploading(false);
       return;
     }
     if (timedOut) return;
 
     showToast(`${newRows.length} clases cargadas.`, "success");
-    logAudit?.({
-      accion: "IMPORTAR_EXCEL",
-      entidad: "horarios",
-      resumen: `${newRows.length} clases importadas. Lapso: ${lapso}. Programa: ${selectedPrograma}.`,
-    });
 
     await fetchHorarios(selectedPrograma);
     await fetchProgramas(lapso);
@@ -219,8 +208,17 @@ export default function useUpload({
     await fetchDocenteNames();
     await fetchMateriaNames();
     setConflictsRefreshKey(k => k + 1);
-    clearTimeout(timeoutId);
-    setUploading(false);
+    } catch (unexpectedErr) {
+      // Captura cualquier excepción no manejada para que uploading no quede atascado
+      console.error("Error inesperado en handleFileUpload:", unexpectedErr);
+      if (!timedOut) {
+        showToast("Error inesperado al procesar el archivo.", "error");
+        setError("Error inesperado: " + unexpectedErr.message);
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      if (!timedOut) setUploading(false);
+    }
   };
 
   return { uploading, setUploading, handleFileUpload };
