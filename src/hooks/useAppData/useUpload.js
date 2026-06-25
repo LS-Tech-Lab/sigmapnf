@@ -145,6 +145,27 @@ export default function useUpload({
       const warnings = [];
       if (advertencias.length > 0) warnings.push(...advertencias);
 
+      // Docentes del catálogo sin cédula — advertencia visible en el modal.
+      // Sin cédula no se pueden insertar en BD (cedula NOT NULL).
+      const normCedulaPrev = c => c ? c.replace(/[^0-9]/g, "") : null;
+      const docentesSinCedula = docentesCatalogo.filter(
+        d => !normCedulaPrev(d.cedula)
+      );
+      if (docentesSinCedula.length > 0) {
+        warnings.push(
+          `${docentesSinCedula.length} docente(s) sin cédula en la hoja DOCENTES: ` +
+          docentesSinCedula.map(d => d.nombre_raw).join(", ") +
+          ". No serán insertados en el catálogo."
+        );
+      }
+
+      // Clases cuyo docente resuelto no tiene cédula en el catálogo
+      const cedulasPorNombre = Object.fromEntries(
+        docentesCatalogo
+          .filter(d => normCedulaPrev(d.cedula))
+          .map(d => [d.nombre_raw, normCedulaPrev(d.cedula)])
+      );
+
       setPreviewData({
         rows:             allRows,
         newRows,
@@ -154,6 +175,7 @@ export default function useUpload({
         docentesCatalogo,
         mallaCatalogo,
         fileName:         file.name,
+        cedulasPorNombre,
       });
 
       // Definir la inserción que se ejecutará al confirmar
@@ -177,18 +199,16 @@ export default function useUpload({
           if (docentesCatalogo.length > 0) {
             const normCedula = c => c ? c.replace(/[^0-9]/g, "") : null;
 
-            const conCedula    = [];
-            const sinCedula    = [];
+            const conCedula = [];
 
             docentesCatalogo.forEach(({ nombre_raw, nombre_display, cedula, telefono, email, observaciones }) => {
               const cedulaNorm = normCedula(cedula);
-              const entry = { nombre_raw, nombre_display };
-              if (cedulaNorm)    entry.cedula        = cedulaNorm;
+              if (!cedulaNorm) return; // cédula obligatoria — omitir si no tiene
+              const entry = { nombre_raw, nombre_display, cedula: cedulaNorm };
               if (telefono)      entry.telefono      = telefono;
               if (email)         entry.email         = email;
               if (observaciones) entry.observaciones = observaciones;
-              if (cedulaNorm) conCedula.push(entry);
-              else            sinCedula.push(entry);
+              conCedula.push(entry);
             });
 
             if (conCedula.length > 0) {
@@ -196,12 +216,6 @@ export default function useUpload({
                 .from("docentes")
                 .upsert(conCedula, { onConflict: "cedula" });
               if (e1) console.warn("upsert DOCENTES (por cédula):", e1.message);
-            }
-            if (sinCedula.length > 0) {
-              const { error: e2 } = await supabase
-                .from("docentes")
-                .upsert(sinCedula, { onConflict: "nombre_raw" });
-              if (e2) console.warn("upsert DOCENTES (por nombre):", e2.message);
             }
           }
 
