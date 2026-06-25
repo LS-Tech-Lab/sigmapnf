@@ -20,6 +20,7 @@ const UsuariosView  = lazy(() => import("./components/UsuariosView"));
 const LogsView      = lazy(() => import("./components/LogsView"));
 // ── Módulo de Asistencias QR ──────────────────────────────────────────────────
 import ModuleSelector from "./components/ModuleSelector";
+import ErrorBoundary from "./components/ErrorBoundary";
 import ProgramaLogo from "./components/ProgramaLogo";
 import AdminQRPanel from "./components/asistencias/AdminQRPanel";
 import QRProyeccion from "./components/asistencias/QRProyeccion";
@@ -457,29 +458,31 @@ export default function App() {
 
         {/* Sub-vistas */}
         <main style={{ paddingTop: asistenciasSubView === "proyeccion" ? 0 : 52 }}>
-          {asistenciasSubView === "panel" && (
-            <AdminQRPanel
-              profile={profile}
-              onVerReporte={() => setAsistenciasSubView("reporte")}
-              onVerProyeccion={() => setAsistenciasSubView("proyeccion")}
-              {...qrSession}
-            />
-          )}
-          {asistenciasSubView === "proyeccion" && (
-            <QRProyeccion
-              activa={qrSession.activa}
-              qrUrl={qrSession.qrUrl}
-              segundosRestantes={qrSession.segundosRestantes}
-              ttlMinutes={qrSession.ttlMinutes}
-              meta={qrSession.meta}
-              sessionId={qrSession.sessionId}
-            />
-          )}
-          {asistenciasSubView === "reporte" && (
-            <ReporteAsistencias
-              onVolverPanel={() => setAsistenciasSubView("panel")}
-            />
-          )}
+          <ErrorBoundary>
+            {asistenciasSubView === "panel" && (
+              <AdminQRPanel
+                profile={profile}
+                onVerReporte={() => setAsistenciasSubView("reporte")}
+                onVerProyeccion={() => setAsistenciasSubView("proyeccion")}
+                {...qrSession}
+              />
+            )}
+            {asistenciasSubView === "proyeccion" && (
+              <QRProyeccion
+                activa={qrSession.activa}
+                qrUrl={qrSession.qrUrl}
+                segundosRestantes={qrSession.segundosRestantes}
+                ttlMinutes={qrSession.ttlMinutes}
+                meta={qrSession.meta}
+                sessionId={qrSession.sessionId}
+              />
+            )}
+            {asistenciasSubView === "reporte" && (
+              <ReporteAsistencias
+                onVolverPanel={() => setAsistenciasSubView("panel")}
+              />
+            )}
+          </ErrorBoundary>
         </main>
 
       </div>
