@@ -317,8 +317,9 @@ export default function HorariosLayout({
         <input
           ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }}
           onChange={e => {
-            if (e.target.files[0]) handleFileUploadAuditado(e.target.files[0]);
-            e.target.value = "";
+            const file = e.target.files[0];
+            e.target.value = "";   // reset ANTES de la llamada async para permitir re-selección
+            if (file) handleFileUploadAuditado(file);
           }}
         />
         <input
