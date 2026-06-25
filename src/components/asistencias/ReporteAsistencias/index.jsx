@@ -35,7 +35,7 @@ export default function ReporteAsistencias({ onVolverPanel }) {
 
     let query = supabase
       .from("asistencias_diarias")
-      .select("*")
+      .select("id, cedula_docente, nombre_docente, fecha, turno, programa, hora_registro, tipo, qr_session_id")
       .eq("fecha", fecha)
       .order("hora_registro", { ascending: true });
 
@@ -51,15 +51,29 @@ export default function ReporteAsistencias({ onVolverPanel }) {
   useEffect(() => { fetchAsistencias(); }, [fetchAsistencias]);
 
   useEffect(() => {
-    const ch = supabase.channel("reporte_realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "asistencias_diarias" }, () => fetchAsistencias(true))
-      .subscribe();
-    return () => supabase.removeChannel(ch);
-  }, [fetchAsistencias]);
+    let pollId = null;
 
-  useEffect(() => {
-    const id = setInterval(() => fetchAsistencias(true), POLL_FALLBACK_MS);
-    return () => clearInterval(id);
+    const ch = supabase.channel("reporte_realtime")
+      .on("postgres_changes",
+        { event: "INSERT", schema: "public", table: "asistencias_diarias" },
+        () => fetchAsistencias(true)
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          // Realtime falló — activar polling como respaldo
+          if (!pollId) {
+            pollId = setInterval(() => fetchAsistencias(true), POLL_FALLBACK_MS);
+          }
+        } else if (status === "SUBSCRIBED") {
+          // Realtime OK — cancelar polling si estaba activo
+          if (pollId) { clearInterval(pollId); pollId = null; }
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(ch);
+      if (pollId) clearInterval(pollId);
+    };
   }, [fetchAsistencias]);
 
   const docentesAgrupados = useMemo(() => agruparPorDocente(rows), [rows]);
