@@ -155,7 +155,7 @@ export default function useUpload({
         warnings.push(
           `${docentesSinCedula.length} docente(s) sin cédula en la hoja DOCENTES: ` +
           docentesSinCedula.map(d => d.nombre_raw).join(", ") +
-          ". No serán insertados en el catálogo."
+          ". Serán insertados pero deben completar su cédula en el menú Docentes."
         );
       }
 
@@ -199,23 +199,34 @@ export default function useUpload({
           if (docentesCatalogo.length > 0) {
             const normCedula = c => c ? c.replace(/[^0-9]/g, "") : null;
 
-            const conCedula = [];
+            const conCedula    = [];
+            const sinCedulaArr = [];
 
             docentesCatalogo.forEach(({ nombre_raw, nombre_display, cedula, telefono, email, observaciones }) => {
               const cedulaNorm = normCedula(cedula);
-              if (!cedulaNorm) return; // cédula obligatoria — omitir si no tiene
-              const entry = { nombre_raw, nombre_display, cedula: cedulaNorm };
+              const entry = { nombre_raw, nombre_display };
+              if (cedulaNorm)    entry.cedula        = cedulaNorm;
               if (telefono)      entry.telefono      = telefono;
               if (email)         entry.email         = email;
               if (observaciones) entry.observaciones = observaciones;
-              conCedula.push(entry);
+              if (cedulaNorm) conCedula.push(entry);
+              else            sinCedulaArr.push(entry);
             });
 
+            // Docentes con cédula → upsert por cédula (evita duplicados entre archivos)
             if (conCedula.length > 0) {
               const { error: e1 } = await supabase
                 .from("docentes")
                 .upsert(conCedula, { onConflict: "cedula" });
               if (e1) console.warn("upsert DOCENTES (por cédula):", e1.message);
+            }
+
+            // Docentes sin cédula → upsert por nombre_raw (quedan pendientes de completar)
+            if (sinCedulaArr.length > 0) {
+              const { error: e2 } = await supabase
+                .from("docentes")
+                .upsert(sinCedulaArr, { onConflict: "nombre_raw" });
+              if (e2) console.warn("upsert DOCENTES (sin cédula, por nombre_raw):", e2.message);
             }
           }
 
@@ -288,7 +299,8 @@ export default function useUpload({
           const { error: insertError } = await supabase.from("horarios").insert(rowsParaInsertar);
           if (insertError) {
             if (timedOut) return;
-            showToast("Error al guardar.", "error");
+            console.error("insert horarios:", insertError);
+            showToast(`Error al guardar: ${insertError.message}`, "error");
             return;
           }
           if (timedOut) return;
