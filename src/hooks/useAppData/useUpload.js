@@ -191,9 +191,10 @@ export default function useUpload({
     await fetchProgramas(lapso);
 
     // Upsert docentes/materias extraídos de las celdas de clase (comportamiento original)
+    const catalogoNombres = docentesCatalogo.map(d => d.nombre_raw);
     const docs = new Set(), mats = new Set();
     newRows.forEach(r => {
-      const { docente, materia } = parseClase(r.clase);
+  const { docente, materia } = parseClase(r.clase, catalogoNombres);
       if (docente) docs.add(docente);
       if (materia) mats.add(materia);
     });
