@@ -72,7 +72,7 @@ function SectionHeader({ icon, label, count, accent }) {
 
 // ── Subcomponente: tabla de registros ────────────────────────────────
 
-function TablaRegistros({ rows, getDocente, getMateria, limit = 200 }) {
+function TablaRegistros({ rows, limit = 200 }) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? rows : rows.slice(0, limit);
   const hasMore  = rows.length > limit;
@@ -119,7 +119,7 @@ function TablaRegistros({ rows, getDocente, getMateria, limit = 200 }) {
                   {dia}
                 </div>
                 {bySec[sec][dia].map((r, i) => {
-                  const { mat, doc, noDoc } = parseRow(r, getDocente, getMateria);
+                  const { mat, doc, noDoc } = parseRow(r);
                   return (
                     <div key={i} style={{
                       display: "grid",
@@ -172,26 +172,13 @@ function TablaRegistros({ rows, getDocente, getMateria, limit = 200 }) {
   );
 }
 
-function parseRow(r, getDocente, getMateria) {
-  // La materia y docente pueden venir como IDs o como texto crudo en r.clase
-  let mat = r.materia_display || (getMateria ? getMateria(r.clase) : null);
-  let doc = r.docente_display || (getDocente ? getDocente(r.clase) : null);
-
-  // Fallback: leer r.clase directamente para preview (no requiere catálogo)
-  if (!mat && !doc && r.clase) {
-    // División simple por \n o por "Prof"
-    const partes = r.clase.split(/\n/);
-    if (partes.length >= 2) {
-      mat = partes[0].trim();
-      doc = partes[1].replace(/^Prof[a-z.:\s]*/i, "").trim();
-    } else {
-      const m = r.clase.match(/^(.+?)\s+Prof[^\s]*\.?\s*:?\s+(.+)$/i);
-      if (m) { mat = m[1].trim(); doc = m[2].trim(); }
-      else mat = r.clase;
-    }
-  }
-
-  const noDoc = !doc || doc === "";
+function parseRow(r) {
+  // Leer los campos ya resueltos por parseClase en el parseo del Excel.
+  // r.materia y r.docente son strings canónicos (o null) poblados antes
+  // de llegar al modal; no hay que re-parsear r.clase aquí.
+  const mat = r.materia || null;
+  const doc = r.docente || null;
+  const noDoc = !doc;
   return { mat, doc, noDoc };
 }
 
@@ -294,10 +281,7 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
     fileName = "",
   } = data;
 
-  const sinDocente   = newRows.filter(r => {
-    const { noDoc } = parseRow(r, null, null);
-    return noDoc;
-  });
+  const sinDocente = newRows.filter(r => !r.docente);
 
   const totalAdv = advertencias.length + warnings.length;
   const hayProblemas = sinDocente.length > 0 || totalAdv > 0;
