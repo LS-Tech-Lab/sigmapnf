@@ -269,3 +269,211 @@ describe("parseExcelFile — errores de lectura", () => {
     }
   });
 });
+
+// =====================================================================
+// Tests del formato v2 (nuevo formato unificado)
+// =====================================================================
+
+import {
+  parseHojaConfiguracion,
+  parseHojaDocentes,
+  parseHojaMalla,
+} from "./excelParser";
+
+// ── Helper: construir workbook con múltiples hojas ───────────────────
+function construirWorkbookConHojas(hojas) {
+  // hojas: [{ name, aoa }]
+  const wb = XLSX.utils.book_new();
+  hojas.forEach(({ name, aoa }) => {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), name);
+  });
+  return wb;
+}
+
+function workbookToFile(wb) {
+  const bin = XLSX.write(wb, { type: "binary", bookType: "xlsx" });
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 0xff;
+  return new File([bytes], "test.xlsx", {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+}
+
+// ── parseHojaConfiguracion ────────────────────────────────────────────
+describe("parseHojaConfiguracion", () => {
+  it("extrae sede y programa de la hoja CONFIGURACIÓN", () => {
+    const wb = construirWorkbookConHojas([{
+      name: "CONFIGURACIÓN",
+      aoa: [
+        ["Sede:", "Sede Central"],
+        ["Programa:", "PNF Educación Especial"],
+        ["Trimestre académico:", "II-2026"],
+      ],
+    }]);
+    const cfg = parseHojaConfiguracion(wb);
+    expect(cfg.sede).toBe("Sede Central");
+    expect(cfg.programa).toBe("PNF Educación Especial");
+    expect(cfg.trimestre).toBe("II-2026");
+  });
+
+  it("devuelve campos vacíos si la hoja no existe (workbook v1)", () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["A", "B"]]), "SEC11");
+    const cfg = parseHojaConfiguracion(wb);
+    expect(cfg.sede).toBe("");
+    expect(cfg.programa).toBe("");
+  });
+});
+
+// ── parseHojaDocentes ─────────────────────────────────────────────────
+describe("parseHojaDocentes", () => {
+  it("extrae docentes con todos los campos del catálogo", () => {
+    const wb = construirWorkbookConHojas([{
+      name: "DOCENTES",
+      aoa: [
+        ["ID", "Apellidos y Nombres", "Cédula", "Teléfono", "Email", "Observaciones"],
+        [1, "García Pérez Juan", "V-12345678", "0414-1234567", "juan@mail.com", ""],
+        [2, "López María", "V-87654321", "", "", "Activa"],
+      ],
+    }]);
+    const docs = parseHojaDocentes(wb);
+    expect(docs).toHaveLength(2);
+    expect(docs[0].nombre_raw).toBe("García Pérez Juan");
+    expect(docs[0].cedula).toBe("V-12345678");
+    expect(docs[0].email).toBe("juan@mail.com");
+    expect(docs[1].nombre_raw).toBe("López María");
+    expect(docs[1].observaciones).toBe("Activa");
+  });
+
+  it("devuelve [] si la hoja DOCENTES no existe (workbook v1)", () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["A"]]), "SEC11");
+    expect(parseHojaDocentes(wb)).toEqual([]);
+  });
+
+  it("omite filas sin nombre", () => {
+    const wb = construirWorkbookConHojas([{
+      name: "DOCENTES",
+      aoa: [
+        ["ID", "Apellidos y Nombres", "Cédula"],
+        [1, "García Juan", "V-111"],
+        [2, "", "V-222"],
+      ],
+    }]);
+    expect(parseHojaDocentes(wb)).toHaveLength(1);
+  });
+});
+
+// ── parseHojaMalla ────────────────────────────────────────────────────
+describe("parseHojaMalla", () => {
+  it("extrae unidades curriculares con trayecto y código UC", () => {
+    const wb = construirWorkbookConHojas([{
+      name: "MALLA",
+      aoa: [
+        ["ID", "Unidad Curricular", "Trayecto", "Código UC", "Horas Semanales", "Unidades de Crédito"],
+        [1, "Proyecto I", "1-1", "UC-001", "6", "4"],
+        [2, "Matemáticas", "1-2", "UC-002", "4", "3"],
+      ],
+    }]);
+    const mats = parseHojaMalla(wb);
+    expect(mats).toHaveLength(2);
+    expect(mats[0].nombre_raw).toBe("Proyecto I");
+    expect(mats[0].trayecto).toBe("1-1");
+    expect(mats[0].codigo_uc).toBe("UC-001");
+    expect(mats[1].horas_semanales).toBe("4");
+  });
+
+  it("devuelve [] si la hoja MALLA no existe (workbook v1)", () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["A"]]), "SEC11");
+    expect(parseHojaMalla(wb)).toEqual([]);
+  });
+});
+
+// ── Hojas ignoradas silenciosamente ──────────────────────────────────
+describe("parseExcelFile — hojas ignoradas (formato v2)", () => {
+  it("no reporta advertencia por DOCENTES, MALLA, INSTRUCCIONES, CONFIGURACIÓN", async () => {
+    const hojaHorario = XLSX.utils.aoa_to_sheet([
+      ["HORA", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"],
+      ["7:00AM - 7:45AM", "Matemáticas Prof. Juan García", "", "", "", ""],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, hojaHorario, "SEC11");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["x"]]), "DOCENTES");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["x"]]), "MALLA");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["x"]]), "INSTRUCCIONES");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["x"]]), "CONFIGURACIÓN");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["x"]]), "BASE DIURNO");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["x"]]), "BASE VESP.");
+
+    const file = workbookToFile(wb);
+    const { rows, advertencias, rechazadas } = await parseExcelFile(file, { selectedPrograma: "todos" });
+
+    expect(rows).toHaveLength(1);
+    expect(rechazadas).toHaveLength(0);
+    expect(advertencias).toHaveLength(0);
+  });
+
+  it("usa CONFIGURACIÓN como fallback de sede cuando la hoja de horario no la tiene", async () => {
+    const hojaHorario = XLSX.utils.aoa_to_sheet([
+      ["HORA", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"],
+      ["7:00AM - 7:45AM", "Matemáticas Prof. Juan García", "", "", "", ""],
+    ]);
+    const hojaConfig = XLSX.utils.aoa_to_sheet([
+      ["Sede:", "Sede Los Puertos"],
+      ["Programa:", "PNF Educación Especial"],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, hojaHorario, "SEC11");
+    XLSX.utils.book_append_sheet(wb, hojaConfig, "CONFIGURACIÓN");
+
+    const file = workbookToFile(wb);
+    const { rows } = await parseExcelFile(file, { selectedPrograma: "todos" });
+    expect(rows[0].sede).toBe("Sede Los Puertos");
+  });
+
+  it("acepta etiquetas en mayúsculas (SEDE, SECCIÓN, TURNO) del nuevo formato", async () => {
+    const aoa = [
+      ["SEDE", "Sede Maracaibo"],
+      ["SECCIÓN", "B"],
+      ["TURNO", "VESPERTINO"],
+      ["HORA", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"],
+      ["7:00AM - 7:45AM", "Proyecto I Prof. García", "", "", "", ""],
+    ];
+    const file = construirArchivoExcel(aoa, [], "SEC21");
+    const { rows } = await parseExcelFile(file, { selectedPrograma: "todos" });
+    expect(rows[0].sede).toBe("Sede Maracaibo");
+    expect(rows[0].seccion).toBe("B");
+  });
+});
+
+// ── parseClase con catálogo ───────────────────────────────────────────
+import { parseClase } from "./parsing";
+
+describe("parseClase — estrategia 2: catálogo de docentes", () => {
+  const catalogo = ["ANILETH CALDERA", "GLORIA FALCON", "FRANCISCO VILCHEZ"];
+
+  it("separa materia y docente cuando no hay prefijo Prof pero hay match en catálogo", () => {
+    const { materia, docente } = parseClase("PROYECTO II ANILETH CALDERA", catalogo);
+    expect(materia).toBe("PROYECTO II");
+    expect(docente).toBe("ANILETH CALDERA");
+  });
+
+  it("prioriza el separador Prof sobre el catálogo", () => {
+    const { materia, docente } = parseClase("Matemáticas Prof. GLORIA FALCON", catalogo);
+    expect(materia).toBe("Matemáticas");
+    expect(docente).toBe("GLORIA FALCON");
+  });
+
+  it("devuelve toda la cadena como materia si no hay Prof ni match en catálogo", () => {
+    const { materia, docente } = parseClase("ORIENTACION Y TUTORIA", catalogo);
+    expect(materia).toBe("ORIENTACION Y TUTORIA");
+    expect(docente).toBe("");
+  });
+
+  it("funciona sin catálogo (backward compatible)", () => {
+    const { materia, docente } = parseClase("Materia Prof. López");
+    expect(materia).toBe("Materia");
+    expect(docente).toBe("López");
+  });
+});
