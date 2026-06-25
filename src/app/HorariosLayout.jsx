@@ -10,6 +10,7 @@ import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import ModalCambiarPassword from "../components/ModalCambiarPassword";
 import ResumenView from "../components/ResumenView";
+import UploadPreviewModal from "../components/UploadPreviewModal";
 import HorariosView from "../components/HorariosView";
 import SeccionesView from "../components/SeccionesView";
 import DocentesView from "../components/DocentesView";
@@ -129,6 +130,13 @@ export default function HorariosLayout({
           showToast={appData.showToast}
         />
       )}
+
+      <UploadPreviewModal
+        open={!!appData.previewData}
+        data={appData.previewData}
+        onConfirm={appData.confirmPreview}
+        onCancel={appData.cancelPreview}
+      />
 
       {appData.toast && (
         <Toast message={appData.toast.message} type={appData.toast.type} onClose={appData.hideToast} />
