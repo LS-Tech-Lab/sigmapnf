@@ -2,8 +2,8 @@
 // parseo, detección de duplicados e inserción de filas nuevas.
 //
 // Flujo v3 (vista previa antes de confirmar):
-//   1. Parsear Excel + leer workbook raw (en paralelo)
-//   2. Upsert catálogo DOCENTES y MALLA (hoja v2)
+//   1. Leer workbook raw → extraer catálogos
+//   2. Parsear Excel con catálogo disponible (docente resuelto en el parseo)
 //   3. Detectar duplicados
 //   4. Abrir UploadPreviewModal con { rows, newRows, duplicados, advertencias,
 //      docentesCatalogo, mallaCatalogo }
@@ -12,7 +12,6 @@
 
 import { useState, useCallback } from "react";
 import * as XLSX from "xlsx";
-import { parseClase } from "../../utils/parsing";
 import { parseExcelFile, parseHojaDocentes, parseHojaMalla } from "../../utils/excelParser";
 import { supabase } from "../../lib/supabase";
 
@@ -82,13 +81,31 @@ export default function useUpload({
     setUploading(true);
 
     try {
-      // ── 1. Parsear filas de horario + workbook raw (en paralelo) ───────
-      let allRows, advertencias, workbookRaw;
+      // ── 1. Leer workbook raw primero para tener el catálogo disponible ──
+      let workbookRaw;
       try {
-        [{ rows: allRows, advertencias }, workbookRaw] = await Promise.all([
-          parseExcelFile(file, { lapso, selectedPrograma }),
-          leerWorkbookRaw(file),
-        ]);
+        workbookRaw = await leerWorkbookRaw(file);
+      } catch (err) {
+        setError("Error al leer el archivo: " + err.message);
+        showToast("Error al leer el archivo: " + err.message, "error");
+        setUploading(false);
+        return;
+      }
+
+      // ── 2. Extraer catálogos del workbook ──────────────────────────────
+      const docentesCatalogo = parseHojaDocentes(workbookRaw);
+      const mallaCatalogo    = parseHojaMalla(workbookRaw);
+
+      // ── 3. Parsear filas con catálogo disponible ───────────────────────
+      //    parseExcelFile llama a parseClase con catalogoDocentes en cada
+      //    celda, por lo que cada fila ya sale con docente y materia resueltos.
+      let allRows, advertencias;
+      try {
+        ({ rows: allRows, advertencias } = await parseExcelFile(file, {
+          lapso,
+          selectedPrograma,
+          catalogoDocentes: docentesCatalogo.map(d => d.nombre_raw),
+        }));
       } catch (err) {
         setError("Error al leer el archivo: " + err.message);
         showToast("Error al leer el archivo: " + err.message, "error");
@@ -103,11 +120,7 @@ export default function useUpload({
         return;
       }
 
-      // ── 2. Leer catálogos del workbook (sin upsert todavía) ────────────
-      const docentesCatalogo = parseHojaDocentes(workbookRaw);
-      const mallaCatalogo    = parseHojaMalla(workbookRaw);
-
-      // ── 3. Detectar duplicados ─────────────────────────────────────────
+      // ── 4. Detectar duplicados ─────────────────────────────────────────
       const sheetsEnArchivo    = [...new Set(allRows.map(r => r.sheet))];
       const programasEnArchivo = [...new Set(allRows.map(r => r.programa))];
 
@@ -126,7 +139,7 @@ export default function useUpload({
       const newRows    = allRows.filter(r => !existingKeys.has(`${r.sheet}|${r.dia}|${r.hora}|${r.clase}|${r.programa}`));
       const duplicados = allRows.filter(r =>  existingKeys.has(`${r.sheet}|${r.dia}|${r.hora}|${r.clase}|${r.programa}`));
 
-      // ── 4. Abrir modal de vista previa ─────────────────────────────────
+      // ── 5. Abrir modal de vista previa ─────────────────────────────────
       //    La inserción real se encapsula en pendingInsert y se ejecuta
       //    solo si el usuario confirma.
       const warnings = [];
@@ -211,13 +224,11 @@ export default function useUpload({
           await fetchHorarios(selectedPrograma);
           await fetchProgramas(lapso);
 
-          // Upsert de nombres extraídos de las celdas (comportamiento original)
-          const catalogoNombres = docentesCatalogo.map(d => d.nombre_raw);
+          // Upsert de nombres extraídos — ya resueltos en el parseo, no recalcular
           const docs = new Set(), mats = new Set();
           newRows.forEach(r => {
-            const { docente, materia } = parseClase(r.clase, catalogoNombres);
-            if (docente) docs.add(docente);
-            if (materia) mats.add(materia);
+            if (r.docente) docs.add(r.docente);
+            if (r.materia) mats.add(r.materia);
           });
           const docsArray = [...docs].map(d => ({ nombre_raw: d, nombre_display: d }));
           const matsArray = [...mats].map(m => ({ nombre_raw: m, nombre_display: m }));
