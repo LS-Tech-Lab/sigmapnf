@@ -15,6 +15,51 @@ import AsistenciasModulo from "./app/AsistenciasModulo";
 import CuentaDesactivada from "./app/CuentaDesactivada";
 import SinPerfilAsignado from "./app/SinPerfilAsignado";
 
+// Hook que monta los inputs de archivo en document.body directamente,
+// sin pasar por el árbol de React. Así nunca se desmontan por re-renders
+// condicionales (pantallas de loading, login, etc.) y los refs siempre
+// apuntan a un nodo DOM válido.
+function useFileInputs({ fileRef, backupRef, onFile, onBackup }) {
+  const onFileRef    = useRef(onFile);
+  const onBackupRef  = useRef(onBackup);
+  useEffect(() => { onFileRef.current   = onFile;   }, [onFile]);
+  useEffect(() => { onBackupRef.current = onBackup; }, [onBackup]);
+
+  useEffect(() => {
+    const xlsxInput = document.createElement("input");
+    xlsxInput.type   = "file";
+    xlsxInput.accept = ".xlsx,.xls";
+    xlsxInput.style.display = "none";
+    xlsxInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      xlsxInput.value = "";
+      if (file) onFileRef.current(file);
+    });
+    document.body.appendChild(xlsxInput);
+    fileRef.current = xlsxInput;
+
+    const jsonInput = document.createElement("input");
+    jsonInput.type   = "file";
+    jsonInput.accept = ".json";
+    jsonInput.style.display = "none";
+    jsonInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      jsonInput.value = "";
+      if (file) onBackupRef.current(file);
+    });
+    document.body.appendChild(jsonInput);
+    backupRef.current = jsonInput;
+
+    return () => {
+      document.body.removeChild(xlsxInput);
+      document.body.removeChild(jsonInput);
+      fileRef.current   = null;
+      backupRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // solo al montar/desmontar App
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function App() {
   // ── Navegación ────────────────────────────────────────────────────────────
@@ -143,6 +188,15 @@ export default function App() {
 
   // appData con exportación auditada
   const appDataAuditada = { ...appData, exportarDatos: handleExportarAuditado };
+
+  // Inputs de archivo montados en document.body: permanecen vivos sin importar
+  // qué pantalla esté renderizando App (loading, login, etc.)
+  useFileInputs({
+    fileRef,
+    backupRef,
+    onFile:   handleFileUploadAuditado,
+    onBackup: (file) => appDataAuditada.importarDatos(file),
+  });
 
   // ── Guards ────────────────────────────────────────────────────────────────
 
@@ -297,24 +351,6 @@ export default function App() {
         tieneHorarios={tieneHorarios}
         tieneQR={tieneQR}
         onCambiarModulo={() => setModuloActivo(null)}
-      />
-      {/* Inputs de archivo fuera del sidebar para evitar re-renders que
-          invaliden el onChange mientras el file picker del SO está abierto */}
-      <input
-        ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }}
-        onChange={e => {
-          const file = e.target.files[0];
-          e.target.value = "";
-          if (file) handleFileUploadAuditado(file);
-        }}
-      />
-      <input
-        ref={backupRef} type="file" accept=".json" style={{ display: "none" }}
-        onChange={e => {
-          const file = e.target.files[0];
-          e.target.value = "";
-          if (file) appDataAuditada.importarDatos(file);
-        }}
       />
     </>
   );
