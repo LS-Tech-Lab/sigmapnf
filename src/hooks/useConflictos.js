@@ -36,9 +36,11 @@ function adaptarFilasRpc(rows) {
   (rows || []).forEach((row) => {
     const a = row.horario_a;
     const b = row.horario_b;
-    const rawDocente = parseClase(a?.clase || a?.clase_raw).docente
-      || parseClase(b?.clase || b?.clase_raw).docente
-      || row.docente_nombre;
+    // M-6: priorizar docente_nombre que ya viene resuelto desde la RPC;
+    // parseClase solo como último recurso para registros sin docente_id.
+    const rawDocente = row.docente_nombre
+      || parseClase(a?.clase || a?.clase_raw).docente
+      || parseClase(b?.clase || b?.clase_raw).docente;
 
     let grupo = issues.find(
       (c) => c.docente === rawDocente && c.dia === row.dia
