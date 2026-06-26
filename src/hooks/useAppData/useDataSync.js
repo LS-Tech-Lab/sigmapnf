@@ -57,7 +57,7 @@ export default function useDataSync({
       while (hayMas) {
         let query = supabase
           .from("horarios")
-          .select("*, docentes(nombre_raw)")
+          .select("*, docentes(nombre_raw), materias(nombre_raw)")
           .gt("id", cursor)
           .order("id", { ascending: true })
           .limit(PAGE_SIZE);
@@ -151,14 +151,24 @@ export default function useDataSync({
   const byDocente = useMemo(() => {
     const m = {};
     if (!data) return m;
-    data.forEach(d => { const key = d.docentes?.nombre_raw || (parseClase(d.clase).docente) || null; if (key) { if (!m[key]) m[key] = []; m[key].push(d); } });
+    data.forEach(d => {
+      // Prioridad: join docentes(nombre_raw) > parseClase(clase) como fallback
+      // para registros legacy sin docente_id vinculado.
+      const key = d.docentes?.nombre_raw || parseClase(d.clase).docente || null;
+      if (key) { if (!m[key]) m[key] = []; m[key].push(d); }
+    });
     return m;
   }, [data]);
 
   const byMateria = useMemo(() => {
     const m = {};
     if (!data) return m;
-    data.forEach(d => { const { materia } = parseClase(d.clase); if (materia) { if (!m[materia]) m[materia] = []; m[materia].push(d); } });
+    data.forEach(d => {
+      // Prioridad: join materias(nombre_raw) > columna materia (si existe) >
+      // parseClase(clase) como último recurso para registros legacy.
+      const key = d.materias?.nombre_raw || d.materia || parseClase(d.clase).materia || null;
+      if (key) { if (!m[key]) m[key] = []; m[key].push(d); }
+    });
     return m;
   }, [data]);
 
