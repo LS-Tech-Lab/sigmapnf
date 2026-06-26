@@ -97,11 +97,11 @@ export default function useUpload({
       const mallaCatalogo    = parseHojaMalla(workbookRaw);
 
       // ── 3. Parsear filas con catálogo disponible ───────────────────────
-      //    parseExcelFile llama a parseClase con catalogoDocentes en cada
-      //    celda, por lo que cada fila ya sale con docente y materia resueltos.
+      //    Pasamos workbookRaw directamente para evitar leer el archivo
+      //    por segunda vez. parseExcelFile acepta File o workbook XLSX.
       let allRows, advertencias;
       try {
-        ({ rows: allRows, advertencias } = await parseExcelFile(file, {
+        ({ rows: allRows, advertencias } = await parseExcelFile(workbookRaw, {
           lapso,
           selectedPrograma,
           catalogoDocentes: docentesCatalogo.map(d => d.nombre_raw),
@@ -259,24 +259,42 @@ export default function useUpload({
 
           // ── Resolver docente_id / materia_id ──────────────────────────────
           // Las filas ya traen r.docente y r.materia como strings canónicos.
-          // Consultamos los IDs reales de las tablas docentes y materias para
-          // poblar las FK antes de insertar. Cualquier nombre sin match en BD
-          // queda con null (se puede corregir luego en la vista de Docentes).
+          //
+          // Problema (C-2): cuando el upsert anterior usó onConflict "cedula",
+          // el nombre_raw que quedó en BD puede ser distinto al del Excel
+          // (el registro ya existía con otro nombre canónico). Buscar solo por
+          // nombre_raw falla silenciosamente → docente_id = null.
+          //
+          // Solución: lookup en dos pasos:
+          //   1. Por cédula (puente seguro para docentes con cédula conocida).
+          //   2. Por nombre_raw (fallback para docentes sin cédula o sin match).
+          // Ambos resultados se combinan; la cédula tiene prioridad.
 
-          // Recopilar nombres únicos presentes en las filas nuevas.
-          // Limpiar teléfonos pegados al nombre por si escaparon del parser.
           const limpiarTel  = s => s.replace(/\s+0\d{9,11}$/, "").trim();
           const normCedula2 = c => c ? c.replace(/[^0-9]/g, "") : null;
+
+          // Mapa nombre_raw_en_fila → cédula normalizada (solo docentes con cédula)
+          const cedulaPorNombreFila = {};
+          docentesCatalogo.forEach(d => {
+            const ced = normCedula2(d.cedula);
+            if (ced) cedulaPorNombreFila[d.nombre_raw] = ced;
+          });
 
           const nombresDocentes = [...new Set(
             newRows.map(r => r.docente).filter(Boolean).map(limpiarTel)
           )];
           const nombresMaterias = [...new Set(newRows.map(r => r.materia).filter(Boolean))];
 
-          // Fetch IDs desde Supabase — buscar por nombre_raw.
-          // El upsert anterior ya consolidó por cédula, así que nombre_raw
-          // del catálogo coincide con lo que quedó en BD.
-          const [{ data: docsDB }, { data: matsDB }] = await Promise.all([
+          // Cédulas únicas de los docentes que aparecen en filas nuevas
+          const cedulasParaBuscar = [...new Set(
+            nombresDocentes.map(n => cedulaPorNombreFila[n]).filter(Boolean)
+          )];
+
+          // Fetch en paralelo: por cédula + por nombre_raw + materias
+          const [docsRespCedula, docsRespNombre, { data: matsDB }] = await Promise.all([
+            cedulasParaBuscar.length
+              ? supabase.from("docentes").select("id, nombre_raw, cedula").in("cedula", cedulasParaBuscar)
+              : Promise.resolve({ data: [] }),
             nombresDocentes.length
               ? supabase.from("docentes").select("id, nombre_raw, cedula").in("nombre_raw", nombresDocentes)
               : Promise.resolve({ data: [] }),
@@ -285,7 +303,30 @@ export default function useUpload({
               : Promise.resolve({ data: [] }),
           ]);
 
-          const docenteIdMap = Object.fromEntries((docsDB || []).map(d => [d.nombre_raw, d.id]));
+          // Construir docenteIdMap con doble clave: nombre_raw_fila → id
+          // Estrategia: primero poblar con match por nombre_raw (fallback),
+          // luego sobreescribir con match por cédula (más preciso).
+          const docenteIdMap = {};
+
+          // Paso 1 — por nombre_raw directo
+          (docsRespNombre.data || []).forEach(d => {
+            docenteIdMap[d.nombre_raw] = d.id;
+          });
+
+          // Paso 2 — por cédula: vincular nombre_fila → id usando cédula como puente
+          // Construir mapa cédula → id desde los registros devueltos por Supabase
+          const idPorCedula = {};
+          (docsRespCedula.data || []).forEach(d => {
+            if (d.cedula) idPorCedula[d.cedula] = d.id;
+          });
+          // Para cada nombre en las filas, si tenemos su cédula, sobreescribir el ID
+          nombresDocentes.forEach(nombre => {
+            const ced = cedulaPorNombreFila[nombre];
+            if (ced && idPorCedula[ced]) {
+              docenteIdMap[nombre] = idPorCedula[ced];
+            }
+          });
+
           const materiaIdMap = Object.fromEntries((matsDB || []).map(m => [m.nombre_raw, m.id]));
 
           // Construir payload limpio: solo columnas que existen en la tabla horarios
