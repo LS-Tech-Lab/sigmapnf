@@ -11,6 +11,13 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
   const [editingName, setEditingName] = useState(false), [editValue, setEditValue] = useState(""), [saving, setSaving] = useState(false);
   const [editingCedula, setEditingCedula] = useState(false), [cedulaValue, setCedulaValue] = useState(""), [savingCedula, setSavingCedula] = useState(false);
 
+  // M-4: contar docentes sin cédula para el indicador de completitud
+  const sinCedula = useMemo(
+    () => sorted.filter(d => !(getDocCedula && getDocCedula(d))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sorted.join(","), getDocCedula]
+  );
+
   useEffect(() => { if (initialSel) { setSel(initialSel); onConsumeNav(); } }, [initialSel, onConsumeNav]);
   // Solo actualizar editValue cuando cambia la selección, NO cuando cambia getDocName.
   // Si getDocName estuviera en las deps, al guardar se dispararía fetchDocenteNames →
@@ -72,6 +79,13 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
       )}
     <div className="docentes-layout" style={{ padding: 20, display: "flex", gap: 16, flex: 1, height: 0, overflow: "hidden" }}>
       <div className="docentes-left-panel" style={{ width: 250, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+        {/* M-4: banner de cédulas pendientes */}
+        {sinCedula.length > 0 && (
+          <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "#92400E", fontWeight: 600 }}>
+            <i className="ti ti-id-badge-2" aria-hidden="true" style={{ fontSize: 14, color: "#D97706" }} />
+            {sinCedula.length} sin cédula
+          </div>
+        )}
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrar docente…" style={{ ...S.input, width: "100%", boxSizing: "border-box" }} />
         <div style={{ ...S.card, flex: 1, overflowY: "auto" }}>
           <div style={{ padding: "10px 14px", fontSize: 12, fontWeight: 700, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)" }}>{filteredSorted.length} docentes</div>
@@ -86,7 +100,13 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
               }}
             >
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>{hasConflict(d) && <i className="ti ti-alert-triangle" title="Conflictos" style={{ fontSize: 13, color: "var(--color-danger)" }} aria-hidden="true" />}{getDocName(d)}</span>
-              <span style={{ fontSize: 12, background: "var(--color-background-tertiary)", borderRadius: 10, padding: "2px 8px", color: "var(--color-text-tertiary)", fontWeight: 600 }}>{byDocente[d].length}</span>
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                {/* M-4: badge de cédula pendiente */}
+                {!(getDocCedula && getDocCedula(d)) && (
+                  <i className="ti ti-id-badge-2" title="Sin cédula" aria-label="Sin cédula" style={{ fontSize: 13, color: "#D97706" }} aria-hidden="true" />
+                )}
+                <span style={{ fontSize: 12, background: "var(--color-background-tertiary)", borderRadius: 10, padding: "2px 8px", color: "var(--color-text-tertiary)", fontWeight: 600 }}>{byDocente[d].length}</span>
+              </div>
             </div>
           ))}
         </div>
