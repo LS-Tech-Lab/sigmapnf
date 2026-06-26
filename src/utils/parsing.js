@@ -88,7 +88,7 @@ function levenshtein(a, b) {
  * @param {number} [maxDist=1]
  * @returns {boolean}
  */
-function tokensMatch(nombreCelda, nombreCatalogo, maxDist = 1) {
+export function tokensMatch(nombreCelda, nombreCatalogo, maxDist = 1) {
   const tokensCelda = norm(nombreCelda).split(" ").filter(Boolean);
   const tokensCanon = norm(nombreCatalogo).split(" ").filter(Boolean);
   if (tokensCelda.length === 0) return false;
