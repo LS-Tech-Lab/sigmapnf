@@ -57,7 +57,7 @@ export default function useDataSync({
       while (hayMas) {
         let query = supabase
           .from("horarios")
-          .select("*")
+          .select("*, docentes(nombre_raw)")
           .gt("id", cursor)
           .order("id", { ascending: true })
           .limit(PAGE_SIZE);
@@ -151,7 +151,7 @@ export default function useDataSync({
   const byDocente = useMemo(() => {
     const m = {};
     if (!data) return m;
-    data.forEach(d => { const { docente } = parseClase(d.clase); if (docente) { if (!m[docente]) m[docente] = []; m[docente].push(d); } });
+    data.forEach(d => { const key = d.docentes?.nombre_raw || (parseClase(d.clase).docente) || null; if (key) { if (!m[key]) m[key] = []; m[key].push(d); } });
     return m;
   }, [data]);
 
