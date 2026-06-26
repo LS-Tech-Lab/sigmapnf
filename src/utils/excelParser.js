@@ -298,9 +298,18 @@ export function parseHojaMalla(workbook) {
 }
 
 // ── Función principal ────────────────────────────────────────────────────────
-export async function parseExcelFile(file, { lapso = null, selectedPrograma = "todos", catalogoDocentes = [] } = {}) {
-  const binaryStr = await leerArchivo(file);
-  const workbook  = XLSX.read(binaryStr, { type: "binary" });
+// Acepta un File (lectura interna) O un workbook XLSX ya parseado.
+// Pasar el workbook evita la doble lectura del archivo cuando el llamador
+// ya lo tiene disponible (ej. useUpload que lo lee para extraer catálogos).
+export async function parseExcelFile(fileOrWorkbook, { lapso = null, selectedPrograma = "todos", catalogoDocentes = [] } = {}) {
+  let workbook;
+  if (fileOrWorkbook && typeof fileOrWorkbook === "object" && fileOrWorkbook.SheetNames) {
+    // Ya es un workbook XLSX — no releer el archivo
+    workbook = fileOrWorkbook;
+  } else {
+    const binaryStr = await leerArchivo(fileOrWorkbook);
+    workbook = XLSX.read(binaryStr, { type: "binary" });
+  }
 
   const rows         = [];
   const rechazadas   = [];
