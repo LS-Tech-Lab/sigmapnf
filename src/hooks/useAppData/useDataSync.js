@@ -86,8 +86,16 @@ export default function useDataSync({
         if (filas.length < PAGE_SIZE) {
           hayMas = false;
         } else {
-          cursor = filas[filas.length - 1].id;
-          setData([...todasLasFilas]);
+          const nextCursor = filas[filas.length - 1].id;
+          // A-3: guardia de sanidad — si el cursor no avanza, abortar para
+          // evitar un loop infinito con IDs no secuenciales o reutilizados.
+          if (nextCursor <= cursor) {
+            console.error("Paginación: cursor no avanza, abortando para evitar loop infinito.", { cursor, nextCursor });
+            hayMas = false;
+          } else {
+            cursor = nextCursor;
+            setData([...todasLasFilas]);
+          }
         }
       }
 
