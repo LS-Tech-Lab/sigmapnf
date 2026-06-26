@@ -9,7 +9,7 @@
  *   - permisos: objeto calculado a partir de los permisos del rol del
  *     usuario, leídos en vivo desde la tabla `roles` (editable desde el
  *     panel de Gestión de Usuarios → Roles, sin necesidad de tocar código)
- *   - handleLogin / handleLogout
+ *   - handleLogout
  *   - logAudit: registrar acción de auditoría
  *
  * Los roles dejaron de ser una lista fija en este archivo: viven en la
@@ -158,36 +158,24 @@ export default function useAuth() {
           cargarProfile(authUser);
         }
 
-        if (event === "SIGNED_OUT") {
-          // El profile ya no existe en este punto, pero intentamos loggear
-          try {
-            await supabase.rpc("log_session_event", {
-              p_evento:   "logout",
-              p_detalles: {},
-            });
-          } catch { /* no-op */ }
-        }
+        // Fix A (auditoría Junio 2026): NO registrar logout aquí.
+        // handleLogout() ya llama log_session_event('logout') ANTES de
+        // signOut(), por lo que registrarlo aquí también generaba una
+        // segunda fila duplicada con timestamps casi idénticos.
+        // Si la sesión se cierra por revocación externa (Dashboard de
+        // Supabase), ese evento quedará sin log — aceptable vs. el ruido
+        // de duplicados que contaminaba la auditoría.
       }
     );
 
     return () => subscription.unsubscribe();
   }, [cargarProfile]);
 
-  // Login
-  const handleLogin = useCallback(async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      // Intentar registrar login fallido (sin sesión activa, puede fallar)
-      try {
-        await supabase.rpc("log_session_event", {
-          p_evento:   "login_fallido",
-          p_detalles: { email, motivo: error.message },
-        });
-      } catch { /* no-op */ }
-      return { error };
-    }
-    return { error: null };
-  }, []);
+  // Fix B (auditoría Junio 2026): handleLogin() eliminado — era código muerto.
+  // LoginScreen.jsx llama directamente a supabase.auth.signInWithPassword y
+  // registra los intentos fallidos en login_attempts vía log_login_fallido().
+  // handleLogin duplicaba ese registro en session_logs creando inconsistencias
+  // entre tablas. Fuente única de verdad: login_attempts + log_login_fallido.
 
   // Logout
   const handleLogout = useCallback(async () => {
@@ -235,7 +223,6 @@ export default function useAuth() {
     profile,
     permisos,
     loadingProfile,
-    handleLogin,
     handleLogout,
     logAudit,
     recargarProfile: () => cargarProfile(user),
