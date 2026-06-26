@@ -31,6 +31,7 @@ export function createNameEditingActions({
           .rpc("renombrar_docente", { p_id: docenteRow.id, p_nuevo_nombre: displayName.trim() });
         if (!rpcError) {
           const result = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+          console.log("[renombrar_docente] p_id:", docenteRow.id, "p_nuevo_nombre:", displayName.trim(), "rpcData:", rpcData, "result:", result);
           const unificado = !!result?.unificado_con;
           // Actualización optimista: evita el flash del caché stale cuando
           // fetchDocenteNames() aplica el caché viejo antes del fetch async.
