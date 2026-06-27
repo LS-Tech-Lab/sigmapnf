@@ -1,7 +1,8 @@
 /**
  * QRProyeccion.jsx — Solo lectura: muestra el QR y la cuenta regresiva.
- * Layout de proyección: instrucciones a la izquierda (fuentes grandes para docentes),
- * QR grande a la derecha. Top bar se auto-oculta tras 4 s de inactividad.
+ * Layout completamente responsivo:
+ *   ≥900px  → 2 columnas (instrucciones izquierda / QR derecha)
+ *   <900px  → 1 columna vertical (QR primero, instrucciones debajo)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -17,12 +18,35 @@ const PASOS = [
   { icon: "✅", texto: "Confirma y listo — ¡registro exitoso!" },
 ];
 
-const OCULTAR_TRAS_MS = 4000; // ms sin movimiento para ocultar el top bar
+const OCULTAR_TRAS_MS = 4000;
+
+/* ── Hook para ancho de ventana ──────────────────────────────────────────── */
+function useWindowWidth() {
+  const [width, setWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1024
+  );
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return width;
+}
 
 export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinutes, meta, sessionId }) {
   const turnoInfo = meta?.turno ? TURNOS_VISIBLES.find(t => t.id === meta.turno) : null;
+  const windowWidth = useWindowWidth();
+  const isMobile = windowWidth < 640;
+  const isTablet = windowWidth < 900;
 
-  /* ── Contador en tiempo real ────────────────────────────────────────────── */
+  // Tamaño del QR según pantalla
+  const qrSize = isMobile
+    ? Math.min(windowWidth - 80, 260)
+    : isTablet
+    ? 300
+    : 360;
+
+  /* ── Contador en tiempo real ─────────────────────────────────────────── */
   const [conteo, setConteo] = useState({ entradas: 0, salidas: 0 });
   const conteoRef = useRef({ entradas: 0, salidas: 0 });
 
@@ -53,7 +77,7 @@ export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinu
     return () => { supabase.removeChannel(ch); clearInterval(poll); };
   }, [sessionId, activa]);
 
-  /* ── Top bar auto-hide ───────────────────────────────────────────────────── */
+  /* ── Top bar auto-hide ───────────────────────────────────────────────── */
   const [barVisible, setBarVisible] = useState(true);
   const timerRef = useRef(null);
 
@@ -76,108 +100,126 @@ export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinu
     };
   }, [resetTimer]);
 
-  /* ── Pantalla de espera ─────────────────────────────────────────────────── */
+  /* ── Pantalla de espera ──────────────────────────────────────────────── */
   if (!activa) {
     return (
-      <div style={styles.root}>
-        <TopBar visible={barVisible} meta={null} turnoInfo={null} />
-        <div style={styles.waitingWrap}>
-          <div style={styles.waitingBox}>
-            <span style={{ fontSize: 72, display: "block", marginBottom: 24 }}>📋</span>
-            <div style={styles.waitingTitle}>Esperando sesión QR</div>
-            <div style={styles.waitingDesc}>
-              El administrador debe iniciar la sesión desde su dispositivo en <strong>Panel QR</strong>.
-              El código aparecerá aquí automáticamente.
+      <div className="qrp-root">
+        <TopBar visible={barVisible} meta={null} turnoInfo={null} isMobile={isMobile} />
+        <div className="qrp-waiting-wrap">
+          <div className="qrp-waiting-box">
+            <span style={{ fontSize: isMobile ? 52 : 72, display: "block", marginBottom: 20 }}>📋</span>
+            <div className="qrp-waiting-title">Esperando sesión QR</div>
+            <div className="qrp-waiting-desc">
+              El administrador debe iniciar la sesión desde su dispositivo en{" "}
+              <strong>Panel QR</strong>. El código aparecerá aquí automáticamente.
             </div>
           </div>
         </div>
+        <style>{CSS}</style>
       </div>
     );
   }
 
-  /* ── Vista activa: 2 columnas ───────────────────────────────────────────── */
+  /* ── Vista activa ────────────────────────────────────────────────────── */
   return (
-    <div style={styles.root}>
-      <TopBar visible={barVisible} meta={meta} turnoInfo={turnoInfo} />
+    <div className="qrp-root">
+      <TopBar visible={barVisible} meta={meta} turnoInfo={turnoInfo} isMobile={isMobile} />
 
-      <div style={styles.columns}>
-        {/* Columna izquierda — instrucciones */}
-        <div style={styles.leftCol}>
-          <div style={styles.leftInner}>
-            <div style={styles.instrTitulo}>¿Cómo registrar tu asistencia?</div>
-            <div style={styles.pasosList}>
+      <div className={`qrp-layout ${isTablet ? "qrp-layout--col" : "qrp-layout--row"}`}>
+
+        {/* En móvil/tablet: QR va primero */}
+        {isTablet && (
+          <QRSection qrUrl={qrUrl} segundosRestantes={segundosRestantes} ttlMinutes={ttlMinutes} qrSize={qrSize} isMobile={isMobile} />
+        )}
+
+        {/* Columna instrucciones */}
+        <div className={`qrp-left ${isTablet ? "qrp-left--col" : ""}`}>
+          <div className="qrp-left-inner">
+            <div className={`qrp-instr-titulo ${isMobile ? "qrp-instr-titulo--sm" : ""}`}>
+              ¿Cómo registrar tu asistencia?
+            </div>
+
+            <div className="qrp-pasos-list">
               {PASOS.map((paso, i) => (
-                <div key={i} style={styles.pasoRow}>
-                  <div style={styles.pasoNum}>{i + 1}</div>
-                  <div style={styles.pasoIcono}>{paso.icon}</div>
-                  <div style={styles.pasoTexto}>{paso.texto}</div>
+                <div key={i} className={`qrp-paso-row ${isMobile ? "qrp-paso-row--sm" : ""}`}>
+                  <div className="qrp-paso-num">{i + 1}</div>
+                  <div className={`qrp-paso-icono ${isMobile ? "qrp-paso-icono--sm" : ""}`}>{paso.icon}</div>
+                  <div className={`qrp-paso-texto ${isMobile ? "qrp-paso-texto--sm" : ""}`}>{paso.texto}</div>
                 </div>
               ))}
             </div>
 
             {activa && (
-              <div style={styles.contadorWrap}>
-                <div style={styles.contadorItem}>
-                  <span style={{ ...styles.contadorNum, color: "#22C55E" }}>{conteo.entradas}</span>
-                  <span style={styles.contadorLabel}>
-                    <i className="ti ti-login" style={{ fontSize: 14 }} aria-hidden="true" />
+              <div className="qrp-contador-wrap">
+                <div className="qrp-contador-item">
+                  <span className="qrp-contador-num" style={{ color: "#22C55E" }}>{conteo.entradas}</span>
+                  <span className="qrp-contador-label">
+                    <i className="ti ti-login" aria-hidden="true" />
                     {conteo.entradas === 1 ? "docente entró" : "docentes entraron"}
                   </span>
                 </div>
-                <div style={styles.contadorDivider} />
-                <div style={styles.contadorItem}>
-                  <span style={{ ...styles.contadorNum, color: "#F87171" }}>{conteo.salidas}</span>
-                  <span style={styles.contadorLabel}>
-                    <i className="ti ti-logout" style={{ fontSize: 14 }} aria-hidden="true" />
+                <div className="qrp-contador-divider" />
+                <div className="qrp-contador-item">
+                  <span className="qrp-contador-num" style={{ color: "#F87171" }}>{conteo.salidas}</span>
+                  <span className="qrp-contador-label">
+                    <i className="ti ti-logout" aria-hidden="true" />
                     {conteo.salidas === 1 ? "docente salió" : "docentes salieron"}
                   </span>
                 </div>
               </div>
             )}
 
-            <div style={styles.aviso}>
-              <span style={styles.avisoIcon}>⚠️</span>
-              <span style={styles.avisoTexto}>
+            <div className="qrp-aviso">
+              <span className="qrp-aviso-icon">⚠️</span>
+              <span className="qrp-aviso-texto">
                 Las fotos del QR <strong>no son válidas</strong>. Escanea directamente desde esta pantalla.
               </span>
             </div>
           </div>
         </div>
 
-        {/* Columna derecha — QR */}
-        <div style={styles.rightCol}>
-          <div style={styles.qrLabel}>Apunta tu cámara aquí</div>
-          <div style={styles.qrWrap}>
-            <QRDisplay qrUrl={qrUrl} segundos={segundosRestantes} ttlMinutes={ttlMinutes} size={360} />
-          </div>
-        </div>
+        {/* En desktop: QR a la derecha */}
+        {!isTablet && (
+          <QRSection qrUrl={qrUrl} segundosRestantes={segundosRestantes} ttlMinutes={ttlMinutes} qrSize={qrSize} isMobile={isMobile} />
+        )}
       </div>
 
-      <style>{globalCSS}</style>
+      <style>{CSS}</style>
     </div>
   );
 }
 
-/* ── Top bar deslizante ─────────────────────────────────────────────────────── */
-function TopBar({ visible, meta, turnoInfo }) {
+/* ── Columna / sección del QR ────────────────────────────────────────────── */
+function QRSection({ qrUrl, segundosRestantes, ttlMinutes, qrSize, isMobile }) {
   return (
-    <div style={{ ...styles.topBar, transform: visible ? "translateY(0)" : "translateY(-100%)" }}>
-      <div style={styles.topBarInner}>
-        <div style={styles.topBarLeft}>
+    <div className="qrp-right">
+      <div className="qrp-qr-label">Apunta tu cámara aquí</div>
+      <div className="qrp-qr-wrap">
+        <QRDisplay qrUrl={qrUrl} segundos={segundosRestantes} ttlMinutes={ttlMinutes} size={qrSize} />
+      </div>
+    </div>
+  );
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+function TopBar({ visible, meta, turnoInfo, isMobile }) {
+  return (
+    <div className={`qrp-topbar ${visible ? "qrp-topbar--visible" : "qrp-topbar--hidden"}`}>
+      <div className="qrp-topbar-inner">
+        <div className="qrp-topbar-left">
           <i className="ti ti-device-desktop" style={{ fontSize: 18, color: "#2563EB" }} aria-hidden="true" />
-          <span style={styles.topBarTitle}>Proyección de Asistencia</span>
-          <span style={styles.topBarBadge}>Solo lectura</span>
+          {!isMobile && <span className="qrp-topbar-title">Proyección de Asistencia</span>}
+          <span className="qrp-topbar-badge">{isMobile ? "Solo lectura" : "Solo lectura"}</span>
         </div>
 
-
         {meta && (
-          <div style={styles.topBarMeta}>
-            <span style={styles.pulseDot} />
-            <span style={styles.topBarMetaText}>
-              Sesión activa
+          <div className="qrp-topbar-meta">
+            <span className="qrp-pulse-dot" />
+            <span className="qrp-topbar-meta-text">
+              {isMobile ? "Activa" : "Sesión activa"}
               {turnoInfo ? ` · ${turnoInfo.label}` : ""}
-              {meta.fecha ? ` · ${formatFechaVE(meta.fecha)}` : ""}
-              {meta.programa ? ` · ${meta.programa.replace("PNF ", "")}` : ""}
+              {!isMobile && meta.fecha ? ` · ${formatFechaVE(meta.fecha)}` : ""}
+              {!isMobile && meta.programa ? ` · ${meta.programa.replace("PNF ", "")}` : ""}
             </span>
           </div>
         )}
@@ -186,254 +228,317 @@ function TopBar({ visible, meta, turnoInfo }) {
   );
 }
 
-/* ── Estilos ────────────────────────────────────────────────────────────────── */
-const styles = {
-  root: {
-    minHeight: "100vh",
-    background: "#0F172A",
-    display: "flex",
-    flexDirection: "column",
-    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-    overflow: "hidden",
-  },
-
-  /* top bar */
-  topBar: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    background: "rgba(15, 23, 42, 0.95)",
-    backdropFilter: "blur(8px)",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-    transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-  },
-  topBarInner: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "10px 28px",
-    gap: 16,
-  },
-  topBarLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-  },
-  topBarTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#E2E8F0",
-    letterSpacing: "0.01em",
-  },
-  topBarBadge: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: "#64748B",
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 20,
-    padding: "2px 8px",
-  },
-  topBarMeta: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  pulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: "50%",
-    background: "#22C55E",
-    display: "inline-block",
-    animation: "pulse 1.4s ease-in-out infinite",
-    flexShrink: 0,
-  },
-  topBarMetaText: {
-    fontSize: 12,
-    fontWeight: 500,
-    color: "#94A3B8",
-  },
-
-  /* espera */
-  waitingWrap: {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 32,
-  },
-  waitingBox: {
-    textAlign: "center",
-    maxWidth: 480,
-  },
-  waitingTitle: {
-    fontSize: 32,
-    fontWeight: 700,
-    color: "#E2E8F0",
-    marginBottom: 16,
-  },
-  waitingDesc: {
-    fontSize: 20,
-    color: "#94A3B8",
-    lineHeight: 1.6,
-  },
-
-  /* columnas */
-  columns: {
-    flex: 1,
-    display: "flex",
-    alignItems: "stretch",
-    minHeight: "100vh",
-  },
-
-  /* izquierda */
-  leftCol: {
-    flex: "0 0 55%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "48px 52px 48px 60px",
-    borderRight: "1px solid rgba(255,255,255,0.07)",
-  },
-  leftInner: {
-    maxWidth: 560,
-    width: "100%",
-  },
-  instrTitulo: {
-    fontSize: 34,
-    fontWeight: 800,
-    color: "#F1F5F9",
-    marginBottom: 36,
-    lineHeight: 1.25,
-    letterSpacing: "-0.02em",
-  },
-  pasosList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 20,
-    marginBottom: 40,
-  },
-  pasoRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 20,
-    padding: "16px 22px",
-    background: "rgba(255,255,255,0.04)",
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.07)",
-  },
-  pasoNum: {
-    width: 36,
-    height: 36,
-    borderRadius: "50%",
-    background: "#2563EB",
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: 800,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  pasoIcono: {
-    fontSize: 26,
-    flexShrink: 0,
-    lineHeight: 1,
-  },
-  pasoTexto: {
-    fontSize: 22,
-    fontWeight: 500,
-    color: "#E2E8F0",
-    lineHeight: 1.35,
-  },
-  contadorWrap: {
-    display: "flex",
-    alignItems: "center",
-    gap: 0,
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 14,
-    padding: "18px 28px",
-    marginBottom: 20,
-  },
-  contadorItem: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 6,
-  },
-  contadorNum: {
-    fontSize: 52,
-    fontWeight: 900,
-    lineHeight: 1,
-    letterSpacing: "-0.03em",
-  },
-  contadorLabel: {
-    fontSize: 16,
-    color: "#94A3B8",
-    fontWeight: 500,
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-  },
-  contadorDivider: {
-    width: 1,
-    height: 60,
-    background: "rgba(255,255,255,0.1)",
-    margin: "0 20px",
-  },
-  aviso: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 12,
-    background: "rgba(234, 179, 8, 0.10)",
-    border: "1px solid rgba(234, 179, 8, 0.25)",
-    borderRadius: 12,
-    padding: "14px 20px",
-  },
-  avisoIcon: {
-    fontSize: 22,
-    flexShrink: 0,
-    marginTop: 1,
-  },
-  avisoTexto: {
-    fontSize: 18,
-    color: "#FCD34D",
-    lineHeight: 1.5,
-  },
-
-  /* derecha */
-  rightCol: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "48px 40px",
-    gap: 24,
-  },
-  qrLabel: {
-    fontSize: 16,
-    fontWeight: 700,
-    color: "#64748B",
-    textTransform: "uppercase",
-    letterSpacing: "0.12em",
-    textAlign: "center",
-  },
-  qrWrap: {
-    background: "#fff",
-    borderRadius: 24,
-    padding: 20,
-    boxShadow: "0 0 60px rgba(37, 99, 235, 0.3), 0 8px 40px rgba(0,0,0,0.5)",
-  },
-};
-
-const globalCSS = `
-  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
-  @media (max-width: 900px) {
-    .qr-columns { flex-direction: column !important; }
+/* ── CSS ─────────────────────────────────────────────────────────────────── */
+const CSS = `
+  /* Reset de caja para todo el componente */
+  .qrp-root *, .qrp-root *::before, .qrp-root *::after {
+    box-sizing: border-box;
   }
+
+  /* Raíz: ocupa exactamente la pantalla visible */
+  .qrp-root {
+    min-height: 100dvh;   /* dvh = dynamic viewport height, funciona en iOS Safari */
+    min-height: 100vh;    /* fallback */
+    background: #0F172A;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Top bar ── */
+  .qrp-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15, 23, 42, 0.97);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+  }
+  .qrp-topbar--visible  { transform: translateY(0); }
+  .qrp-topbar--hidden   { transform: translateY(-100%); }
+
+  .qrp-topbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .qrp-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .qrp-topbar-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #E2E8F0;
+    white-space: nowrap;
+  }
+  .qrp-topbar-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748B;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 2px 8px;
+    white-space: nowrap;
+  }
+  .qrp-topbar-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .qrp-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22C55E;
+    display: inline-block;
+    animation: qrpPulse 1.4s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .qrp-topbar-meta-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: #94A3B8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 280px;
+  }
+
+  /* ── Pantalla de espera ── */
+  .qrp-waiting-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+  }
+  .qrp-waiting-box {
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+  }
+  .qrp-waiting-title {
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 700;
+    color: #E2E8F0;
+    margin-bottom: 12px;
+  }
+  .qrp-waiting-desc {
+    font-size: clamp(15px, 3.5vw, 20px);
+    color: #94A3B8;
+    line-height: 1.6;
+  }
+
+  /* ── Layout principal ── */
+  .qrp-layout {
+    flex: 1;
+    display: flex;
+    width: 100%;
+  }
+  /* Desktop: 2 columnas en fila */
+  .qrp-layout--row {
+    flex-direction: row;
+    align-items: stretch;
+    min-height: calc(100dvh - 49px);
+    min-height: calc(100vh - 49px);
+  }
+  /* Móvil/Tablet: columna vertical */
+  .qrp-layout--col {
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 32px;
+  }
+
+  /* ── Columna izquierda (instrucciones) ── */
+  .qrp-left {
+    flex: 0 0 55%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 40px 40px 48px;
+    border-right: 1px solid rgba(255,255,255,0.07);
+  }
+  .qrp-left--col {
+    flex: none;
+    width: 100%;
+    border-right: none;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 28px 20px 8px;
+  }
+  .qrp-left-inner {
+    max-width: 560px;
+    width: 100%;
+  }
+
+  /* ── Título instrucciones ── */
+  .qrp-instr-titulo {
+    font-size: clamp(20px, 3.5vw, 34px);
+    font-weight: 800;
+    color: #F1F5F9;
+    margin-bottom: 24px;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+  .qrp-instr-titulo--sm {
+    font-size: 20px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  /* ── Pasos ── */
+  .qrp-pasos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .qrp-paso-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .qrp-paso-row--sm {
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  .qrp-paso-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #2563EB;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .qrp-paso-icono {
+    font-size: 22px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .qrp-paso-icono--sm { font-size: 18px; }
+  .qrp-paso-texto {
+    font-size: clamp(15px, 2.5vw, 22px);
+    font-weight: 500;
+    color: #E2E8F0;
+    line-height: 1.35;
+  }
+  .qrp-paso-texto--sm { font-size: 14px; }
+
+  /* ── Contador ── */
+  .qrp-contador-wrap {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    gap: 0;
+  }
+  .qrp-contador-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .qrp-contador-num {
+    font-size: clamp(32px, 6vw, 52px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .qrp-contador-label {
+    font-size: clamp(12px, 2vw, 16px);
+    color: #94A3B8;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    text-align: center;
+  }
+  .qrp-contador-divider {
+    width: 1px;
+    height: 52px;
+    background: rgba(255,255,255,0.1);
+    margin: 0 16px;
+    flex-shrink: 0;
+  }
+
+  /* ── Aviso ── */
+  .qrp-aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(234, 179, 8, 0.10);
+    border: 1px solid rgba(234, 179, 8, 0.25);
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .qrp-aviso-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .qrp-aviso-texto {
+    font-size: clamp(13px, 2.2vw, 18px);
+    color: #FCD34D;
+    line-height: 1.5;
+  }
+
+  /* ── Columna QR (derecha en desktop, arriba en móvil) ── */
+  .qrp-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    gap: 16px;
+    width: 100%;
+  }
+  .qrp-qr-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+  .qrp-qr-wrap {
+    background: #fff;
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: 0 0 60px rgba(37, 99, 235, 0.3), 0 8px 40px rgba(0,0,0,0.5);
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Asegurar que el canvas del QR no desborde */
+  .qrp-qr-wrap canvas {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+  }
+
+  /* ── Animaciones ── */
+  @keyframes qrpPulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
 `;
