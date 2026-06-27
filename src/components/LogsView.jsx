@@ -395,9 +395,23 @@ function TabAuditoria({ permisos }) {
 
 // ── Componente principal ──────────────────────────────────────────────
 export default function LogsView({ permisos }) {
-  const [tab, setTab] = useState("sesiones");
+  // D-1 fix: las pestañas se construyen según permisos individuales.
+  // puedeVerLogs → "Registros de sesión"
+  // puedeVerAuditoria → "Auditoría de cambios"
+  // Antes: ambas pestañas visibles a cualquier usuario con puedeVerLogs.
+  const TABS = [
+    ...(permisos.puedeVerLogs
+      ? [{ id: "sesiones",  icon: "ti-key",         label: "Registros de sesión" }]
+      : []),
+    ...(permisos.puedeVerAuditoria
+      ? [{ id: "auditoria", icon: "ti-list-details", label: "Auditoría de cambios" }]
+      : []),
+  ];
 
-  if (!permisos.puedeVerLogs) {
+  const initialTab = permisos.puedeVerLogs ? "sesiones" : "auditoria";
+  const [tab, setTab] = useState(initialTab);
+
+  if (TABS.length === 0) {
     return (
       <div style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>
         <i className="ti ti-lock" style={{ fontSize: 40, display: "block", marginBottom: 12 }} aria-hidden="true" />
@@ -418,28 +432,27 @@ export default function LogsView({ permisos }) {
         </p>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: "2px solid #E2E8F0" }}>
-        {[
-          { id: "sesiones",  icon: "ti-key",         label: "Registros de sesión" },
-          { id: "auditoria", icon: "ti-list-details", label: "Auditoría de cambios" },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            style={{
-              padding: "8px 18px", border: "none", background: "none", cursor: "pointer",
-              fontSize: 13, fontWeight: tab === t.id ? 700 : 400,
-              color: tab === t.id ? "#2563EB" : "#64748B",
-              borderBottom: tab === t.id ? "2px solid #2563EB" : "2px solid transparent",
-              marginBottom: -2, display: "flex", alignItems: "center", gap: 6,
-            }}>
-            <i className={`ti ${t.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Tabs — solo las permitidas por permisos */}
+      {TABS.length > 1 && (
+        <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: "2px solid #E2E8F0" }}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              style={{
+                padding: "8px 18px", border: "none", background: "none", cursor: "pointer",
+                fontSize: 13, fontWeight: tab === t.id ? 700 : 400,
+                color: tab === t.id ? "#2563EB" : "#64748B",
+                borderBottom: tab === t.id ? "2px solid #2563EB" : "2px solid transparent",
+                marginBottom: -2, display: "flex", alignItems: "center", gap: 6,
+              }}>
+              <i className={`ti ${t.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {tab === "sesiones"  && <TabSesiones  permisos={permisos} />}
-      {tab === "auditoria" && <TabAuditoria permisos={permisos} />}
+      {tab === "sesiones"  && permisos.puedeVerLogs      && <TabSesiones  permisos={permisos} />}
+      {tab === "auditoria" && permisos.puedeVerAuditoria  && <TabAuditoria permisos={permisos} />}
     </div>
   );
 }
