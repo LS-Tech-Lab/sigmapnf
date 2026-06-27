@@ -120,7 +120,7 @@ export default function DocenteScan() {
 
     const cedulaNorm = normalizarCedula(cedula.trim());
     if (!cedulaTieneFormatoValido(cedulaNorm)) {
-      setErrorCedula("Eso no parece una cédula válida. Usa el formato V-12345678 o E-12345678 (solo números después del guion, entre 6 y 9 dígitos).");
+      setErrorCedula("Eso no parece una cédula válida. Ingresa solo los números (ej: 5174134), entre 6 y 9 dígitos.");
       return;
     }
 
