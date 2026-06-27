@@ -1,10 +1,20 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { lazy, Suspense, useState, useEffect, useRef } from "react";
 import ErrorBoundary from "../components/ErrorBoundary";
 import ModalCambiarPassword from "../components/ModalCambiarPassword";
-import AdminQRPanel from "../components/asistencias/AdminQRPanel";
-import QRProyeccion from "../components/asistencias/QRProyeccion";
-import ReporteAsistencias from "../components/asistencias/ReporteAsistencias";
 import UserMenu from "./UserMenu";
+
+// P5: imports lazy para separar el módulo QR del bundle principal
+const AdminQRPanel      = lazy(() => import("../components/asistencias/AdminQRPanel"));
+const QRProyeccion      = lazy(() => import("../components/asistencias/QRProyeccion"));
+const ReporteAsistencias = lazy(() => import("../components/asistencias/ReporteAsistencias"));
+
+const QRFallback = () => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "center",
+    height: 240, color: "var(--color-text-tertiary)", fontSize: 13, gap: 8 }}>
+    <i className="ti ti-loader-2" style={{ fontSize: 20, animation: "spin 1s linear infinite" }} aria-hidden="true" />
+    Cargando…
+  </div>
+);
 
 /**
  * Shell completo del módulo de Asistencias QR.
@@ -175,29 +185,31 @@ export default function AsistenciasModulo({
       {/* Sub-vistas */}
       <main style={{ paddingTop: subView === "proyeccion" ? 0 : 52 }}>
         <ErrorBoundary>
-          {subView === "panel" && (
-            <AdminQRPanel
-              profile={profile}
-              onVerReporte={() => setSubView("reporte")}
-              onVerProyeccion={() => setSubView("proyeccion")}
-              {...qrSession}
-            />
-          )}
-          {subView === "proyeccion" && (
-            <QRProyeccion
-              activa={qrSession.activa}
-              qrUrl={qrSession.qrUrl}
-              segundosRestantes={qrSession.segundosRestantes}
-              ttlMinutes={qrSession.ttlMinutes}
-              meta={qrSession.meta}
-              sessionId={qrSession.sessionId}
-            />
-          )}
-          {subView === "reporte" && (
-            <ReporteAsistencias
-              onVolverPanel={() => setSubView("panel")}
-            />
-          )}
+          <Suspense fallback={<QRFallback />}>
+            {subView === "panel" && (
+              <AdminQRPanel
+                profile={profile}
+                onVerReporte={() => setSubView("reporte")}
+                onVerProyeccion={() => setSubView("proyeccion")}
+                {...qrSession}
+              />
+            )}
+            {subView === "proyeccion" && (
+              <QRProyeccion
+                activa={qrSession.activa}
+                qrUrl={qrSession.qrUrl}
+                segundosRestantes={qrSession.segundosRestantes}
+                ttlMinutes={qrSession.ttlMinutes}
+                meta={qrSession.meta}
+                sessionId={qrSession.sessionId}
+              />
+            )}
+            {subView === "reporte" && (
+              <ReporteAsistencias
+                onVolverPanel={() => setSubView("panel")}
+              />
+            )}
+          </Suspense>
         </ErrorBoundary>
       </main>
 
