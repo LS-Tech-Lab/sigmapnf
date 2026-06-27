@@ -382,14 +382,6 @@ export default function useUpload({
 
           showToast(`${newRows.length} clases cargadas.`, "success");
 
-          // A-1: registrar la carga masiva en audit_logs con detalle de filas
-          await logAudit?.("upload_horarios", {
-            lapso,
-            programa:   selectedPrograma,
-            newRows:    newRows.length,
-            duplicados: duplicados.length,
-          });
-
           await fetchHorarios(selectedPrograma);
           await fetchProgramas(lapso);
           invalidarCacheDocentes?.(); // fuerza fetch fresco sin caché viejo
