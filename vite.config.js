@@ -9,10 +9,16 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
+          'vendor-react':   ['react', 'react-dom'],
           'view-historial': ['./src/components/HistorialView'],
           'view-usuarios':  ['./src/components/UsuariosView'],
           'view-logs':      ['./src/components/LogsView'],
+          // P5: módulo QR separado del bundle principal
+          'view-qr': [
+            './src/components/asistencias/AdminQRPanel',
+            './src/components/asistencias/QRProyeccion',
+            './src/components/asistencias/ReporteAsistencias',
+          ],
         },
       },
     },
