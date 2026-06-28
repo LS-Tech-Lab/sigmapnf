@@ -122,7 +122,7 @@ export default function App() {
   const backupRef = useRef(null);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  const { user, profile, permisos, loadingProfile, handleLogin, handleLogout, logAudit } = useAuth();
+  const { user, profile, permisos, loadingProfile, handleLogout, logAudit } = useAuth();
 
   // Perfil offline: se establece cuando el usuario entra con PIN sin red.
   // Se limpia al detectar red y sesión de Supabase, o al hacer logout.
@@ -137,20 +137,28 @@ export default function App() {
   // Calculados aquí arriba para que los useEffect que siguen los puedan usar.
   const efectiveProfile  = offlineProfile || profile;
   const efectivePermisos = offlineProfile
-    ? {
-        puedeVerTodo: false, puedeImportarExcel: false, puedeEditarHorarios: false,
-        puedeBorrarHorarios: false, puedeEditarDocentes: false, puedeEditarMaterias: false,
-        puedeGestionarTrimestres: false, puedeHacerBackup: false, puedeRestaurarBackup: false,
-        puedeGestionarUsuarios: false, puedeGestionarRoles: false, puedeVerLogs: false,
-        puedeVerAuditoria: false, puedeGestionarQR: false, puedeVerReporteAsistencias: false,
-        ...(offlineProfile.rol_info?.permisos || {}),
-        puedeVerSoloSuPrograma: !!offlineProfile.rol_info?.restringe_programa,
-        programaRestringido:    offlineProfile.rol_info?.restringe_programa ? offlineProfile.programa : null,
-        puedeImportarExcel:  false,
-        puedeEditarHorarios: false,
-        puedeBorrarHorarios: false,
-        puedeGestionarQR:    false,
-      }
+    ? (() => {
+        const base = {
+          puedeVerTodo: false, puedeImportarExcel: false, puedeEditarHorarios: false,
+          puedeBorrarHorarios: false, puedeEditarDocentes: false, puedeEditarMaterias: false,
+          puedeGestionarTrimestres: false, puedeHacerBackup: false, puedeRestaurarBackup: false,
+          puedeGestionarUsuarios: false, puedeGestionarRoles: false, puedeVerLogs: false,
+          puedeVerAuditoria: false, puedeGestionarQR: false, puedeVerReporteAsistencias: false,
+        };
+        return {
+          ...base,
+          ...(offlineProfile.rol_info?.permisos || {}),
+          // Forzar readonly sin importar lo que diga rol_info
+          puedeImportarExcel:     false,
+          puedeEditarHorarios:    false,
+          puedeBorrarHorarios:    false,
+          puedeGestionarQR:       false,
+          puedeVerSoloSuPrograma: !!offlineProfile.rol_info?.restringe_programa,
+          programaRestringido:    offlineProfile.rol_info?.restringe_programa
+            ? offlineProfile.programa
+            : null,
+        };
+      })()
     : permisos;
 
   // Fix #19: Supabase caído / anon key expirada
