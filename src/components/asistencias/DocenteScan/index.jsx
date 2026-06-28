@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import { fechaHoyVE } from "../../../utils/time";
+import { encolarAsistencia } from "../../../utils/offlineQueue";
 
 import { LS_KEY, avisoStale, normalizarCedula, cedulaTieneFormatoValido } from "./cedula";
 import { calcularDeviceFingerprint } from "./deviceFingerprint";
@@ -33,6 +34,7 @@ export default function DocenteScan() {
     // del URL corresponde al día actual consultando la BD. Si el token es de
     // un día anterior (sesión QR vencida) o no existe, ir directo al formulario
     // para evitar que el próximo docente en el dispositivo vea datos del anterior.
+    // P-3: timeout de 3 s — sin red, el spinner no queda infinito.
     const cargarConValidacion = async () => {
       try {
         const raw = localStorage.getItem(LS_KEY);
@@ -41,14 +43,29 @@ export default function DocenteScan() {
         const datos = JSON.parse(raw);
         if (!datos?.cedula || !datos?.nombre) { setPaso("formulario"); return; }
 
-        // Verificar que el token QR sigue activo hoy
-        const { data: sesionActiva, error } = await supabase
+        // Sin red: saltar la validación y mostrar datos guardados directamente
+        if (!navigator.onLine) {
+          setDatosGuardados(datos);
+          setCedula(datos.cedula);
+          setNombre(datos.nombre);
+          setPaso("confirmar");
+          return;
+        }
+
+        // Verificar que el token QR sigue activo hoy (con timeout de 3 s)
+        const consulta = supabase
           .from("qr_sessions")
           .select("id, fecha")
           .eq("token", token)
           .eq("activo", true)
           .eq("fecha", fechaHoyVE())
           .maybeSingle();
+
+        const timeout = new Promise((_, rej) =>
+          setTimeout(() => rej(new Error("timeout")), 3000)
+        );
+
+        const { data: sesionActiva, error } = await Promise.race([consulta, timeout]);
 
         if (error || !sesionActiva) {
           // Token vencido o de otro día — no pre-cargar datos
@@ -62,6 +79,20 @@ export default function DocenteScan() {
         setNombre(datos.nombre);
         setPaso("confirmar");
       } catch {
+        // Timeout o error de red — si hay datos guardados, usarlos directamente
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw) {
+          try {
+            const datos = JSON.parse(raw);
+            if (datos?.cedula && datos?.nombre) {
+              setDatosGuardados(datos);
+              setCedula(datos.cedula);
+              setNombre(datos.nombre);
+              setPaso("confirmar");
+              return;
+            }
+          } catch {}
+        }
         setPaso("formulario");
       }
     };
@@ -87,13 +118,33 @@ export default function DocenteScan() {
       const fingerprint = await calcularDeviceFingerprint();
       const cedulaNorm  = normalizarCedula(cedulaFinal.trim());
 
-      const { data, error: rpcErr } = await supabase.rpc("registrar_asistencia", {
+      const payload = {
         p_token:              token,
         p_cedula_docente:     cedulaNorm,
         p_nombre_docente:     nombreFinal.trim() || cedulaNorm,
         p_device_fingerprint: fingerprint,
         p_tipo:               tipoFinal,
-      });
+      };
+
+      // P-2: sin red, encolar en IndexedDB y mostrar confirmación optimista
+      if (!navigator.onLine) {
+        await encolarAsistencia(payload);
+        guardarDatos(cedulaNorm, nombreFinal.trim() || cedulaNorm);
+        setDatosGuardados({
+          cedula: cedulaNorm, nombre: nombreFinal.trim() || cedulaNorm,
+          fecha: fechaHoyVE(), guardadoEn: Date.now(),
+        });
+        setResultado({
+          ok: true,
+          codigo: 'OFFLINE',
+          mensaje: 'Registro guardado en este dispositivo. Se sincronizará automáticamente al recuperar conexión.',
+        });
+        setPaso("resultado");
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: rpcErr } = await supabase.rpc("registrar_asistencia", payload);
 
       if (rpcErr) throw rpcErr;
       if (data?.ok) {
