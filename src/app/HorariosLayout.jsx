@@ -18,7 +18,7 @@ import MateriasView from "../components/MateriasView";
 import AsistenciasView from "../components/AsistenciasView";
 
 const HistorialView = lazy(() => import("../components/HistorialView"));
-const UsuariosView  = lazy(() => import("../components/UsuariosView"));
+const UsuariosView  = lazy(() => import("../components/usuarios"));
 const LogsView      = lazy(() => import("../components/LogsView"));
 
 const LazyFallback = ({ label }) => (
