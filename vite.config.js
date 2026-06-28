@@ -11,7 +11,7 @@ export default defineConfig({
         manualChunks: {
           'vendor-react':   ['react', 'react-dom'],
           'view-historial': ['./src/components/HistorialView'],
-          'view-usuarios':  ['./src/components/UsuariosView'],
+          'view-usuarios':  ['./src/components/usuarios/index'],
           'view-logs':      ['./src/components/LogsView'],
           // P5: módulo QR separado del bundle principal
           'view-qr': [
