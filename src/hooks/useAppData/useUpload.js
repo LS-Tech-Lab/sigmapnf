@@ -366,6 +366,16 @@ export default function useUpload({
             if (timedOut) return;
             console.error("insert horarios:", insertError);
             showToast(`Error al guardar: ${insertError.message}`, "error");
+            // M-6 fix: registrar fallo de insert en auditoría.
+            // Antes: el error solo se mostraba en toast y console — sin rastro en audit_logs.
+            await logAudit?.({
+              accion:           "IMPORTAR_EXCEL",
+              entidad:          "horarios",
+              lapso,
+              programa_afectado: selectedPrograma !== "todos" ? selectedPrograma : null,
+              resumen:          `Fallo al importar: ${rowsParaInsertar.length} filas rechazadas — ${insertError.message}`,
+              datos_despues:    { error: insertError.message, filas_intentadas: rowsParaInsertar.length },
+            });
             return;
           }
 
