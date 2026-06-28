@@ -29,9 +29,9 @@ export default function useNombresCache(userId = null, showToast = null) {
   }, []);
 
   const fetchDocenteNames = useCallback(async () => {
-    const cachedDocentes = cargarDeCache(CACHE_KEYS.docentes, userId);
+    const cachedDocentes = cargarDeCache(CACHE_KEYS.docentes, userId, { offlineMode: !navigator.onLine });
     if (cachedDocentes) setDocenteNames(cachedDocentes);
-    const cachedCedulas = cargarDeCache(CACHE_KEYS.docenteCedulas, userId);
+    const cachedCedulas = cargarDeCache(CACHE_KEYS.docenteCedulas, userId, { offlineMode: !navigator.onLine });
     if (cachedCedulas) setDocenteCedulas(cachedCedulas);
     try {
       // Usar docentes_con_cedula() que incluye cédulas vinculadas automáticamente
@@ -94,7 +94,7 @@ export default function useNombresCache(userId = null, showToast = null) {
   }, [userId]);
 
   const fetchMateriaNames = useCallback(async () => {
-    const cachedMaterias = cargarDeCache(CACHE_KEYS.materias, userId);
+    const cachedMaterias = cargarDeCache(CACHE_KEYS.materias, userId, { offlineMode: !navigator.onLine });
     if (cachedMaterias) setMateriaNames(cachedMaterias);
     try {
       const { data: materias } = await supabase.from("materias").select("*");
