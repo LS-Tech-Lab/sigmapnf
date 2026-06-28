@@ -15,6 +15,7 @@ import SkeletonRow from "./SkeletonRow";
 import VistaAusentes from "./VistaAusentes";
 import AlertaSinVincular from "./AlertaSinVincular";
 import ReporteRango from "./ReporteRango";
+import { guardarReporteEnIDB, cargarReporteDeIDB } from "../../../utils/reporteCache";
 
 export default function ReporteAsistencias({ onVolverPanel }) {
   const hoy = fechaHoyVE();
@@ -28,10 +29,31 @@ export default function ReporteAsistencias({ onVolverPanel }) {
   const [busqueda, setBusqueda] = useState("");
   const [tab,      setTab]      = useState("presentes");
   const [ausentesParaPDF, setAusentesParaPDF] = useState([]);
+  const [modoOffline,     setModoOffline]     = useState(false);
+  const [fechaCache,      setFechaCache]      = useState(null);
 
   const fetchAsistencias = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError(null);
+
+    // Sin red: intentar cargar desde IDB
+    if (!navigator.onLine) {
+      const cached = await cargarReporteDeIDB(fecha, turno, programa);
+      if (cached) {
+        setRows(cached.datos);
+        setModoOffline(true);
+        setFechaCache(cached.guardadoEn);
+      } else {
+        setRows([]);
+        setModoOffline(true);
+        setFechaCache(null);
+        setError("Sin conexión y sin datos locales para esta fecha y filtros.");
+      }
+      if (!silent) setLoading(false);
+      return;
+    }
+
+    setModoOffline(false);
 
     let query = supabase
       .from("asistencias_diarias")
@@ -43,8 +65,23 @@ export default function ReporteAsistencias({ onVolverPanel }) {
     if (programa) query = query.eq("programa", programa);
 
     const { data, error: err } = await query;
-    if (err) { setError(err.message); setRows([]); }
-    else     { setRows(data || []); }
+    if (err) {
+      // Fetch falló con red — intentar IDB como fallback
+      const cached = await cargarReporteDeIDB(fecha, turno, programa);
+      if (cached) {
+        setRows(cached.datos);
+        setModoOffline(true);
+        setFechaCache(cached.guardadoEn);
+      } else {
+        setError(err.message);
+        setRows([]);
+      }
+    } else {
+      const resultado = data || [];
+      setRows(resultado);
+      // Guardar en IDB para uso offline posterior
+      await guardarReporteEnIDB(fecha, turno, programa, resultado);
+    }
     if (!silent) setLoading(false);
   }, [fecha, turno, programa]);
 
@@ -223,6 +260,19 @@ export default function ReporteAsistencias({ onVolverPanel }) {
       </div>
 
       <AlertaSinVincular cedulasPresentes={cedulasPresentes} loading={loading} />
+
+      {modoOffline && (
+        <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#92400E" }}>
+          <i className="ti ti-wifi-off" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+          <span>
+            <strong>Modo offline</strong> — mostrando datos guardados localmente.
+            {fechaCache && (
+              <> Última sincronización: {new Date(fechaCache).toLocaleString("es-VE", { dateStyle: "short", timeStyle: "short" })}.</>
+            )}
+            {!fechaCache && " No hay datos locales para estos filtros."}
+          </span>
+        </div>
+      )}
 
       {error && (
         <div style={{ background: "#FEF2F2", color: "#DC2626", padding: "12px 16px", borderRadius: 8, fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
