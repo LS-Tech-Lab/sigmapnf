@@ -285,6 +285,35 @@ export default function useAuth() {
 
   const permisos = calcularPermisos(profile);
 
+  // D-5 fix (auditoría Junio 2026): suscripción Realtime a user_profiles.
+  // Si un admin cambia el rol del usuario con sesión abierta, la sesión
+  // seguía usando los permisos viejos hasta el próximo refresh de token JWT.
+  // Ahora: cualquier UPDATE en el propio user_profiles recarga el perfil
+  // inmediatamente, propagando los nuevos permisos sin esperar al JWT.
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`profile-changes-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event:  "UPDATE",
+          schema: "public",
+          table:  "user_profiles",
+          filter: `id=eq.${user.id}`,
+        },
+        () => {
+          // Recargar perfil completo (con rol_info embebido) para que
+          // calcularPermisos() reciba los permisos actualizados.
+          cargarProfile(user);
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, cargarProfile]);
+
   // Timeout de inactividad — activo solo cuando hay sesión válida
   const idleMs = profile?.rol_info?.nombre && ROLES_ADMIN.includes(profile.rol_info.nombre)
     ? IDLE_ADMIN_MS
