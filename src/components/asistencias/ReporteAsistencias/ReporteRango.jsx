@@ -21,9 +21,20 @@ function ReporteRango({ onVolverDiario }) {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState(null);
   const [busqueda, setBusqueda] = useState("");
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchRango = useCallback(async () => {
     if (!inicio || !fin || inicio > fin) return;
+
+    // Sin red: no ejecutar — mostrar aviso
+    if (!navigator.onLine) {
+      setIsOffline(true);
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+
+    setIsOffline(false);
     setLoading(true); setError(null);
     let q = supabase.from("asistencias_diarias").select("*")
       .gte("fecha", inicio).lte("fecha", fin).eq("turno", turno);
@@ -34,6 +45,17 @@ function ReporteRango({ onVolverDiario }) {
   }, [inicio, fin, turno, programa]);
 
   useEffect(() => { fetchRango(); }, [fetchRango]);
+
+  useEffect(() => {
+    const handleOnline  = () => { setIsOffline(false); fetchRango(); };
+    const handleOffline = () => { setIsOffline(true); setRows([]); };
+    window.addEventListener('online',  handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online',  handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [fetchRango]);
 
   const docentes = useMemo(() => {
     const map = {};
@@ -121,6 +143,15 @@ function ReporteRango({ onVolverDiario }) {
           </div>
         ))}
       </div>
+
+      {isOffline && (
+        <div style={{ background: "#FFFBEB", color: "#92400E", border: "1px solid #FDE68A", padding: "14px 16px", borderRadius: 8, fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+          <i className="ti ti-wifi-off" style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true" />
+          <div>
+            <strong>Sin conexión.</strong> El reporte por rango requiere red para calcularse. Vuelve a intentarlo cuando se restablezca la conexión.
+          </div>
+        </div>
+      )}
 
       {error && (
         <div style={{ background: "#FEF2F2", color: "#DC2626", padding: "12px 16px", borderRadius: 8, fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
