@@ -104,9 +104,6 @@ export default function App() {
   // ── Sesión QR — vive aquí para no perderse al cambiar sub-vista ──────────
   const qrSession = useQRSession();
 
-  // ── Sincronización offline — vacía cola IndexedDB al recuperar red ────────
-  useSyncPendientes(appData.showToast);
-
   // ── Sidebar ───────────────────────────────────────────────────────────────
   const [hovered,    setHovered]    = useState(false);
   const [pinned,     setPinned]     = useState(() => localStorage.getItem("sb_pinned") === "1");
@@ -203,6 +200,9 @@ export default function App() {
 
   // ── Datos ─────────────────────────────────────────────────────────────────
   const appData = useAppData(lapso, logAudit, user?.id);
+
+  // ── Sincronización offline — vacía cola IndexedDB al recuperar red ────────
+  useSyncPendientes(appData.showToast);
 
   // ── Toast de confirmación de cambio de correo ─────────────────────────────
   // El useEffect anterior detectó que el email de sesión coincide con el
