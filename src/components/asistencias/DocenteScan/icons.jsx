@@ -21,8 +21,18 @@ export const IconWarn = () => (
   </svg>
 );
 
+export const IconOffline = () => (
+  <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#6366F1"/>
+    <path d="M8 12h8M12 8v8" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/>
+    <path d="M5 19l14-14" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+  </svg>
+);
+
 export const RESULTADO_UI = {
-  ok:                   { Icon: IconCheck, titulo: "¡Registro exitoso!", color: "#15803D" },
+  ok:                   { Icon: IconCheck,   titulo: "¡Registro exitoso!",                    color: "#15803D" },
+  OFFLINE:              { Icon: IconOffline, titulo: "Guardado sin conexión",                  color: "#4338CA",
+                          hint: "Se sincronizará automáticamente al recuperar conexión." },
   YA_REGISTRADO:        { Icon: IconWarn,  titulo: "Ya registraste tu entrada hoy", color: "#92400E",
                           hint: "Tu entrada ya estaba registrada. No es necesario hacer nada más." },
   YA_REGISTRADO_SALIDA: { Icon: IconWarn,  titulo: "Ya registraste tu salida hoy", color: "#92400E",
