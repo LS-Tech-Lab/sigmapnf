@@ -2,9 +2,10 @@
 // v1 = asistencias_pendientes
 // v2 = + reportes_asistencias (reporte diario)
 // v3 = + ausentes_cache (VistaAusentes)
+// v4 = + pin_offline (login offline) — gestionado por pinOffline.js
 
 const DB_NAME = 'sigma_offline';
-const DB_VER  = 3;
+const DB_VER  = 4;
 
 const STORE_REPORTES = 'reportes_asistencias';
 const STORE_AUSENTES = 'ausentes_cache';
@@ -22,6 +23,9 @@ function abrirDB() {
       }
       if (!db.objectStoreNames.contains(STORE_AUSENTES)) {
         db.createObjectStore(STORE_AUSENTES, { keyPath: 'clave' });
+      }
+      if (!db.objectStoreNames.contains('pin_offline')) {
+        db.createObjectStore('pin_offline', { keyPath: 'userId' });
       }
     };
     req.onsuccess = e => res(e.target.result);
