@@ -338,7 +338,7 @@ function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, l
 }
 
 // ─── Editor de Rol ────────────────────────────────────────────────────────────
-function ModalRol({ rol, onSave, onClose }) {
+function ModalRol({ rol, onSave, onClose, logAudit }) {
   const esNuevo = !rol;
   const [form, setForm] = useState({
     nombre:             rol?.nombre             || "",
@@ -367,8 +367,9 @@ function ModalRol({ rol, onSave, onClose }) {
     }
     setSaving(true);
     try {
+      const nombreRol = esNuevo ? form.nombre.trim() : rol.nombre;
       const { error: err } = await supabase.rpc("admin_upsert_role", {
-        p_nombre:             esNuevo ? form.nombre.trim() : rol.nombre,
+        p_nombre:             nombreRol,
         p_label:              form.label.trim(),
         p_emoji:              form.emoji,
         p_color:              form.color,
@@ -376,6 +377,31 @@ function ModalRol({ rol, onSave, onClose }) {
         p_permisos:           form.permisos,
       });
       if (err) throw err;
+
+      // M-1 fix: auditar creación/edición de roles.
+      // Antes: solo los cambios de usuarios se registraban en audit_logs.
+      // Un escalado de permisos de un rol no dejaba ningún rastro.
+      const permisosActivos = Object.entries(form.permisos)
+        .filter(([, v]) => v).map(([k]) => k);
+      await logAudit?.({
+        accion:        esNuevo ? "CREAR_ROL" : "EDITAR_ROL",
+        entidad:       "roles",
+        entidad_id:    nombreRol,
+        resumen:       esNuevo
+          ? `Rol creado: "${form.label.trim()}" (${permisosActivos.length} permisos)`
+          : `Rol editado: "${form.label.trim()}" → ${permisosActivos.length} permisos activos`,
+        datos_antes:   esNuevo ? null : {
+          label:              rol.label,
+          restringe_programa: rol.restringe_programa,
+          permisos:           rol.permisos,
+        },
+        datos_despues: {
+          label:              form.label.trim(),
+          restringe_programa: form.restringe_programa,
+          permisos:           form.permisos,
+        },
+      });
+
       onSave();
     } catch (e) {
       setError(e.message || "Error al guardar el rol.");
@@ -896,7 +922,7 @@ function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp,
 }
 
 // ─── Pestaña Roles ────────────────────────────────────────────────────────────
-function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: showToastProp }) {
+function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: showToastProp, logAudit }) {
   const [roles,     setRoles]     = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [modalRol,  setModalRol]  = useState(undefined);
@@ -924,10 +950,17 @@ function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: sh
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  const eliminarRol = async (nombre) => {
+  const eliminarRol = async (nombre, label) => {
     try {
       const { error } = await supabase.rpc("admin_delete_role", { p_nombre: nombre });
       if (error) throw error;
+      // M-1 fix: auditar eliminación de rol
+      await logAudit?.({
+        accion:     "ELIMINAR_ROL",
+        entidad:    "roles",
+        entidad_id: nombre,
+        resumen:    `Rol eliminado: "${label}" (${nombre})`,
+      });
       toast("✓ Rol eliminado.");
       cargar();
     } catch (e) {
@@ -1054,6 +1087,7 @@ function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: sh
           rol={modalRol || null}
           onSave={() => { setModalRol(undefined); cargar(); toast("✓ Rol guardado."); }}
           onClose={() => setModalRol(undefined)}
+          logAudit={logAudit}
         />
       )}
 
@@ -1062,7 +1096,7 @@ function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: sh
         <ModalConfirm
           titulo="Eliminar rol"
           mensaje={`¿Eliminar el rol "${confirm.label}"? Esta acción no se puede deshacer. Solo es posible si ningún usuario lo tiene asignado.`}
-          onConfirm={() => { eliminarRol(confirm.nombre); setConfirm(null); }}
+          onConfirm={() => { eliminarRol(confirm.nombre, confirm.label); setConfirm(null); }}
           onCancel={() => setConfirm(null)}
         />
       )}
@@ -1160,6 +1194,7 @@ export default function UsuariosView({ permisos, programas, logAudit, showToast 
           permisos={permisos}
           onRolesChanged={setRoles}
           showToast={showToast}
+          logAudit={logAudit}
         />
       )}
     </div>
