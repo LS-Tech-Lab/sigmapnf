@@ -20,6 +20,47 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".xlsx", ".xls"];
 const UPLOAD_TIMEOUT_MS  = 60_000;
 
+// ── UX-3: Mapeo de errores técnicos del parser a mensajes accionables ────────
+// Traduce mensajes que llegarían crudos al Toast/setError en texto que el
+// usuario pueda entender y actuar sobre él sin conocimiento técnico del sistema.
+function humanizarErrorParser(mensaje) {
+  if (!mensaje) return "Error desconocido al leer el archivo.";
+  const m = mensaje.toLowerCase();
+
+  if (m.includes("no se pudo leer el archivo") || m.includes("failed to read"))
+    return "No se pudo abrir el archivo. Verifica que no esté dañado o abierto en otro programa.";
+
+  if (m.includes("no se encontraron datos válidos") || m.includes("no se encontraron datos"))
+    return "El archivo no contiene datos de horarios reconocibles. Revisa que uses la plantilla correcta y que las hojas tengan el formato esperado.";
+
+  if (m.includes("columna hora") || m.includes("columna hora no encontrada"))
+    return "Una hoja del archivo no tiene la columna HORA o días de la semana. Verifica que el encabezado de la tabla esté completo.";
+
+  if (m.includes("columna turno") || m.includes("turno no encontrad"))
+    return "No se encontró la columna TURNO en una hoja. Asegúrate de que el encabezado incluya la columna TURNO (o que la hoja CONFIGURACIÓN lo especifique).";
+
+  if (m.includes("hoja") && (m.includes("no reconocida") || m.includes("rechazada")))
+    return "Algunas hojas del archivo no pudieron leerse. Asegúrate de que cada hoja de horario tenga una tabla válida con columna HORA y al menos un día de la semana.";
+
+  if (m.includes("formato de archivo no válido") || m.includes("extensión"))
+    return "El archivo no es un Excel válido. Solo se aceptan archivos .xlsx o .xls.";
+
+  if (m.includes("demasiado grande") || m.includes("tamaño máximo"))
+    return mensaje; // este ya es accionable tal como viene
+
+  if (m.includes("tiempo de espera") || m.includes("timeout") || m.includes("tardó demasiado"))
+    return "La operación tardó demasiado. Verifica tu conexión a internet e intenta de nuevo.";
+
+  if (m.includes("duplicate") || m.includes("duplicado") || m.includes("único"))
+    return "Algunos registros ya existen en el sistema y no pudieron actualizarse. Contacta al administrador si el problema persiste.";
+
+  if (m.includes("permission") || m.includes("permiso") || m.includes("row-level"))
+    return "No tienes permiso para cargar datos en este programa. Contacta al administrador.";
+
+  // Fallback: el mensaje original pero sin stack trace ni código técnico
+  return `Error al procesar el archivo: ${mensaje.split("\n")[0]}`;
+}
+
 function leerWorkbookRaw(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -87,8 +128,9 @@ export default function useUpload({
       try {
         workbookRaw = await leerWorkbookRaw(file);
       } catch (err) {
-        setError("Error al leer el archivo: " + err.message);
-        showToast("Error al leer el archivo: " + err.message, "error");
+        const msg = humanizarErrorParser(err.message);
+        setError(msg);
+        showToast(msg, "error");
         setUploading(false);
         return;
       }
@@ -108,15 +150,17 @@ export default function useUpload({
           catalogoDocentes: docentesCatalogo.map(d => d.nombre_raw),
         }));
       } catch (err) {
-        setError("Error al leer el archivo: " + err.message);
-        showToast("Error al leer el archivo: " + err.message, "error");
+        const msg = humanizarErrorParser(err.message);
+        setError(msg);
+        showToast(msg, "error");
         setUploading(false);
         return;
       }
 
       if (!allRows.length) {
-        setError("No se encontraron datos válidos.");
-        showToast("No se encontraron datos válidos en el archivo.", "warning");
+        const msg = humanizarErrorParser("no se encontraron datos válidos");
+        setError(msg);
+        showToast(msg, "warning");
         setUploading(false);
         return;
       }
@@ -402,8 +446,9 @@ export default function useUpload({
         } catch (unexpectedErr) {
           console.error("Error inesperado en inserción:", unexpectedErr);
           if (!timedOut) {
-            showToast("Error inesperado al procesar el archivo.", "error");
-            setError("Error inesperado: " + unexpectedErr.message);
+            const msg = humanizarErrorParser(unexpectedErr.message);
+            showToast(msg, "error");
+            setError(msg);
           }
         } finally {
           clearTimeout(timeoutId);
@@ -413,8 +458,9 @@ export default function useUpload({
 
     } catch (unexpectedErr) {
       console.error("Error inesperado en handleFileUpload:", unexpectedErr);
-      showToast("Error inesperado al procesar el archivo.", "error");
-      setError("Error inesperado: " + unexpectedErr.message);
+      const msg = humanizarErrorParser(unexpectedErr.message);
+      showToast(msg, "error");
+      setError(msg);
       setUploading(false);
     }
   };
