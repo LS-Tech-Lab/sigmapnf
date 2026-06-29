@@ -4,6 +4,9 @@ import useHorariosFilters from "./hooks/useHorariosFilters";
 import useAuth from "./hooks/useAuth";
 import useQRSession from "./hooks/useQRSession";
 import useSyncPendientes from "./hooks/useSyncPendientes";
+import usePerfilEfectivo from "./hooks/usePerfilEfectivo";
+import useModuloActivo from "./hooks/useModuloActivo";
+import useAppShell from "./hooks/useAppShell";
 import LoginScreen from "./components/LoginScreen";
 import ModuleSelector from "./components/ModuleSelector";
 import DocenteScan from "./components/asistencias/DocenteScan";
@@ -61,34 +64,37 @@ function useFileInputs({ fileRef, backupRef, onFile, onBackup }) {
   }, []); // solo al montar/desmontar App
 }
 
+// ── Spinner de carga reutilizable ─────────────────────────────────────────────
+function FullScreenSpinner({ label }) {
+  return (
+    <div className="full-screen-loading">
+      <div style={{
+        width: 32, height: 32, border: "3px solid #1E3A5F",
+        borderTop: "3px solid var(--color-accent)",
+        borderRadius: "50%", animation: "spin 0.8s linear infinite",
+      }} />
+      {label && (
+        <span style={{ color: "var(--color-text-tertiary)", fontSize: 14 }}>
+          {label}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function App() {
-  // ── Confirmación de cambio de correo (redirect de Supabase) ─────────────
-  // Supabase verifica el token en su servidor y redirige a la app sin params.
-  // Detectamos el redirect comparando el email de la sesión activa con el
-  // email nuevo guardado en sessionStorage al momento de pedir el cambio.
-  const [emailChangeStatus, setEmailChangeStatus] = useState(null); // null | "success"
-  const [emailChangeMsg,    setEmailChangeMsg]    = useState("");
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const { user, profile, permisos, loadingProfile, handleLogout, logAudit } = useAuth();
 
-  useEffect(() => {
-    const pendingEmail = localStorage.getItem("sigma_email_change_pending");
-    if (!pendingEmail) return;
+  // ── Perfil y permisos efectivos (online / offline-PIN) ────────────────────
+  const {
+    efectiveProfile, efectivePermisos,
+    offlineProfile, setOfflineProfile,
+  } = usePerfilEfectivo({ user, profile, permisos });
 
-    // Supabase verifica el token en su servidor y redirige a la app, pero no
-    // actualiza la sesión local automáticamente. Forzamos un refresh para que
-    // el cliente obtenga el JWT actualizado con el email nuevo.
-    (async () => {
-      const { data: refreshData } = await supabase.auth.refreshSession();
-      const sessionEmail = refreshData?.session?.user?.email?.toLowerCase();
-      if (sessionEmail && sessionEmail === pendingEmail) {
-        localStorage.removeItem("sigma_email_change_pending");
-        setEmailChangeStatus("success");
-      }
-    })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Navegación ────────────────────────────────────────────────────────────
+  // ── Navegación interna del módulo horarios ────────────────────────────────
+  // Declaradas antes de useAppData porque lapso es argumento del hook.
   const [view,        setView]        = useState("resumen");
   const [docenteNav,  setDocenteNav]  = useState(null);
   const [materiaNav,  setMateriaNav]  = useState(null);
@@ -96,95 +102,41 @@ export default function App() {
   const [lapso,       setLapso]       = useState(() => getCurrentLapso());
   const [modoConsulta,setModoConsulta]= useState(false);
 
-  // ── Módulo activo ─────────────────────────────────────────────────────────
-  // null = selector, "horarios" | "asistencias"
-  // Para roles sin acceso a ambos, el useEffect de abajo redirige directo.
-  const [moduloActivo, setModuloActivo] = useState(null);
+  // ── Datos ─────────────────────────────────────────────────────────────────
+  const appData = useAppData(lapso, logAudit, user?.id);
 
   // ── Sesión QR — vive aquí para no perderse al cambiar sub-vista ──────────
   const qrSession = useQRSession();
 
-  // ── Sidebar ───────────────────────────────────────────────────────────────
-  const [hovered,    setHovered]    = useState(false);
-  const [pinned,     setPinned]     = useState(() => localStorage.getItem("sb_pinned") === "1");
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [adminOpen,  setAdminOpen]  = useState(false);
+  // ── Shell UI (sidebar, modales globales, Supabase caído, email-change) ────
+  // showToast se pasa para que useAppShell pueda lanzar el toast de
+  // confirmación de cambio de correo una vez que appData esté disponible.
+  const shell = useAppShell({ user, showToast: appData.showToast });
 
-  // ── Modales ───────────────────────────────────────────────────────────────
-  const [userMenuOpen,   setUserMenuOpen]   = useState(false);
-  const [cambiarPwdOpen, setCambiarPwdOpen] = useState(false);
+  // ── Módulo activo + auto-selección por permisos ───────────────────────────
+  const {
+    moduloActivo, setModuloActivo,
+    tieneHorarios, tieneQR,
+  } = useModuloActivo({ efectiveProfile, efectivePermisos });
 
-  // ── Refs para inputs de archivo ocultos ──────────────────────────────────
-  const fileRef   = useRef(null);
-  const backupRef = useRef(null);
-
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  const { user, profile, permisos, loadingProfile, handleLogout, logAudit } = useAuth();
-
-  // Perfil offline: se establece cuando el usuario entra con PIN sin red.
-  // Se limpia al detectar red y sesión de Supabase, o al hacer logout.
-  const [offlineProfile, setOfflineProfile] = useState(null);
-
-  // Al reconectar, si Supabase Auth ya tiene sesión activa, descartar el perfil offline.
-  useEffect(() => {
-    if (user && offlineProfile) setOfflineProfile(null);
-  }, [user, offlineProfile]);
-
-  // Perfil y permisos efectivos (Supabase o fallback offline).
-  // Calculados aquí arriba para que los useEffect que siguen los puedan usar.
-  const efectiveProfile  = offlineProfile || profile;
-  const efectivePermisos = offlineProfile
-    ? (() => {
-        const base = {
-          puedeVerTodo: false, puedeImportarExcel: false, puedeEditarHorarios: false,
-          puedeBorrarHorarios: false, puedeEditarDocentes: false, puedeEditarMaterias: false,
-          puedeGestionarTrimestres: false, puedeHacerBackup: false, puedeRestaurarBackup: false,
-          puedeGestionarUsuarios: false, puedeGestionarRoles: false, puedeVerLogs: false,
-          puedeVerAuditoria: false, puedeGestionarQR: false, puedeVerReporteAsistencias: false,
-        };
-        return {
-          ...base,
-          ...(offlineProfile.rol_info?.permisos || {}),
-          // Forzar readonly sin importar lo que diga rol_info
-          puedeImportarExcel:     false,
-          puedeEditarHorarios:    false,
-          puedeBorrarHorarios:    false,
-          puedeGestionarQR:       false,
-          puedeVerSoloSuPrograma: !!offlineProfile.rol_info?.restringe_programa,
-          programaRestringido:    offlineProfile.rol_info?.restringe_programa
-            ? offlineProfile.programa
-            : null,
-        };
-      })()
-    : permisos;
-
-  // Fix #19: Supabase caído / anon key expirada
-  const [supabaseDown, setSupabaseDown] = useState(false);
-  useEffect(() => {
-    if (user !== undefined) return;
-    const id = setTimeout(() => {
-      if (user === undefined) setSupabaseDown(true);
-    }, 8000);
-    return () => clearTimeout(id);
-  }, [user]);
-
-  const togglePin = () => {
-    const next = !pinned;
-    setPinned(next);
-    localStorage.setItem("sb_pinned", next ? "1" : "0");
-  };
+  // ── Sincronización offline — vacía cola IndexedDB al recuperar red ────────
+  useSyncPendientes(appData.showToast);
 
   // ── Reset de navegación al cambiar de usuario ─────────────────────────────
   const prevUserIdRef = useRef(undefined);
   useEffect(() => {
     const currentId = user?.id ?? null;
-    if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== currentId && currentId !== null) {
+    if (
+      prevUserIdRef.current !== undefined &&
+      prevUserIdRef.current !== currentId &&
+      currentId !== null
+    ) {
       setView("resumen");
       setModuloActivo(null);
       setDocenteNav(null);
       setMateriaNav(null);
-      setAdminOpen(false);
-      setUserMenuOpen(false);
+      shell.setAdminOpen(false);
+      shell.setUserMenuOpen(false);
     }
     prevUserIdRef.current = currentId;
   }, [user?.id]);
@@ -192,28 +144,15 @@ export default function App() {
   // ── Modo consulta histórica ───────────────────────────────────────────────
   useEffect(() => {
     const check = async () => {
-      const { data } = await supabase.from("trimestres").select("estado").eq("lapso", lapso).single();
+      const { data } = await supabase
+        .from("trimestres")
+        .select("estado")
+        .eq("lapso", lapso)
+        .single();
       setModoConsulta(data?.estado === "cerrado" || data?.estado === "archivado");
     };
     check();
   }, [lapso]);
-
-  // ── Datos ─────────────────────────────────────────────────────────────────
-  const appData = useAppData(lapso, logAudit, user?.id);
-
-  // ── Sincronización offline — vacía cola IndexedDB al recuperar red ────────
-  useSyncPendientes(appData.showToast);
-
-  // ── Toast de confirmación de cambio de correo ─────────────────────────────
-  // El useEffect anterior detectó que el email de sesión coincide con el
-  // pendiente en sessionStorage. Ahora que appData está disponible, lanzamos
-  // el toast de éxito una sola vez.
-  useEffect(() => {
-    if (emailChangeStatus === "success" && appData.showToast) {
-      appData.showToast("¡Correo actualizado! Tu nuevo correo es: " + (user?.email ?? ""), "success");
-      setEmailChangeStatus(null);
-    }
-  }, [emailChangeStatus, appData.showToast]);
 
   // Restringir programa para secretarios
   useEffect(() => {
@@ -222,26 +161,14 @@ export default function App() {
     }
   }, [efectivePermisos.puedeVerSoloSuPrograma, efectivePermisos.programaRestringido]);
 
-  // ── Auto-selección de módulo según permisos ───────────────────────────────
-  // DEBE estar aquí, antes de cualquier return condicional (Regla de Hooks).
-  useEffect(() => {
-    if (!efectiveProfile || moduloActivo) return;
-    const tieneHorarios = efectivePermisos.puedeVerTodo || efectivePermisos.puedeVerSoloSuPrograma;
-    const tieneQR = efectivePermisos.puedeGestionarQR || efectivePermisos.puedeVerReporteAsistencias;
-    if (tieneHorarios && tieneQR) return; // ambos: queda en selector
-    if (tieneQR) setModuloActivo("asistencias");
-    else setModuloActivo("horarios");
-  }, [efectiveProfile, moduloActivo, efectivePermisos.puedeVerTodo, efectivePermisos.puedeVerSoloSuPrograma,
-      efectivePermisos.puedeGestionarQR, efectivePermisos.puedeVerReporteAsistencias]);
-
   const horariosFilters = useHorariosFilters(appData.data);
 
   // ── Callbacks ─────────────────────────────────────────────────────────────
   const handleCambiarLapso = useCallback((nuevo) => {
     setLapso(nuevo);
     setView("resumen");
-    // A-4: resetear filtros de horarios al cambiar lapso para que no quede
-    // una sección/trayecto del lapso anterior que no exista en el nuevo.
+    // A-4: resetear filtros al cambiar lapso — evita que quede una
+    // sección/trayecto del lapso anterior que no exista en el nuevo.
     horariosFilters.resetFilters();
   }, [horariosFilters.resetFilters]);
 
@@ -269,6 +196,10 @@ export default function App() {
   // appData con exportación auditada
   const appDataAuditada = { ...appData, exportarDatos: handleExportarAuditado };
 
+  // ── Refs para inputs de archivo ocultos ──────────────────────────────────
+  const fileRef   = useRef(null);
+  const backupRef = useRef(null);
+
   // Inputs de archivo montados en document.body: permanecen vivos sin importar
   // qué pantalla esté renderizando App (loading, login, etc.)
   useFileInputs({
@@ -286,7 +217,7 @@ export default function App() {
   }
 
   // Fix #19: Supabase no responde
-  if (supabaseDown) return (
+  if (shell.supabaseDown) return (
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       height: "100vh", background: "var(--color-text-primary)", color: "var(--color-border-tertiary)",
@@ -300,7 +231,7 @@ export default function App() {
         No se pudo conectar con el servidor. Puede ser un problema temporal de red o del servicio.
       </p>
       <button
-        onClick={() => { setSupabaseDown(false); window.location.reload(); }}
+        onClick={() => { shell.setSupabaseDown(false); window.location.reload(); }}
         style={{
           marginTop: 8, padding: "9px 22px", background: "var(--brand-500)", color: "#fff",
           border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer",
@@ -336,35 +267,18 @@ export default function App() {
   if (!user && !offlineProfile) return <LoginScreen onOfflineLogin={setOfflineProfile} />;
 
   if (!offlineProfile && loadingProfile) return (
-    <div className="full-screen-loading">
-      <div style={{
-        width: 32, height: 32, border: "3px solid #1E3A5F", borderTop: "3px solid var(--color-accent)",
-        borderRadius: "50%", animation: "spin 0.8s linear infinite",
-      }} />
-      <span style={{ color: "var(--color-text-tertiary)", fontSize: 14 }}>Cargando perfil…</span>
-    </div>
+    <FullScreenSpinner label="Cargando perfil…" />
   );
 
-  if (!efectiveProfile)              return <SinPerfilAsignado onLogout={handleLogout} />;
-  if (efectiveProfile._desactivado)  return <CuentaDesactivada onLogout={handleLogout} />;
-  if (efectiveProfile._rolInvalido)  return <SinPerfilAsignado onLogout={handleLogout} />;
+  if (!efectiveProfile)             return <SinPerfilAsignado onLogout={handleLogout} />;
+  if (efectiveProfile._desactivado) return <CuentaDesactivada onLogout={handleLogout} />;
+  if (efectiveProfile._rolInvalido) return <SinPerfilAsignado onLogout={handleLogout} />;
 
   // ── Selector de módulo ────────────────────────────────────────────────────
-  const tieneHorarios = efectivePermisos.puedeVerTodo || efectivePermisos.puedeVerSoloSuPrograma;
-  const tieneQR       = efectivePermisos.puedeGestionarQR || efectivePermisos.puedeVerReporteAsistencias;
-
   if (!moduloActivo) {
-    // Spinner mientras el useEffect procesa la redirección automática
+    // Spinner mientras el useEffect de useModuloActivo procesa la redirección
     if (!(tieneHorarios && tieneQR)) {
-      return (
-        <div className="full-screen-loading">
-          <div style={{
-            width: 32, height: 32, border: "3px solid #1E3A5F", borderTop: "3px solid var(--color-accent)",
-            borderRadius: "50%", animation: "spin 0.8s linear infinite",
-          }} />
-          <span style={{ color: "var(--color-text-tertiary)", fontSize: 14 }}>Cargando…</span>
-        </div>
-      );
+      return <FullScreenSpinner label="Cargando…" />;
     }
     return (
       <ModuleSelector
@@ -391,13 +305,7 @@ export default function App() {
 
   // ── Módulo Horarios (default) ─────────────────────────────────────────────
   if (appData.loading && !appData.data.length) return (
-    <div className="full-screen-loading">
-      <div style={{
-        width: 36, height: 36, border: "3px solid #1E3A5F", borderTop: "3px solid var(--color-accent)",
-        borderRadius: "50%", animation: "spin 0.8s linear infinite",
-      }} />
-      <span style={{ color: "var(--color-text-tertiary)", fontSize: 14 }}>Cargando horarios…</span>
-    </div>
+    <FullScreenSpinner label="Cargando horarios…" />
   );
 
   return (
@@ -412,12 +320,12 @@ export default function App() {
         modoConsulta={modoConsulta}
         handleCambiarLapso={handleCambiarLapso}
         // Sidebar UI
-        hovered={hovered} setHovered={setHovered}
-        pinned={pinned} togglePin={togglePin}
-        mobileOpen={mobileOpen} setMobileOpen={setMobileOpen}
-        adminOpen={adminOpen} setAdminOpen={setAdminOpen}
-        userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen}
-        cambiarPwdOpen={cambiarPwdOpen} setCambiarPwdOpen={setCambiarPwdOpen}
+        hovered={shell.hovered} setHovered={shell.setHovered}
+        pinned={shell.pinned} togglePin={shell.togglePin}
+        mobileOpen={shell.mobileOpen} setMobileOpen={shell.setMobileOpen}
+        adminOpen={shell.adminOpen} setAdminOpen={shell.setAdminOpen}
+        userMenuOpen={shell.userMenuOpen} setUserMenuOpen={shell.setUserMenuOpen}
+        cambiarPwdOpen={shell.cambiarPwdOpen} setCambiarPwdOpen={shell.setCambiarPwdOpen}
         fileRef={fileRef} backupRef={backupRef}
         // Datos y auth
         appData={appDataAuditada}
