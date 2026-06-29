@@ -16,6 +16,7 @@ import React, { useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { S } from "../../constants";
 import { Spinner } from "./shared";
+import { validarPassword } from "../../utils/password";
 
 export default function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, logAudit }) {
   const esNuevo = !usuario?.id;
@@ -39,8 +40,10 @@ export default function ModalUsuario({ usuario, roles, programas, onSave, onClos
     if (!form.rol)           return setError("Selecciona un rol.");
     if (rolSeleccionado?.restringe_programa && !form.programa)
       return setError("Este rol requiere un programa asignado.");
-    if (esNuevo && form.password.length < 8)
-      return setError("La contraseña debe tener al menos 8 caracteres.");
+    if (esNuevo) {
+      const errorPwd = validarPassword(form.password);
+      if (errorPwd) return setError(errorPwd);
+    }
 
     setSaving(true);
     try {
@@ -85,8 +88,8 @@ export default function ModalUsuario({ usuario, roles, programas, onSave, onClos
 
         let passwordReseteada = false;
         if (form.password.trim()) {
-          if (form.password.length < 8)
-            throw new Error("La nueva contraseña debe tener al menos 8 caracteres.");
+          const errorPwd = validarPassword(form.password);
+          if (errorPwd) throw new Error(errorPwd);
           const { data: { session } } = await supabase.auth.getSession();
           const pwRes = await fetch("/api/admin-users", {
             method: "POST",
