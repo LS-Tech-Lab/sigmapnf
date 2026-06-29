@@ -279,6 +279,7 @@ export default function AdminQRPanel({
   profile, onVerReporte, onVerProyeccion,
   activa, loading, error, sessionId,
   crearSesion, renovarManual, cerrarSesion,
+  isOffline = false,
 }) {
   const hoy = fechaHoyVE();
   const minHoy = horaActualVE();
@@ -362,6 +363,27 @@ export default function AdminQRPanel({
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
+      {/* Fix O-1: banner de red caída — visible para el coordinador */}
+      {isOffline && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          background: "#FEF2F2", border: "1.5px solid #FECACA",
+          borderRadius: 10, padding: "12px 16px", marginBottom: 20,
+          animation: "offlinePulse 2.5s ease-in-out infinite",
+        }}>
+          <style>{`@keyframes offlinePulse{0%,100%{opacity:1}50%{opacity:.6}}`}</style>
+          <i className="ti ti-wifi-off" style={{ fontSize: 20, color: "#DC2626", flexShrink: 0 }} aria-hidden="true" />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#991B1B" }}>Sin conexión a internet</div>
+            <div style={{ fontSize: 13, color: "#B91C1C", marginTop: 2 }}>
+              {activa
+                ? "La renovación automática del QR está pausada. Al recuperar la red se reanudará automáticamente."
+                : "No es posible iniciar una sesión QR sin conexión."}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cabecera */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
