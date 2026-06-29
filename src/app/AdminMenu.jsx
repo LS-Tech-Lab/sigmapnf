@@ -2,10 +2,12 @@
 // backup, borrar datos del trimestre y estado de conexión.
 // Extraído de App.jsx.
 import { useEffect, useRef } from "react";
+import { useAppDataContext } from "../context/AppDataContext";
 
 // ── Admin dropdown ────────────────────────────────────────────────────────────
-function AdminMenu({ appData, onClose, modoConsulta, fileRef, backupRef, permisos }) {
+function AdminMenu({ onClose, modoConsulta, fileRef, backupRef, permisos }) {
   const ref = useRef(null);
+  const appData = useAppDataContext();
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
