@@ -25,7 +25,7 @@ import { limpiarCache } from "../utils/cache";
 // Valores por defecto: si una clave de permiso no está presente en el
 // jsonb del rol (por ejemplo, un rol viejo al que aún no se le agregó
 // un permiso nuevo agregado luego), se asume `false` en vez de explotar.
-const PERMISOS_BASE = {
+export const PERMISOS_BASE = {
   puedeVerTodo:              false,
   puedeImportarExcel:        false,
   puedeEditarHorarios:       false,
@@ -44,7 +44,7 @@ const PERMISOS_BASE = {
 };
 
 // ── Permisos derivados del rol cargado desde la BD ───────────────────
-function calcularPermisos(profile) {
+export function calcularPermisos(profile) {
   if (!profile || !profile.rol_info) {
     return {
       ...PERMISOS_BASE,
