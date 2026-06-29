@@ -13,6 +13,9 @@ import DocenteScan from "./components/asistencias/DocenteScan";
 import { getCurrentLapso } from "./utils/lapso";
 import { supabase, supabaseConfigError } from "./lib/supabase";
 
+// Context de datos (ARCH-5)
+import { AppDataProvider } from "./context/AppDataContext";
+
 // Layouts extraídos (P4)
 import HorariosLayout from "./app/HorariosLayout";
 import AsistenciasModulo from "./app/AsistenciasModulo";
@@ -310,6 +313,7 @@ export default function App() {
 
   return (
     <>
+      <AppDataProvider value={appDataAuditada}>
       <HorariosLayout
         // Navegación
         view={view} setView={setView}
@@ -327,8 +331,7 @@ export default function App() {
         userMenuOpen={shell.userMenuOpen} setUserMenuOpen={shell.setUserMenuOpen}
         cambiarPwdOpen={shell.cambiarPwdOpen} setCambiarPwdOpen={shell.setCambiarPwdOpen}
         fileRef={fileRef} backupRef={backupRef}
-        // Datos y auth
-        appData={appDataAuditada}
+        // Datos y auth (appData ahora via AppDataContext — ARCH-5)
         horariosFilters={horariosFilters}
         permisos={efectivePermisos}
         profile={efectiveProfile}
@@ -340,6 +343,7 @@ export default function App() {
         tieneQR={tieneQR}
         onCambiarModulo={() => setModuloActivo(null)}
       />
+      </AppDataProvider>
     </>
   );
 }
