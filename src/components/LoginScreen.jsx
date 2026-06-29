@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
-import { listarUsuariosOffline, verificarPinOffline, guardarPinOffline, tienePinOffline } from "../utils/pinOffline";
+import {
+  listarUsuariosOffline, verificarPinOffline, guardarPinOffline, tienePinOffline,
+  // Fix O-8: lockout del PIN en IDB — resiste tabs privadas
+  leerLockoutIDB, registrarIntentoPinFallido, limpiarLockoutIDB,
+} from "../utils/pinOffline";
 
 // LIMITACIÓN CONOCIDA — Fix #9 (auditoría Junio 2026)
-// El contador de intentos fallidos y el bloqueo temporal viven en
+// El contador de intentos fallidos y el bloqueo temporal del login Supabase viven en
 // localStorage. Un atacante puede eludirlos borrando localStorage
 // o usando una pestaña privada. Este mecanismo es únicamente una
 // capa de UX para el usuario legítimo — no debe considerarse seguridad
@@ -14,11 +18,11 @@ const LOCKOUT_SECONDS = 60;
 const LOCKOUT_STORAGE_KEY = "login_lockout_until";
 const ATTEMPTS_STORAGE_KEY = "login_failed_attempts";
 
-// PIN offline: máximo de intentos fallidos antes de bloquear 5 minutos
-const PIN_MAX_ATTEMPTS   = 5;
-const PIN_LOCKOUT_MS     = 5 * 60 * 1000;
-const PIN_LOCKOUT_KEY    = "pin_lockout_until";
-const PIN_ATTEMPTS_KEY   = "pin_failed_attempts";
+// Fix O-8: el lockout del PIN offline ya NO usa localStorage —
+// vive en IDB (ver pinOffline.js: leerLockoutIDB / registrarIntentoPinFallido).
+// Estas constantes quedan solo como referencia de los valores límite.
+const PIN_MAX_ATTEMPTS   = 5;   // exportado desde pinOffline para consistencia
+const PIN_LOCKOUT_MS     = 5 * 60 * 1000; // 5 minutos
 
 function getAuthErrorMessage(error) {
   const msg    = (error?.message || "").toLowerCase();
@@ -48,23 +52,10 @@ function persistAttempts(n) {
   catch { /* idem */ }
 }
 
-// ── PIN lockout helpers ───────────────────────────────────────────────────────
-function readPinLockout() {
-  try { const u = parseInt(localStorage.getItem(PIN_LOCKOUT_KEY) || "0", 10); return u > Date.now() ? u : null; }
-  catch { return null; }
-}
-function readPinAttempts() {
-  try { return parseInt(localStorage.getItem(PIN_ATTEMPTS_KEY) || "0", 10); }
-  catch { return 0; }
-}
-function persistPinLockout(until) {
-  try { if (until) localStorage.setItem(PIN_LOCKOUT_KEY, String(until)); else localStorage.removeItem(PIN_LOCKOUT_KEY); }
-  catch { /* no-op */ }
-}
-function persistPinAttempts(n) {
-  try { if (n > 0) localStorage.setItem(PIN_ATTEMPTS_KEY, String(n)); else localStorage.removeItem(PIN_ATTEMPTS_KEY); }
-  catch { /* no-op */ }
-}
+// ── PIN lockout helpers — Fix O-8: reemplazados por IDB (ver pinOffline.js) ───
+// Los helpers readPinLockout / persistPinLockout etc. han sido eliminados.
+// El estado de bloqueo ahora se lee/escribe en IDB mediante:
+//   leerLockoutIDB(userId), registrarIntentoPinFallido(userId), limpiarLockoutIDB(userId)
 
 // ── Subcomponente: modal para activar PIN tras login exitoso ──────────────────
 function ModalActivarPIN({ user, profile, onDone }) {
@@ -167,11 +158,11 @@ export default function LoginScreen({ onOfflineLogin }) {
   const [pin,             setPin]             = useState("");
   const [pinError,        setPinError]        = useState(null);
   const [pinLoading,      setPinLoading]      = useState(false);
-  const [pinLockedUntil,  setPinLockedUntil]  = useState(() => readPinLockout());
+  // Fix O-8: el lockout ya no se inicializa desde localStorage — se carga
+  // desde IDB cuando el usuario selecciona su perfil (ver useEffect abajo).
+  const [pinLockedUntil,  setPinLockedUntil]  = useState(null);
   const [pinRemaining,    setPinRemaining]    = useState(0);
-  const [pinAttempts,     setPinAttempts]     = useState(
-    () => readPinLockout() ? readPinAttempts() : 0
-  );
+  const [pinAttempts,     setPinAttempts]     = useState(0);
   const pinTimerRef = useRef(null);
 
   // ── Modal activar PIN ─────────────────────────────────────────────────────
@@ -203,15 +194,27 @@ export default function LoginScreen({ onOfflineLogin }) {
       const s = Math.max(0, Math.ceil((pinLockedUntil - Date.now()) / 1000));
       setPinRemaining(s);
       if (s <= 0) {
+        // Fix O-8: limpiar IDB cuando vence el bloqueo
+        if (usuarioSelec?.userId) limpiarLockoutIDB(usuarioSelec.userId);
         setPinLockedUntil(null); setPinAttempts(0);
-        persistPinLockout(null); persistPinAttempts(0);
         clearInterval(pinTimerRef.current);
       }
     };
     tick();
     pinTimerRef.current = setInterval(tick, 500);
     return () => clearInterval(pinTimerRef.current);
-  }, [pinLockedUntil]);
+  }, [pinLockedUntil, usuarioSelec]);
+
+  // Fix O-8: cargar estado de lockout desde IDB al seleccionar un usuario offline
+  useEffect(() => {
+    if (!usuarioSelec?.userId) return;
+    leerLockoutIDB(usuarioSelec.userId).then(({ intentos, bloqueadoHasta }) => {
+      setPinAttempts(intentos);
+      setPinLockedUntil(bloqueadoHasta);
+      setPinError(null);
+      setPin("");
+    });
+  }, [usuarioSelec]);
 
   // ── Detectar online/offline ───────────────────────────────────────────────
   useEffect(() => {
@@ -296,21 +299,25 @@ export default function LoginScreen({ onOfflineLogin }) {
     const perfil = await verificarPinOffline(usuarioSelec.userId, pin);
 
     if (!perfil) {
-      const next = pinAttempts + 1;
-      setPinAttempts(next); persistPinAttempts(next);
-      if (next >= PIN_MAX_ATTEMPTS) {
-        const until = Date.now() + PIN_LOCKOUT_MS;
-        setPinLockedUntil(until); persistPinLockout(until);
-        setPinError(`PIN incorrecto ${next} veces. Bloqueado por 5 minutos.`);
+      // Fix O-8: registrar intento en IDB — resiste tabs privadas
+      const { intentos, bloqueadoHasta, bloqueadoAhora } =
+        await registrarIntentoPinFallido(usuarioSelec.userId);
+
+      setPinAttempts(intentos);
+      if (bloqueadoAhora) {
+        setPinLockedUntil(bloqueadoHasta);
+        setPinError(`PIN incorrecto ${intentos} veces. Bloqueado por 5 minutos.`);
       } else {
-        setPinError(`PIN incorrecto. Intento ${next} de ${PIN_MAX_ATTEMPTS}.`);
+        setPinError(`PIN incorrecto. Intento ${intentos} de 5.`);
       }
       setPinLoading(false);
       return;
     }
 
-    // PIN correcto — limpiar intentos y llamar callback
-    setPinAttempts(0); persistPinAttempts(0); persistPinLockout(null);
+    // PIN correcto — limpiar lockout en IDB y llamar callback
+    await limpiarLockoutIDB(usuarioSelec.userId);
+    setPinAttempts(0);
+    setPinLockedUntil(null);
     onOfflineLogin(perfil);
     setPinLoading(false);
   };
