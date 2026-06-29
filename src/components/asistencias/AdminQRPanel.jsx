@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import QRCode from "qrcode";
 import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../constants";
 import { playRegistroSound, useFlashFeed } from "./useRegistroSound";
 import { supabase } from "../../lib/supabase";
@@ -52,22 +53,10 @@ export function QRDisplay({ qrUrl, segundos, ttlMinutes, size = 280 }) {
 
   useEffect(() => {
     if (!qrUrl || !canvasRef.current) return;
-    const render = () => {
-      if (!window.QRCode) return;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      window.QRCode.toCanvas(canvas, qrUrl, {
-        width: size, margin: 2,
-        color: { dark: "#0F172A", light: "#FFFFFF" },
-      });
-    };
-    if (window.QRCode) { render(); }
-    else {
-      const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js";
-      s.onload = render;
-      document.head.appendChild(s);
-    }
+    QRCode.toCanvas(canvasRef.current, qrUrl, {
+      width: size, margin: 2,
+      color: { dark: "#0F172A", light: "#FFFFFF" },
+    });
   }, [qrUrl, size]);
 
   return (
