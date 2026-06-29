@@ -2,6 +2,8 @@
 // Vercel Serverless Function — reemplaza la Edge Function de Supabase
 // para crear usuarios y resetear contraseñas usando la Service Role Key.
 
+import { validarPassword } from "../src/utils/password.js";
+
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -57,8 +59,9 @@ export default async function handler(req, res) {
     if (!email || !password || !nombre || !rol) {
       return res.status(400).json({ error: "Faltan campos obligatorios." });
     }
-    if (password.length < 8) {
-      return res.status(400).json({ error: "La contraseña debe tener al menos 8 caracteres." });
+    const errorPwd = validarPassword(password);
+    if (errorPwd) {
+      return res.status(400).json({ error: errorPwd });
     }
 
     // Crear usuario en Supabase Auth con service_role
@@ -126,8 +129,9 @@ export default async function handler(req, res) {
     if (!user_id || !password) {
       return res.status(400).json({ error: "Faltan campos obligatorios." });
     }
-    if (password.length < 8) {
-      return res.status(400).json({ error: "La contraseña debe tener al menos 8 caracteres." });
+    const errorPwdReset = validarPassword(password);
+    if (errorPwdReset) {
+      return res.status(400).json({ error: errorPwdReset });
     }
 
     const resetRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${user_id}`, {
