@@ -202,6 +202,7 @@ export default function AsistenciasModulo({
                 ttlMinutes={qrSession.ttlMinutes}
                 meta={qrSession.meta}
                 sessionId={qrSession.sessionId}
+                isOffline={qrSession.isOffline}
               />
             )}
             {subView === "reporte" && (
