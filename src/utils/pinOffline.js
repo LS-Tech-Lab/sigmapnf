@@ -17,8 +17,9 @@
  */
 
 const DB_NAME  = 'sigma_offline';
-const DB_VER   = 4; // v3 agrega ausentes_cache; v4 agrega pin_offline
+const DB_VER   = 5; // v5 agrega pin_lockout (lockout en IDB en lugar de localStorage)
 const STORE    = 'pin_offline';
+const LOCKOUT_STORE = 'pin_lockout';
 
 function abrirDB() {
   return new Promise((res, rej) => {
@@ -33,6 +34,9 @@ function abrirDB() {
         db.createObjectStore('ausentes_cache', { keyPath: 'clave' });
       if (!db.objectStoreNames.contains(STORE))
         db.createObjectStore(STORE, { keyPath: 'userId' });
+      // Fix O-8: lockout del PIN en IDB — resiste tabs privadas y limpieza de localStorage
+      if (!db.objectStoreNames.contains(LOCKOUT_STORE))
+        db.createObjectStore(LOCKOUT_STORE, { keyPath: 'userId' });
     };
     req.onsuccess = e => res(e.target.result);
     req.onerror   = e => rej(e.target.error);
@@ -174,4 +178,72 @@ export async function tienePinOffline(userId) {
   } catch {
     return false;
   }
+}
+
+// ── Fix O-8: lockout en IDB (resiste tabs privadas) ───────────────────────────
+
+const PIN_MAX_ATTEMPTS = 5;
+const PIN_LOCKOUT_MS   = 5 * 60 * 1000; // 5 minutos
+
+/**
+ * Lee el estado de lockout para un userId desde IDB.
+ * Devuelve { intentos, bloqueadoHasta } o valores por defecto.
+ */
+export async function leerLockoutIDB(userId) {
+  try {
+    const db = await abrirDB();
+    const tx = db.transaction(LOCKOUT_STORE, 'readonly');
+    const entry = await new Promise((res, rej) => {
+      const req = tx.objectStore(LOCKOUT_STORE).get(userId);
+      req.onsuccess = () => res(req.result ?? null);
+      req.onerror   = () => rej(req.error);
+    });
+    if (!entry) return { intentos: 0, bloqueadoHasta: null };
+    // Si el bloqueo ya venció, devolver limpio
+    if (entry.bloqueadoHasta && entry.bloqueadoHasta <= Date.now()) {
+      // Limpiar en background sin esperar
+      guardarLockoutIDB(userId, 0, null);
+      return { intentos: 0, bloqueadoHasta: null };
+    }
+    return { intentos: entry.intentos || 0, bloqueadoHasta: entry.bloqueadoHasta || null };
+  } catch {
+    return { intentos: 0, bloqueadoHasta: null };
+  }
+}
+
+/**
+ * Persiste el estado de lockout en IDB.
+ */
+export async function guardarLockoutIDB(userId, intentos, bloqueadoHasta) {
+  try {
+    const db = await abrirDB();
+    const tx = db.transaction(LOCKOUT_STORE, 'readwrite');
+    tx.objectStore(LOCKOUT_STORE).put({ userId, intentos, bloqueadoHasta });
+    return new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+  } catch { /* no crítico */ }
+}
+
+/**
+ * Registra un intento fallido de PIN y aplica bloqueo si corresponde.
+ * Devuelve el estado actualizado { intentos, bloqueadoHasta, bloqueadoAhora }.
+ */
+export async function registrarIntentoPinFallido(userId) {
+  const current  = await leerLockoutIDB(userId);
+  const intentos = (current.intentos || 0) + 1;
+  const bloqueadoAhora = intentos >= PIN_MAX_ATTEMPTS;
+  const bloqueadoHasta = bloqueadoAhora ? Date.now() + PIN_LOCKOUT_MS : null;
+  await guardarLockoutIDB(userId, intentos, bloqueadoHasta);
+  return { intentos, bloqueadoHasta, bloqueadoAhora };
+}
+
+/**
+ * Limpia el lockout tras un PIN correcto.
+ */
+export async function limpiarLockoutIDB(userId) {
+  try {
+    const db = await abrirDB();
+    const tx = db.transaction(LOCKOUT_STORE, 'readwrite');
+    tx.objectStore(LOCKOUT_STORE).delete(userId);
+    return new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+  } catch { /* no crítico */ }
 }
