@@ -123,7 +123,8 @@ export default function App() {
   } = useModuloActivo({ efectiveProfile, efectivePermisos });
 
   // ── Sincronización offline — vacía cola IndexedDB al recuperar red ────────
-  useSyncPendientes(appData.showToast);
+  // UX-4: pendientesCount se pasa a los layouts para mostrar badge persistente
+  const { pendientesCount } = useSyncPendientes(appData.showToast);
 
   // ── Reset de navegación al cambiar de usuario ─────────────────────────────
   const prevUserIdRef = useRef(undefined);
@@ -302,6 +303,7 @@ export default function App() {
         onVolverSelector={() => setModuloActivo(null)}
         showToast={appData.showToast}
         onLogout={handleLogout}
+        pendientesCount={pendientesCount}
       />
     );
   }
@@ -342,6 +344,7 @@ export default function App() {
         tieneHorarios={tieneHorarios}
         tieneQR={tieneQR}
         onCambiarModulo={() => setModuloActivo(null)}
+        pendientesCount={pendientesCount}
       />
       </AppDataProvider>
     </>
