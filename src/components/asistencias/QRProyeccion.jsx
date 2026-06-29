@@ -33,7 +33,7 @@ function useWindowWidth() {
   return width;
 }
 
-export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinutes, meta, sessionId }) {
+export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinutes, meta, sessionId, isOffline = false }) {
   const turnoInfo = meta?.turno ? TURNOS_VISIBLES.find(t => t.id === meta.turno) : null;
   const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 640;
@@ -123,7 +123,18 @@ export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinu
   /* ── Vista activa ────────────────────────────────────────────────────── */
   return (
     <div className="qrp-root">
-      <TopBar visible={barVisible} meta={meta} turnoInfo={turnoInfo} isMobile={isMobile} />
+      <TopBar visible={barVisible} meta={meta} turnoInfo={turnoInfo} isMobile={isMobile} isOffline={isOffline} />
+
+      {/* Fix O-3: banner de red caída visible para docentes en el aula */}
+      {isOffline && (
+        <div className="qrp-offline-banner">
+          <span className="qrp-offline-icon">📡</span>
+          <span className="qrp-offline-texto">
+            <strong>Sin conexión a internet</strong> — el QR mostrado puede haber vencido.
+            El coordinador debe restablecer la sesión al recuperar la red.
+          </span>
+        </div>
+      )}
 
       <div className={`qrp-layout ${isTablet ? "qrp-layout--col" : "qrp-layout--row"}`}>
 
@@ -202,7 +213,7 @@ function QRSection({ qrUrl, segundosRestantes, ttlMinutes, qrSize, isMobile }) {
 }
 
 /* ── Top bar ─────────────────────────────────────────────────────────────── */
-function TopBar({ visible, meta, turnoInfo, isMobile }) {
+function TopBar({ visible, meta, turnoInfo, isMobile, isOffline }) {
   return (
     <div className={`qrp-topbar ${visible ? "qrp-topbar--visible" : "qrp-topbar--hidden"}`}>
       <div className="qrp-topbar-inner">
@@ -210,11 +221,17 @@ function TopBar({ visible, meta, turnoInfo, isMobile }) {
           <i className="ti ti-device-desktop" style={{ fontSize: 18, color: "#2563EB" }} aria-hidden="true" />
           {!isMobile && <span className="qrp-topbar-title">Proyección de Asistencia</span>}
           <span className="qrp-topbar-badge">{isMobile ? "Solo lectura" : "Solo lectura"}</span>
+          {/* Fix O-3: indicador compacto de red en la barra superior */}
+          {isOffline && (
+            <span className="qrp-topbar-offline-pill">
+              📡 Sin red
+            </span>
+          )}
         </div>
 
         {meta && (
           <div className="qrp-topbar-meta">
-            <span className="qrp-pulse-dot" />
+            <span className={isOffline ? "qrp-pulse-dot qrp-pulse-dot--offline" : "qrp-pulse-dot"} />
             <span className="qrp-topbar-meta-text">
               {isMobile ? "Activa" : "Sesión activa"}
               {turnoInfo ? ` · ${turnoInfo.label}` : ""}
@@ -541,4 +558,45 @@ const CSS = `
 
   /* ── Animaciones ── */
   @keyframes qrpPulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+
+  /* Fix O-3: pill de red caída en topbar */
+  .qrp-topbar-offline-pill {
+    font-size: 11px;
+    font-weight: 700;
+    color: #FCA5A5;
+    background: rgba(220, 38, 38, 0.15);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    border-radius: 20px;
+    padding: 2px 9px;
+    white-space: nowrap;
+    animation: qrpOfflinePulse 2s ease-in-out infinite;
+  }
+  @keyframes qrpOfflinePulse { 0%,100% { opacity:1 } 50% { opacity:.55 } }
+
+  /* Punto rojo cuando está offline */
+  .qrp-pulse-dot--offline {
+    background: #EF4444 !important;
+    animation: qrpOfflinePulse 2s ease-in-out infinite !important;
+  }
+
+  /* Fix O-3: banner de alerta grande visible para docentes en el aula */
+  .qrp-offline-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: rgba(220, 38, 38, 0.12);
+    border-bottom: 2px solid rgba(220, 38, 38, 0.45);
+    padding: 14px 24px;
+    animation: qrpOfflinePulse 2.5s ease-in-out infinite;
+  }
+  .qrp-offline-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .qrp-offline-texto {
+    font-size: clamp(13px, 2.2vw, 17px);
+    color: #FCA5A5;
+    line-height: 1.5;
+  }
 `;
