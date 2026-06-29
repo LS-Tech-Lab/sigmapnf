@@ -8,6 +8,7 @@
 
 import React, { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { validarPassword } from "../utils/password";
 
 // ── Pestaña activa ────────────────────────────────────────────────────
 const TABS = [
@@ -37,7 +38,7 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
   // ── Validaciones ──────────────────────────────────────────────────
   const validoPassword =
     actual.length >= 1 &&
-    nueva.length >= 8 &&
+    validarPassword(nueva) === null &&
     nueva === confirmar;
 
   const emailValido = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -49,10 +50,9 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
   // ── Fortaleza contraseña ──────────────────────────────────────────
   const fortaleza = (() => {
     if (!nueva) return null;
-    if (nueva.length < 8)  return { label: "Muy corta",  color: "#EF4444", width: "20%" };
-    if (nueva.length < 10) return { label: "Débil",      color: "#F97316", width: "40%" };
+    if (nueva.length < 10) return { label: "Muy corta",  color: "#EF4444", width: "20%" };
     if (!/[A-Z]/.test(nueva) || !/[0-9]/.test(nueva))
-                           return { label: "Regular",    color: "#EAB308", width: "60%" };
+                           return { label: "Regular",    color: "#EAB308", width: "50%" };
     if (nueva.length < 14) return { label: "Buena",      color: "#22C55E", width: "80%" };
     return                        { label: "Excelente",  color: "#16A34A", width: "100%" };
   })();
@@ -69,7 +69,8 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
   const handleGuardarPassword = async () => {
     setError(null);
     if (nueva !== confirmar)  { setError("Las contraseñas no coinciden."); return; }
-    if (nueva.length < 8)     { setError("La nueva contraseña debe tener al menos 8 caracteres."); return; }
+    const errorPwd = validarPassword(nueva);
+    if (errorPwd)             { setError(errorPwd); return; }
     setGuardando(true);
 
     const reAuthError = await reAutenticar(actual);
