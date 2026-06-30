@@ -29,6 +29,26 @@ export const IconOffline = () => (
   </svg>
 );
 
+// Icono "escanear de nuevo" — azul, no alarmante. Se usa cuando el token QR
+// del dispositivo rotó/venció entre el momento en que el docente marcó su
+// entrada y el momento en que vuelve a abrir la página para marcar su salida.
+// No es un error del docente, así que el ícono no debe verse como tal.
+export const IconScan = () => (
+  <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#2563EB"/>
+    <path d="M8 8h2M8 8v2M8 8l3 3M16 8h-2M16 8v2M16 8l-3 3M8 16h2M8 16v-2M8 16l3-3M16 16h-2M16 16v-2M16 16l-3-3"
+      stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// Códigos de la RPC que indican que el token QR de la URL ya no es el
+// vigente (rotó por seguridad tras cada escaneo, o venció su TTL de 5 min).
+// Cuando el docente ya tiene su identidad confirmada en este dispositivo
+// (volvió a abrir la página guardada para marcar su salida), este NO es un
+// error suyo — solo necesita volver a apuntar la cámara al QR actual del
+// aula. Ver REESCANEAR_REQUERIDO en index.jsx.
+export const CODIGOS_REQUIEREN_REESCANEO = ["TOKEN_INVALIDO", "TOKEN_EXPIRADO", "SESION_FECHA_INVALIDA"];
+
 export const RESULTADO_UI = {
   ok:                   { Icon: IconCheck,   titulo: "¡Registro exitoso!",                    color: "#15803D" },
   OFFLINE:              { Icon: IconOffline, titulo: "Guardado sin conexión",                  color: "#4338CA",
