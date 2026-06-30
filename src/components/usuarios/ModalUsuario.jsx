@@ -17,6 +17,7 @@ import { supabase } from "../../lib/supabase";
 import { S } from "../../constants";
 import { Spinner } from "./shared";
 import { validarPassword } from "../../utils/password";
+import useFocusTrap from "../../hooks/useFocusTrap";
 
 export default function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, logAudit }) {
   const esNuevo = !usuario?.id;
@@ -139,6 +140,8 @@ export default function ModalUsuario({ usuario, roles, programas, onSave, onClos
 
   // Accesibilidad: foco al primer campo al abrir + Escape para cerrar
   const firstInputRef = useRef(null);
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef, true);
   useEffect(() => {
     firstInputRef.current?.focus();
     const handleKeyDown = (e) => { if (e.key === "Escape") onClose?.(); };
@@ -156,6 +159,7 @@ export default function ModalUsuario({ usuario, roles, programas, onSave, onClos
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         style={{
           background: "#fff", borderRadius: 14, padding: 28, maxWidth: 480, width: "100%",
           boxShadow: "0 20px 60px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", gap: 18,
