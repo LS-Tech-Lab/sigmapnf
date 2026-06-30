@@ -15,7 +15,6 @@ function buildNavGroups(permisos) {
       items: [
         { id: "docentes",    icon: "ti-users",      label: "Docentes"    },
         { id: "materias",    icon: "ti-book-2",      label: "Materias"    },
-        { id: "asistencias", icon: "ti-printer",     label: "Asistencias" },
       ],
     },
   ];
