@@ -24,6 +24,13 @@ export default function DocenteScan() {
   const [cedula,  setCedula]  = useState("");
   const [nombre,  setNombre]  = useState("");
   const [errorCedula, setErrorCedula] = useState("");
+  // Autocompletado de nombre a partir de la cédula (solo aplica en el
+  // formulario de "primera vez"). nombreAuto guarda el último valor que
+  // NOSOTROS pusimos en el campo, para no pisar lo que el docente haya
+  // escrito manualmente si luego sigue editando la cédula.
+  const [docenteEncontrado, setDocenteEncontrado] = useState(false);
+  const [buscandoDocente,   setBuscandoDocente]   = useState(false);
+  const [nombreAuto,        setNombreAuto]        = useState("");
   const [datosNuevos, setDatosNuevos] = useState(null);
   const [paso,      setPaso]      = useState("cargando");
   const [resultado, setResultado] = useState(null);
@@ -103,6 +110,62 @@ export default function DocenteScan() {
       setPaso("formulario");
     }
   }, [token]);
+
+  // Autocompletar nombre al escribir la cédula (solo en el formulario de
+  // primera vez). Busca en `docentes` con un pequeño debounce para no
+  // disparar una consulta por cada tecla. Si la cédula ya está registrada
+  // en el sistema, rellena el campo Nombre con el nombre_raw vinculado —
+  // así el docente no tiene que volver a escribirlo y evitamos typos que
+  // creen una identidad "fantasma" duplicada (ver cedula.js).
+  useEffect(() => {
+    if (paso !== "formulario") return;
+
+    const cedulaNorm = normalizarCedula(cedula.trim());
+    if (!cedulaTieneFormatoValido(cedulaNorm)) {
+      setDocenteEncontrado(false);
+      setBuscandoDocente(false);
+      return;
+    }
+
+    let cancelado = false;
+    setBuscandoDocente(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await supabase
+          .from("docentes")
+          .select("nombre_raw")
+          .eq("cedula", cedulaNorm)
+          .maybeSingle();
+
+        if (cancelado) return;
+
+        if (data?.nombre_raw) {
+          setDocenteEncontrado(true);
+          // Solo autocompletar si el campo está vacío o si lo que hay
+          // escrito es justo lo que nosotros mismos pusimos antes —
+          // así nunca se pisa un nombre que el docente escribió a mano.
+          setNombre(actual => {
+            if (!actual.trim() || actual === nombreAuto) {
+              setNombreAuto(data.nombre_raw);
+              return data.nombre_raw;
+            }
+            return actual;
+          });
+        } else {
+          setDocenteEncontrado(false);
+        }
+      } catch {
+        // Sin red o error de consulta: el docente sigue pudiendo
+        // escribir su nombre manualmente, sin bloquear el formulario.
+      } finally {
+        if (!cancelado) setBuscandoDocente(false);
+      }
+    }, 450);
+
+    return () => { cancelado = true; clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cedula, paso]);
 
   const guardarDatos = (c, n) => {
     try {
@@ -412,16 +475,17 @@ export default function DocenteScan() {
           autoComplete="off"
           autoFocus
           error={errorCedula}
-          hint="Solo números después del guion. Ej: V-12345678 o E-87654321"
+          hint={buscandoDocente ? "Buscando en el sistema…" : "Solo números después del guion. Ej: V-12345678 o E-87654321"}
         />
         <Campo
           label="Nombre completo"
           value={nombre}
-          onChange={e => setNombre(e.target.value)}
+          onChange={e => { setNombre(e.target.value); setNombreAuto(""); }}
           required
           placeholder="Prof. Juan García"
           autoComplete="name"
-          hint="Será recordado para la próxima vez"
+          success={docenteEncontrado}
+          hint={docenteEncontrado ? "Encontrado en el sistema — puedes corregirlo si no es correcto" : "Será recordado para la próxima vez"}
         />
 
         <button
