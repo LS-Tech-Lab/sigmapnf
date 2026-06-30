@@ -298,6 +298,7 @@ export default function App() {
     return (
       <AsistenciasModulo
         profile={efectiveProfile}
+        permisos={efectivePermisos}
         qrSession={qrSession}
         tieneHorarios={tieneHorarios}
         onVolverSelector={() => setModuloActivo(null)}
