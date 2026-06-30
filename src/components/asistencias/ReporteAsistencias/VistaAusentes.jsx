@@ -52,9 +52,22 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
         return;
       }
 
+      // Catálogo de nombres completos (nombre_raw) para resolución fuzzy en parseClase.
+      // Sin esto, parseClase no puede mapear nombres cortos/parciales de la celda
+      // (ej. "ANILETH CALDERA") al nombre_raw canónico de la tabla docentes
+      // (ej. "ANILETH CAROLINA CALDERA RODRIGUEZ"), y el docente queda marcado
+      // erróneamente como "sin vincular".
+      const { data: docentesCatalogo } = await supabase
+        .from("docentes")
+        .select("nombre_raw, cedula");
+
+      const catalogoDocentes = (docentesCatalogo || []).map(d => d.nombre_raw).filter(Boolean);
+      const cedulaPorNombre = {};
+      (docentesCatalogo || []).forEach(d => { if (d.cedula) cedulaPorNombre[d.nombre_raw] = d.cedula; });
+
       const porDocente = {};
       clases.forEach(c => {
-        const { docente } = parseClase(c.clase);
+        const { docente } = parseClase(c.clase, catalogoDocentes);
         if (!docente) return;
         if (!porDocente[docente]) porDocente[docente] = { nombre: docente, clases: [], programa: c.programa };
         porDocente[docente].clases.push(c);
@@ -67,14 +80,6 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
         setLoading(false);
         return;
       }
-
-      const { data: docentesDB } = await supabase
-        .from("docentes")
-        .select("nombre_raw, cedula")
-        .in("nombre_raw", nombresDocentes);
-
-      const cedulaPorNombre = {};
-      (docentesDB || []).forEach(d => { if (d.cedula) cedulaPorNombre[d.nombre_raw] = d.cedula; });
 
       const resultado = Object.values(porDocente).filter(d => {
         const cedula = cedulaPorNombre[d.nombre];
