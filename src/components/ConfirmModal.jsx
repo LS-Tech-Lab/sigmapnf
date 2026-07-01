@@ -1,59 +1,79 @@
-/* ──────────────────────────────────────────────────────────────────────────────
-   ConfirmModal.css
-   Estilos extraídos de ConfirmModal.jsx (A3, auditoría 2026-06-30).
-   Migración incremental de estilos en línea a clases + tokens del sistema,
-   siguiendo el mismo patrón ya aplicado en AdminQRPanel.css (U-1).
-   Los valores hexadecimales sin token equivalente exacto se conservan
-   literales para no alterar la apariencia visual existente.
-   ────────────────────────────────────────────────────────────────────────────── */
+import React, { useEffect, useRef } from "react";
+import useFocusTrap from "../hooks/useFocusTrap";
+import "./ConfirmModal.css";
 
-.cm-overlay {
-  position: fixed; inset: 0; z-index: 1000;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 16px;
+/**
+ * Modal de confirmación propio para operaciones destructivas.
+ * Reemplaza window.confirm() — no bloquea el thread y es coherente con el diseño.
+ *
+ * Props:
+ *   open       {boolean}  — si se muestra o no
+ *   title      {string}   — título del diálogo
+ *   message    {string}   — cuerpo descriptivo
+ *   confirmLabel {string} — texto del botón de acción (default "Confirmar")
+ *   danger     {boolean}  — si true, el botón de acción es rojo
+ *   onConfirm  {fn}       — callback al aceptar
+ *   onCancel   {fn}       — callback al cancelar / cerrar
+ */
+export default function ConfirmModal({
+  open,
+  title = "¿Estás seguro?",
+  message,
+  confirmLabel = "Confirmar",
+  danger = false,
+  onConfirm,
+  onCancel,
+}) {
+  const cancelBtnRef = useRef(null);
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef, open);
+
+  // Accesibilidad: cerrar con Escape y enfocar el botón "Cancelar" al abrir
+  // (acción más segura por defecto para operaciones destructivas).
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => { if (e.key === "Escape") onCancel?.(); };
+    document.addEventListener("keydown", handleKeyDown);
+    cancelBtnRef.current?.focus();
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onCancel]);
+
+  if (!open) return null;
+
+  return (
+    <div className="cm-overlay" onClick={onCancel} role="presentation">
+      <div className="cm-modal" ref={dialogRef} onClick={e => e.stopPropagation()} role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        {/* Ícono + Título */}
+        <div className="cm-header">
+          <i className={`ti ${danger ? "ti-alert-triangle" : "ti-help-circle"} cm-icon ${danger ? "cm-icon--danger" : "cm-icon--info"}`}
+            aria-hidden="true" />
+          <h2 id="confirm-modal-title" className="cm-title">{title}</h2>
+        </div>
+
+        {/* Mensaje */}
+        {message && (
+          <p className="cm-message">
+            {message}
+          </p>
+        )}
+
+        {/* Botones */}
+        <div className="cm-actions">
+          <button
+            ref={cancelBtnRef}
+            className="cm-btn cm-btn--cancel"
+            onClick={onCancel}
+          >
+            Cancelar
+          </button>
+          <button
+            className={`cm-btn ${danger ? "cm-btn--danger" : "cm-btn--primary"}`}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
-
-.cm-modal {
-  background: var(--color-background-primary);
-  border-radius: 12px;
-  padding: 24px 28px;
-  max-width: 420px;
-  width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-  font-family: system-ui, -apple-system, sans-serif;
-}
-
-.cm-header {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
-}
-
-.cm-icon { font-size: 22px; }
-.cm-icon--danger { color: var(--color-danger); }
-.cm-icon--info   { color: var(--brand-500); }
-
-.cm-title {
-  margin: 0; font-size: 16px; font-weight: 700;
-  color: var(--color-text-primary);
-}
-
-.cm-message {
-  margin: 0 0 22px; font-size: 14px; color: #4B5563; line-height: 1.6;
-}
-
-.cm-actions {
-  display: flex; justify-content: flex-end; gap: 10px;
-}
-
-.cm-btn {
-  padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
-  cursor: pointer; border: none;
-}
-
-.cm-btn--cancel {
-  background: var(--color-background-tertiary);
-  color: var(--navy-700);
-}
-
-.cm-btn--danger  { background: var(--color-danger); color: #fff; }
-.cm-btn--primary { background: var(--brand-500);    color: #fff; }
