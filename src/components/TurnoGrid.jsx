@@ -74,7 +74,8 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
                     return (
                       <td key={day} rowSpan={span} style={{ padding: "4px", borderTop: "1px solid #E2E8F0", borderLeft: "1px solid #E2E8F0", verticalAlign: "top", height: span * ROW_H }}>
                         {entries.map((e, i) => {
-                          const { materia: rawMateria, docente: rawDoc } = parseClase(e.clase);
+                          const { materia: rawMateria, docente: docenteParseado } = parseClase(e.clase);
+                          const rawDoc = e.docentes?.nombre_raw || docenteParseado;
                           const materia = getMateriaName(rawMateria), docente = getDocName(rawDoc);
                           const bg = TRAYECTO_BG[e.trayecto] || "#f0f0f0", col = TRAYECTO_COLORS[e.trayecto] || "#555";
                           const toggleExpand = () => setExpandedCell(isExp ? null : cellKey);
