@@ -64,6 +64,11 @@ export const ROL_SIDEBAR = {
 
 // NAV_ITEMS eliminado — reemplazado por buildNavGroups.js (código muerto, auditoría §5.4)
 
+// ⚠️ Este objeto tiene un espejo en CSS: ver sección "Clases espejo del
+// objeto S" al final de src/index.css (.s-card, .s-th, .s-td, .s-input,
+// .s-select, .s-btn, .s-badge). Si cambias un valor aquí, replica el
+// cambio allá — algunos .jsx ya migraron a las clases CSS y otros aún
+// usan este objeto directamente (migración en curso, A3 fase 4).
 export const S = {
   card: { background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", boxShadow: "0 1px 2px rgba(15,23,42,0.04)", overflow: "hidden" },
   th: { padding: "11px 14px", fontSize: 11, fontWeight: 700, color: "#475569", textAlign: "left", borderBottom: "1px solid #E2E8F0", background: "#F8FAFC", textTransform: "uppercase", letterSpacing: "0.06em" },
