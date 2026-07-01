@@ -15,7 +15,11 @@ export default function GlobalSearch({ onNavigate, docenteNames, materiaNames, d
     if (debouncedQ.length < 2) return [];
     const lo = debouncedQ.toLowerCase(), seen = new Set(), out = [];
     data.forEach(d => {
-      const { materia, docente: rawDocente } = parseClase(d.clase);
+      const { materia, docente: docenteParseado } = parseClase(d.clase);
+      // Prioridad: relación real docentes.nombre_raw (garantizada por FK) >
+      // texto parseado de la celda, para no duplicar/perder resultados por
+      // variantes de tipeo del mismo docente.
+      const rawDocente = d.docentes?.nombre_raw || docenteParseado;
       const docente = docenteNames[rawDocente] || rawDocente, materiaDisplay = materiaNames[materia] || materia;
       const key = `${materia}__${rawDocente}`;
       if (!seen.has(key) && (materiaDisplay.toLowerCase().includes(lo) || docente.toLowerCase().includes(lo))) {
