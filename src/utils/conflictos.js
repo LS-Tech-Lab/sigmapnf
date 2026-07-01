@@ -70,7 +70,12 @@ export function tienenConflicto(entA, entB) {
 export function calcularConflictosLocal(data) {
   const byDocente = {};
   (data || []).forEach((d) => {
-    const { docente } = parseClase(d.clase);
+    // Prioridad: relación real docentes.nombre_raw (garantizada por FK) >
+    // parseClase(clase) como último recurso para filas legacy sin
+    // docente_id vinculado. Agrupar por texto libre podía tratar dos
+    // variantes de tipeo del mismo docente como personas distintas,
+    // ocultando choques de horario reales.
+    const docente = d.docentes?.nombre_raw || parseClase(d.clase).docente;
     if (docente) {
       if (!byDocente[docente]) byDocente[docente] = [];
       byDocente[docente].push(d);
