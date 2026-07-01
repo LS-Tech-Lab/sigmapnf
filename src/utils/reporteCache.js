@@ -1,36 +1,19 @@
 // Capa de caché IndexedDB para reportes de asistencias.
-// v1 = asistencias_pendientes
-// v2 = + reportes_asistencias (reporte diario)
-// v3 = + ausentes_cache (VistaAusentes)
-// v4 = + pin_offline (login offline) — gestionado por pinOffline.js
+//
+// Fix A1 (auditoría 2026-06-30): la apertura de la base 'sigma_offline'
+// ahora vive centralizada en idb.js (DB_VER 6, con todos los stores —
+// incluidos los de offlineQueue.js y pinOffline.js — declarados en un
+// único onupgradeneeded). Esto evita el VersionError que se producía
+// cuando otro módulo abría la base con un número de versión distinto
+// antes que este archivo. Ver idb.js para el detalle e historial.
 
-const DB_NAME = 'sigma_offline';
-const DB_VER  = 4;
+import { abrirDBCompartida } from './idb';
 
 const STORE_REPORTES = 'reportes_asistencias';
 const STORE_AUSENTES = 'ausentes_cache';
 
 function abrirDB() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('asistencias_pendientes')) {
-        db.createObjectStore('asistencias_pendientes', { keyPath: 'id', autoIncrement: true });
-      }
-      if (!db.objectStoreNames.contains(STORE_REPORTES)) {
-        db.createObjectStore(STORE_REPORTES, { keyPath: 'clave' });
-      }
-      if (!db.objectStoreNames.contains(STORE_AUSENTES)) {
-        db.createObjectStore(STORE_AUSENTES, { keyPath: 'clave' });
-      }
-      if (!db.objectStoreNames.contains('pin_offline')) {
-        db.createObjectStore('pin_offline', { keyPath: 'userId' });
-      }
-    };
-    req.onsuccess = e => res(e.target.result);
-    req.onerror   = e => rej(e.target.error);
-  });
+  return abrirDBCompartida();
 }
 
 // ── Reporte diario ────────────────────────────────────────────────────────────
