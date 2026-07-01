@@ -110,7 +110,8 @@ export default function SeccionesView({ data, getDocName, getMateriaName }) {
                 {DAYS.map(day => (
                   <div key={day} style={{ padding: "10px 10px", borderRight: "1px solid #F1F5F9", minHeight: 130 }}>
                     {(byDay[day] || []).map((e, i) => {
-                      const { materia: rm, docente: rd } = parseClase(e.clase);
+                      const { materia: rm, docente: docenteParseado } = parseClase(e.clase);
+                      const rd = e.docentes?.nombre_raw || docenteParseado;
                       const materia = getMateriaName(rm), docente = getDocName(rd);
                       const col = TRAYECTO_COLORS[e.trayecto] || "#555", bg = TRAYECTO_BG[e.trayecto] || "#f5f5f5";
                       return (
