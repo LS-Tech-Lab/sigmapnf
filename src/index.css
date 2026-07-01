@@ -398,3 +398,47 @@ textarea:focus-visible,
   .qrp-instr-titulo { font-size: 18px; margin-bottom: 12px; }
   .qrp-waiting-emoji { font-size: 52px; }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Clases espejo del objeto `S` (src/constants/index.js) — A3 fase 4,
+   auditoría 2026-06-30 / 2026-07-01.
+
+   `S.card`, `S.th`, `S.td`, `S.input`, `S.select` y `S.btn()` se usan hoy
+   como style={{...S.card, ...}} en 20 archivos .jsx distintos. Cada uso
+   cuenta como un style={{...}} inline, y como el objeto se repite en cada
+   archivo, cualquier ajuste visual global (ej. cambiar el radio de borde
+   de todas las tarjetas) requiere tocar 20 sitios en vez de uno.
+
+   Estas clases son un espejo EXACTO de los valores actuales de `S` — no
+   son un rediseño. Se migran los .jsx uno por uno (mismo patrón que
+   HistorialView.css): cada vez que se toca un archivo, se reemplaza
+   style={{...S.card, propiedadExtra}} por className="s-card" + una clase
+   modificadora si hace falta, y solo entonces se retira el uso de `S` en
+   ESE archivo. `S` en constants.js NO se toca ni se elimina hasta que el
+   último archivo lo haya dejado de usar — así ningún archivo aún no
+   migrado se rompe.
+
+   ⚠️ Si `S` cambia en constants.js, replicar el cambio aquí para no que
+   los componentes ya migrados a clases y los que aún usan S in-line
+   diverjan visualmente.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.s-card { background: #fff; border-radius: 12px; border: 1px solid var(--color-border-tertiary); box-shadow: 0 1px 2px rgba(15,23,42,0.04); overflow: hidden; }
+
+.s-th { padding: 11px 14px; font-size: 11px; font-weight: 700; color: var(--color-text-secondary); text-align: left; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+
+.s-td { padding: 11px 14px; font-size: 13px; border-top: 1px solid var(--color-background-tertiary); color: var(--color-text-mid); }
+
+.s-select { font-size: 13px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); cursor: pointer; font-weight: 500; }
+
+.s-input { font-size: 13px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); outline: none; font-weight: 500; }
+
+/* S.btn(active) — dos variantes según el booleano `active` */
+.s-btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--color-border-tertiary); background: #fff; color: var(--color-text-mid); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+.s-btn--active { border-color: var(--brand-500); background: var(--color-background-info); color: var(--brand-600); font-weight: 600; }
+
+/* S.badge(bg, col) — bg/col son dinámicos por color de rol/trayecto/estado,
+   no un set fijo enumerable como en HistorialView. Se resuelven con
+   custom properties: className="s-badge" style={{ '--badge-bg': bg, '--badge-color': col }}.
+   Sigue siendo un style={{...}} inline, pero de 2 propiedades en vez de 6-8. */
+.s-badge { background: var(--badge-bg, #F1F5F9); color: var(--badge-color, #334155); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
