@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { DAYS, S, ALL_TRAYECTOS, TRAYECTO_BG, TRAYECTO_COLORS } from '../constants';
+import { DAYS, ALL_TRAYECTOS, TRAYECTO_BG, TRAYECTO_COLORS } from '../constants';
 import { getTurnoDeRegistro } from '../utils/turno';
 import StatCard from './StatCard';
 import Avatar from './Avatar';
+import './ResumenView.css';
 
 export default function ResumenView({ stats, data, byDocente, byMateria, conflicts = [], getDocName, getMateriaName, onGoToConflictos, isSyncing }) {
   const [tab, setTab] = useState('general');
@@ -84,7 +85,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             {conflicts.length > 0 && (
-              <div style={{ ...S.card, padding: '16px 20px', background: '#FEF2F2', border: '1px solid #FECACA' }}>
+              <div className="s-card rv-card rv-card--alert">
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#991B1B', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 7 }}>
                   <i className="ti ti-alert-triangle" aria-hidden="true" /> Conflictos detectados
                 </div>
@@ -97,7 +98,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
               </div>
             )}
             {metricas && (
-              <div style={{ ...S.card, padding: '16px 20px', gridColumn: conflicts.length > 0 ? 'auto' : '1 / -1' }}>
+              <div className={`s-card rv-card ${conflicts.length > 0 ? '' : 'rv-card--full'}`}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 12 }}>Distribución por turno</div>
                 <div style={{ display: 'flex', gap: 16 }}>
                   <div style={{ flex: 1, textAlign: 'center', padding: 14, background: '#EFF6FF', borderRadius: 8 }}>
@@ -117,7 +118,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {metricas?.topDocente && (
-              <div style={{ ...S.card, padding: '16px 20px' }}>
+              <div className="s-card rv-card">
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 7 }}>
                   <i className="ti ti-user-star" aria-hidden="true" /> Docente con mayor carga
                 </div>
@@ -131,7 +132,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
               </div>
             )}
             {metricas?.topMateria && (
-              <div style={{ ...S.card, padding: '16px 20px' }}>
+              <div className="s-card rv-card">
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 7 }}>
                   <i className="ti ti-book-2" aria-hidden="true" /> Materia más frecuente
                 </div>
@@ -146,7 +147,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
       {/* ── TAB: ANÁLISIS DETALLADO ── */}
       {tab === 'analisis' && metricas && (
         <div className="stats-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div style={{ ...S.card, padding: '16px 20px' }}>
+          <div className="s-card rv-card">
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Clases por trayecto</div>
             {Object.entries(metricas.trayectoCount).sort().map(([t, c]) => (
               <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -159,7 +160,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
             ))}
           </div>
 
-          <div style={{ ...S.card, padding: '16px 20px' }}>
+          <div className="s-card rv-card">
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Distribución por día</div>
             {DAYS.map(d => (
               <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -172,7 +173,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
             ))}
           </div>
 
-          <div style={{ ...S.card, padding: '16px 20px' }}>
+          <div className="s-card rv-card">
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Docentes con mayor carga</div>
             {metricas.top8Docentes.map(([doc, entries], idx) => (
               <div key={doc} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -186,7 +187,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
             ))}
           </div>
 
-          <div style={{ ...S.card, padding: '16px 20px' }}>
+          <div className="s-card rv-card">
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Materias más frecuentes</div>
             {metricas.topMaterias.map(([mat, entries], idx) => {
               const cnt = entries.length;
@@ -205,7 +206,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
             })}
           </div>
 
-          <div style={{ ...S.card, padding: '16px 20px' }}>
+          <div className="s-card rv-card">
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Distribución por turno</div>
             {Object.entries(metricas.turnoCount).sort().map(([t, cnt]) => {
               const pct = stats.total > 0 ? Math.round((cnt/stats.total)*100) : 0;
@@ -222,7 +223,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
             })}
           </div>
 
-          <div style={{ ...S.card, padding: '16px 20px' }}>
+          <div className="s-card rv-card">
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Secciones por trayecto</div>
             {ALL_TRAYECTOS.map(t => {
               const cnt = [...new Set(data.filter(d => d.trayecto === t).map(d => d.sheet.trim()))].length;
@@ -242,7 +243,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
       )}
 
       {!metricas && (
-        <div style={{ ...S.card, padding: '60px 20px', textAlign: 'center', color: '#94A3B8', fontSize: 15, fontWeight: 500 }}>
+        <div className="s-card rv-empty">
           Carga un archivo Excel para ver el resumen.
         </div>
       )}
