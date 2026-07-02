@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { S, DAYS, BLOQUES_DIURNO, BLOQUES_VESPERTINO } from '../constants';
+import { DAYS, BLOQUES_DIURNO, BLOQUES_VESPERTINO } from '../constants';
 import { getTurnoDeRegistro } from '../utils/turno';
 import TurnoGrid from './TurnoGrid';
 import ConflictosView from './ConflictosView';
@@ -58,11 +58,11 @@ export default function HorariosView({
           </div>
           {tab === 'horarios' && (
             <>
-              <select value={selectedTrayecto} onChange={e => { setSelectedTrayecto(e.target.value); setSelectedSeccion("all"); }} style={S.select}>
+              <select value={selectedTrayecto} onChange={e => { setSelectedTrayecto(e.target.value); setSelectedSeccion("all"); }} className="s-select">
                 <option value="all">Todos los trayectos</option>
                 {allTrayectos.map(t => <option key={t} value={t}>Trayecto {t}</option>)}
               </select>
-              <select value={selectedSeccion} onChange={e => setSelectedSeccion(e.target.value)} style={S.select}>
+              <select value={selectedSeccion} onChange={e => setSelectedSeccion(e.target.value)} className="s-select">
                 <option value="all">Todas las secciones</option>
                 {seccionesByTrayecto.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -73,7 +73,7 @@ export default function HorariosView({
         {tab === 'horarios' && (
           <div className="day-buttons" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {["all", ...DAYS].map(d => (
-              <button key={d} onClick={() => setActiveDay(d)} style={S.btn(activeDay === d)}>
+              <button key={d} onClick={() => setActiveDay(d)} className={`s-btn ${activeDay === d ? "s-btn--active" : ""}`}>
                 {d === "all" ? "Semana completa" : d.charAt(0) + d.slice(1).toLowerCase()}
               </button>
             ))}
@@ -87,7 +87,7 @@ export default function HorariosView({
           <>
             {fd.length > 0 && <TurnoGrid bloques={BLOQUES_DIURNO} turnoLabel="DIURNO" filtered={fd} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} />}
             {fv.length > 0 && <TurnoGrid bloques={BLOQUES_VESPERTINO} turnoLabel="VESPERTINO" filtered={fv} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} />}
-            {(filtered.length === 0 || (fd.length === 0 && fv.length === 0)) && <div style={{ ...S.card, padding: "60px 20px", textAlign: "center", color: "#94A3B8", fontSize: 15, fontWeight: 500 }}>No hay clases para los filtros seleccionados.</div>}
+            {(filtered.length === 0 || (fd.length === 0 && fv.length === 0)) && <div className="s-card s-empty-state">No hay clases para los filtros seleccionados.</div>}
           </>
         )}
         {tab === 'conflictos' && (
