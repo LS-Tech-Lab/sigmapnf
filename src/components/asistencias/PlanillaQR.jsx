@@ -7,7 +7,6 @@
 // HorariosLayout), así que esta pestaña se autoabastece con su propio
 // fetch a Supabase en vez de depender de él.
 import React, { useState, useEffect, useCallback } from 'react';
-import { S } from '../../constants';
 import { supabase } from '../../lib/supabase';
 import { suscribirCambiosRemotos } from '../../lib/realtime';
 import { getCurrentLapso, getLapsosDisponibles, formatLapso } from '../../utils/lapso';
@@ -163,7 +162,7 @@ export default function PlanillaQR({ permisos = {}, profile }) {
           <i className="ti ti-loader-2" style={{ fontSize: 20, animation: "spin 1s linear infinite" }} aria-hidden="true" /> Cargando horario…
         </div>
       ) : error ? (
-        <div style={{ ...S.card, margin: 20, padding: 20, color: "#B91C1C", fontSize: 14 }}>
+        <div className="s-card qr-error-card">
           Error al cargar el horario: {error}
         </div>
       ) : (
