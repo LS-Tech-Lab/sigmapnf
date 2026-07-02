@@ -1,5 +1,5 @@
 import React from 'react';
-import { S, TRAYECTO_COLORS, TRAYECTO_BG } from '../constants';
+import { TRAYECTO_COLORS, TRAYECTO_BG } from '../constants';
 import { getHoraDisplayDeRegistro } from '../utils/time';
 import { parseClase } from '../utils/parsing';
 
@@ -15,7 +15,7 @@ export default function ConflictosView({ conflicts, onGoDocente, getDocName }) {
         </span>
       </div>
       {!conflicts.length ? (
-        <div style={{ ...S.card, padding: "60px 20px", textAlign: "center" }}>
+        <div className="s-card cv-empty">
           <i className="ti ti-circle-check" style={{ fontSize: 44, color: "#059669" }} aria-hidden="true" />
           <div style={{ fontSize: 18, fontWeight: 600, color: "#0F172A", marginTop: 10 }}>Sin conflictos</div>
           <div style={{ fontSize: 14, color: "#64748B", marginTop: 6, fontWeight: 500 }}>No se detectaron solapamientos horarios.</div>
@@ -23,7 +23,7 @@ export default function ConflictosView({ conflicts, onGoDocente, getDocName }) {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {conflicts.map((c, i) => (
-            <div key={i} style={{ ...S.card, borderLeft: "4px solid #EF4444", padding: "14px 18px" }}>
+            <div key={i} className="s-card cv-item">
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 <span style={{ lineHeight: 1, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, marginTop: 2 }}>
                   <i className="ti ti-alert-triangle" style={{ fontSize: 18, color: "#DC2626" }} aria-hidden="true" />
