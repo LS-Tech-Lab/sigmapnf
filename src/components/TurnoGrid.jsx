@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { S, DAYS, TRAYECTO_BG, TRAYECTO_COLORS } from '../constants';
+import { DAYS, TRAYECTO_BG, TRAYECTO_COLORS } from '../constants';
 import { getTurnoDeRegistro, findStartBlock } from '../utils/turno';
 import { countBlocks, getHoraDisplayDeRegistro } from '../utils/time';
 import { parseClase } from '../utils/parsing';
@@ -32,7 +32,7 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
   const ROW_H = 52;
 
   return (
-    <div style={{ ...S.card, marginBottom: 16 }}>
+    <div className="s-card tg-card">
       <div style={{ padding: "10px 16px", background: turnoLabel === "DIURNO" ? "#EFF6FF" : "#FDF2F8", borderBottom: "1px solid #E2E8F0", display: "flex", alignItems: "center", gap: 8 }}>
         <i className={`ti ${turnoLabel === "DIURNO" ? "ti-sun-high" : "ti-moon-stars"}`} style={{ fontSize: 16, color: turnoLabel === "DIURNO" ? "#1D4ED8" : "#BE185D" }} aria-hidden="true" />
         <span style={{ fontSize: 14, fontWeight: 700, color: turnoLabel === "DIURNO" ? "#1D4ED8" : "#BE185D" }}>{turnoLabel === "DIURNO" ? "Turno Diurno" : "Turno Vespertino"}</span>
@@ -46,8 +46,8 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
           </colgroup>
           <thead>
             <tr style={{ background: "#F8FAFC" }}>
-              <th style={{ ...S.th, padding: "10px 12px", fontSize: 12, width: 110 }}>Hora</th>
-              {days.map(d => <th key={d} style={{ ...S.th, padding: "10px 10px", fontSize: 13, borderLeft: "1px solid #E2E8F0", textAlign: "center" }}>{d.charAt(0) + d.slice(1).toLowerCase()}</th>)}
+              <th className="s-th tg-th-hora">Hora</th>
+              {days.map(d => <th key={d} className="s-th tg-th-day">{d.charAt(0) + d.slice(1).toLowerCase()}</th>)}
             </tr>
           </thead>
           <tbody>
