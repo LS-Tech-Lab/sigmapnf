@@ -1,0 +1,66 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   ReporteAsistencias/index.css
+   Migración A3 (auditoría 2026-07-02): estilos extraídos de index.jsx.
+   Reutiliza .s-card / .s-th / .s-td / .s-input / .s-select (src/index.css).
+   Incluye @keyframes shimmer (antes inyectado con una etiqueta <style> inline
+   duplicada en index.jsx, ReporteRango.jsx y VistaAusentes.jsx). Al ser un
+   @keyframes global, definirlo una vez aquí es suficiente para las tres
+   vistas — las otras dos etiquetas <style> inline se retiran cuando les
+   toque su propia pasada de migración, sin romper nada mientras tanto.
+   Los estilos que dependen de datos reales (color por estadística) se
+   mantienen inline por diseño.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.ra-root { padding: 24px; max-width: 980px; margin: 0 auto; }
+
+.ra-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+.ra-title { margin: 0; font-size: 20px; font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 8px; }
+.ra-title-icon { font-size: 22px; }
+.ra-subtitle { margin: 4px 0 0; font-size: 14px; color: #64748B; }
+.ra-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.ra-btn { padding: 8px 16px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+.ra-btn-icon { font-size: 14px; }
+.ra-btn-volver { background: #F8FAFC; border-color: #E2E8F0; color: #334155; }
+.ra-btn-rango { padding: 8px 14px; background: #EFF6FF; border-color: #BFDBFE; color: #1D4ED8; }
+.ra-btn-pdf, .ra-btn-csv { padding: 8px 14px; border: none; color: #fff; }
+.ra-btn-pdf { background: #DC2626; }
+.ra-btn-csv { padding: 8px 16px; background: #059669; }
+.ra-btn-pdf--disabled, .ra-btn-csv--disabled { background: #F1F5F9; color: #64748B; cursor: not-allowed; }
+
+.ra-filtros { background: #fff; border-radius: 10px; border: 1px solid #E2E8F0; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+.ra-filtro-label { display: flex; flex-direction: column; gap: 5px; }
+.ra-filtro-label--grow { flex: 1; min-width: 180px; }
+.ra-filtro-label-text { font-size: 12px; font-weight: 600; color: #334155; }
+.ra-input-date { font-size: 13px; }
+
+.ra-stats-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 12px; margin-bottom: 20px; }
+.ra-stat-card { border-radius: 10px; padding: 14px 16px; }
+.ra-stat-value { font-size: 22px; font-weight: 800; }
+.ra-stat-label { font-size: 12px; color: #64748B; margin-top: 2px; font-weight: 500; }
+
+.ra-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #E2E8F0; }
+.ra-tab-btn { padding: 8px 18px; border: none; background: none; cursor: pointer; font-size: 13px; font-weight: 500; color: #64748B; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.12s; display: flex; align-items: center; gap: 5px; }
+.ra-tab-btn--active { font-weight: 700; color: #1D4ED8; border-bottom-color: #2563EB; }
+.ra-tab-icon { font-size: 13px; }
+
+.ra-offline-banner { background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #92400E; }
+.ra-offline-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+.ra-error-banner { background: #FEF2F2; color: #DC2626; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+.ra-error-icon { font-size: 15px; flex-shrink: 0; }
+
+.ra-table-wrap { overflow-x: auto; }
+.ra-table { width: 100%; border-collapse: collapse; }
+.ra-table tbody tr { transition: background 0.1s; }
+.ra-table tbody tr:hover { background: #F8FAFC; }
+.ra-td-empty-msg { text-align: center; padding: 40px 0; color: #64748B; }
+.ra-td-cedula { font-family: monospace; font-weight: 600; color: #1D4ED8; font-size: 12px; }
+.ra-td-nombre { font-weight: 500; }
+.ra-td-dash { color: #94A3B8; }
+.ra-td-dash--light { color: #CBD5E1; }
+.ra-td-hora { color: #334155; font-size: 13px; font-weight: 600; }
+.ra-td-programa { font-size: 12px; color: #64748B; }
+.ra-table-footer { padding: 10px 16px; font-size: 12px; color: #64748B; border-top: 1px solid #F1F5F9; text-align: right; }
