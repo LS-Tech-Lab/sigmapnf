@@ -1,0 +1,97 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   LogsView.css
+   Migración A3 (auditoría 2026-07-02): estilos extraídos de LogsView.jsx.
+   Reutiliza .s-card / .s-th / .s-td / .s-input / .s-select / .s-btn (src/index.css).
+   Los colores que provienen de EVENTO_CONFIG / ACCION_CONFIG (definidos en el
+   propio JSX, por tipo de evento o acción) se mantienen inline por diseño —
+   son datos, no decisiones de estilo estáticas.
+   El hover de filas de la tabla de sesiones, que antes se hacía con JS
+   (onMouseEnter/onMouseLeave mutando el DOM), pasa a :hover en CSS.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.lv-root { padding: 24px 28px; max-width: 1000px; margin: 0 auto; }
+
+.lv-header { margin-bottom: 24px; }
+.lv-title { margin: 0; font-size: 20px; font-weight: 700; color: var(--color-text-primary); }
+.lv-subtitle { margin: 4px 0 0; font-size: 13px; color: var(--color-text-tertiary); }
+
+.lv-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--color-border-tertiary); }
+.lv-tab-btn { padding: 8px 18px; border: none; background: none; cursor: pointer; font-size: 13px; font-weight: 400; color: var(--color-text-tertiary); border-bottom: 2px solid transparent; margin-bottom: -2px; display: flex; align-items: center; gap: 6px; }
+.lv-tab-btn--active { font-weight: 700; color: var(--brand-500); border-bottom-color: var(--brand-500); }
+.lv-tab-icon { font-size: 14px; }
+
+.lv-no-access { padding: 40px; text-align: center; color: #94A3B8; }
+.lv-no-access-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+.lv-no-access-text { font-size: 14px; }
+
+/* ── Badges (dinámicos por config, ver comentario arriba) ─────────────────── */
+.lv-evento-badge { border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+.lv-evento-badge-icon { font-size: 12px; }
+.lv-accion-badge { font-size: 13px; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.lv-accion-badge-icon { font-size: 14px; }
+
+/* ── Filtros ───────────────────────────────────────────────────────────────── */
+.lv-filtros-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.lv-filtros-row--tight { margin-bottom: 8px; }
+.lv-filtros-row--center { align-items: center; margin-bottom: 20px; }
+.lv-input--email200 { flex: 1; min-width: 200px; }
+.lv-input--email160 { flex: 1; min-width: 160px; }
+.lv-input--w140 { width: 140px; }
+.lv-select--180 { min-width: 180px; }
+.lv-select--160 { min-width: 160px; }
+.lv-btn-icon { flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+.lv-btn-shrink { flex-shrink: 0; }
+.lv-fecha-field { display: flex; align-items: center; gap: 6px; }
+.lv-fecha-label { font-size: 12px; color: var(--color-text-tertiary); white-space: nowrap; }
+.lv-icon-14 { font-size: 14px; }
+.lv-stat-chip { border-radius: 8px; padding: 8px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.lv-stat-chip-count { font-weight: 700; font-size: 18px; }
+
+/* ── Estados de carga/vacío ───────────────────────────────────────────────── */
+.lv-state-loading, .lv-state-empty { text-align: center; color: #94A3B8; }
+.lv-state-loading { padding: 32px; }
+.lv-state-empty { padding: 40px; }
+.lv-state-empty-icon { font-size: 28px; display: block; margin-bottom: 8px; }
+
+/* ── Tabla de sesiones ─────────────────────────────────────────────────────── */
+.lv-table-card { overflow: auto; }
+.lv-table { width: 100%; border-collapse: collapse; }
+.lv-table tbody tr { transition: background 0.1s; }
+.lv-table tbody tr:hover { background: var(--color-background-secondary); }
+.lv-td-fecha { font-size: 13px; color: var(--color-text-secondary); }
+.lv-td-user-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
+.lv-td-user-email { font-size: 11px; color: var(--color-text-tertiary); }
+.lv-td-user-programa { font-size: 10px; color: #0F766E; font-weight: 600; }
+.lv-td-rol { font-size: 12px; color: var(--color-text-secondary); }
+
+.lv-pagination { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+.lv-pagination-label { padding: 7px 14px; font-size: 13px; color: var(--color-text-secondary); }
+
+/* ── Auditoría ─────────────────────────────────────────────────────────────── */
+.lv-audit-list { display: flex; flex-direction: column; gap: 8px; }
+.lv-audit-card { border-left: 3px solid var(--audit-accent, var(--color-border-tertiary)); }
+.lv-audit-header { display: flex; align-items: center; padding: 12px 16px; cursor: pointer; gap: 12px; user-select: none; }
+.lv-audit-header-icon { font-size: 20px; flex-shrink: 0; }
+.lv-audit-main { flex: 1; min-width: 0; }
+.lv-audit-badges-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lv-audit-badge { border-radius: 5px; padding: 1px 7px; font-size: 11px; font-weight: 600; }
+.lv-audit-badge--lapso { background: #EFF6FF; color: #1D4ED8; }
+.lv-audit-badge--programa { background: #F0FDF4; color: #166534; }
+.lv-audit-resumen { font-size: 12px; color: var(--color-text-tertiary); margin-top: 3px; }
+.lv-audit-meta { text-align: right; flex-shrink: 0; }
+.lv-audit-meta-name { font-size: 12px; color: var(--color-text-secondary); font-weight: 600; }
+.lv-audit-meta-date { font-size: 11px; color: #94A3B8; }
+.lv-audit-chevron { color: #94A3B8; font-size: 14px; flex-shrink: 0; }
+
+.lv-audit-detail { border-top: 1px solid #F1F5F9; padding: 14px 16px; background: #FAFAFA; }
+.lv-audit-detail-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 12px; }
+.lv-audit-detail-label { font-size: 10px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.06em; }
+.lv-audit-detail-value { font-size: 13px; color: var(--color-text-secondary); margin-top: 2px; }
+
+.lv-audit-datos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lv-audit-datos-label { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+.lv-audit-datos-label--antes { color: #DC2626; }
+.lv-audit-datos-label--despues { color: #16A34A; }
+.lv-audit-pre { font-size: 11px; border-radius: 6px; padding: 8px 10px; overflow: auto; margin: 0; max-height: 120px; }
+.lv-audit-pre--antes { background: #FEF2F2; color: #7F1D1D; }
+.lv-audit-pre--despues { background: #F0FDF4; color: #14532D; }
