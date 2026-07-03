@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import { S, DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../../constants";
 import { fechaHoyVE } from "../../../utils/time";
+import { logger } from "../../../utils/logger";
 import { rangoFechas } from "./helpers";
 import { exportarPDFRango } from "./exportPDF";
 import { exportarCSVRango } from "./exportCSV";
@@ -93,7 +94,7 @@ function ReporteRango({ onVolverDiario }) {
         } else {
           const nextCursor = filas[filas.length - 1].id;
           if (nextCursor <= cursor) {
-            console.error("Paginación: cursor no avanza, abortando para evitar loop infinito.", { cursor, nextCursor });
+            logger.error("Paginación: cursor no avanza, abortando para evitar loop infinito.", { cursor, nextCursor });
             hayMas = false;
           } else {
             cursor = nextCursor;
