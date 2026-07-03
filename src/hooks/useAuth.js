@@ -21,6 +21,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { limpiarCache } from "../utils/cache";
+import { logger } from "../utils/logger";
 
 // Valores por defecto: si una clave de permiso no está presente en el
 // jsonb del rol (por ejemplo, un rol viejo al que aún no se le agregó
@@ -119,7 +120,7 @@ export default function useAuth() {
 
       if (error || !data) {
         // Usuario sin perfil: tratar como sin acceso
-        console.warn("⚠️ Usuario sin perfil en user_profiles:", authUser.email);
+        logger.warn("⚠️ Usuario sin perfil en user_profiles:", authUser.email);
         setProfile(null);
       } else if (!data.activo) {
         // Cuenta desactivada
@@ -127,13 +128,13 @@ export default function useAuth() {
       } else if (!data.rol_info) {
         // Perfil con un rol que ya no existe en la tabla `roles`
         // (por ejemplo, fue borrado). Tratar como sin acceso.
-        console.warn("⚠️ El rol del usuario no existe en la tabla roles:", data.rol);
+        logger.warn("⚠️ El rol del usuario no existe en la tabla roles:", data.rol);
         setProfile({ ...data, _rolInvalido: true });
       } else {
         setProfile(data);
       }
     } catch (err) {
-      console.error("Error cargando perfil:", err);
+      logger.error("Error cargando perfil:", err);
       setProfile(null);
     }
     setLoadingProfile(false);
@@ -279,7 +280,7 @@ export default function useAuth() {
       });
     } catch (err) {
       // Los logs no deben romper la operación principal
-      console.warn("⚠️ No se pudo registrar auditoría:", err.message);
+      logger.warn("⚠️ No se pudo registrar auditoría:", err.message);
     }
   }, []);
 
