@@ -15,6 +15,15 @@
 .qrp-col-left        { flex: 0 0 320px; background: var(--color-surface); border-radius: 12px; border: 1px solid var(--color-border); padding: 20px; }
 .qrp-col-right       { flex: 1; min-width: 280px; }
 
+/* Móvil (< 640px) — .qrp-col-left es flex-shrink:0 a 320px fijos, lo que
+   desborda horizontalmente en viewports ≤ 372px (320px col + 48px padding
+   de .qrp-root > ancho de pantalla). Se vuelve flexible solo en este rango. */
+@media (max-width: 640px) {
+  .qrp-root      { padding: 16px; }
+  .qrp-col-left  { flex: 1 1 100%; }
+  .qrp-col-right { min-width: 0; }
+}
+
 /* ── Sección vacía (sin sesión) ───────────────────────────────────────────── */
 .qrp-empty           { background: var(--color-surface); border-radius: 12px; border: 2px dashed var(--color-border); padding: 60px 24px; text-align: center; }
 .qrp-empty-title     { font-size: 16px; font-weight: 700; color: var(--color-text-secondary); margin-bottom: 8px; }
