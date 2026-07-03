@@ -15,6 +15,7 @@ import * as XLSX from "xlsx";
 import { parseExcelFile, parseHojaDocentes, parseHojaMalla } from "../../utils/excelParser";
 import { tokensMatch } from "../../utils/parsing";
 import { supabase } from "../../lib/supabase";
+import { logger } from "../../utils/logger";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".xlsx", ".xls"];
@@ -262,7 +263,7 @@ export default function useUpload({
               const { error: e1 } = await supabase
                 .from("docentes")
                 .upsert(conCedula, { onConflict: "cedula" });
-              if (e1) console.warn("upsert DOCENTES (por cédula):", e1.message);
+              if (e1) logger.warn("upsert DOCENTES (por cédula):", e1.message);
             }
 
             // Docentes sin cédula → upsert por nombre_raw (quedan pendientes de completar)
@@ -270,7 +271,7 @@ export default function useUpload({
               const { error: e2 } = await supabase
                 .from("docentes")
                 .upsert(sinCedulaArr, { onConflict: "nombre_raw" });
-              if (e2) console.warn("upsert DOCENTES (sin cédula, por nombre_raw):", e2.message);
+              if (e2) logger.warn("upsert DOCENTES (sin cédula, por nombre_raw):", e2.message);
             }
           }
 
@@ -293,7 +294,7 @@ export default function useUpload({
             const { error: mallaCatError } = await supabase
               .from("materias")
               .upsert(payload, { onConflict: "nombre_raw" });
-            if (mallaCatError) console.warn("upsert catálogo MALLA:", mallaCatError.message);
+            if (mallaCatError) logger.warn("upsert catálogo MALLA:", mallaCatError.message);
           }
 
           if (!newRows.length) {
@@ -401,14 +402,14 @@ export default function useUpload({
           // Asegurar partición del lapso
           if (lapso) {
             const { error: partError } = await supabase.rpc("asegurar_particion_lapso", { p_lapso: lapso });
-            if (partError) console.warn("asegurar_particion_lapso no disponible:", partError.message);
+            if (partError) logger.warn("asegurar_particion_lapso no disponible:", partError.message);
           }
 
           // Insertar filas con IDs resueltos
           const { error: insertError } = await supabase.from("horarios").insert(rowsParaInsertar);
           if (insertError) {
             if (timedOut) return;
-            console.error("insert horarios:", insertError);
+            logger.error("insert horarios:", insertError);
             showToast(`Error al guardar: ${insertError.message}`, "error");
             // M-6 fix: registrar fallo de insert en auditoría.
             // Antes: el error solo se mostraba en toast y console — sin rastro en audit_logs.
@@ -444,7 +445,7 @@ export default function useUpload({
           setConflictsRefreshKey(k => k + 1);
 
         } catch (unexpectedErr) {
-          console.error("Error inesperado en inserción:", unexpectedErr);
+          logger.error("Error inesperado en inserción:", unexpectedErr);
           if (!timedOut) {
             const msg = humanizarErrorParser(unexpectedErr.message);
             showToast(msg, "error");
@@ -457,7 +458,7 @@ export default function useUpload({
       });
 
     } catch (unexpectedErr) {
-      console.error("Error inesperado en handleFileUpload:", unexpectedErr);
+      logger.error("Error inesperado en handleFileUpload:", unexpectedErr);
       const msg = humanizarErrorParser(unexpectedErr.message);
       showToast(msg, "error");
       setError(msg);
