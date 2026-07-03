@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { logger } from '../utils/logger'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -13,7 +14,7 @@ if (supabaseConfigError) {
   // En su lugar, registramos el problema en consola y usamos valores de
   // marcador de posición. Las llamadas a supabase fallarán de forma controlada
   // y los componentes/ErrorBoundary pueden mostrar un mensaje amigable.
-  console.error(`❌ ${supabaseConfigError}`)
+  logger.error(`❌ ${supabaseConfigError}`)
 }
 
 export const supabase = createClient(
