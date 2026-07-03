@@ -8,6 +8,7 @@
 // antes que este archivo. Ver idb.js para el detalle e historial.
 
 import { abrirDBCompartida } from './idb';
+import { logger } from './logger';
 
 const STORE_REPORTES = 'reportes_asistencias';
 const STORE_AUSENTES = 'ausentes_cache';
@@ -36,7 +37,7 @@ export async function guardarReporteEnIDB(fecha, turno, programa, datos) {
     });
     return new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
   } catch (err) {
-    console.warn('[reporteCache] guardarReporte:', err);
+    logger.warn('[reporteCache] guardarReporte:', err);
   }
 }
 
@@ -74,7 +75,7 @@ export async function guardarAusentesEnIDB(fecha, programa, datos) {
     });
     return new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
   } catch (err) {
-    console.warn('[reporteCache] guardarAusentes:', err);
+    logger.warn('[reporteCache] guardarAusentes:', err);
   }
 }
 
