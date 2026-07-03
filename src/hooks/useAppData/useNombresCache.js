@@ -7,6 +7,7 @@ import { DEFAULT_PROGRAMAS } from "../../constants";
 import { normalizarPrograma } from "../../utils/parsing";
 import { supabase } from "../../lib/supabase";
 import { guardarEnCache, cargarDeCache, getCacheKey, CACHE_KEYS } from "../../utils/cache";
+import { logger } from "../../utils/logger";
 
 export default function useNombresCache(userId = null, showToast = null) {
   const [programasDisponibles, setProgramasDisponibles] = useState(["todos", ...DEFAULT_PROGRAMAS]);
@@ -53,7 +54,7 @@ export default function useNombresCache(userId = null, showToast = null) {
       }
     } catch (err) {
       // Fallback: consulta directa a la tabla si la RPC aún no existe
-      console.warn("docentes_con_cedula() no disponible, usando fallback:", err);
+      logger.warn("docentes_con_cedula() no disponible, usando fallback:", err);
       try {
         const { data: docentes } = await supabase.from("docentes").select("*");
         if (docentes) {
@@ -67,7 +68,7 @@ export default function useNombresCache(userId = null, showToast = null) {
         }
       } catch (fallbackErr) {
         // Fix #15: segundo intento tras 3 s antes de rendirse y avisar al usuario
-        console.warn("Fallback de docentes también falló, reintentando en 3 s:", fallbackErr);
+        logger.warn("Fallback de docentes también falló, reintentando en 3 s:", fallbackErr);
         setTimeout(async () => {
           try {
             const { data: docentesRetry } = await supabase.from("docentes").select("*");
@@ -105,7 +106,7 @@ export default function useNombresCache(userId = null, showToast = null) {
         guardarEnCache(CACHE_KEYS.materias, m, userId);
       }
     } catch (err) {
-      console.warn("Error fetching materias:", err);
+      logger.warn("Error fetching materias:", err);
       if (cachedMaterias) setMateriaNames(cachedMaterias);
     }
   }, [userId]);
