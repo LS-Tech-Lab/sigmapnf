@@ -15,7 +15,8 @@
     "build": "node scripts/check-env.js && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "rls:smoke-test": "node scripts/rls-smoke-test.mjs"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
