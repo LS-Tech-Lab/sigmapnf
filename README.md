@@ -167,4 +167,4 @@ automático. Variables de entorno requeridas en Vercel:
 
 ## Licencia
 
-Ver [`LICENSE`](LICENSE).
+Ver [`LICENSE`](LICENSE)
