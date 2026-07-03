@@ -33,6 +33,14 @@ jobs:
       - name: Ejecutar suite de pruebas (Vitest)
         run: npm test
 
+      - name: Verificar dependencias vulnerables (npm audit)
+        # No bloqueante: xlsx tiene 2 vulnerabilidades high sin fix
+        # disponible del lado de la librería (Prototype Pollution y
+        # ReDoS). Bloquear el pipeline por algo sin solución dejaría
+        # trabado cualquier PR futuro que no tenga nada que ver con
+        # esto. Se deja como alerta visible en los logs del CI.
+        run: npm audit --audit-level=high || true
+
       - name: Verificar que el build de producción no se rompe
         run: npm run build
         env:
@@ -42,3 +50,16 @@ jobs:
           # de Supabase.
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: ci-placeholder-key
+
+      - name: Smoke test de RLS (clave anónima real)
+        # A diferencia del build de arriba, este paso SÍ necesita
+        # credenciales reales porque le pega en vivo a la API REST de
+        # Supabase para confirmar que las tablas sensibles rechazan
+        # lecturas/escrituras no autorizadas con la clave anon. Ver
+        # scripts/rls-smoke-test.mjs. Si SUPABASE_URL/SUPABASE_ANON_KEY
+        # no están configurados como secrets del repo, el paso se salta
+        # con un aviso en vez de fallar.
+        run: npm run rls:smoke-test
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
