@@ -1,4 +1,5 @@
 import React from "react";
+import { logger } from "../utils/logger";
 
 /**
  * Mejora 6: ErrorBoundary global.
@@ -20,7 +21,7 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    console.error("ErrorBoundary capturó un error:", error, info.componentStack);
+    logger.error("ErrorBoundary capturó un error:", error, info.componentStack);
     // Guardar stack solo para mostrarlo en desarrollo
     if (import.meta.env.DEV) {
       this.setState({
