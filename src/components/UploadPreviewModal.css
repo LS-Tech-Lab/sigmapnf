@@ -1,0 +1,104 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   UploadPreviewModal.css
+   Migración A3 (auditoría 2026-07-02): estilos extraídos de
+   UploadPreviewModal.jsx. Los subcomponentes reutilizables (Tag, StatChip,
+   EmptyState) siguen aceptando color/bg/border como props — provienen de la
+   paleta interna fija `C` del propio archivo, no de datos arbitrarios — y se
+   pasan al CSS vía custom properties (--tag-color, --chip-bg, etc.), el mismo
+   patrón ya usado para los badges de trayecto en otros componentes.
+   Los 3 handlers onMouseEnter/onMouseLeave que simulaban :hover con JS se
+   reemplazan por :hover en CSS puro.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.upm-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; white-space: nowrap; color: var(--tag-color); background: var(--tag-bg); border: 1px solid var(--tag-border); }
+
+.upm-section-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #E2E8F0; flex-shrink: 0; background: #F8FAFC; }
+.upm-section-header--accent { background: #EFF6FF; }
+.upm-section-header-icon { color: #2563EB; font-size: 15px; }
+.upm-section-header-label { font-weight: 700; font-size: 13px; color: #0F172A; flex: 1; }
+
+/* ── TablaRegistros ─────────────────────────────────────────────────────── */
+.upm-sec-group { margin-bottom: 10px; }
+.upm-sec-header { display: flex; align-items: center; gap: 6px; padding: 5px 12px; background: #F1F5F9; border-top: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0; }
+.upm-sec-header-icon { font-size: 12px; color: #475569; }
+.upm-sec-header-label { font-weight: 700; font-size: 12px; color: #475569; }
+
+.upm-dia-header { padding: 4px 16px; font-size: 11px; font-weight: 700; color: #2563EB; letter-spacing: 0.05em; text-transform: uppercase; background: #EFF6FF; border-bottom: 1px solid #BFDBFE; }
+
+.upm-row { display: grid; grid-template-columns: 110px 1fr 1fr; gap: 0 10px; padding: 7px 16px; border-bottom: 1px solid #F1F5F9; align-items: start; background: #FFFFFF; }
+.upm-row--nodoc { background: #FFFBEB; }
+.upm-row-hora { font-size: 11px; color: #94A3B8; font-weight: 600; padding-top: 1px; }
+.upm-row-materia { font-size: 12px; color: #0F172A; line-height: 1.4; }
+.upm-row-materia-empty { color: #94A3B8; }
+.upm-row-docente { font-size: 12px; line-height: 1.4; display: flex; align-items: center; gap: 4px; color: #475569; }
+.upm-row-docente--nodoc { color: #B45309; }
+.upm-row-docente-icon { font-size: 11px; }
+.upm-row-docente-empty { color: #94A3B8; }
+
+.upm-mostrar-mas { display: block; width: 100%; padding: 8px; background: none; border: none; cursor: pointer; color: #2563EB; font-size: 12px; font-weight: 600; border-top: 1px solid #E2E8F0; }
+
+/* ── TablaCatalogo ──────────────────────────────────────────────────────── */
+.upm-catalogo { border-top: 1px solid #E2E8F0; }
+.upm-catalogo-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 16px; background: none; border: none; cursor: pointer; color: #475569; font-size: 12px; font-weight: 600; }
+.upm-catalogo-chevron { margin-left: auto; }
+.upm-catalogo-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; max-height: 160px; overflow-y: auto; }
+.upm-catalogo-item { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: #F8FAFC; border: 1px solid #E2E8F0; color: #475569; font-weight: 500; }
+
+/* ── Advertencias ───────────────────────────────────────────────────────── */
+.upm-adv-wrap { margin: 0 16px 12px; border: 1px solid #FDE68A; border-radius: 8px; overflow: hidden; }
+.upm-adv-header { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #FFFBEB; }
+.upm-adv-header--multi { border-bottom: 1px solid #FDE68A; }
+.upm-adv-header-icon { color: #B45309; font-size: 14px; }
+.upm-adv-header-label { font-weight: 700; font-size: 12px; color: #B45309; }
+.upm-adv-item { padding: 7px 12px; font-size: 12px; color: #B45309; background: #FFFFFF; }
+.upm-adv-item--divider { border-bottom: 1px solid #FDE68A; }
+
+/* ── Modal principal ────────────────────────────────────────────────────── */
+.upm-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.55); backdrop-filter: blur(2px); z-index: 900; }
+.upm-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(860px, 95vw); max-height: 90vh; display: flex; flex-direction: column; background: #FFFFFF; border-radius: 14px; box-shadow: 0 24px 60px rgba(15,23,42,0.22), 0 4px 16px rgba(15,23,42,0.10); z-index: 901; overflow: hidden; }
+
+.upm-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #E2E8F0; flex-shrink: 0; background: #0F172A; }
+.upm-header-icon-wrap { width: 36px; height: 36px; border-radius: 9px; background: #1E3A8A; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.upm-header-icon { color: #93C5FD; font-size: 18px; }
+.upm-header-main { flex: 1; min-width: 0; }
+.upm-header-title { font-weight: 700; font-size: 15px; color: #F8FAFC; }
+.upm-header-filename { font-size: 11px; color: #94A3B8; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upm-header-close { background: none; border: none; cursor: pointer; color: #64748B; font-size: 18px; padding: 4px; border-radius: 6px; display: flex; align-items: center; transition: color .15s; }
+.upm-header-close:hover { color: #F8FAFC; }
+
+.upm-stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; padding: 14px 16px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; flex-shrink: 0; }
+
+.upm-stat-chip { display: flex; flex-direction: column; align-items: center; padding: 10px 8px; border-radius: 10px; gap: 2px; color: var(--chip-color); background: var(--chip-bg); border: 1px solid var(--chip-border); }
+.upm-stat-chip-icon { font-size: 16px; color: inherit; }
+.upm-stat-chip-value { font-size: 20px; font-weight: 800; color: inherit; line-height: 1.1; }
+.upm-stat-chip-label { font-size: 10px; font-weight: 600; color: inherit; opacity: 0.75; text-align: center; line-height: 1.2; }
+
+.upm-problemas-banner { flex-shrink: 0; padding: 10px 16px 0; background: #F8FAFC; }
+.upm-nodoc-alert { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; margin-bottom: 12px; font-size: 12px; color: #B45309; }
+.upm-nodoc-alert-icon { margin-top: 1px; flex-shrink: 0; }
+
+.upm-tabs { display: flex; gap: 4px; padding: 8px 16px 0; border-bottom: 1px solid #E2E8F0; background: #FFFFFF; flex-shrink: 0; }
+.upm-tab-btn { padding: 6px 14px; border: none; cursor: pointer; border-radius: 7px 7px 0 0; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 5px; border-bottom: 2px solid transparent; color: #475569; background: none; transition: all .12s; }
+.upm-tab-btn--active { border-bottom-color: #2563EB; color: #2563EB; background: #EFF6FF; }
+
+.upm-body { flex: 1; overflow-y: auto; background: #FFFFFF; }
+
+.upm-footer { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-top: 1px solid #E2E8F0; background: #F8FAFC; flex-shrink: 0; }
+.upm-footer-empty { font-size: 12px; color: #94A3B8; flex: 1; }
+.upm-footer-text { font-size: 12px; color: #475569; flex: 1; }
+.upm-footer-text-strong { color: #0F172A; }
+.upm-footer-text-warn { color: #B45309; }
+
+.upm-btn-cancel { padding: 8px 18px; border-radius: 8px; border: 1px solid #E2E8F0; background: #FFFFFF; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color .12s; }
+.upm-btn-cancel:hover { border-color: #475569; }
+
+.upm-btn-confirm { padding: 8px 22px; border-radius: 8px; border: none; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 7px; transition: background .12s; }
+.upm-btn-confirm--enabled { background: #2563EB; color: #fff; cursor: pointer; }
+.upm-btn-confirm--enabled:hover { background: #1D4ED8; }
+.upm-btn-confirm--disabled { background: #E2E8F0; color: #94A3B8; cursor: not-allowed; }
+
+/* ── Micro-componentes ──────────────────────────────────────────────────── */
+.upm-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; gap: 8px; color: var(--empty-color); }
+.upm-empty-state-icon { font-size: 32px; color: inherit; }
+.upm-empty-state-title { font-weight: 700; font-size: 14px; color: inherit; }
+.upm-empty-state-body { font-size: 12px; color: inherit; opacity: 0.7; }
