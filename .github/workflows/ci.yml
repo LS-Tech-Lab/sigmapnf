@@ -1,0 +1,44 @@
+name: CI
+
+# Se ejecuta en cada Pull Request y en cada push a main, para evitar que
+# un cambio roto llegue a producción sin ser detectado.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Si se hace push varias veces seguidas a la misma rama/PR, cancela la
+# ejecución anterior en curso en vez de acumular corridas redundantes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: Tests y build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias (versión exacta del lockfile)
+        run: npm ci
+
+      - name: Ejecutar suite de pruebas (Vitest)
+        run: npm test
+
+      - name: Verificar que el build de producción no se rompe
+        run: npm run build
+        env:
+          # Valores ficticios, solo para que scripts/check-env.js y el
+          # build de Vite tengan variables con las que trabajar en CI.
+          # No son credenciales reales ni dan acceso a ningún proyecto
+          # de Supabase.
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-key
