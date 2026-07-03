@@ -5,6 +5,7 @@
 
 import { supabase } from "../../lib/supabase";
 import { limpiarCache } from "../../utils/cache";
+import { logger } from "../../utils/logger";
 
 export function createBackupActions({
   lapso, selectedPrograma, showToast, openConfirm, closeConfirm,
@@ -31,7 +32,7 @@ export function createBackupActions({
         if (rpcError) {
           const noExiste = rpcError.code === "PGRST202" || rpcError.message?.includes("Could not find");
           if (noExiste) {
-            console.warn("borrar_horarios no disponible, usando DELETE directo:", rpcError.message);
+            logger.warn("borrar_horarios no disponible, usando DELETE directo:", rpcError.message);
             let query = supabase.from("horarios").delete();
             if (lapso) query = query.eq("lapso", lapso);
             if (selectedPrograma !== "todos") query = query.eq("programa", selectedPrograma);
@@ -102,7 +103,7 @@ export function createBackupActions({
       URL.revokeObjectURL(url);
       showToast("Backup descargado correctamente.", "success");
     } catch (err) {
-      console.error("Error al exportar:", err);
+      logger.error("Error al exportar:", err);
       showToast("Error al crear backup: " + err.message, "error");
     }
   };
@@ -186,7 +187,7 @@ export function createBackupActions({
           if (rpcError) {
             const noExiste = rpcError.code === "PGRST202" || rpcError.message?.includes("Could not find");
             if (noExiste) {
-              console.warn("restaurar_backup no disponible, usando flujo multi-llamada:", rpcError.message);
+              logger.warn("restaurar_backup no disponible, usando flujo multi-llamada:", rpcError.message);
               let delQuery = supabase.from("horarios").delete();
               if (lapso) delQuery = delQuery.eq("lapso", lapso);
               else delQuery = delQuery.neq("id", 0);
@@ -221,7 +222,7 @@ export function createBackupActions({
           await fetchDocenteNames();
           await fetchMateriaNames();
         } catch (err) {
-          console.error("Error al importar:", err);
+          logger.error("Error al importar:", err);
           showToast("Error al restaurar backup: " + err.message, "error");
         } finally {
           setUploading(false);
