@@ -20,6 +20,7 @@
 // =====================================================================
 
 import { supabase } from "./supabase";
+import { logger } from "../utils/logger";
 
 const DEBOUNCE_MS = 800;
 
@@ -101,7 +102,7 @@ export function suscribirCambiosRemotos({ lapso, onHorariosChange, onDocentesCha
             RECONNECT_MAX_DELAY
           );
           reconnectAttempt += 1;
-          console.warn(`[realtime] Canal caído (${status}). Reintento ${reconnectAttempt} en ${delay}ms…`);
+          logger.warn(`[realtime] Canal caído (${status}). Reintento ${reconnectAttempt} en ${delay}ms…`);
           reconnectTimer = setTimeout(() => {
             if (!cancelled) conectar();
           }, delay);
