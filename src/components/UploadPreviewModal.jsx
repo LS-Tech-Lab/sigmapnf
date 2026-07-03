@@ -14,6 +14,7 @@
 // =====================================================================
 
 import React, { useState } from "react";
+import "./UploadPreviewModal.css";
 
 // ── Paleta interna (alineada con el sistema de diseño del proyecto) ──
 const C = {
@@ -45,24 +46,15 @@ const DAYS_ORDER = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES"];
 
 function Tag({ color, bg, border, children }) {
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 3,
-      fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 5,
-      color, background: bg, border: `1px solid ${border}`,
-      whiteSpace: "nowrap",
-    }}>{children}</span>
+    <span className="upm-tag" style={{ "--tag-color": color, "--tag-bg": bg, "--tag-border": border }}>{children}</span>
   );
 }
 
 function SectionHeader({ icon, label, count, accent }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 8,
-      padding: "10px 16px", background: accent ? C.accentBg : C.bg,
-      borderBottom: `1px solid ${C.border}`, flexShrink: 0,
-    }}>
-      <i className={`ti ${icon}`} style={{ color: C.accent, fontSize: 15 }} aria-hidden="true" />
-      <span style={{ fontWeight: 700, fontSize: 13, color: C.text, flex: 1 }}>{label}</span>
+    <div className={`upm-section-header${accent ? ' upm-section-header--accent' : ''}`}>
+      <i className={`ti ${icon} upm-section-header-icon`} aria-hidden="true" />
+      <span className="upm-section-header-label">{label}</span>
       {count != null && (
         <Tag color={C.accent} bg={C.accentBg} border={C.accentBdr}>{count}</Tag>
       )}
@@ -95,15 +87,11 @@ function TablaRegistros({ rows, limit = 200 }) {
         const diasOrdenados = DAYS_ORDER.filter(d => bySec[sec][d])
           .concat(Object.keys(bySec[sec]).filter(d => !DAYS_ORDER.includes(d)));
         return (
-          <div key={sec} style={{ marginBottom: 10 }}>
+          <div key={sec} className="upm-sec-group">
             {/* Cabecera de sección */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "5px 12px", background: "#F1F5F9",
-              borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
-            }}>
-              <i className="ti ti-layout-grid" style={{ fontSize: 12, color: C.textSub }} aria-hidden="true" />
-              <span style={{ fontWeight: 700, fontSize: 12, color: C.textSub }}>{sec}</span>
+            <div className="upm-sec-header">
+              <i className="ti ti-layout-grid upm-sec-header-icon" aria-hidden="true" />
+              <span className="upm-sec-header-label">{sec}</span>
               <Tag color={C.textSub} bg="#E2E8F0" border="#CBD5E1">
                 {rows.filter(r => (r.sheet || r.seccion || "—") === sec).length} clases
               </Tag>
@@ -111,39 +99,23 @@ function TablaRegistros({ rows, limit = 200 }) {
             {/* Filas del día */}
             {diasOrdenados.map(dia => (
               <div key={dia}>
-                <div style={{
-                  padding: "4px 16px", fontSize: 11, fontWeight: 700,
-                  color: C.accent, letterSpacing: "0.05em", textTransform: "uppercase",
-                  background: C.accentBg, borderBottom: `1px solid ${C.accentBdr}`,
-                }}>
+                <div className="upm-dia-header">
                   {dia}
                 </div>
                 {bySec[sec][dia].map((r, i) => {
                   const { mat, doc, noDoc } = parseRow(r);
                   return (
-                    <div key={i} style={{
-                      display: "grid",
-                      gridTemplateColumns: "110px 1fr 1fr",
-                      gap: "0 10px",
-                      padding: "7px 16px",
-                      borderBottom: `1px solid ${C.borderFaint}`,
-                      alignItems: "start",
-                      background: noDoc ? C.warnBg : C.surface,
-                    }}>
-                      <span style={{ fontSize: 11, color: C.textFaint, fontWeight: 600, paddingTop: 1 }}>
+                    <div key={i} className={`upm-row${noDoc ? ' upm-row--nodoc' : ''}`}>
+                      <span className="upm-row-hora">
                         {r.hora || "—"}
                       </span>
-                      <span style={{ fontSize: 12, color: C.text, lineHeight: 1.4 }}>
-                        {mat || <em style={{ color: C.textFaint }}>Sin materia</em>}
+                      <span className="upm-row-materia">
+                        {mat || <em className="upm-row-materia-empty">Sin materia</em>}
                       </span>
-                      <span style={{
-                        fontSize: 12, lineHeight: 1.4,
-                        color: noDoc ? C.warn : C.textSub,
-                        display: "flex", alignItems: "center", gap: 4,
-                      }}>
+                      <span className={`upm-row-docente${noDoc ? ' upm-row-docente--nodoc' : ''}`}>
                         {noDoc
-                          ? <><i className="ti ti-alert-triangle" style={{ fontSize: 11 }} aria-hidden="true" /> Sin docente</>
-                          : doc || <em style={{ color: C.textFaint }}>—</em>
+                          ? <><i className="ti ti-alert-triangle upm-row-docente-icon" aria-hidden="true" /> Sin docente</>
+                          : doc || <em className="upm-row-docente-empty">—</em>
                         }
                       </span>
                     </div>
@@ -158,12 +130,7 @@ function TablaRegistros({ rows, limit = 200 }) {
       {hasMore && !expanded && (
         <button
           onClick={() => setExpanded(true)}
-          style={{
-            display: "block", width: "100%", padding: "8px",
-            background: "none", border: "none", cursor: "pointer",
-            color: C.accent, fontSize: 12, fontWeight: 600,
-            borderTop: `1px solid ${C.border}`,
-          }}
+          className="upm-mostrar-mas"
         >
           <i className="ti ti-chevron-down" aria-hidden="true" /> Mostrar {rows.length - limit} registros más…
         </button>
@@ -190,32 +157,20 @@ function TablaCatalogo({ items, tipo }) {
   const icon = tipo === "docentes" ? "ti-user" : "ti-book";
   const label = tipo === "docentes" ? "Docentes del catálogo" : "Materias del catálogo";
   return (
-    <div style={{ borderTop: `1px solid ${C.border}` }}>
+    <div className="upm-catalogo">
       <button
         onClick={() => setShow(s => !s)}
-        style={{
-          display: "flex", alignItems: "center", gap: 8, width: "100%",
-          padding: "10px 16px", background: "none", border: "none",
-          cursor: "pointer", color: C.textSub, fontSize: 12, fontWeight: 600,
-        }}
+        className="upm-catalogo-toggle"
       >
         <i className={`ti ${icon}`} aria-hidden="true" />
         {label}
         <Tag color={C.textSub} bg="#E2E8F0" border="#CBD5E1">{items.length}</Tag>
-        <i className={`ti ${show ? "ti-chevron-up" : "ti-chevron-down"}`}
-          style={{ marginLeft: "auto" }} aria-hidden="true" />
+        <i className={`ti ${show ? "ti-chevron-up" : "ti-chevron-down"} upm-catalogo-chevron`} aria-hidden="true" />
       </button>
       {show && (
-        <div style={{
-          display: "flex", flexWrap: "wrap", gap: 6,
-          padding: "0 16px 12px", maxHeight: 160, overflowY: "auto",
-        }}>
+        <div className="upm-catalogo-list">
           {items.map((d, i) => (
-            <span key={i} style={{
-              fontSize: 11, padding: "3px 8px", borderRadius: 4,
-              background: C.bg, border: `1px solid ${C.border}`,
-              color: C.textSub, fontWeight: 500,
-            }}>
+            <span key={i} className="upm-catalogo-item">
               {d.nombre_raw || d}
             </span>
           ))}
@@ -235,27 +190,15 @@ function Advertencias({ advertencias, warnings }) {
   if (!all.length) return null;
 
   return (
-    <div style={{
-      margin: "0 16px 12px",
-      border: `1px solid ${C.warnBdr}`,
-      borderRadius: 8, overflow: "hidden",
-    }}>
-      <div style={{
-        display: "flex", alignItems: "center", gap: 6,
-        padding: "8px 12px", background: C.warnBg,
-        borderBottom: all.length > 1 ? `1px solid ${C.warnBdr}` : "none",
-      }}>
-        <i className="ti ti-alert-triangle" style={{ color: C.warn, fontSize: 14 }} aria-hidden="true" />
-        <span style={{ fontWeight: 700, fontSize: 12, color: C.warn }}>
+    <div className="upm-adv-wrap">
+      <div className={`upm-adv-header${all.length > 1 ? ' upm-adv-header--multi' : ''}`}>
+        <i className="ti ti-alert-triangle upm-adv-header-icon" aria-hidden="true" />
+        <span className="upm-adv-header-label">
           {all.length} advertencia{all.length !== 1 ? "s" : ""}
         </span>
       </div>
       {all.map((w, i) => (
-        <div key={i} style={{
-          padding: "7px 12px", fontSize: 12, color: C.warn,
-          borderBottom: i < all.length - 1 ? `1px solid ${C.warnBdr}` : "none",
-          background: C.surface,
-        }}>
+        <div key={i} className={`upm-adv-item${i < all.length - 1 ? ' upm-adv-item--divider' : ''}`}>
           {w}
         </div>
       ))}
@@ -296,12 +239,7 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
       {/* Backdrop */}
       <div
         onClick={onCancel}
-        style={{
-          position: "fixed", inset: 0,
-          background: "rgba(15,23,42,0.55)",
-          backdropFilter: "blur(2px)",
-          zIndex: 900,
-        }}
+        className="upm-backdrop"
       />
 
       {/* Panel */}
@@ -309,42 +247,19 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
         role="dialog"
         aria-modal="true"
         aria-label="Vista previa de carga"
-        style={{
-          position: "fixed",
-          top: "50%", left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "min(860px, 95vw)",
-          maxHeight: "90vh",
-          display: "flex", flexDirection: "column",
-          background: C.surface,
-          borderRadius: 14,
-          boxShadow: "0 24px 60px rgba(15,23,42,0.22), 0 4px 16px rgba(15,23,42,0.10)",
-          zIndex: 901,
-          overflow: "hidden",
-        }}
+        className="upm-panel"
       >
         {/* ── Cabecera ── */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "16px 20px",
-          borderBottom: `1px solid ${C.border}`,
-          flexShrink: 0,
-          background: C.navy,
-        }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 9,
-            background: "#1E3A8A",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <i className="ti ti-file-spreadsheet" style={{ color: "#93C5FD", fontSize: 18 }} aria-hidden="true" />
+        <div className="upm-header">
+          <div className="upm-header-icon-wrap">
+            <i className="ti ti-file-spreadsheet upm-header-icon" aria-hidden="true" />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: "#F8FAFC" }}>
+          <div className="upm-header-main">
+            <div className="upm-header-title">
               Vista previa — confirmar carga
             </div>
             {fileName && (
-              <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div className="upm-header-filename">
                 {fileName}
               </div>
             )}
@@ -352,29 +267,14 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
           <button
             onClick={onCancel}
             aria-label="Cancelar carga"
-            style={{
-              background: "none", border: "none", cursor: "pointer",
-              color: "#64748B", fontSize: 18, padding: 4, borderRadius: 6,
-              display: "flex", alignItems: "center",
-              transition: "color .15s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = "#F8FAFC"}
-            onMouseLeave={e => e.currentTarget.style.color = "#64748B"}
+            className="upm-header-close"
           >
             <i className="ti ti-x" aria-hidden="true" />
           </button>
         </div>
 
         {/* ── Tarjetas de resumen ── */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-          gap: 10,
-          padding: "14px 16px",
-          background: C.bg,
-          borderBottom: `1px solid ${C.border}`,
-          flexShrink: 0,
-        }}>
+        <div className="upm-stats-row">
           <StatChip icon="ti-file-import" value={rows.length} label="Total leídas" color={C.accent} bg={C.accentBg} bdr={C.accentBdr} />
           <StatChip icon="ti-circle-plus" value={newRows.length} label="A insertar" color={C.ok} bg={C.okBg} bdr={C.okBdr} />
           {duplicados.length > 0 && (
@@ -390,23 +290,11 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
 
         {/* ── Banner de advertencias ── */}
         {hayProblemas && (
-          <div style={{
-            flexShrink: 0,
-            padding: "10px 16px 0",
-            background: C.bg,
-          }}>
+          <div className="upm-problemas-banner">
             <Advertencias advertencias={advertencias} warnings={warnings} />
             {sinDocente.length > 0 && (
-              <div style={{
-                display: "flex", alignItems: "flex-start", gap: 8,
-                padding: "8px 12px",
-                background: C.warnBg,
-                border: `1px solid ${C.warnBdr}`,
-                borderRadius: 8,
-                marginBottom: 12,
-                fontSize: 12, color: C.warn,
-              }}>
-                <i className="ti ti-user-x" style={{ marginTop: 1, flexShrink: 0 }} aria-hidden="true" />
+              <div className="upm-nodoc-alert">
+                <i className="ti ti-user-x upm-nodoc-alert-icon" aria-hidden="true" />
                 <span>
                   <strong>{sinDocente.length} clase{sinDocente.length !== 1 ? "s" : ""}</strong> no tienen docente reconocido.
                   Puedes continuar — podrás corregirlo más tarde en la vista de Docentes.
@@ -418,26 +306,12 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
 
         {/* ── Tabs ── */}
         {TABS.length > 1 && (
-          <div style={{
-            display: "flex", gap: 4,
-            padding: "8px 16px 0",
-            borderBottom: `1px solid ${C.border}`,
-            background: C.surface,
-            flexShrink: 0,
-          }}>
+          <div className="upm-tabs">
             {TABS.map(t => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                style={{
-                  padding: "6px 14px", border: "none", cursor: "pointer",
-                  borderRadius: "7px 7px 0 0", fontSize: 12, fontWeight: 600,
-                  display: "flex", alignItems: "center", gap: 5,
-                  borderBottom: tab === t.id ? `2px solid ${C.accent}` : "2px solid transparent",
-                  color: tab === t.id ? C.accent : C.textSub,
-                  background: tab === t.id ? C.accentBg : "none",
-                  transition: "all .12s",
-                }}
+                className={`upm-tab-btn${tab === t.id ? ' upm-tab-btn--active' : ''}`}
               >
                 <i className={`ti ${t.icon}`} aria-hidden="true" /> {t.label}
               </button>
@@ -446,7 +320,7 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
         )}
 
         {/* ── Cuerpo con scroll ── */}
-        <div style={{ flex: 1, overflowY: "auto", background: C.surface }}>
+        <div className="upm-body">
 
           {tab === "nuevos" && (
             newRows.length === 0
@@ -475,22 +349,16 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
         </div>
 
         {/* ── Footer ── */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10,
-          padding: "14px 20px",
-          borderTop: `1px solid ${C.border}`,
-          background: C.bg,
-          flexShrink: 0,
-        }}>
+        <div className="upm-footer">
           {newRows.length === 0 ? (
-            <span style={{ fontSize: 12, color: C.textFaint, flex: 1 }}>
+            <span className="upm-footer-empty">
               No hay registros nuevos para insertar.
             </span>
           ) : (
-            <span style={{ fontSize: 12, color: C.textSub, flex: 1 }}>
-              Se insertarán <strong style={{ color: C.text }}>{newRows.length}</strong> clases
+            <span className="upm-footer-text">
+              Se insertarán <strong className="upm-footer-text-strong">{newRows.length}</strong> clases
               {sinDocente.length > 0 && (
-                <span style={{ color: C.warn }}>
+                <span className="upm-footer-text-warn">
                   {" "}· {sinDocente.length} sin docente
                 </span>
               )}
@@ -498,32 +366,14 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
           )}
           <button
             onClick={onCancel}
-            style={{
-              padding: "8px 18px", borderRadius: 8,
-              border: `1px solid ${C.border}`,
-              background: C.surface, color: C.textSub,
-              fontSize: 13, fontWeight: 600, cursor: "pointer",
-              transition: "border-color .12s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = C.textSub}
-            onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
+            className="upm-btn-cancel"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
             disabled={newRows.length === 0}
-            style={{
-              padding: "8px 22px", borderRadius: 8,
-              border: "none",
-              background: newRows.length === 0 ? "#E2E8F0" : C.accent,
-              color: newRows.length === 0 ? C.textFaint : "#fff",
-              fontSize: 13, fontWeight: 700, cursor: newRows.length === 0 ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", gap: 7,
-              transition: "background .12s",
-            }}
-            onMouseEnter={e => { if (newRows.length > 0) e.currentTarget.style.background = "#1D4ED8"; }}
-            onMouseLeave={e => { if (newRows.length > 0) e.currentTarget.style.background = C.accent; }}
+            className={`upm-btn-confirm ${newRows.length === 0 ? 'upm-btn-confirm--disabled' : 'upm-btn-confirm--enabled'}`}
           >
             <i className="ti ti-database-import" aria-hidden="true" />
             Confirmar carga
@@ -538,28 +388,20 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
 
 function StatChip({ icon, value, label, color, bg, bdr }) {
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      padding: "10px 8px", borderRadius: 10,
-      background: bg, border: `1px solid ${bdr}`,
-      gap: 2,
-    }}>
-      <i className={`ti ${icon}`} style={{ color, fontSize: 16 }} aria-hidden="true" />
-      <span style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1.1 }}>{value}</span>
-      <span style={{ fontSize: 10, fontWeight: 600, color, opacity: 0.75, textAlign: "center", lineHeight: 1.2 }}>{label}</span>
+    <div className="upm-stat-chip" style={{ "--chip-color": color, "--chip-bg": bg, "--chip-border": bdr }}>
+      <i className={`ti ${icon} upm-stat-chip-icon`} aria-hidden="true" />
+      <span className="upm-stat-chip-value">{value}</span>
+      <span className="upm-stat-chip-label">{label}</span>
     </div>
   );
 }
 
 function EmptyState({ icon, title, body, color }) {
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", padding: "50px 20px", gap: 8,
-    }}>
-      <i className={`ti ${icon}`} style={{ fontSize: 32, color }} aria-hidden="true" />
-      <span style={{ fontWeight: 700, fontSize: 14, color }}>{title}</span>
-      {body && <span style={{ fontSize: 12, color, opacity: 0.7 }}>{body}</span>}
+    <div className="upm-empty-state" style={{ "--empty-color": color }}>
+      <i className={`ti ${icon} upm-empty-state-icon`} aria-hidden="true" />
+      <span className="upm-empty-state-title">{title}</span>
+      {body && <span className="upm-empty-state-body">{body}</span>}
     </div>
   );
 }
