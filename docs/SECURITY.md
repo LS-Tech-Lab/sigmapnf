@@ -3,6 +3,15 @@
 > dividida/renombrada en el historial real de migraciones (ver `0006_modulo_asistencias_qr.sql`,
 > `0006b_acceso_anonimo_scan.sql` y `0007_rol_operador_qr.sql`). Se conserva como referencia
 > conceptual de la matriz de roles, no como instrucción literal de instalación.
+>
+> **Estado del RLS:** la sección "Seguridad a nivel de base de datos" de más abajo describía
+> el diseño original ("autenticados" como único criterio). Eso ya no refleja la realidad —
+> ver **§ Estado actual de RLS (julio 2026)** para el estado verificado contra la base de
+> datos real, con el historial de hallazgos y fixes.
+>
+> **Rutas de archivos:** algunas rutas de este documento (`src/components/UsuariosView.jsx`,
+> `src/components/LogsView.jsx`) corresponden a la estructura original. La gestión de usuarios
+> vive hoy en `src/components/usuarios/` (carpeta); `LogsView.jsx` sigue en `src/components/`.
 
 # 🔐 Sistema de Seguridad — Guía de Implementación
 
@@ -40,6 +49,11 @@
 | Ver logs de sesión | ✅ | ✅ | ❌ | ❌ |
 | Ver auditoría | ✅ | ✅ | ✅ (solo su prog.) | ❌ |
 | Gestionar usuarios | ✅ | ❌ | ❌ | ❌ |
+
+> Existe además el rol `operador_qr` (agregado en `0007_rol_operador_qr.sql`),
+> específico del módulo de asistencias: puede iniciar/cerrar sesiones QR y ver
+> el reporte de asistencias, sin los permisos de esta tabla. Ver
+> `FLUJO_ASISTENCIAS_QR.md` para el detalle de ese módulo.
 
 ---
 
@@ -91,15 +105,43 @@ En **Authentication → Settings**:
 
 ---
 
-## Seguridad a nivel de base de datos (RLS)
+## Estado actual de RLS (julio 2026)
 
-Las políticas de Row Level Security garantizan que incluso si alguien accede
-directamente a la API de Supabase, solo puede ver/modificar lo que le corresponde:
+> Reemplaza la descripción original de esta sección, que solo exigía estar
+> "autenticado" — ese fue precisamente el modelo vulnerable que las
+> migraciones `0035`, `0043`, `0045` y `0046` corrigieron. Lo de abajo está
+> verificado contra `pg_policies` / `pg_class` de la base real, no inferido
+> de los archivos de migración únicamente (ver por qué eso importa en el
+> hallazgo de `0046`, más abajo).
 
-- `user_profiles`: cada usuario ve su propio perfil; admin ve todos
-- `session_logs`: solo admin y coordinador pueden leer
-- `audit_logs`: admin/coordinador ven todo; secretario ve solo su programa
-- `horarios`, `docentes`, `materias`: RLS existente (autenticados)
+| Tabla | SELECT | INSERT / UPDATE | DELETE |
+|---|---|---|---|
+| `horarios` (tabla padre + particiones `horarios_lapso_*`) | Público (`USING (true)`) | Requiere `tiene_permiso(uid, 'puedeEditarHorarios')` | Requiere `tiene_permiso(uid, 'puedeBorrarHorarios')` |
+| `docentes` / `materias` | Público (necesario: `DocenteScan` lee `docentes` sin sesión para autocompletar nombre al escanear) | Requiere `puedeEditarDocentes`/`puedeEditarMaterias` **o** `puedeImportarExcel` | Requiere el permiso de edición correspondiente |
+| `user_profiles` | Cada usuario ve su perfil; admin ve todos | Columnas sensibles (`rol`, `activo`, `creado_por`) protegidas por trigger — solo modificables con `puedeGestionarUsuarios` | admin |
+| `session_logs` / `audit_logs` | admin y coordinador; secretario limitado a su programa | vía RPC (`logAudit`) | — |
+| `qr_sessions` / `asistencias_diarias` | Ver `FLUJO_ASISTENCIAS_QR.md` — modelo de acceso anónimo específico para `/scan`, con rate limiting por `device_fingerprint` | ídem | ídem |
+
+### Historial de hallazgos y fixes (RLS)
+
+| ID | Hallazgo | Causa raíz | Fix |
+|---|---|---|---|
+| S1 | Cualquier usuario autenticado podía `UPDATE`/`INSERT`/`DELETE` horarios de **cualquier** programa | Doble causa: (1) una política `FOR ALL` heredada ("Escritura autenticada") se combinaba en `OR` con las políticas granulares y las neutralizaba — las políticas RLS en PostgreSQL son permisivas por defecto; (2) la tabla padre particionada `horarios` nunca tuvo RLS habilitado sobre sí misma, solo en las particiones — y PostgREST accede siempre por el nombre del padre, así que ninguna política se evaluaba nunca en producción | `0035` (políticas granulares en las particiones) + `0045` (elimina la política heredada, habilita RLS en el padre, reaplica en todas las particiones vía `pg_inherits`) |
+| — | `docentes`/`materias`: la política de escritura solo exigía `authenticated`, sin verificar el permiso específico (`puedeEditarDocentes`/`puedeEditarMaterias`) | Mismo patrón que S1, alcance más angosto — RLS sí estaba activo (falso positivo parcial de un informe externo), pero sin control granular | `0046` |
+| — | RLS de `user_profiles` nunca se activó a nivel de tabla, aunque las políticas existían desde `0016` | Drift entre lo aplicado directo en el dashboard de Supabase y lo versionado en el repo | `0043`, con un trigger adicional para proteger columnas sensibles antes de habilitar RLS |
+
+**Patrón recurrente a vigilar:** varias de estas causas raíz son *drift* entre
+cambios hechos directo en el dashboard de Supabase y lo que queda versionado
+en `supabase/migrations/`. Antes de dar por buena una política con solo leer
+la migración, verificar contra la base real:
+
+```sql
+SELECT tablename, policyname, cmd, roles, qual, with_check
+FROM pg_policies
+WHERE tablename = 'nombre_tabla';
+
+SELECT relname, relrowsecurity FROM pg_class WHERE relname = 'nombre_tabla';
+```
 
 ---
 
