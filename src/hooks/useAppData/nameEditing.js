@@ -4,6 +4,7 @@
 // resueltas por useAppData/index.js.
 
 import { supabase } from "../../lib/supabase";
+import { logger } from "../../utils/logger";
 
 async function unifyNameLegacy(tableName, rawName, newDisplayName) {
   const { data: existing } = await supabase.from(tableName).select("nombre_raw, nombre_display").ilike("nombre_display", newDisplayName.trim()).neq("nombre_raw", rawName).limit(1);
@@ -12,7 +13,7 @@ async function unifyNameLegacy(tableName, rawName, newDisplayName) {
     const { error: rpcError } = await supabase.rpc("replace_nombre_en_clases", { old_raw: rawName, new_raw: targetRaw });
     if (rpcError) throw new Error(`Error al unificar en horarios: ${rpcError.message}`);
     const { error: deleteError } = await supabase.from(tableName).delete().eq("nombre_raw", rawName);
-    if (deleteError) console.warn(`No se pudo eliminar el registro huérfano "${rawName}" de "${tableName}":`, deleteError.message);
+    if (deleteError) logger.warn(`No se pudo eliminar el registro huérfano "${rawName}" de "${tableName}":`, deleteError.message);
     return { targetRaw, canonicalDisplay };
   }
   return null;
@@ -31,7 +32,7 @@ export function createNameEditingActions({
           .rpc("renombrar_docente", { p_id: docenteRow.id, p_nuevo_nombre: displayName.trim() });
         if (!rpcError) {
           const result = Array.isArray(rpcData) ? rpcData[0] : rpcData;
-          console.log("[renombrar_docente] p_id:", docenteRow.id, "p_nuevo_nombre:", displayName.trim(), "rpcData:", rpcData, "result:", result);
+          logger.log("[renombrar_docente] p_id:", docenteRow.id, "p_nuevo_nombre:", displayName.trim(), "rpcData:", rpcData, "result:", result);
           const unificado = !!result?.unificado_con;
           // Actualización optimista: evita el flash del caché stale cuando
           // fetchDocenteNames() aplica el caché viejo antes del fetch async.
@@ -43,7 +44,7 @@ export function createNameEditingActions({
           setConflictsRefreshKey(k => k + 1);
           return { success: true };
         }
-        console.warn("renombrar_docente no disponible, usando flujo legacy:", rpcError.message);
+        logger.warn("renombrar_docente no disponible, usando flujo legacy:", rpcError.message);
       }
       const unified = await unifyNameLegacy("docentes", rawName, displayName);
       // En unificación el rawName desaparece, no hace falta actualizar su entrada.
@@ -102,7 +103,7 @@ export function createNameEditingActions({
           await fetchHorarios(selectedPrograma);
           return { success: true };
         }
-        console.warn("renombrar_materia no disponible, usando flujo legacy:", rpcError.message);
+        logger.warn("renombrar_materia no disponible, usando flujo legacy:", rpcError.message);
       }
       const unified = await unifyNameLegacy("materias", rawName, displayName);
       // En unificación el rawName desaparece, no hace falta actualizar su entrada.
