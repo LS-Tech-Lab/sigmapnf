@@ -24,6 +24,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { parseClase } from "../utils/parsing";
 import { calcularConflictosLocal } from "../utils/conflictos";
+import { logger } from "../utils/logger";
 
 /**
  * Adapta el resultado de conflictos_horario_detalle (filas por par de
@@ -82,7 +83,7 @@ export default function useConflictos({ lapso, selectedPrograma, data, refreshKe
       setConflicts(adaptarFilasRpc(rows));
       setUsingFallback(false);
     } catch (err) {
-      console.warn("conflictos_horario_detalle no disponible, usando cálculo local:", err.message);
+      logger.warn("conflictos_horario_detalle no disponible, usando cálculo local:", err.message);
       setConflicts(calcularConflictosLocal(data));
       setUsingFallback(true);
     } finally {
