@@ -8,7 +8,10 @@
  *
  * Fixes incluidos:
  *  - Estado persistente entre cambios de sub-vista (el hook vive arriba)
- *  - Rotación inmediata del token cuando se registra un escaneo exitoso
+ *  - Rotación del token al registrarse un escaneo exitoso, acotada a como
+ *    mucho una vez cada ROTACION_ESCANEO_MIN_INTERVALO_MS (throttle con
+ *    trailing edge) para no invalidar el QR a mitad de un registro cuando
+ *    varios docentes escanean casi al mismo tiempo (hora pico)
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -26,6 +29,22 @@ const TTL_MINUTES = 5;
 // registros nuevos para la sesión activa y, de haberlos, rota el token
 // igual que lo haría el evento realtime.
 const SCAN_POLL_MS = 7000;
+
+// FIX (throttle-rotacion-por-escaneo): antes, CADA escaneo exitoso rotaba
+// el token al instante (vía Realtime o, como respaldo, el poll de arriba).
+// En hora pico, con varios docentes escaneando el mismo QR casi a la vez,
+// el primer registro exitoso invalidaba el token para todos los que
+// todavía estaban a mitad del formulario, obligándolos a reescanear.
+//
+// Se mantiene el objetivo antifraude (que una foto del QR deje de servir
+// pronto), pero se acota la frecuencia de rotación por escaneo a como
+// mucho una vez cada ROTACION_ESCANEO_MIN_INTERVALO_MS: es un throttle con
+// "trailing edge", no un debounce puro — así una ráfaga continua de
+// escaneos no puede posponer la rotación indefinidamente (ver
+// `rotarPorEscaneoThrottled` más abajo). La rotación por TTL
+// (`iniciarAutoRenovado`) y la manual (`renovarManual`) NO pasan por este
+// throttle: deben seguir siendo inmediatas.
+const ROTACION_ESCANEO_MIN_INTERVALO_MS = 12000;
 
 export default function useQRSession() {
   const [sessionId,  setSessionId]  = useState(null);
@@ -48,13 +67,26 @@ export default function useQRSession() {
   const scanCountRef   = useRef(0);
   const scanPollRef    = useRef(null);
 
+  // FIX (throttle-rotacion-por-escaneo): estado del throttle. Vive en refs
+  // porque los callbacks que lo usan (handler de Realtime, poll de
+  // respaldo) están dentro de closures de efectos/intervalos y no deben
+  // re-crearse en cada render.
+  //   - ultimaRotacionEscaneoRef: timestamp (ms) de la última rotación
+  //     disparada por un escaneo (no cuenta la rotación por TTL).
+  //   - rotacionPendienteRef: handle del setTimeout "trailing" agendado
+  //     para atrapar el escaneo que llegó durante la ventana de espera.
+  const ultimaRotacionEscaneoRef = useRef(0);
+  const rotacionPendienteRef     = useRef(null);
+
   const limpiarIntervalos = useCallback(() => {
     if (renewTimerRef.current)  clearInterval(renewTimerRef.current);
     if (countdownRef.current)   clearInterval(countdownRef.current);
     if (scanPollRef.current)    clearInterval(scanPollRef.current);
-    renewTimerRef.current = null;
-    countdownRef.current  = null;
-    scanPollRef.current   = null;
+    if (rotacionPendienteRef.current) clearTimeout(rotacionPendienteRef.current);
+    renewTimerRef.current    = null;
+    countdownRef.current     = null;
+    scanPollRef.current      = null;
+    rotacionPendienteRef.current = null;
   }, []);
 
   const iniciarCountdown = useCallback((expiresAtStr) => {
@@ -82,6 +114,41 @@ export default function useQRSession() {
     return true;
   }, [iniciarCountdown]);
 
+  // FIX (throttle-rotacion-por-escaneo): punto único por el que deben pasar
+  // las DOS fuentes de "rotar porque hubo un escaneo" (Realtime y el poll
+  // de respaldo). Manual (`renovarManual`) y por TTL (`iniciarAutoRenovado`)
+  // siguen llamando a `renovarToken` directo, sin pasar por aquí.
+  //
+  // Comportamiento (throttle con trailing edge):
+  //   1. Si ya pasó ROTACION_ESCANEO_MIN_INTERVALO_MS desde la última
+  //      rotación por escaneo, rota de inmediato (caso normal: un solo
+  //      docente escaneando, sin ráfaga).
+  //   2. Si no, y todavía no hay una rotación "trailing" agendada, agenda
+  //      UNA para el tiempo que falte hasta completar el intervalo. Así,
+  //      aunque lleguen 10 escaneos en esos segundos, solo se agenda un
+  //      timeout (no uno por escaneo) y la rotación ocurre acotada por
+  //      ROTACION_ESCANEO_MIN_INTERVALO_MS desde la última — nunca se
+  //      pospone indefinidamente por más escaneos que sigan llegando.
+  const rotarPorEscaneoThrottled = useCallback((sid) => {
+    const ahora        = Date.now();
+    const transcurrido  = ahora - ultimaRotacionEscaneoRef.current;
+
+    if (transcurrido >= ROTACION_ESCANEO_MIN_INTERVALO_MS) {
+      ultimaRotacionEscaneoRef.current = ahora;
+      renovarToken(sid);
+      return;
+    }
+
+    if (rotacionPendienteRef.current) return; // ya hay una trailing agendada
+
+    const espera = ROTACION_ESCANEO_MIN_INTERVALO_MS - transcurrido;
+    rotacionPendienteRef.current = setTimeout(() => {
+      rotacionPendienteRef.current = null;
+      ultimaRotacionEscaneoRef.current = Date.now();
+      renovarToken(sid);
+    }, espera);
+  }, [renovarToken]);
+
   const iniciarAutoRenovado = useCallback((sid) => {
     if (renewTimerRef.current) clearInterval(renewTimerRef.current);
     // Renueva 15 s antes de expirar
@@ -108,14 +175,17 @@ export default function useQRSession() {
           filter: `qr_session_id=eq.${sessionId}`,
         },
         () => {
-          // Rotar inmediatamente al detectar un escaneo exitoso
-          renovarToken(sessionIdRef.current);
+          // FIX (throttle-rotacion-por-escaneo): antes llamaba a
+          // renovarToken directo (rotación instantánea por cada escaneo).
+          // Ahora pasa por el throttle para no penalizar escaneos
+          // concurrentes en hora pico (ver definición arriba).
+          rotarPorEscaneoThrottled(sessionIdRef.current);
         }
       )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [sessionId, renovarToken]);
+  }, [sessionId, rotarPorEscaneoThrottled]);
 
   // FIX (realtime-fallback-polling-rotacion-qr): poll de respaldo. Si la
   // tabla no está en supabase_realtime (ver migración
@@ -149,7 +219,11 @@ export default function useQRSession() {
 
       if (count != null && count > scanCountRef.current) {
         scanCountRef.current = count;
-        renovarToken(sessionIdRef.current);
+        // FIX (throttle-rotacion-por-escaneo): mismo throttle que el
+        // handler de Realtime — este poll es solo el respaldo por si el
+        // websocket no entrega el evento, así que debe rotar con la misma
+        // cadencia acotada, no de inmediato.
+        rotarPorEscaneoThrottled(sessionIdRef.current);
       }
     }, SCAN_POLL_MS);
 
@@ -157,12 +231,15 @@ export default function useQRSession() {
       cancelado = true;
       if (scanPollRef.current) clearInterval(scanPollRef.current);
     };
-  }, [sessionId, renovarToken]);
+  }, [sessionId, rotarPorEscaneoThrottled]);
 
   const crearSesion = useCallback(async ({ turno, programa = null, fecha = null }) => {
     setLoading(true);
     setError(null);
     limpiarIntervalos();
+    // FIX (throttle-rotacion-por-escaneo): nueva sesión, nueva ventana de
+    // throttle — que no arrastre el timestamp de una sesión anterior.
+    ultimaRotacionEscaneoRef.current = 0;
 
     const params = { p_turno: turno, p_ttl_min: TTL_MINUTES };
     if (programa) params.p_programa = programa;
