@@ -24,7 +24,13 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Node 22+ requerido: @supabase/realtime-js necesita WebSocket
+          # nativo (disponible desde Node 22) para construir el cliente de
+          # Supabase, algo que ocurre incluso en tests que no lo usan
+          # directamente (useAuth.test.js importa el hook real, que importa
+          # src/lib/supabase.js). En Node 20 esto rompe con:
+          # "Node.js 20 detected without native WebSocket support".
+          node-version: '22'
           cache: 'npm'
 
       - name: Instalar dependencias (versión exacta del lockfile)
