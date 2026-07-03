@@ -2,6 +2,8 @@
 // Al incrementar CACHE_SCHEMA_VERSION, todos los clientes invalidan
 // automáticamente su caché de localStorage al siguiente fetch,
 // evitando que datos con esquema viejo rompan la app silenciosamente.
+import { logger } from "./logger";
+
 const CACHE_SCHEMA_VERSION = 2;
 const VERSION_KEY = "horarios_cache_schema_v";
 
@@ -39,7 +41,7 @@ export function guardarEnCache(key, datos, userId) {
     const storageKey = getCacheKey(key, userId);
     localStorage.setItem(storageKey, JSON.stringify({ timestamp: Date.now(), datos }));
   } catch (err) {
-    console.warn("No se pudo guardar en caché:", key, err);
+    logger.warn("No se pudo guardar en caché:", key, err);
   }
 }
 
@@ -57,7 +59,7 @@ export function cargarDeCache(key, userId, { offlineMode = false } = {}) {
     }
     return cache.datos;
   } catch (err) {
-    console.warn("Error al cargar caché:", key, err);
+    logger.warn("Error al cargar caché:", key, err);
     return null;
   }
 }
