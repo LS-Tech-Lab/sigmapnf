@@ -8,6 +8,7 @@ import { ALL_TRAYECTOS } from "../../constants";
 import { parseClase } from "../../utils/parsing";
 import { supabase } from "../../lib/supabase";
 import { suscribirCambiosRemotos } from "../../lib/realtime";
+import { logger } from "../../utils/logger";
 import {
   guardarEnCache, cargarDeCache,
   CACHE_KEYS, limpiarCache, obtenerUltimaSincronizacion, getCacheKey,
@@ -96,7 +97,7 @@ export default function useDataSync({
         if (signal.aborted) return;
 
         if (error) {
-          console.error(error);
+          logger.error(error);
           if (cachedHorarios?.length > 0) {
             setData(cachedHorarios);
             showToast("⚠️ Error de conexión. Usando caché.", "warning");
@@ -118,7 +119,7 @@ export default function useDataSync({
           // A-3: guardia de sanidad — si el cursor no avanza, abortar para
           // evitar un loop infinito con IDs no secuenciales o reutilizados.
           if (nextCursor <= cursor) {
-            console.error("Paginación: cursor no avanza, abortando para evitar loop infinito.", { cursor, nextCursor });
+            logger.error("Paginación: cursor no avanza, abortando para evitar loop infinito.", { cursor, nextCursor });
             hayMas = false;
           } else {
             cursor = nextCursor;
@@ -135,7 +136,7 @@ export default function useDataSync({
       // A-4: un abort intencional (fetch superado o cleanup de desmonte) no
       // es un error de conexión real — descartar en silencio.
       if (signal.aborted || err.name === "AbortError") return;
-      console.error(err);
+      logger.error(err);
       if (cachedHorarios?.length > 0) {
         setData(cachedHorarios);
         showToast("⚠️ Modo offline: usando caché.", "warning");
