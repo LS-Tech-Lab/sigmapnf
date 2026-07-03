@@ -7,12 +7,13 @@
 // Horarios (AsistenciasView.jsx), eliminado por redundante: la misma
 // planilla ya es accesible desde Asistencias QR.
 import React, { useState, useMemo } from 'react';
-import { S, DAYS, TRAYECTO_BG, TRAYECTO_COLORS } from '../../constants';
+import { DAYS, TRAYECTO_BG, TRAYECTO_COLORS } from '../../constants';
 import { getTurnoDeRegistro } from '../../utils/turno';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../../utils/time';
 import { parseClase } from '../../utils/parsing';
 import { getCurrentLapso } from '../../utils/lapso';
 import Avatar from '../Avatar';
+import './PlanillaImprimibleBase.css';
 
 export default function PlanillaImprimibleBase({ data, getDocName, getMateriaName, catalogoDocentes = [], lapso }) {
   const lapsoActual = lapso || getCurrentLapso();
@@ -56,88 +57,88 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-        <i className="ti ti-printer" style={{ fontSize: 20 }} aria-hidden="true" />
+    <div className="pib-root">
+      <h1 className="pib-title">
+        <i className="ti ti-printer pib-title-icon" aria-hidden="true" />
         Asistencias Diarias por Turno
       </h1>
-      <div style={{ ...S.card, padding: "14px 20px", marginBottom: 20, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <div className="s-card pib-toolbar">
         <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>Turno</div>
-          <div style={{ display: "flex", gap: 6 }}>
+          <div className="pib-field-label">Turno</div>
+          <div className="pib-field-row">
             {["DIURNO", "VESPERTINO"].map(t => (
-              <button key={t} onClick={() => setTurno(t)} style={{ ...S.btn(turno === t), borderRadius: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                <i className={t === "DIURNO" ? "ti ti-sun" : "ti ti-moon"} style={{ fontSize: 14 }} aria-hidden="true" />
+              <button key={t} onClick={() => setTurno(t)} className={`s-btn pib-turno-btn${turno === t ? ' s-btn--active' : ''}`}>
+                <i className={`${t === "DIURNO" ? "ti ti-sun" : "ti ti-moon"} pib-turno-btn-icon`} aria-hidden="true" />
                 {t === "DIURNO" ? "Diurno" : "Vespertino"}
               </button>
             ))}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>Día</div>
-          <div style={{ display: "flex", gap: 6 }}>
-            {DAYS.map(d => <button key={d} onClick={() => setSelectedDay(d)} style={S.btn(selectedDay === d)}>{d.charAt(0)+d.slice(1).toLowerCase()}</button>)}
+          <div className="pib-field-label">Día</div>
+          <div className="pib-field-row">
+            {DAYS.map(d => <button key={d} onClick={() => setSelectedDay(d)} className={`s-btn${selectedDay === d ? ' s-btn--active' : ''}`}>{d.charAt(0)+d.slice(1).toLowerCase()}</button>)}
           </div>
         </div>
-        <div style={{ marginLeft: "auto" }}>
-          <button onClick={handlePrint} style={{ padding: "9px 18px", background: "#2563EB", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-            <i className="ti ti-printer" style={{ fontSize: 16 }} aria-hidden="true" />
+        <div className="pib-print-wrap">
+          <button onClick={handlePrint} className="pib-print-btn">
+            <i className="ti ti-printer pib-print-btn-icon" aria-hidden="true" />
             Imprimir / PDF
           </button>
         </div>
       </div>
-      <div style={S.card}>
-        <div style={{ padding: "14px 20px", borderBottom: "1px solid #E2E8F0", background: "#F8FAFC" }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#0F172A" }}>Control de Asistencia Docentes</div>
-          <div style={{ fontSize: 13, color: "#64748B", marginTop: 2, fontWeight: 500 }}>{programaActual} · {selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: {turno === "DIURNO" ? "Diurno (7:30AM – 12:00PM)" : "Vespertino (1:00PM – 5:30PM)"} · Trimestre {lapsoActual}</div>
+      <div className="s-card">
+        <div className="pib-table-header">
+          <div className="pib-table-title">Control de Asistencia Docentes</div>
+          <div className="pib-table-sub">{programaActual} · {selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: {turno === "DIURNO" ? "Diurno (7:30AM – 12:00PM)" : "Vespertino (1:00PM – 5:30PM)"} · Trimestre {lapsoActual}</div>
         </div>
-        {!docentesDelDia.length ? <div style={{ padding: "40px 20px", textAlign: "center", color: "#64748B", fontSize: 15, fontWeight: 500 }}>No hay docentes registrados.</div> : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        {!docentesDelDia.length ? <div className="pib-empty">No hay docentes registrados.</div> : (
+          <table className="pib-table">
             <thead>
               <tr>
-                <th style={{ ...S.th, width: 40, textAlign: "center" }}>N°</th>
-                <th style={{ ...S.th, width: 200 }}>Docente</th>
-                <th style={S.th}>Materia(s) / Sección(es)</th>
-                <th style={{ ...S.th, width: 160 }}>Horario</th>
-                <th style={{ ...S.th, width: 90 }}>Entrada</th>
-                <th style={{ ...S.th, width: 90 }}>Salida</th>
-                <th style={{ ...S.th, width: 130 }}>Firma</th>
+                <th className="s-th">N°</th>
+                <th className="s-th">Docente</th>
+                <th className="s-th">Materia(s) / Sección(es)</th>
+                <th className="s-th">Horario</th>
+                <th className="s-th">Entrada</th>
+                <th className="s-th">Salida</th>
+                <th className="s-th">Firma</th>
               </tr>
             </thead>
             <tbody>
               {docentesDelDia.map(([rd, info], idx) => (
-                <tr key={rd} style={{ background: idx % 2 === 0 ? "#fff" : "#F8FAFC" }}>
-                  <td style={{ ...S.td, textAlign: "center", color: "#64748B", fontWeight: 600, fontSize: 13 }}>{idx+1}</td>
-                  <td style={S.td}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <tr key={rd}>
+                  <td className="s-td pib-td-num">{idx+1}</td>
+                  <td className="s-td">
+                    <div className="pib-doc-cell">
                       <Avatar name={getDocName(rd)} size={30} />
-                      <span style={{ fontWeight: 600, fontSize: 14, color: "#0F172A" }}>{getDocName(rd)}</span>
+                      <span className="pib-doc-name">{getDocName(rd)}</span>
                     </div>
                   </td>
-                  <td style={{ ...S.td, fontSize: 13 }}>
+                  <td className="s-td pib-materias-cell">
                     {info.clases.map((c, i) => (
-                      <div key={i} style={{ marginBottom: i < info.clases.length - 1 ? 5 : 0 }}>
-                        <span style={{ fontWeight: 600 }}>{c.materia}</span>
-                        <span style={{ color: "#64748B", marginLeft: 6, fontWeight: 500 }}>— {c.seccion}</span>
-                        {c.trayecto && <span style={{ background: TRAYECTO_BG[c.trayecto] || "#F1F5F9", color: TRAYECTO_COLORS[c.trayecto] || "#334155", borderRadius: 6, padding: "3px 10px", marginLeft: 8, fontSize: 12, fontWeight: 600 }}>T.{c.trayecto}</span>}
+                      <div key={i} className="pib-materia-row">
+                        <span className="pib-materia-name">{c.materia}</span>
+                        <span className="pib-materia-seccion">— {c.seccion}</span>
+                        {c.trayecto && <span className="pib-materia-trayecto" style={{ background: TRAYECTO_BG[c.trayecto] || "#F1F5F9", color: TRAYECTO_COLORS[c.trayecto] || "#334155" }}>T.{c.trayecto}</span>}
                       </div>
                     ))}
                   </td>
-                  <td style={{ ...S.td, fontSize: 12, color: "#64748B", whiteSpace: "nowrap", fontWeight: 500 }}>
-                    {info.clases.map((c, i) => <div key={i} style={{ marginBottom: i < info.clases.length - 1 ? 5 : 0 }}>{c.hora}</div>)}
+                  <td className="s-td pib-hora-cell">
+                    {info.clases.map((c, i) => <div key={i} className="pib-hora-row">{c.hora}</div>)}
                   </td>
-                  <td style={{ ...S.td, border: "1px solid #E2E8F0", minHeight: 48, height: 48 }}></td>
-                  <td style={{ ...S.td, border: "1px solid #E2E8F0", minHeight: 48, height: 48 }}></td>
-                  <td style={{ ...S.td, border: "1px solid #E2E8F0", minHeight: 48, height: 48 }}></td>
+                  <td className="s-td pib-firma-cell"></td>
+                  <td className="s-td pib-firma-cell"></td>
+                  <td className="s-td pib-firma-cell"></td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
         {docentesDelDia.length > 0 && (
-          <div style={{ padding: "16px 20px", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 500 }}>
-            <div>Total docentes: <strong style={{ color: "#0F172A" }}>{docentesDelDia.length}</strong></div>
-            <div>Total clases: <strong style={{ color: "#0F172A" }}>{docentesDelDia.reduce((a, [, v]) => a + v.clases.length, 0)}</strong></div>
+          <div className="pib-footer">
+            <div>Total docentes: <strong className="pib-footer-strong">{docentesDelDia.length}</strong></div>
+            <div>Total clases: <strong className="pib-footer-strong">{docentesDelDia.reduce((a, [, v]) => a + v.clases.length, 0)}</strong></div>
           </div>
         )}
       </div>
