@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
-import { S, DEFAULT_PROGRAMAS } from "../../../constants";
+import { DEFAULT_PROGRAMAS } from "../../../constants";
 import { fechaHoyVE } from "../../../utils/time";
 
 import { TURNOS_FILTRO, POLL_FALLBACK_MS, agruparPorDocente } from "./helpers";
@@ -16,6 +16,7 @@ import VistaAusentes from "./VistaAusentes";
 import AlertaSinVincular from "./AlertaSinVincular";
 import ReporteRango from "./ReporteRango";
 import { guardarReporteEnIDB, cargarReporteDeIDB } from "../../../utils/reporteCache";
+import "./index.css";
 
 export default function ReporteAsistencias({ onVolverPanel }) {
   const hoy = fechaHoyVE();
@@ -136,57 +137,55 @@ export default function ReporteAsistencias({ onVolverPanel }) {
   if (vistaRango) return <ReporteRango onVolverDiario={() => setVistaRango(false)} />;
 
   return (
-    <div style={{ padding: 24, maxWidth: 980, margin: "0 auto" }}>
-      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
-
+    <div className="ra-root">
       {/* Cabecera */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+      <div className="ra-header">
         <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0F172A", display: "flex", alignItems: "center", gap: 8 }}>
-            <i className="ti ti-clipboard-list" style={{ fontSize: 22 }} aria-hidden="true" />
+          <h1 className="ra-title">
+            <i className="ti ti-clipboard-list ra-title-icon" aria-hidden="true" />
             Reporte de Asistencias
           </h1>
-          <p style={{ margin: "4px 0 0", fontSize: 14, color: "#64748B" }}>Registro diario de presencia docente</p>
+          <p className="ra-subtitle">Registro diario de presencia docente</p>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="ra-header-actions">
           {onVolverPanel && (
-            <button onClick={onVolverPanel} style={{ padding: "8px 16px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#334155", display: "flex", alignItems: "center", gap: 5 }}>
-              <i className="ti ti-arrow-left" style={{ fontSize: 14 }} aria-hidden="true" />
+            <button onClick={onVolverPanel} className="ra-btn ra-btn-volver">
+              <i className="ti ti-arrow-left ra-btn-icon" aria-hidden="true" />
               Volver al panel QR
             </button>
           )}
-          <button onClick={() => setVistaRango(true)} style={{ padding: "8px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#1D4ED8", display: "flex", alignItems: "center", gap: 5 }}>
-            <i className="ti ti-calendar-stats" style={{ fontSize: 14 }} aria-hidden="true" />
+          <button onClick={() => setVistaRango(true)} className="ra-btn ra-btn-rango">
+            <i className="ti ti-calendar-stats ra-btn-icon" aria-hidden="true" />
             Vista semanal / rango
           </button>
           <button
             onClick={() => exportarPDFDiario(filtrados, fecha, turno, programa, ausentesParaPDF)}
             disabled={filtrados.length === 0}
-            style={{ padding: "8px 14px", background: filtrados.length === 0 ? "#F1F5F9" : "#DC2626", border: "none", borderRadius: 8, cursor: filtrados.length === 0 ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, color: filtrados.length === 0 ? "#64748B" : "#fff", display: "flex", alignItems: "center", gap: 5 }}
+            className={`ra-btn ra-btn-pdf${filtrados.length === 0 ? ' ra-btn-pdf--disabled' : ''}`}
           >
-            <i className="ti ti-printer" style={{ fontSize: 14 }} aria-hidden="true" />
+            <i className="ti ti-printer ra-btn-icon" aria-hidden="true" />
             PDF
           </button>
           <button
             onClick={() => exportarCSV(filtrados, fecha, turno)}
             disabled={filtrados.length === 0}
-            style={{ padding: "8px 16px", background: filtrados.length === 0 ? "#F1F5F9" : "#059669", border: "none", borderRadius: 8, cursor: filtrados.length === 0 ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, color: filtrados.length === 0 ? "#64748B" : "#fff", display: "flex", alignItems: "center", gap: 5 }}
+            className={`ra-btn ra-btn-csv${filtrados.length === 0 ? ' ra-btn-csv--disabled' : ''}`}
           >
-            <i className="ti ti-download" style={{ fontSize: 14 }} aria-hidden="true" />
+            <i className="ti ti-download ra-btn-icon" aria-hidden="true" />
             CSV
           </button>
         </div>
       </div>
 
       {/* Filtros */}
-      <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #E2E8F0", padding: "16px 20px", marginBottom: 20, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>Fecha</span>
-          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={{ ...S.input, fontSize: 13 }} />
+      <div className="ra-filtros">
+        <label className="ra-filtro-label">
+          <span className="ra-filtro-label-text">Fecha</span>
+          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} className="s-input ra-input-date" />
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>Turno</span>
-          <select value={turno} onChange={e => setTurno(e.target.value)} style={{ ...S.select }}>
+        <label className="ra-filtro-label">
+          <span className="ra-filtro-label-text">Turno</span>
+          <select value={turno} onChange={e => setTurno(e.target.value)} className="s-select">
             {TURNOS_FILTRO.map(t => (
               <option key={t} value={t}>
                 {t === "DIURNO" ? "Diurno" : t === "VESPERTINO" ? "Vespertino" : "Todos los turnos"}
@@ -194,21 +193,21 @@ export default function ReporteAsistencias({ onVolverPanel }) {
             ))}
           </select>
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>Programa</span>
-          <select value={programa} onChange={e => setPrograma(e.target.value)} style={{ ...S.select }}>
+        <label className="ra-filtro-label">
+          <span className="ra-filtro-label-text">Programa</span>
+          <select value={programa} onChange={e => setPrograma(e.target.value)} className="s-select">
             <option value="">Todos</option>
             {DEFAULT_PROGRAMAS.map(p => <option key={p} value={p}>{p.replace("PNF ", "")}</option>)}
           </select>
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, minWidth: 180 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>Buscar</span>
-          <input type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Nombre o cédula…" style={{ ...S.input }} />
+        <label className="ra-filtro-label ra-filtro-label--grow">
+          <span className="ra-filtro-label-text">Buscar</span>
+          <input type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Nombre o cédula…" className="s-input" />
         </label>
       </div>
 
       {/* Estadísticas */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 20 }}>
+      <div className="ra-stats-grid">
         {[
           { label: "Docentes presentes", value: totalDocentes, color: "#2563EB", bg: "#EFF6FF" },
           { label: "Entrada y salida",   value: conSalida,     color: "#059669", bg: "#ECFDF5" },
@@ -228,15 +227,15 @@ export default function ReporteAsistencias({ onVolverPanel }) {
             color: "#DC2626", bg: "#FEF2F2",
           },
         ].map(stat => (
-          <div key={stat.label} style={{ background: stat.bg, borderRadius: 10, padding: "14px 16px", border: `1px solid ${stat.color}22` }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
-            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2, fontWeight: 500 }}>{stat.label}</div>
+          <div key={stat.label} className="ra-stat-card" style={{ background: stat.bg, border: `1px solid ${stat.color}22` }}>
+            <div className="ra-stat-value" style={{ color: stat.color }}>{stat.value}</div>
+            <div className="ra-stat-label">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {/* Pestañas */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "2px solid #E2E8F0", paddingBottom: 0 }}>
+      <div className="ra-tabs">
         {[
           { id: "presentes", label: `Presentes (${totalDocentes})`, icon: "ti-circle-check" },
           { id: "ausentes",  label: "Ausentes",                     icon: "ti-circle-x"    },
@@ -244,16 +243,9 @@ export default function ReporteAsistencias({ onVolverPanel }) {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            style={{
-              padding: "8px 18px", border: "none", background: "none", cursor: "pointer",
-              fontSize: 13, fontWeight: tab === t.id ? 700 : 500,
-              color: tab === t.id ? "#1D4ED8" : "#64748B",
-              borderBottom: `2px solid ${tab === t.id ? "#2563EB" : "transparent"}`,
-              marginBottom: -2, transition: "all 0.12s",
-              display: "flex", alignItems: "center", gap: 5,
-            }}
+            className={`ra-tab-btn${tab === t.id ? ' ra-tab-btn--active' : ''}`}
           >
-            <i className={`ti ${t.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
+            <i className={`ti ${t.icon} ra-tab-icon`} aria-hidden="true" />
             {t.label}
           </button>
         ))}
@@ -262,8 +254,8 @@ export default function ReporteAsistencias({ onVolverPanel }) {
       <AlertaSinVincular cedulasPresentes={cedulasPresentes} loading={loading} />
 
       {modoOffline && (
-        <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#92400E" }}>
-          <i className="ti ti-wifi-off" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+        <div className="ra-offline-banner">
+          <i className="ti ti-wifi-off ra-offline-icon" aria-hidden="true" />
           <span>
             <strong>Modo offline</strong> — mostrando datos guardados localmente.
             {fechaCache && (
@@ -275,20 +267,20 @@ export default function ReporteAsistencias({ onVolverPanel }) {
       )}
 
       {error && (
-        <div style={{ background: "#FEF2F2", color: "#DC2626", padding: "12px 16px", borderRadius: 8, fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
-          <i className="ti ti-alert-triangle" style={{ fontSize: 15, flexShrink: 0 }} aria-hidden="true" />
+        <div className="ra-error-banner">
+          <i className="ti ti-alert-triangle ra-error-icon" aria-hidden="true" />
           {error}
         </div>
       )}
 
       {/* Vista Presentes */}
       {tab === "presentes" && (
-        <div style={{ ...S.card, overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="s-card ra-table-wrap">
+          <table className="ra-table">
             <thead>
               <tr>
                 {["Cédula", "Nombre docente", "Estado", "Entrada", "Salida", "Programa"].map(h => (
-                  <th key={h} style={S.th}>{h}</th>
+                  <th key={h} className="s-th">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -298,7 +290,7 @@ export default function ReporteAsistencias({ onVolverPanel }) {
                 : filtrados.length === 0
                   ? (
                     <tr>
-                      <td colSpan={6} style={{ ...S.td, textAlign: "center", padding: "40px 0", color: "#64748B" }}>
+                      <td colSpan={6} className="s-td ra-td-empty-msg">
                         {busqueda
                           ? "No se encontraron docentes con ese nombre o cédula."
                           : "No hay asistencias registradas para esta fecha y turno."}
@@ -306,32 +298,27 @@ export default function ReporteAsistencias({ onVolverPanel }) {
                     </tr>
                   )
                   : filtrados.map((d) => (
-                    <tr
-                      key={d.cedula}
-                      onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
-                      onMouseLeave={e => e.currentTarget.style.background = ""}
-                      style={{ transition: "background 0.1s" }}
-                    >
-                      <td style={{ ...S.td, fontFamily: "monospace", fontWeight: 600, color: "#1D4ED8", fontSize: 12 }}>
+                    <tr key={d.cedula}>
+                      <td className="s-td ra-td-cedula">
                         {d.cedula}
                       </td>
-                      <td style={{ ...S.td, fontWeight: 500 }}>
-                        {d.nombre || <span style={{ color: "#94A3B8" }}>—</span>}
+                      <td className="s-td ra-td-nombre">
+                        {d.nombre || <span className="ra-td-dash">—</span>}
                       </td>
-                      <td style={S.td}>
+                      <td className="s-td">
                         <EstadoChip estado={d.estado} />
                       </td>
-                      <td style={{ ...S.td, color: "#334155", fontSize: 13, fontWeight: 600 }}>
+                      <td className="s-td ra-td-hora">
                         {d.horaEntrada
                           ? new Date(d.horaEntrada).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" })
-                          : <span style={{ color: "#CBD5E1" }}>—</span>}
+                          : <span className="ra-td-dash--light">—</span>}
                       </td>
-                      <td style={{ ...S.td, color: "#334155", fontSize: 13, fontWeight: 600 }}>
+                      <td className="s-td ra-td-hora">
                         {d.horaSalida
                           ? new Date(d.horaSalida).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" })
-                          : <span style={{ color: "#CBD5E1" }}>—</span>}
+                          : <span className="ra-td-dash--light">—</span>}
                       </td>
-                      <td style={{ ...S.td, fontSize: 12, color: "#64748B" }}>
+                      <td className="s-td ra-td-programa">
                         {d.programa?.replace("PNF ", "") || "—"}
                       </td>
                     </tr>
@@ -340,7 +327,7 @@ export default function ReporteAsistencias({ onVolverPanel }) {
             </tbody>
           </table>
           {!loading && filtrados.length > 0 && (
-            <div style={{ padding: "10px 16px", fontSize: 12, color: "#64748B", borderTop: "1px solid #F1F5F9", textAlign: "right" }}>
+            <div className="ra-table-footer">
               {filtrados.length} docente{filtrados.length !== 1 ? "s" : ""} · Actualización en tiempo real
             </div>
           )}
