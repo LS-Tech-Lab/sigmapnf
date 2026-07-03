@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { S } from "../constants";
+import "./LogsView.css";
 
 // ── Utilidades ────────────────────────────────────────────────────────
 function fmtDateTime(iso) {
@@ -59,10 +59,8 @@ const ACCION_CONFIG = {
 function EventoBadge({ evento }) {
   const cfg = EVENTO_CONFIG[evento] || { label: evento, icon: "ti-info-circle", color: "#475569", bg: "#F8FAFC" };
   return (
-    <span style={{ background: cfg.bg, color: cfg.color, borderRadius: 6,
-      padding: "2px 8px", fontSize: 11, fontWeight: 700,
-      display: "inline-flex", alignItems: "center", gap: 4 }}>
-      <i className={`ti ${cfg.icon}`} style={{ fontSize: 12 }} aria-hidden="true" />
+    <span className="lv-evento-badge" style={{ background: cfg.bg, color: cfg.color }}>
+      <i className={`ti ${cfg.icon} lv-evento-badge-icon`} aria-hidden="true" />
       {cfg.label}
     </span>
   );
@@ -71,9 +69,8 @@ function EventoBadge({ evento }) {
 function AccionBadge({ accion }) {
   const cfg = ACCION_CONFIG[accion] || { icon: "ti-info-circle", color: "#475569" };
   return (
-    <span style={{ color: cfg.color, fontSize: 13, display: "inline-flex",
-      alignItems: "center", gap: 4, fontWeight: 600 }}>
-      <i className={`ti ${cfg.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
+    <span className="lv-accion-badge" style={{ color: cfg.color }}>
+      <i className={`ti ${cfg.icon} lv-accion-badge-icon`} aria-hidden="true" />
       {accion.replace(/_/g, " ")}
     </span>
   );
@@ -108,75 +105,71 @@ function TabSesiones({ permisos }) {
   return (
     <div>
       {/* Filtros */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="lv-filtros-row">
         <input
           value={filtroEmail} onChange={e => { setFiltroEmail(e.target.value); setPage(0); }}
           placeholder="Filtrar por correo…"
-          style={{ ...S.input, flex: 1, minWidth: 200 }}
+          className="s-input lv-input--email200"
         />
-        <button onClick={cargar} style={{ ...S.btn(false), flexShrink: 0,
-          display: "flex", alignItems: "center", gap: 6 }}>
-          <i className="ti ti-refresh" style={{ fontSize: 14 }} aria-hidden="true" />
+        <button onClick={cargar} className="s-btn lv-btn-icon">
+          <i className="ti ti-refresh lv-icon-14" aria-hidden="true" />
           Actualizar
         </button>
       </div>
 
       {/* Mini stats */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+      <div className="lv-filtros-row--center">
         {Object.entries(EVENTO_CONFIG).map(([k, v]) => (
-          <div key={k} style={{ background: v.bg, color: v.color, borderRadius: 8,
-            padding: "8px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontWeight: 700, fontSize: 18 }}>{stats[k] || 0}</span>
-            <i className={`ti ${v.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
+          <div key={k} className="lv-stat-chip" style={{ background: v.bg, color: v.color }}>
+            <span className="lv-stat-chip-count">{stats[k] || 0}</span>
+            <i className={`ti ${v.icon} lv-icon-14`} aria-hidden="true" />
             <span>{v.label}</span>
           </div>
         ))}
       </div>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: 32, color: "#94A3B8" }}>Cargando…</div>
+        <div className="lv-state-loading">Cargando…</div>
       ) : logs.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#94A3B8" }}>
-          <i className="ti ti-clipboard-list" style={{ fontSize: 28, display: "block", marginBottom: 8 }} aria-hidden="true" />
+        <div className="lv-state-empty">
+          <i className="ti ti-clipboard-list lv-state-empty-icon" aria-hidden="true" />
           No hay registros de sesión.
         </div>
       ) : (
-        <div style={{ ...S.card, overflow: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="s-card lv-table-card">
+          <table className="lv-table">
             <thead>
               <tr>
                 {["Fecha y hora", "Usuario", "Rol", "Evento"].map(h => (
-                  <th key={h} style={S.th}>{h}</th>
+                  <th key={h} className="s-th">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {logs.map(log => (
-                <tr key={log.id} style={{ transition: "background 0.1s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <td style={S.td}>
-                    <div style={{ fontSize: 13, color: "#475569" }}>
+                <tr key={log.id}>
+                  <td className="s-td">
+                    <div className="lv-td-fecha">
                       {fmtDateTime(log.created_at)}
                     </div>
                   </td>
-                  <td style={S.td}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
+                  <td className="s-td">
+                    <div className="lv-td-user-name">
                       {log.nombre || "—"}
                     </div>
-                    <div style={{ fontSize: 11, color: "#64748B" }}>{log.email}</div>
+                    <div className="lv-td-user-email">{log.email}</div>
                     {log.programa && (
-                      <div style={{ fontSize: 10, color: "#0F766E", fontWeight: 600 }}>
+                      <div className="lv-td-user-programa">
                         {log.programa}
                       </div>
                     )}
                   </td>
-                  <td style={S.td}>
-                    <span style={{ fontSize: 12, color: "#475569" }}>
+                  <td className="s-td">
+                    <span className="lv-td-rol">
                       {log.rol || "—"}
                     </span>
                   </td>
-                  <td style={S.td}>
+                  <td className="s-td">
                     <EventoBadge evento={log.evento} />
                   </td>
                 </tr>
@@ -187,16 +180,16 @@ function TabSesiones({ permisos }) {
       )}
 
       {/* Paginación */}
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 16 }}>
+      <div className="lv-pagination">
         <button onClick={() => setPage(p => Math.max(0, p - 1))}
-          disabled={page === 0} style={S.btn(false)}>
+          disabled={page === 0} className="s-btn">
           ← Anterior
         </button>
-        <span style={{ padding: "7px 14px", fontSize: 13, color: "#475569" }}>
+        <span className="lv-pagination-label">
           Página {page + 1}
         </span>
         <button onClick={() => setPage(p => p + 1)}
-          disabled={logs.length < PAGE_SIZE} style={S.btn(false)}>
+          disabled={logs.length < PAGE_SIZE} className="s-btn">
           Siguiente →
         </button>
       </div>
@@ -278,21 +271,21 @@ function TabAuditoria({ permisos }) {
   return (
     <div>
       {/* Filtros — fila 1: texto */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+      <div className="lv-filtros-row lv-filtros-row--tight">
         <input
           value={filtroEmail} onChange={e => { setFiltroEmail(e.target.value); setPage(0); }}
           placeholder="Filtrar por usuario…"
-          style={{ ...S.input, flex: 1, minWidth: 160 }}
+          className="s-input lv-input--email160"
         />
         <select value={filtroAccion} onChange={e => { setFiltroAccion(e.target.value); setPage(0); }}
-          style={{ ...S.select, minWidth: 180 }}>
+          className="s-select lv-select--180">
           <option value="">Todas las acciones</option>
           {accionesUnicas.map(a => (
             <option key={a} value={a}>{a.replace(/_/g, " ")}</option>
           ))}
         </select>
         <select value={filtroEntidad} onChange={e => { setFiltroEntidad(e.target.value); setPage(0); }}
-          style={{ ...S.select, minWidth: 160 }}>
+          className="s-select lv-select--160">
           {ENTIDADES_OPCIONES.map(o => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
@@ -300,104 +293,98 @@ function TabAuditoria({ permisos }) {
       </div>
 
       {/* Filtros — fila 2: lapso + fechas + acciones */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+      <div className="lv-filtros-row lv-filtros-row--center">
         <input
           value={filtroLapso} onChange={e => { setFiltroLapso(e.target.value); setPage(0); }}
           placeholder="Trimestre (ej: 2-2025)"
-          style={{ ...S.input, width: 140 }}
+          className="s-input lv-input--w140"
         />
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 12, color: "#64748B", whiteSpace: "nowrap" }}>Desde</span>
+        <div className="lv-fecha-field">
+          <span className="lv-fecha-label">Desde</span>
           <input type="date" value={fechaDesde}
             onChange={e => { setFechaDesde(e.target.value); setPage(0); }}
-            style={{ ...S.input, width: 140 }}
+            className="s-input lv-input--w140"
           />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 12, color: "#64748B", whiteSpace: "nowrap" }}>Hasta</span>
+        <div className="lv-fecha-field">
+          <span className="lv-fecha-label">Hasta</span>
           <input type="date" value={fechaHasta}
             onChange={e => { setFechaHasta(e.target.value); setPage(0); }}
-            style={{ ...S.input, width: 140 }}
+            className="s-input lv-input--w140"
           />
         </div>
         {hayFiltros && (
-          <button onClick={resetFiltros} style={{ ...S.btn(false), flexShrink: 0 }}>
+          <button onClick={resetFiltros} className="s-btn lv-btn-shrink">
             Limpiar
           </button>
         )}
-        <button onClick={cargar} style={{ ...S.btn(false), flexShrink: 0,
-          display: "flex", alignItems: "center", gap: 6 }}>
-          <i className="ti ti-refresh" style={{ fontSize: 14 }} aria-hidden="true" />
+        <button onClick={cargar} className="s-btn lv-btn-icon">
+          <i className="ti ti-refresh lv-icon-14" aria-hidden="true" />
           Actualizar
         </button>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: 32, color: "#94A3B8" }}>Cargando…</div>
+        <div className="lv-state-loading">Cargando…</div>
       ) : logs.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#94A3B8" }}>
-          <i className="ti ti-folders" style={{ fontSize: 28, display: "block", marginBottom: 8 }} aria-hidden="true" />
+        <div className="lv-state-empty">
+          <i className="ti ti-folders lv-state-empty-icon" aria-hidden="true" />
           No hay registros de auditoría.
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="lv-audit-list">
           {logs.map(log => {
             const isOpen = expandido === log.id;
             const cfg = ACCION_CONFIG[log.accion] || { icon: "ti-info-circle", color: "#475569" };
 
             return (
-              <div key={log.id} style={{ ...S.card, borderLeft: `3px solid ${cfg.color}` }}>
+              <div key={log.id} className="s-card lv-audit-card" style={{ "--audit-accent": cfg.color }}>
                 {/* Cabecera */}
                 <div
                   onClick={() => setExpandido(isOpen ? null : log.id)}
-                  style={{ display: "flex", alignItems: "center", padding: "12px 16px",
-                    cursor: "pointer", gap: 12, userSelect: "none" }}>
+                  className="lv-audit-header">
 
-                  <i className={`ti ${cfg.icon}`}
-                     style={{ fontSize: 20, color: cfg.color, flexShrink: 0 }} aria-hidden="true" />
+                  <i className={`ti ${cfg.icon} lv-audit-header-icon`}
+                     style={{ color: cfg.color }} aria-hidden="true" />
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div className="lv-audit-main">
+                    <div className="lv-audit-badges-row">
                       <AccionBadge accion={log.accion} />
                       {log.lapso && (
-                        <span style={{ background: "#EFF6FF", color: "#1D4ED8",
-                          borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 600 }}>
+                        <span className="lv-audit-badge lv-audit-badge--lapso">
                           {log.lapso}
                         </span>
                       )}
                       {log.programa_afectado && (
-                        <span style={{ background: "#F0FDF4", color: "#166534",
-                          borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 600 }}>
+                        <span className="lv-audit-badge lv-audit-badge--programa">
                           {log.programa_afectado}
                         </span>
                       )}
                     </div>
                     {log.resumen && (
-                      <div style={{ fontSize: 12, color: "#64748B", marginTop: 3 }}>
+                      <div className="lv-audit-resumen">
                         {log.resumen}
                       </div>
                     )}
                   </div>
 
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 12, color: "#475569", fontWeight: 600 }}>
+                  <div className="lv-audit-meta">
+                    <div className="lv-audit-meta-name">
                       {log.nombre || log.email}
                     </div>
-                    <div style={{ fontSize: 11, color: "#94A3B8" }}>
+                    <div className="lv-audit-meta-date">
                       {fmtDateTime(log.created_at)}
                     </div>
                   </div>
 
-                  <i className={`ti ${isOpen ? "ti-chevron-up" : "ti-chevron-down"}`}
-                     style={{ color: "#94A3B8", fontSize: 14, flexShrink: 0 }} aria-hidden="true" />
+                  <i className={`ti ${isOpen ? "ti-chevron-up" : "ti-chevron-down"} lv-audit-chevron`}
+                     aria-hidden="true" />
                 </div>
 
                 {/* Detalle expandible */}
                 {isOpen && (
-                  <div style={{ borderTop: "1px solid #F1F5F9", padding: "14px 16px",
-                    background: "#FAFAFA" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10,
-                      marginBottom: 12 }}>
+                  <div className="lv-audit-detail">
+                    <div className="lv-audit-detail-grid">
                       {[
                         { label: "Usuario",   val: `${log.nombre || "—"} (${log.email})` },
                         { label: "Rol",       val: log.rol || "—" },
@@ -405,35 +392,28 @@ function TabAuditoria({ permisos }) {
                         { label: "Fecha",     val: fmtDateTime(log.created_at) },
                       ].map(({ label, val }) => (
                         <div key={label}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8",
-                            textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          <div className="lv-audit-detail-label">
                             {label}
                           </div>
-                          <div style={{ fontSize: 13, color: "#475569", marginTop: 2 }}>{val}</div>
+                          <div className="lv-audit-detail-value">{val}</div>
                         </div>
                       ))}
                     </div>
 
                     {(log.datos_antes || log.datos_despues) && (
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div className="lv-audit-datos-grid">
                         {log.datos_antes && (
                           <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#DC2626",
-                              marginBottom: 4 }}>Estado anterior</div>
-                            <pre style={{ fontSize: 11, background: "#FEF2F2", borderRadius: 6,
-                              padding: "8px 10px", color: "#7F1D1D", overflow: "auto",
-                              margin: 0, maxHeight: 120 }}>
+                            <div className="lv-audit-datos-label lv-audit-datos-label--antes">Estado anterior</div>
+                            <pre className="lv-audit-pre lv-audit-pre--antes">
                               {JSON.stringify(log.datos_antes, null, 2)}
                             </pre>
                           </div>
                         )}
                         {log.datos_despues && (
                           <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#16A34A",
-                              marginBottom: 4 }}>Estado nuevo</div>
-                            <pre style={{ fontSize: 11, background: "#F0FDF4", borderRadius: 6,
-                              padding: "8px 10px", color: "#14532D", overflow: "auto",
-                              margin: 0, maxHeight: 120 }}>
+                            <div className="lv-audit-datos-label lv-audit-datos-label--despues">Estado nuevo</div>
+                            <pre className="lv-audit-pre lv-audit-pre--despues">
                               {JSON.stringify(log.datos_despues, null, 2)}
                             </pre>
                           </div>
@@ -449,16 +429,16 @@ function TabAuditoria({ permisos }) {
       )}
 
       {/* Paginación */}
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 16 }}>
+      <div className="lv-pagination">
         <button onClick={() => setPage(p => Math.max(0, p - 1))}
-          disabled={page === 0} style={S.btn(false)}>
+          disabled={page === 0} className="s-btn">
           ← Anterior
         </button>
-        <span style={{ padding: "7px 14px", fontSize: 13, color: "#475569" }}>
+        <span className="lv-pagination-label">
           Página {page + 1}
         </span>
         <button onClick={() => setPage(p => p + 1)}
-          disabled={logs.length < PAGE_SIZE} style={S.btn(false)}>
+          disabled={logs.length < PAGE_SIZE} className="s-btn">
           Siguiente →
         </button>
       </div>
@@ -486,38 +466,32 @@ export default function LogsView({ permisos }) {
 
   if (TABS.length === 0) {
     return (
-      <div style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>
-        <i className="ti ti-lock" style={{ fontSize: 40, display: "block", marginBottom: 12 }} aria-hidden="true" />
-        <div style={{ fontSize: 14 }}>No tienes permiso para ver los registros del sistema.</div>
+      <div className="lv-no-access">
+        <i className="ti ti-lock lv-no-access-icon" aria-hidden="true" />
+        <div className="lv-no-access-text">No tienes permiso para ver los registros del sistema.</div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "24px 28px", maxWidth: 1000, margin: "0 auto" }}>
+    <div className="lv-root">
       {/* Encabezado */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0F172A" }}>
+      <div className="lv-header">
+        <h1 className="lv-title">
           Registros del Sistema
         </h1>
-        <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>
+        <p className="lv-subtitle">
           Historial de sesiones y auditoría de cambios
         </p>
       </div>
 
       {/* Tabs — solo las permitidas por permisos */}
       {TABS.length > 1 && (
-        <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: "2px solid #E2E8F0" }}>
+        <div className="lv-tabs">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              style={{
-                padding: "8px 18px", border: "none", background: "none", cursor: "pointer",
-                fontSize: 13, fontWeight: tab === t.id ? 700 : 400,
-                color: tab === t.id ? "#2563EB" : "#64748B",
-                borderBottom: tab === t.id ? "2px solid #2563EB" : "2px solid transparent",
-                marginBottom: -2, display: "flex", alignItems: "center", gap: 6,
-              }}>
-              <i className={`ti ${t.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
+              className={`lv-tab-btn${tab === t.id ? ' lv-tab-btn--active' : ''}`}>
+              <i className={`ti ${t.icon} lv-tab-icon`} aria-hidden="true" />
               {t.label}
             </button>
           ))}
