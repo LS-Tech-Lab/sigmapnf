@@ -2,6 +2,8 @@
 // registrando la asistencia de más de un docente en la misma sesión QR.
 // Extraído de DocenteScan.jsx.
 
+import { logger } from "../../../utils/logger";
+
 export async function calcularDeviceFingerprint() {
   const raw = [
     navigator.userAgent, navigator.language,
@@ -16,13 +18,13 @@ export async function calcularDeviceFingerprint() {
       const buf = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
     } catch (err) {
-      console.warn(
+      logger.warn(
         "[deviceFingerprint] crypto.subtle.digest falló, usando fallback djb2 (colisionable):",
         err
       );
     }
   } else {
-    console.warn(
+    logger.warn(
       "[deviceFingerprint] crypto.subtle no disponible (contexto no seguro o navegador antiguo), usando fallback djb2 (colisionable)."
     );
   }
