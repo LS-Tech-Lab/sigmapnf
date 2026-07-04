@@ -88,7 +88,7 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 |---|---|---|---|
 | **A2** | `log_audit_event` sin registrar rol/programa del actor | Bloque 5, migración `0025` | ✅ Cerrado |
 | **ARCH-4** | Sin cobertura de tests para lógica crítica (`useAuth`, cola offline) | `useAuth.test.js`, `offlineQueue.test.js` | ✅ Cerrado |
-| **ARCH-5** | Sin tests de integración para hooks compuestos ni para flujos de usuario completos (escaneo QR, carga de horarios, gestión de usuarios) | Ver nota debajo | 🟡 **Casi cerrado** — falta pegar 1 archivo nuevo en el repo |
+| **ARCH-5** | Sin tests de integración para hooks compuestos ni para flujos de usuario completos (escaneo QR, carga de horarios, gestión de usuarios) | Ver nota debajo | ✅ **Cerrado** |
 
 > **Nota sobre `ARCH-5` (detalle por archivo, actualizado 4 de julio):** no
 > todos los archivos listados prueban lo mismo — es importante no
@@ -105,18 +105,17 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 >   `registrar_asistencia` → pantalla de resultado, más el caso de datos
 >   guardados de una visita anterior y el de cédula con formato inválido).
 >
-> **`DocenteScan.flow.test.jsx` todavía no está en el repo** — se escribió y
-> se corrió localmente (152/152 tests pasan con este archivo incluido) pero,
-> como el flujo de trabajo de este proyecto es pegar archivos vía el editor
-> web de GitHub, falta ese paso para que quede cerrado de verdad. Al
-> escribirlo se detectó además que `vitest.config.js` necesitaba
-> `esbuild.jsx: "automatic"` para poder renderizar componentes reales — eso
-> **ya está en el repo** (commit `7f91027`), no es un pendiente.
+> `DocenteScan.flow.test.jsx` ya está confirmado en el repo (commit `1f698d6`)
+> y la suite completa corre **152/152** clonando el repo desde cero — no
+> solo en el entorno donde se escribió. Al escribirlo se detectó además que
+> `vitest.config.js` necesitaba `esbuild.jsx: "automatic"` para poder
+> renderizar componentes reales — eso ya estaba en el repo (commit `7f91027`).
 >
 > De la carga de horarios (Excel) sigue sin haber una prueba de render real
 > (solo `useUpload.integration.test.js`, a nivel de hook) — sería el
 > siguiente candidato si se quiere una cobertura de render pareja en los
-> tres flujos originales del hallazgo.
+> tres flujos originales del hallazgo, aunque eso ya excede lo que pedía
+> `ARCH-5` tal como estaba redactado.
 
 ## 🔧 CI/CD y automatización
 
@@ -151,7 +150,7 @@ vez de asumirlo.
 | **U-1** | Estilos inline en `AdminQRPanel` — primer caso migrado a CSS externo, sentó el patrón que luego siguió A3 | `AdminQRPanel.jsx` / `.css` | ✅ Cerrado |
 | **U-2** | Adaptabilidad móvil: `.qrp-col-left` con `flex: 0 0 320px` (sin encoger) desbordaba horizontalmente en viewports ≤ ~372px; grid fijo `1fr 1fr` en `ModalRol` quedaba inusable en pantallas pequeñas. Revisión real contra el HEAD (no solo conteo de `@media`) confirmó que el resto de pantallas de mayor uso móvil (`DocenteScan`, `TurnoGrid`, `ReporteRango`, `LoginScreen`, `HistorialView`) ya tenían mitigación adecuada y no necesitaron cambios | `AdminQRPanel.css`, `usuarios/ModalRol.jsx` | ✅ Cerrado |
 | **U-3** | Sin trampa de foco de teclado en modales (accesibilidad) | `src/hooks/useFocusTrap.js` | ✅ Cerrado |
-| **U-4** | `Campo.jsx` (input del formulario de `DocenteScan`) renderiza `<label>` e `<input>` como hermanos, sin `htmlFor`/`id` que los asocie — un lector de pantalla no anuncia la etiqueta al enfocar el campo. Encontrado de forma indirecta: un test que intentaba ubicar el input por su label (`getByLabelText`, el método recomendado de Testing Library, que imita cómo un lector de pantalla encuentra el campo) no pudo hacerlo y tuvo que usar el `placeholder` como alternativa | `src/components/asistencias/DocenteScan/Campo.jsx` | 🟡 **Abierto** — fix es agregar un `id` generado (ej. `useId()`) y pasarlo a `htmlFor` y al `input` |
+| **U-4** | `Campo.jsx` (input del formulario de `DocenteScan`) renderiza `<label>` e `<input>` como hermanos, sin `htmlFor`/`id` que los asocie — un lector de pantalla no anuncia la etiqueta al enfocar el campo. Encontrado de forma indirecta: un test que intentaba ubicar el input por su label (`getByLabelText`, el método recomendado de Testing Library, que imita cómo un lector de pantalla encuentra el campo) no pudo hacerlo y tuvo que usar el `placeholder` como alternativa | `src/components/asistencias/DocenteScan/Campo.jsx` | ✅ Cerrado (`useId()` genera un id estable que conecta `label`↔`input`; el mensaje de error/hint también se enlaza vía `aria-describedby`, y `aria-invalid` se activa cuando hay error. `DocenteScan.flow.test.jsx` se actualizó para usar `getByLabelText` en vez del workaround de `placeholder`, quedando como guardia contra que esto se rompa de nuevo) |
 | **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | `LoginScreen`, `ConfirmModal`, `DocentesView`, `AdminQRPanel`, `LogsView`, `MateriasView`, `UploadPreviewModal`, `PlanillaImprimibleBase`, `ReporteAsistencias/index`, `ModalRol` ya tienen `.css` propio — ver nota | 🟡 **En curso** |
 
 > **Nota sobre `A3` (verificado contra HEAD, 4 de julio):** el conteo de
@@ -208,14 +207,13 @@ Cuando se cierre un nuevo hallazgo:
    `V-1`), decirlo explícitamente en la columna de descripción — evita que
    alguien dé por cerrado algo que solo se cerró a medias.
 
-**Abiertos ahora mismo:** `S3`/`A3` (la misma tarea, vista desde seguridad y
-desde UI respectivamente — ver `AUDITORIA_FRONTEND.md` para el detalle del
-reemplazo de estilos inline pendiente), `U-4` (accesibilidad — label sin
-asociar en `Campo.jsx`) y `ARCH-5` (falta pegar en el repo un archivo de
-test ya escrito y verificado localmente). Con el cierre de `SEC-6`, `S2` y
-todo `FIX-CI-N`, no queda ningún otro hallazgo de seguridad ni de
-CI/automatización abierto en este índice. Para el índice de migraciones SQL
-y el esquema de base de datos, ver `ESQUEMA_Y_MIGRACIONES.md`.
+**Abiertos ahora mismo:** solo `S3`/`A3` (la misma tarea, vista desde
+seguridad y desde UI respectivamente) — ver `AUDITORIA_FRONTEND.md` para el
+detalle del reemplazo de estilos inline pendiente. Con el cierre de `SEC-6`,
+`S2`, `ARCH-5`, `U-4` y todo `FIX-CI-N`, no queda ningún otro hallazgo de
+seguridad, accesibilidad, testing ni de CI/automatización abierto en este
+índice. Para el índice de migraciones SQL y el esquema de base de datos, ver
+`ESQUEMA_Y_MIGRACIONES.md`.
 
 ---
 
