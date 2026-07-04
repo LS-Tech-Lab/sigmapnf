@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
-import { S, DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../../constants";
+import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../../constants";
 import { fechaHoyVE } from "../../../utils/time";
 import { logger } from "../../../utils/logger";
 import { rangoFechas } from "./helpers";
 import { exportarPDFRango } from "./exportPDF";
 import { exportarCSVRango } from "./exportCSV";
+import "./index.css";
 
 function ReporteRango({ onVolverDiario }) {
   const hoy   = fechaHoyVE();
@@ -148,75 +149,74 @@ function ReporteRango({ onVolverDiario }) {
   const diasHabiles = rangoFechas(inicio, fin).length;
 
   return (
-    <div style={{ padding: 24, maxWidth: 980, margin: "0 auto" }}>
-      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+    <div className="ra-root">
+      <div className="ra-header">
         <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0F172A", display: "flex", alignItems: "center", gap: 8 }}>
-            <i className="ti ti-calendar-stats" style={{ fontSize: 22 }} aria-hidden="true" />
+          <h1 className="ra-title">
+            <i className="ti ti-calendar-stats ra-title-icon" aria-hidden="true" />
             Reporte por Rango de Fechas
           </h1>
-          <p style={{ margin: "4px 0 0", fontSize: 14, color: "#64748B" }}>Totales por docente: días asistidos, horas estimadas y porcentaje.</p>
+          <p className="ra-subtitle">Totales por docente: días asistidos, horas estimadas y porcentaje.</p>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={onVolverDiario} style={{ padding: "8px 14px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#334155", display: "flex", alignItems: "center", gap: 5 }}>
-            <i className="ti ti-arrow-left" style={{ fontSize: 14 }} aria-hidden="true" />
+        <div className="ra-header-actions">
+          <button onClick={onVolverDiario} className="ra-btn ra-btn-volver ra-btn--sm">
+            <i className="ti ti-arrow-left ra-btn-icon" aria-hidden="true" />
             Vista diaria
           </button>
-          <button onClick={() => exportarCSVRango(filtrados, inicio, fin, turno)} disabled={filtrados.length === 0} style={{ padding: "8px 14px", background: filtrados.length === 0 ? "#F1F5F9" : "#059669", border: "none", borderRadius: 8, cursor: filtrados.length === 0 ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, color: filtrados.length === 0 ? "#64748B" : "#fff", display: "flex", alignItems: "center", gap: 5 }}>
-            <i className="ti ti-download" style={{ fontSize: 14 }} aria-hidden="true" />
+          <button onClick={() => exportarCSVRango(filtrados, inicio, fin, turno)} disabled={filtrados.length === 0} className={`ra-btn ra-btn-csv ra-btn--sm${filtrados.length === 0 ? ' ra-btn-csv--disabled' : ''}`}>
+            <i className="ti ti-download ra-btn-icon" aria-hidden="true" />
             CSV
           </button>
-          <button onClick={() => exportarPDFRango(filtrados, inicio, fin, turno, diasHabiles)} disabled={filtrados.length === 0} style={{ padding: "8px 14px", background: filtrados.length === 0 ? "#F1F5F9" : "#DC2626", border: "none", borderRadius: 8, cursor: filtrados.length === 0 ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, color: filtrados.length === 0 ? "#64748B" : "#fff", display: "flex", alignItems: "center", gap: 5 }}>
-            <i className="ti ti-printer" style={{ fontSize: 14 }} aria-hidden="true" />
+          <button onClick={() => exportarPDFRango(filtrados, inicio, fin, turno, diasHabiles)} disabled={filtrados.length === 0} className={`ra-btn ra-btn-pdf${filtrados.length === 0 ? ' ra-btn-pdf--disabled' : ''}`}>
+            <i className="ti ti-printer ra-btn-icon" aria-hidden="true" />
             PDF
           </button>
         </div>
       </div>
 
-      <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #E2E8F0", padding: "16px 20px", marginBottom: 20, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+      <div className="ra-filtros">
         {[["Desde", inicio, setInicio, {}], ["Hasta", fin, setFin, { max: hoy }]].map(([lbl, val, fn, extra]) => (
-          <label key={lbl} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>{lbl}</span>
-            <input type="date" value={val} onChange={e => fn(e.target.value)} {...extra} style={{ ...S.input, fontSize: 13 }} />
+          <label key={lbl} className="ra-filtro-label">
+            <span className="ra-filtro-label-text">{lbl}</span>
+            <input type="date" value={val} onChange={e => fn(e.target.value)} {...extra} className="s-input ra-input-date" />
           </label>
         ))}
-        <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>Turno</span>
-          <select value={turno} onChange={e => setTurno(e.target.value)} style={S.select}>
+        <label className="ra-filtro-label">
+          <span className="ra-filtro-label-text">Turno</span>
+          <select value={turno} onChange={e => setTurno(e.target.value)} className="s-select">
             {TURNOS_CONFIG.filter(t => t.habilitado).map(t => <option key={t.id} value={t.id}>{t.id}</option>)}
           </select>
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>Programa</span>
-          <select value={programa} onChange={e => setPrograma(e.target.value)} style={S.select}>
+        <label className="ra-filtro-label">
+          <span className="ra-filtro-label-text">Programa</span>
+          <select value={programa} onChange={e => setPrograma(e.target.value)} className="s-select">
             <option value="">Todos</option>
             {DEFAULT_PROGRAMAS.map(p => <option key={p} value={p}>{p.replace("PNF ", "")}</option>)}
           </select>
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, minWidth: 160 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>Buscar</span>
-          <input type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Nombre o cédula…" style={S.input} />
+        <label className="ra-filtro-label ra-filtro-label--grow160">
+          <span className="ra-filtro-label-text">Buscar</span>
+          <input type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Nombre o cédula…" className="s-input" />
         </label>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 20 }}>
+      <div className="ra-stats-grid">
         {[
           { label: "Docentes en rango",  value: filtrados.length,                                                                                    color: "#2563EB", bg: "#EFF6FF" },
           { label: "Días hábiles",       value: diasHabiles,                                                                                         color: "#059669", bg: "#ECFDF5" },
           { label: "Asistencia ≥ 75%",  value: filtrados.filter(d => diasHabiles > 0 && (d.diasAsistidos / diasHabiles) >= 0.75).length,           color: "#15803D", bg: "#F0FDF4" },
           { label: "Asistencia < 75%",  value: filtrados.filter(d => diasHabiles > 0 && (d.diasAsistidos / diasHabiles) <  0.75).length,           color: "#DC2626", bg: "#FEF2F2" },
         ].map(stat => (
-          <div key={stat.label} style={{ background: stat.bg, borderRadius: 10, padding: "14px 16px", border: `1px solid ${stat.color}22` }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
-            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2, fontWeight: 500 }}>{stat.label}</div>
+          <div key={stat.label} className="ra-stat-card" style={{ background: stat.bg, border: `1px solid ${stat.color}22` }}>
+            <div className="ra-stat-value" style={{ color: stat.color }}>{stat.value}</div>
+            <div className="ra-stat-label">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {isOffline && (
-        <div style={{ background: "#FFFBEB", color: "#92400E", border: "1px solid #FDE68A", padding: "14px 16px", borderRadius: 8, fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-          <i className="ti ti-wifi-off" style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true" />
+        <div className="ra-warn-banner">
+          <i className="ti ti-wifi-off ra-warn-icon" aria-hidden="true" />
           <div>
             <strong>Sin conexión.</strong> El reporte por rango requiere red para calcularse. Vuelve a intentarlo cuando se restablezca la conexión.
           </div>
@@ -224,8 +224,8 @@ function ReporteRango({ onVolverDiario }) {
       )}
 
       {truncado && (
-        <div style={{ background: "#FFFBEB", color: "#92400E", border: "1px solid #FDE68A", padding: "14px 16px", borderRadius: 8, fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }} role="alert">
-          <i className="ti ti-alert-triangle" style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true" />
+        <div className="ra-warn-banner" role="alert">
+          <i className="ti ti-alert-triangle ra-warn-icon" aria-hidden="true" />
           <div>
             <strong>Resultado truncado.</strong> Se alcanzó el límite de {RANGO_MAX_FILAS.toLocaleString("es")} registros para este rango. Reduce el rango de fechas para ver todos los datos.
           </div>
@@ -233,51 +233,51 @@ function ReporteRango({ onVolverDiario }) {
       )}
 
       {error && (
-        <div style={{ background: "#FEF2F2", color: "#DC2626", padding: "12px 16px", borderRadius: 8, fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
-          <i className="ti ti-alert-triangle" style={{ fontSize: 15, flexShrink: 0 }} aria-hidden="true" />
+        <div className="ra-error-banner">
+          <i className="ti ti-alert-triangle ra-error-icon" aria-hidden="true" />
           {error}
         </div>
       )}
 
-      <div style={{ ...S.card, overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="s-card ra-table-wrap">
+        <table className="ra-table">
           <thead>
-            <tr>{["Cédula", "Nombre", "Días asistidos", "Días hábiles", "% Asistencia", "Horas est.", "Programa(s)"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+            <tr>{["Cédula", "Nombre", "Días asistidos", "Días hábiles", "% Asistencia", "Horas est.", "Programa(s)"].map(h => <th key={h} className="s-th">{h}</th>)}</tr>
           </thead>
           <tbody>
             {loading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>{Array.from({ length: 7 }).map((_, j) => (
-                    <td key={j} style={S.td}><div style={{ height: 14, width: [100, 150, 60, 60, 60, 50, 80][j], borderRadius: 4, background: "linear-gradient(90deg,#F1F5F9 25%,#E2E8F0 50%,#F1F5F9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite" }} /></td>
+                    <td key={j} className="s-td"><div className="ra-skeleton-bar" style={{ width: [100, 150, 60, 60, 60, 50, 80][j] }} /></td>
                   ))}</tr>
                 ))
               : filtrados.length === 0
-                ? <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", padding: "40px 0", color: "#64748B" }}>No hay asistencias en este rango.</td></tr>
+                ? <tr><td colSpan={7} className="s-td ra-td-empty-msg">No hay asistencias en este rango.</td></tr>
                 : filtrados.map(d => {
                     const pct   = diasHabiles > 0 ? Math.round((d.diasAsistidos / diasHabiles) * 100) : 0;
                     const color = pct >= 75 ? "#15803D" : pct >= 50 ? "#D97706" : "#DC2626";
                     return (
-                      <tr key={d.cedula} onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"} onMouseLeave={e => e.currentTarget.style.background = ""}>
-                        <td style={{ ...S.td, fontFamily: "monospace", fontSize: 12, color: "#1D4ED8", fontWeight: 600 }}>{d.cedula}</td>
-                        <td style={{ ...S.td, fontWeight: 500 }}>{d.nombre}</td>
-                        <td style={{ ...S.td, textAlign: "center", fontWeight: 700 }}>{d.diasAsistidos}</td>
-                        <td style={{ ...S.td, textAlign: "center", color: "#64748B" }}>{diasHabiles}</td>
-                        <td style={{ ...S.td, textAlign: "center" }}>
-                          <span style={{ color, fontWeight: 700 }}>{pct}%</span>
-                          <div style={{ marginTop: 3, height: 4, borderRadius: 2, background: "#E2E8F0", overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 2 }} />
+                      <tr key={d.cedula}>
+                        <td className="s-td ra-td-cedula">{d.cedula}</td>
+                        <td className="s-td ra-td-nombre">{d.nombre}</td>
+                        <td className="s-td ra-td-center-bold">{d.diasAsistidos}</td>
+                        <td className="s-td ra-td-center-muted">{diasHabiles}</td>
+                        <td className="s-td ra-td-pct">
+                          <span className="ra-pct-label" style={{ color }}>{pct}%</span>
+                          <div className="ra-pct-track">
+                            <div className="ra-pct-fill" style={{ width: `${pct}%`, background: color }} />
                           </div>
                         </td>
-                        <td style={{ ...S.td, textAlign: "center", fontSize: 12, color: "#64748B" }}>~{d.horasEstimadas}h</td>
-                        <td style={{ ...S.td, fontSize: 12, color: "#64748B" }}>{d.programas.join(", ") || "—"}</td>
+                        <td className="s-td ra-td-center-sm-muted">~{d.horasEstimadas}h</td>
+                        <td className="s-td ra-td-programa">{d.programas.join(", ") || "—"}</td>
                       </tr>
                     );
                   })
-            }
+          }
           </tbody>
         </table>
         {!loading && filtrados.length > 0 && (
-          <div style={{ padding: "10px 16px", fontSize: 12, color: "#64748B", borderTop: "1px solid #F1F5F9", textAlign: "right" }}>
+          <div className="ra-table-footer">
             {filtrados.length} docente{filtrados.length !== 1 ? "s" : ""} en el período
           </div>
         )}
