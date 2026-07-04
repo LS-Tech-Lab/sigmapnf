@@ -164,22 +164,29 @@ Las acciones registradas automáticamente son:
 - `IMPORTAR_EXCEL` — al cargar un archivo
 - `EXPORTAR_BACKUP` — al descargar backup
 - `CREAR_USUARIO` / `EDITAR_USUARIO` / `ACTIVAR_USUARIO` / `DESACTIVAR_USUARIO`
-- `CREAR_TRIMESTRE` / `CERRAR_TRIMESTRE` (pendiente: integrar en HistorialView)
-- `EDITAR_DOCENTE` / `EDITAR_MATERIA` (pendiente: integrar en saveDocenteName/saveMateriaName)
+- `CREAR_TRIMESTRE` / `CERRAR_TRIMESTRE` — integrado en `HistorialView.jsx`
+- `EDITAR_DOCENTE` / `EDITAR_MATERIA` / `UNIFICAR_DOCENTE` / `UNIFICAR_MATERIA` — integrado en `useAppData/nameEditing.js`
 
 ---
 
 ## Pendientes opcionales (mejoras futuras)
 
-1. **Auditoría en edición de docentes/materias**: pasar `logAudit` a `useAppData`
-   y llamarlo en `saveDocenteName` / `saveMateriaName`.
-
-2. **Auditoría en HistorialView**: recibir `logAudit` como prop y llamarlo
-   en `handleCerrar` / `handleCrear`.
-
-3. **Creación de usuarios con Service Role**: para crear usuarios directamente
-   desde la app sin pasar por el Dashboard, necesitas una Edge Function de Supabase
-   con la `service_role` key que exponga un endpoint autenticado.
-
-4. **Cambio de contraseña propio**: agregar opción en el perfil de usuario
-   para que cada usuario cambie su propia contraseña.
+> **Los 4 ítems que listaba esta sección originalmente ya están resueltos**
+> — verificado contra el código real en julio 2026, no asumido:
+>
+> 1. Auditoría en edición de docentes/materias → `useAppData/nameEditing.js`
+>    llama `logAudit` en cada rama (`EDITAR_DOCENTE`, `EDITAR_MATERIA`,
+>    `UNIFICAR_DOCENTE`, `UNIFICAR_MATERIA`).
+> 2. Auditoría en `HistorialView` → `logAudit` se recibe como prop y se
+>    llama en `handleCerrar`/`handleCrear` (`CERRAR_TRIMESTRE`/`CREAR_TRIMESTRE`).
+> 3. Creación de usuarios con Service Role → implementado como
+>    `api/admin-users.js` (Vercel Function), no como Edge Function de
+>    Supabase. La versión original de este pendiente describía la Edge
+>    Function como la única forma de lograrlo — quedó obsoleta cuando se
+>    migró el enfoque, no cuando se resolvió el pendiente.
+> 4. Cambio de contraseña propio → `ModalCambiarPassword.jsx`.
+>
+> No queda ningún pendiente abierto en esta lista. El único hallazgo de
+> seguridad que seguía abierto tras la auditoría de sesiones (protección
+> de fuerza bruta server-side en el login) se cerró como `SEC-6` — ver
+> `AUDITORIA_INDICE.md`.
