@@ -9,6 +9,17 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // F3: el primer test de integración que renderiza un componente
+  // completo (PestanaUsuarios) reveló que vitest.config.js, al no
+  // incluir @vitejs/plugin-react (a diferencia de vite.config.js, que
+  // sí lo usa para la app real), transformaba JSX en modo clásico por
+  // defecto — rompía en componentes como shared.jsx que no importan
+  // React explícitamente porque nunca lo necesitaron con el runtime
+  // automático. Esto solo afecta cómo se transforman los tests, no el
+  // build de producción real (ese sigue pasando por vite.config.js).
+  esbuild: {
+    jsx: "automatic",
+  },
   test: {
     environment: "node",
     // Pasar variables de entorno mínimas para que supabase.js no falle
