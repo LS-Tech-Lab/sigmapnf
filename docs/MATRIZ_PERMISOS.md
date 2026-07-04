@@ -100,20 +100,20 @@ el impacto real de cada uno antes de calificarlo:
 
   > 🔴 **`asistencias` no es `asistencias_diarias`.** No hay ningún
   > `CREATE TABLE asistencias` en las migraciones — no es la tabla del
-  > módulo QR que documenta `ESQUEMA_Y_MIGRACIONES.md`. O es una tabla legacy
-  > creada directo en Supabase (mismo patrón de drift que `horarios`/`docentes`/
-  > `materias`/`user_profiles`), o el nombre quedó desactualizado cuando el
-  > módulo QR reemplazó al sistema anterior de asistencias. Si es lo segundo,
-  > **cada backup exportado está silenciosamente vacío de asistencias** — la
-  > consulta a una tabla que no coincide no lanza un error visible, `.data || []`
-  > simplemente devuelve un arreglo vacío. Vale la pena confirmarlo contra la
-  > BD real antes de asumir que los backups incluyen asistencia:
-  > ```sql
-  > SELECT to_regclass('public.asistencias');  -- NULL si no existe
-  > ```
-  > Este hallazgo no tiene ID asignado todavía — lo dejo señalado para que se
-  > incorpore a `AUDITORIA_INDICE.md` con la categoría que corresponda una vez
-  > confirmado.
+  > módulo QR que documenta `ESQUEMA_Y_MIGRACIONES.md`.
+  >
+  > **Confirmado contra la BD real** (`SELECT to_regclass('public.asistencias')` → `NULL`):
+  > la tabla no existe. No era drift de una tabla legacy sin versionar —
+  > era un nombre de tabla incorrecto. Cada backup exportado hasta ahora
+  > tenía `asistencias: []` con `asistencias_incluidas: true` (falso
+  > positivo silencioso: `.data || []` no distingue "tabla inexistente"
+  > de "tabla vacía", así que nunca lanzó un error visible).
+  >
+  > **Cerrado como `D-4`** — un cambio de una línea en
+  > `src/hooks/useAppData/backupActions.js` (`exportarDatos`): la consulta
+  > ahora apunta a `asistencias_diarias`, igual que ya hacía el lado de
+  > restauración (`importarDatos`, que nunca tuvo este bug). Ver
+  > `AUDITORIA_INDICE.md` para el registro formal.
 
 ---
 
