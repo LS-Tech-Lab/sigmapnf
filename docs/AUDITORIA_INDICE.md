@@ -9,15 +9,18 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 > corregir `0046`, donde un hallazgo reportado externamente resultó ser un
 > falso positivo parcial al compararlo con la base de datos real.
 >
-> **IDs no localizados:** `O-6`, `O-7`, `P-1` se referencian en la numeración
-> pero no aparecen en el código actual — probablemente descartados, renombrados,
-> o fusionados con otro fix antes de llegar a `main`. Si alguno reaparece en
-> un commit viejo, agregarlo aquí con su estado real en vez de dejarlo suelto.
+> **IDs no localizados:** `O-6`, `O-7`, `P-1`, `SEC-1`, `SEC-4`, `SEC-7` se
+> referencian en la numeración pero no aparecen en el código actual —
+> probablemente descartados, renombrados, o fusionados con otro fix antes
+> de llegar a `main`. Si alguno reaparece en un commit viejo, agregarlo
+> aquí con su estado real en vez de dejarlo suelto.
 >
 > **Cobertura:** este índice cubre el esquema categorizado vigente
-> (`S`/`V`/`D`/`O`/`A`/`ARCH`/`U`/`P`). El proyecto usó **otras dos nomenclaturas
-> antes de adoptar esta**, encontradas al construir `ESQUEMA_Y_MIGRACIONES.md` —
-> ver § Histórico más abajo.
+> (`S`/`SEC`/`V`/`D`/`O`/`A`/`ARCH`/`U`/`P`) — `SEC-N` es una serie
+> paralela a `S`/`V`/`D`/`O`/`A` enfocada específicamente en autenticación
+> y sesión, encontrada al implementar `SEC-6`. El proyecto usó además
+> **otras dos nomenclaturas anteriores** a todo esto, encontradas al
+> construir `ESQUEMA_Y_MIGRACIONES.md` — ver § Histórico más abajo.
 
 ---
 
@@ -27,10 +30,22 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 |---|---|---|---|---|
 | **S1** | Cualquier usuario autenticado podía `UPDATE`/`INSERT`/`DELETE` horarios de cualquier programa (política heredada `FOR ALL` + RLS nunca habilitado en la tabla padre particionada) | `horarios` (padre + particiones) | `0035`, `0045` | ✅ Cerrado |
 | **S3** | Estilos inline (`style={{...}}`) bloquean una política CSP estricta (`unsafe-inline` necesario mientras existan) | `HistorialView`, `ResumenView`, `LogsView` y otras — **40 archivos** con `style={{` todavía presentes | — | 🟡 **Abierto** — bloqueado por `A3` |
+| **SEC-2** | Stack trace completo de errores visible en producción (fuga de información interna) | `src/components/ErrorBoundary.jsx` | — | ✅ Cerrado (solo se renderiza en desarrollo) |
+| **SEC-3** | Sin validación centralizada de fortaleza de contraseñas | `src/utils/password.js` | — | ✅ Cerrado |
+| **SEC-5** | Lockout de login normal en `localStorage` no resistía pestañas privadas (mismo patrón que `O-8`, para PIN) | `src/components/LoginScreen.jsx`, `src/utils/pinOffline.js` | — | ✅ Cerrado (migrado a IDB, cliente) |
+| **SEC-6** | Sin respaldo server-side del lockout de `SEC-5` — bastaba borrar el IDB o cambiar de navegador/dispositivo para seguir intentando sin límite contra la misma cuenta | `src/components/LoginScreen.jsx`, RPC `verificar_bloqueo_login` | `0047` | ✅ Cerrado |
 | **V-1** | `_aplicar_rls_horarios()`: INSERT y DELETE sin restricción de permiso granular | `horarios` | `0035` | ✅ Cerrado (ver S1 — la causa raíz completa no se cerró hasta `0045`) |
 | **V-2** | RLS de `qr_sessions` y `asistencias_diarias` sin permisos granulares (`puedeGestionarQR` / `puedeVerReporteAsistencias`) | `qr_sessions`, `asistencias_diarias` | `0036` | ✅ Cerrado |
 | **V-4** | `crear_qr_session()` solo validaba `rol = authenticated`, no el permiso `puedeGestionarQR` | RPC `crear_qr_session` | `0035` | ✅ Cerrado |
 | **D-3** | Sin rate limiting en `registrar_asistencia()` — permitía flood de asistencias falsas con cédulas distintas desde un mismo dispositivo | `registrar_asistencia`, tabla `scan_rate_limit` | `0039`, `0040` | ✅ Cerrado |
+
+> **Nota sobre `SEC-6`:** cierra el hueco *entre* `SEC-5` (cliente) y el rate
+> limiting por IP de Supabase Auth (plataforma, no versionado en este repo).
+> No reemplaza a ninguno de los dos — ver el encabezado de `0047` para el
+> límite explícito: no puede interceptar una llamada a `signInWithPassword()`
+> hecha fuera de `LoginScreen.jsx`. Verificar que el rate limiting de Supabase
+> Auth esté activo en el dashboard sigue siendo necesario para la protección
+> de fondo.
 
 ## 🔎 Filtrado de datos por permiso/programa
 
@@ -118,10 +133,12 @@ Cuando se cierre un nuevo hallazgo:
    `V-1`), decirlo explícitamente en la columna de descripción — evita que
    alguien dé por cerrado algo que solo se cerró a medias.
 
-**Abiertos ahora mismo:** `S3` y `A3` (la misma tarea, vista desde
+**Abiertos ahora mismo:** solo `S3`/`A3` (la misma tarea, vista desde
 seguridad y desde UI respectivamente) — ver `AUDITORIA_FRONTEND.md` para el
-detalle del reemplazo de estilos inline pendiente. Para el índice de
-migraciones SQL y el esquema de base de datos, ver `ESQUEMA_Y_MIGRACIONES.md`.
+detalle del reemplazo de estilos inline pendiente. Con el cierre de `SEC-6`,
+no queda ningún otro hallazgo de seguridad abierto en este índice. Para el
+índice de migraciones SQL y el esquema de base de datos, ver
+`ESQUEMA_Y_MIGRACIONES.md`.
 
 ---
 
