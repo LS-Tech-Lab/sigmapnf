@@ -9,10 +9,12 @@
 // (render + fireEvent + screen), sin mockear DocenteScan ni sus
 // subcomponentes — solo se mockea el cliente de Supabase.
 //
-// Nota: se usa getByPlaceholderText en vez de getByLabelText porque
-// Campo.jsx renderiza <label> e <input> como hermanos sin htmlFor/id
-// que los conecte — el input no tiene un label accesible programático
-// hoy. Es un hallazgo de accesibilidad aparte, no un problema del test.
+// Nota: se usa getByLabelText (el método recomendado por Testing Library,
+// que imita cómo un lector de pantalla encuentra el campo) ahora que U-4
+// está corregido — Campo.jsx asocia label/input vía useId(). Antes de ese
+// fix este archivo usaba getByPlaceholderText como workaround; se dejó de
+// usar en cuanto U-4 se cerró, precisamente para que este test sirviera de
+// guardia contra que alguien rompa esa asociación en el futuro.
 //
 // No se usa @testing-library/jest-dom (no está en las dependencias del
 // proyecto): las aserciones "está en pantalla" se hacen con los propios
@@ -96,8 +98,8 @@ describe("DocenteScan — flujo de docente nuevo", () => {
     fireEvent.click(btnEntrada);
 
     // Paso 2: formulario (primera vez)
-    const inputCedula = await screen.findByPlaceholderText(/V-12345678/);
-    const inputNombre = screen.getByPlaceholderText(/Prof\. Juan García/);
+    const inputCedula = await screen.findByLabelText(/cédula de identidad/i);
+    const inputNombre = screen.getByLabelText(/nombre completo/i);
     fireEvent.change(inputCedula, { target: { value: "V-12345678" } });
     fireEvent.change(inputNombre, { target: { value: "Prof. Ana Pérez" } });
     fireEvent.click(screen.getByRole("button", { name: /^registrar mi entrada$/i }));
@@ -139,8 +141,8 @@ describe("DocenteScan — flujo de docente nuevo", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /marcar entrada/i }));
 
-    const inputCedula = await screen.findByPlaceholderText(/V-12345678/);
-    const inputNombre = screen.getByPlaceholderText(/Prof\. Juan García/);
+    const inputCedula = await screen.findByLabelText(/cédula de identidad/i);
+    const inputNombre = screen.getByLabelText(/nombre completo/i);
     // Cédula con letras y muy corta tras normalizar -> formato inválido
     fireEvent.change(inputCedula, { target: { value: "abc-12" } });
     fireEvent.change(inputNombre, { target: { value: "Prof. Ana Pérez" } });
@@ -185,7 +187,7 @@ describe("DocenteScan — flujo de docente recurrente con datos guardados", () =
     // No debe pedir el formulario: pasa directo a la pantalla de confirmación.
     expect(await screen.findByText(/confirma que eres tú para continuar/i)).toBeTruthy();
     expect(screen.getByText("Prof. Luis Rojas")).toBeTruthy();
-    expect(screen.queryByPlaceholderText(/V-12345678/)).toBeNull();
+    expect(screen.queryByLabelText(/cédula de identidad/i)).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /^confirmar mi entrada$/i }));
 
