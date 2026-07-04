@@ -9,18 +9,22 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 > corregir `0046`, donde un hallazgo reportado externamente resultó ser un
 > falso positivo parcial al compararlo con la base de datos real.
 >
-> **IDs no localizados:** `O-6`, `O-7`, `P-1`, `SEC-1`, `SEC-4`, `SEC-7` se
+> **IDs no localizados:** `O-6`, `O-7`, `P-1`, `SEC-1`, `SEC-4` se
 > referencian en la numeración pero no aparecen en el código actual —
 > probablemente descartados, renombrados, o fusionados con otro fix antes
 > de llegar a `main`. Si alguno reaparece en un commit viejo, agregarlo
-> aquí con su estado real en vez de dejarlo suelto.
+> aquí con su estado real en vez de dejarlo suelto. (`SEC-7` estaba en
+> esta lista en una versión anterior de este índice — se usó en la sesión
+> que agregó `SEC-6`/`SEC-8` y ya no es un hueco; ver más abajo.)
 >
 > **Cobertura:** este índice cubre el esquema categorizado vigente
 > (`S`/`SEC`/`V`/`D`/`O`/`A`/`ARCH`/`U`/`P`) más el esquema `FIX-CI-N`
 > (CI/CD y automatización, encontrado en `logger.js` al hacer esta
 > actualización — no estaba cubierto hasta ahora). `SEC-N` es una serie
 > paralela a `S`/`V`/`D`/`O`/`A` enfocada específicamente en autenticación
-> y sesión, encontrada al implementar `SEC-6`. El proyecto usó además
+> y sesión, encontrada al implementar `SEC-6`, y ampliada con `SEC-7`
+> (`login_attempts`, `0048`) y `SEC-8` (grants de `anon` que contradecían
+> su propia migración, `0049`) en la misma sesión. El proyecto usó además
 > **otras dos nomenclaturas anteriores** a todo esto, encontradas al
 > construir `ESQUEMA_Y_MIGRACIONES.md` — ver § Histórico más abajo.
 
@@ -37,10 +41,13 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 | **SEC-3** | Sin validación centralizada de fortaleza de contraseñas | `src/utils/password.js` | — | ✅ Cerrado |
 | **SEC-5** | Lockout de login normal en `localStorage` no resistía pestañas privadas (mismo patrón que `O-8`, para PIN) | `src/components/LoginScreen.jsx`, `src/utils/pinOffline.js` | — | ✅ Cerrado (migrado a IDB, cliente) |
 | **SEC-6** | Sin respaldo server-side del lockout de `SEC-5` — bastaba borrar el IDB o cambiar de navegador/dispositivo para seguir intentando sin límite contra la misma cuenta | `src/components/LoginScreen.jsx`, RPC `verificar_bloqueo_login` | `0047` | ✅ Cerrado |
+| **SEC-7** | `login_attempts` tenía una política de INSERT abierta a `public` con `WITH CHECK (true)` — cualquiera sin cuenta podía insertar intentos fallidos falsos con el email de otra persona y forzar su bloqueo (`SEC-6`) a voluntad, repetible sin límite | `login_attempts` (RLS + GRANT) | `0048` | ✅ Cerrado — migración aplicada en la BD real |
+| **SEC-8** | 🔴 El hallazgo más serio de la sesión de `SEC-6`/`SEC-7`. 4 funciones con `REVOKE ALL FROM PUBLIC` explícito en su migración original aparecían ejecutables por `anon` en la BD real — drift, no un error de migración (nunca hubo `GRANT ... TO anon` para ninguna). Dos eran destructivas y debían ser solo `service_role`: `limpiar_audit_logs_antiguos` (cualquiera podía borrar el log de auditoría completo, anti-forense directo) y `limpiar_scan_rate_limit` (anulaba `D-3` a voluntad). Se agregó de paso el chequeo de permiso que `renovar_qr_token` nunca tuvo | `asegurar_particion_lapso`, `docentes_con_cedula`, `limpiar_audit_logs_antiguos`, `limpiar_scan_rate_limit`, `renovar_qr_token` | `0049` | ✅ Cerrado — migración aplicada en la BD real |
 | **V-1** | `_aplicar_rls_horarios()`: INSERT y DELETE sin restricción de permiso granular | `horarios` | `0035` | ✅ Cerrado (ver S1 — la causa raíz completa no se cerró hasta `0045`) |
 | **V-2** | RLS de `qr_sessions` y `asistencias_diarias` sin permisos granulares (`puedeGestionarQR` / `puedeVerReporteAsistencias`) | `qr_sessions`, `asistencias_diarias` | `0036` | ✅ Cerrado |
 | **V-4** | `crear_qr_session()` solo validaba `rol = authenticated`, no el permiso `puedeGestionarQR` | RPC `crear_qr_session` | `0035` | ✅ Cerrado |
 | **D-3** | Sin rate limiting en `registrar_asistencia()` — permitía flood de asistencias falsas con cédulas distintas desde un mismo dispositivo | `registrar_asistencia`, tabla `scan_rate_limit` | `0039`, `0040` | ✅ Cerrado |
+| **SEC-9** | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecen ejecutables por `anon` en la BD real y nunca tuvieron un `REVOKE` explícito en ninguna migración (mismo patrón que `SEC-8`, encontrado de paso al cerrarlo). Riesgo bajo: son de solo lectura y devuelven null/vacío para un caller anónimo, no delegan ninguna decisión de seguridad a su resultado | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` (sin migración de origen) | — | 🟡 **Pendiente** — señalado en `ESQUEMA_Y_MIGRACIONES.md` §4, sin migración de cierre todavía |
 
 > **Nota sobre `SEC-6`:** cierra el hueco *entre* `SEC-5` (cliente) y el rate
 > limiting por IP de Supabase Auth (plataforma, no versionado en este repo).
@@ -207,13 +214,14 @@ Cuando se cierre un nuevo hallazgo:
    `V-1`), decirlo explícitamente en la columna de descripción — evita que
    alguien dé por cerrado algo que solo se cerró a medias.
 
-**Abiertos ahora mismo:** solo `S3`/`A3` (la misma tarea, vista desde
-seguridad y desde UI respectivamente) — ver `AUDITORIA_FRONTEND.md` para el
-detalle del reemplazo de estilos inline pendiente. Con el cierre de `SEC-6`,
-`S2`, `ARCH-5`, `U-4` y todo `FIX-CI-N`, no queda ningún otro hallazgo de
-seguridad, accesibilidad, testing ni de CI/automatización abierto en este
-índice. Para el índice de migraciones SQL y el esquema de base de datos, ver
-`ESQUEMA_Y_MIGRACIONES.md`.
+**Abiertos ahora mismo:** `S3`/`A3` (la misma tarea, vista desde seguridad
+y desde UI respectivamente) y `SEC-9` (bajo riesgo, señalado por
+transparencia) — ver `AUDITORIA_FRONTEND.md` para el detalle del
+reemplazo de estilos inline pendiente. Con el cierre de `SEC-6`, `SEC-7`,
+`SEC-8`, `S2`, `ARCH-5`, `U-4` y todo `FIX-CI-N`, no queda ningún otro
+hallazgo de seguridad, accesibilidad, testing ni de CI/automatización
+abierto en este índice. Para el índice de migraciones SQL y el esquema de
+base de datos, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ---
 
@@ -236,3 +244,30 @@ contra el código real: **40 archivos** con `style={{` (sin cambio en el
 conteo de archivos, pero **487 ocurrencias** frente a las ~894 anteriores —
 7 de esos 40 ya tienen `.css` propio con residuo parcial) y **4 archivos**
 (antes 9) que aún importan el helper `S`.*
+
+*Tercera pasada (4 de julio de 2026) — reconciliación entre esta rama del
+índice y la sesión donde se crearon `SEC-6`/`SEC-7`/`SEC-8`: esta versión
+había partido de un punto anterior a esos dos últimos y los había perdido
+sin querer (no es un borrado deliberado, es que ambas ramas de trabajo
+avanzaron en paralelo sobre el mismo archivo). Se reincorporaron `SEC-7` y
+`SEC-8` completos, con nota confirmando que `0048` y `0049` **ya están
+aplicadas en la base de datos real** (confirmado directamente, no asumido).
+Se agregó `SEC-9` (pendiente, bajo riesgo) para no perder ese hallazgo
+menor entre documentos. Sobre la contradicción de arriba ("ya está
+confirmado en el repo" vs. "pendiente de pegarse" para
+`DocenteScan.flow.test.jsx`, ambas en la nota de la segunda pasada):
+verificado de nuevo, **el archivo existe en el HEAD actual del repo** —
+la nota de "pendiente de pegarse" quedó desactualizada entre el momento en
+que se escribió y el momento en que efectivamente se pegó, ambos el mismo
+día. No se encontró el archivo `auditoria_sigmapnf.md` (la auditoría
+externa mencionada en la nota de `FIX-CI-3`) en ningún lugar del repo —
+si hace falta seguir unificando criterios contra ella, no está disponible
+para verificar desde aquí todavía. **Actualización:** ese documento
+corresponde a auditorías pasadas que no se respaldaron — no se va a poder
+recuperar. No bloquea nada: este índice se construyó siempre verificando
+contra código/BD real, no contra ese informe, así que cualquier hallazgo
+suyo que siga sin corregir va a seguir siendo detectable con el mismo
+método. Si en el futuro se recuerda un hallazgo puntual de esa auditoría
+(aunque sea de memoria), se puede verificar contra el estado actual sin
+necesitar el documento completo — igual que se hizo con la colisión `S1`
+externo / `S2` de este índice.*
