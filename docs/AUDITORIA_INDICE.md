@@ -13,6 +13,11 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 > pero no aparecen en el código actual — probablemente descartados, renombrados,
 > o fusionados con otro fix antes de llegar a `main`. Si alguno reaparece en
 > un commit viejo, agregarlo aquí con su estado real en vez de dejarlo suelto.
+>
+> **Cobertura:** este índice cubre el esquema categorizado vigente
+> (`S`/`V`/`D`/`O`/`A`/`ARCH`/`U`/`P`). El proyecto usó **otras dos nomenclaturas
+> antes de adoptar esta**, encontradas al construir `ESQUEMA_Y_MIGRACIONES.md` —
+> ver § Histórico más abajo.
 
 ---
 
@@ -76,7 +81,30 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 
 ---
 
-## Cómo mantener este índice
+## 🗄️ Histórico: nomenclaturas anteriores (no vigentes)
+
+Encontradas al construir el índice de migraciones (`ESQUEMA_Y_MIGRACIONES.md`).
+No se usan más, pero los archivos con estos comentarios siguen en el repo —
+vale la pena saber que existen si alguien pregunta "¿qué es el Fix #8?".
+
+| Esquema | ID | Descripción | Archivo | Estado |
+|---|---|---|---|---|
+| `Fix #N` | **#2** | Políticas RLS con rol `{public}` corregidas a `{authenticated}` en `user_profiles` | `0016_fix_rls_user_profiles.sql` | ✅ Cerrado |
+| `Fix #N` | **#3** | FK duplicada (`user_profiles_rol_fkey`) que bloqueaba el login (`PGRST201`) | `0017_drop_fk_duplicada_rol.sql` | ✅ Cerrado |
+| `Fix #N` | **#4** | Recursión en `get_auth_role()` dentro de políticas RLS | `0016_fix_rls_user_profiles.sql` | ✅ Cerrado |
+| `Fix #N` | **#8** | `borrar_horarios`/`restaurar_backup` sin verificación de permiso interno | `0018_fix_rpc_permisos_faltantes.sql` | ✅ Cerrado |
+| `Fix #N` | **#10** | Sin trigger que impidiera borrar roles con `es_sistema = true` | `0019_trigger_protect_roles_sistema.sql` | ✅ Cerrado |
+| `Fix #N` | **#16** | Sin índices en `horarios` para búsquedas frecuentes | `0020_indices_horarios.sql` | ✅ Cerrado |
+| `Fix #N` | **#17** | RPCs de gestión de usuarios creadas directo en Supabase, sin migración de respaldo | `0021_rpcs_gestion_usuarios.sql` | ✅ Cerrado |
+| `Gap #N` | **#16** | `importarDatos()` no restauraba `asistencias` desde un backup | `0041_restaurar_backup_asistencias.sql` | ✅ Cerrado |
+
+> **Colisión de numeración:** `Fix #16` (0020, índices de horarios) y `Gap #16`
+> (0041, restauración de backup) son el mismo número en esquemas distintos y no
+> tienen relación entre sí. Si alguna vez se retoma cualquiera de estas dos
+> nomenclaturas, evitar reusar números — usar el esquema categorizado vigente
+> en su lugar, que ya evita esto al llevar letra + número por área.
+
+---
 
 Cuando se cierre un nuevo hallazgo:
 
@@ -91,7 +119,8 @@ Cuando se cierre un nuevo hallazgo:
 
 **Abiertos ahora mismo:** `S3` y `A3` (la misma tarea, vista desde
 seguridad y desde UI respectivamente) — ver `AUDITORIA_FRONTEND.md` para el
-detalle del reemplazo de estilos inline pendiente.
+detalle del reemplazo de estilos inline pendiente. Para el índice de
+migraciones SQL y el esquema de base de datos, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ---
 
