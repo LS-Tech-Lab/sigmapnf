@@ -21,6 +21,7 @@ import {
   Spinner,
 } from "./shared";
 import useFocusTrap from "../../hooks/useFocusTrap";
+import "./ModalRol.css";
 
 export default function ModalRol({ rol, onSave, onClose, logAudit }) {
   const esNuevo = !rol;
@@ -106,47 +107,33 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
 
   return (
     <div
-      style={{
-        position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)",
-        display: "flex", alignItems: "flex-start", justifyContent: "center",
-        zIndex: 1000, padding: 16, overflowY: "auto",
-      }}
+      className="mr-backdrop"
       role="presentation"
       onClick={onClose}
     >
       <div
         ref={dialogRef}
-        style={{
-          background: "#fff", borderRadius: 14, padding: 28, maxWidth: 620, width: "100%",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.25)", margin: "auto",
-          display: "flex", flexDirection: "column", gap: 20,
-        }}
+        className="mr-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-rol-titulo"
         onClick={e => e.stopPropagation()}
       >
         {/* Cabecera */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 id="modal-rol-titulo" style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "var(--color-text-primary)" }}>
+        <div className="mr-header">
+          <h2 id="modal-rol-titulo" className="mr-title">
             {esNuevo ? "Nuevo rol" : `Editar rol: ${rol.label}`}
           </h2>
-          <button onClick={onClose} aria-label="Cerrar" style={{
-            background: "none", border: "none", cursor: "pointer",
-            fontSize: 20, color: "var(--color-text-tertiary)",
-          }}>✕</button>
+          <button onClick={onClose} aria-label="Cerrar" className="mr-close">✕</button>
         </div>
 
         {/* Campos básicos */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+        <div className="mr-fields-grid">
           {esNuevo && (
-            <div style={{ gridColumn: "1/-1" }}>
-              <label htmlFor="rol-field-nombre" style={{
-                fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)",
-                textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 5,
-              }}>
+            <div className="mr-field--full">
+              <label htmlFor="rol-field-nombre" className="mr-field-label">
                 Identificador (slug){" "}
-                <span style={{ color: "var(--color-text-tertiary)", fontWeight: 400 }}>— no se puede cambiar luego</span>
+                <span className="mr-field-label-note">— no se puede cambiar luego</span>
               </label>
               <input
                 id="rol-field-nombre"
@@ -158,11 +145,8 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
             </div>
           )}
 
-          <div style={{ gridColumn: "1/-1" }}>
-            <label htmlFor="rol-field-label" style={{
-              fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)",
-              textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 5,
-            }}>Nombre visible</label>
+          <div className="mr-field--full">
+            <label htmlFor="rol-field-label" className="mr-field-label">Nombre visible</label>
             <input
               id="rol-field-label"
               ref={esNuevo ? undefined : firstInputRef}
@@ -174,41 +158,26 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
 
           {/* Emoji */}
           <div>
-            <label style={{
-              fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)",
-              textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 5,
-            }}>Emoji</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <label className="mr-field-label">Emoji</label>
+            <div className="mr-emoji-row">
               {EMOJIS_PRESET.map(e => (
-                <button key={e} onClick={() => set("emoji")(e)} style={{
-                  fontSize: 18, cursor: "pointer",
-                  background: form.emoji === e ? "var(--color-background-info)" : "var(--color-background-secondary)",
-                  border: `2px solid ${form.emoji === e ? "var(--brand-500)" : "var(--color-border-tertiary)"}`,
-                  borderRadius: 8, padding: "4px 8px", lineHeight: 1,
-                }}>{e}</button>
+                <button key={e} onClick={() => set("emoji")(e)} className={`mr-emoji-btn${form.emoji === e ? ' mr-emoji-btn--active' : ''}`}>{e}</button>
               ))}
             </div>
           </div>
 
           {/* Color */}
           <div>
-            <label style={{
-              fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)",
-              textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 5,
-            }}>Color</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+            <label className="mr-field-label">Color</label>
+            <div className="mr-color-row">
               {COLORES_PRESET.map(c => (
-                <button key={c} onClick={() => set("color")(c)} title={c} style={{
-                  width: 24, height: 24, borderRadius: 6, background: c, cursor: "pointer",
-                  border: `3px solid ${form.color === c ? "var(--color-text-primary)" : "transparent"}`,
-                  boxSizing: "border-box",
-                }} />
+                <button key={c} onClick={() => set("color")(c)} title={c} className={`mr-color-swatch${form.color === c ? ' mr-color-swatch--active' : ''}`} style={{ background: c }} />
               ))}
               <input
                 type="color"
                 value={form.color}
                 onChange={e => set("color")(e.target.value)}
-                style={{ width: 28, height: 28, border: "none", cursor: "pointer", borderRadius: 6, padding: 0 }}
+                className="mr-color-input"
                 title="Color personalizado"
               />
             </div>
@@ -216,40 +185,36 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
         </div>
 
         {/* Restricción de programa */}
-        <label style={{
-          display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
-          background: "var(--color-background-secondary)",
-          border: "1px solid var(--color-border-tertiary)", borderRadius: 10, padding: "12px 14px",
-        }}>
+        <label className="mr-restringe-label">
           <input
             type="checkbox"
             checked={form.restringe_programa}
             onChange={e => set("restringe_programa")(e.target.checked)}
-            style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--brand-500)" }}
+            className="mr-restringe-check"
           />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>
+            <div className="mr-restringe-title">
               Restringir a un programa
             </div>
-            <div style={{ fontSize: 12, color: "var(--color-text-tertiary)", marginTop: 2 }}>
+            <div className="mr-restringe-desc">
               Los usuarios con este rol solo verán los datos del programa que se les asigne al crearlos.
             </div>
           </div>
         </label>
 
         {/* Vista previa */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>Vista previa:</span>
+        <div className="mr-preview-row">
+          <span className="mr-preview-label">Vista previa:</span>
           <Badge color={form.color}>{form.emoji} {form.label || "Nombre del rol"}</Badge>
         </div>
 
         {/* Permisos */}
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--color-text-primary)" }}>
+          <div className="mr-permisos-header">
+            <h3 className="mr-permisos-title">
               Permisos ({contarPermisos}/{TODOS_LOS_PERMISOS.length})
             </h3>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="mr-permisos-actions">
               <button
                 onClick={() => setForm(f => ({ ...f, permisos: Object.fromEntries(TODOS_LOS_PERMISOS.map(k => [k, true])) }))}
                 className="s-btn s-btn--sm"
@@ -261,45 +226,30 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="mr-grupos-list">
             {GRUPOS_PERMISOS.map(g => (
-              <div key={g.grupo} style={{
-                background: "var(--color-background-secondary)",
-                border: "1px solid var(--color-border-tertiary)",
-                borderRadius: 10, overflow: "hidden",
-              }}>
-                <div style={{
-                  padding: "10px 14px", borderBottom: "1px solid var(--color-border-tertiary)",
-                  display: "flex", alignItems: "center", gap: 8,
-                }}>
-                  <i className={`ti ${g.icono}`} style={{ color: "var(--color-text-tertiary)", fontSize: 14 }} />
-                  <span style={{
-                    fontSize: 12, fontWeight: 700, color: "var(--color-text-secondary)",
-                    textTransform: "uppercase", letterSpacing: "0.05em",
-                  }}>{g.grupo}</span>
-                  <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--color-text-tertiary)" }}>
+              <div key={g.grupo} className="mr-grupo">
+                <div className="mr-grupo-header">
+                  <i className={`ti ${g.icono} mr-grupo-icon`} />
+                  <span className="mr-grupo-label">{g.grupo}</span>
+                  <span className="mr-grupo-count">
                     {g.items.filter(i => form.permisos[i.key]).length}/{g.items.length}
                   </span>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                <div className="mr-items-list">
                   {g.items.map((item, idx) => (
-                    <label key={item.key} style={{
-                      display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 14px",
-                      cursor: "pointer",
-                      borderTop: idx > 0 ? "1px solid var(--color-background-tertiary)" : "none",
-                      background: form.permisos[item.key] ? hex2rgba(form.color, 0.05) : "transparent",
-                      transition: "background 0.1s",
-                    }}>
+                    <label key={item.key} className={`mr-item${idx > 0 ? ' mr-item--divider' : ''}`}
+                      style={{ background: form.permisos[item.key] ? hex2rgba(form.color, 0.05) : "transparent" }}>
                       <input
                         type="checkbox"
                         checked={!!form.permisos[item.key]}
                         onChange={e => setPerm(item.key)(e.target.checked)}
-                        style={{ width: 15, height: 15, marginTop: 1, cursor: "pointer",
-                          accentColor: form.color, flexShrink: 0 }}
+                        className="mr-item-check"
+                        style={{ accentColor: form.color }}
                       />
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>{item.label}</div>
-                        <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 1 }}>{item.desc}</div>
+                        <div className="mr-item-title">{item.label}</div>
+                        <div className="mr-item-desc">{item.desc}</div>
                       </div>
                     </label>
                   ))}
@@ -310,25 +260,17 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
         </div>
 
         {error && (
-          <div style={{
-            background: "var(--color-danger-bg)", border: "1px solid var(--color-danger-light)",
-            borderRadius: 8, padding: "10px 14px", color: "var(--color-danger)", fontSize: 13,
-          }}>{error}</div>
+          <div className="mr-error">{error}</div>
         )}
 
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        <div className="mr-footer">
           <button onClick={onClose} className="s-btn s-btn--cancel" disabled={saving}>
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            style={{
-              padding: "9px 20px", borderRadius: 8, border: "none",
-              cursor: saving ? "not-allowed" : "pointer",
-              background: "var(--brand-500)", color: "#fff", fontSize: 13, fontWeight: 600,
-              display: "flex", alignItems: "center", gap: 8, opacity: saving ? 0.7 : 1,
-            }}
+            className={`mr-btn-save${saving ? ' mr-btn-save--saving' : ''}`}
           >
             {saving && <Spinner />}
             {saving ? "Guardando…" : (esNuevo ? "Crear rol" : "Guardar cambios")}
