@@ -216,6 +216,27 @@ export default function LoginScreen({ onOfflineLogin }) {
     setLoading(true);
     setError(null);
 
+    // Fix SEC-6 (auditoría julio 2026): respaldo server-side del lockout de
+    // SEC-5. El de IDB se salta borrando el navegador o cambiando de
+    // dispositivo — este no, porque cuenta contra login_attempts (0031),
+    // que ya se llenaba pero nadie leía para bloquear nada. Se consulta
+    // ANTES de llamar a signInWithPassword para no gastar ese intento
+    // contra Supabase Auth si el servidor ya sabe que está bloqueado.
+    try {
+      const { data: bloqueo } = await supabase.rpc("verificar_bloqueo_login", { p_email: email });
+      if (bloqueo?.bloqueado) {
+        const hasta = new Date(bloqueo.desbloquea_en).getTime();
+        setFailedAttempts(bloqueo.intentos);
+        setLockedUntil(hasta);
+        setError("Demasiados intentos fallidos. Espera antes de volver a intentar.");
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // Si la RPC falla (red, etc.) no bloqueamos el login por eso —
+      // el lockout de IDB (SEC-5) sigue funcionando como respaldo mínimo.
+    }
+
     // Capturamos el user y profile del callback de Auth para el modal PIN
     let loginUser    = null;
     let loginProfile = null;
