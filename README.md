@@ -53,42 +53,46 @@ src/
 │   │   └── DocenteScan/       # Ruta pública /scan (sin auth)
 │   ├── LogsView.jsx           # Registros de sesión + auditoría
 │   ├── HistorialView.jsx      # Historial de trimestres
-│   └── UsuariosView.jsx       # Gestión de usuarios y roles
+│   └── usuarios/              # Gestión de usuarios y roles (carpeta, no un solo archivo)
 ├── hooks/
 │   ├── useAuth.js             # Auth + permisos + Realtime + idle timeout
-│   ├── useDataSync.js         # Sincronización de horarios
+│   ├── useAppData/
+│   │   └── useDataSync.js     # Sincronización de horarios
 │   └── useQRSession.js        # Estado de sesión QR activa
 ├── lib/                       # Clientes externos (Supabase)
 ├── constants/                 # Programas, trayectos, horarios de turno
 └── utils/                     # parsing.js, conflictos, lapso, cache
 
 supabase/
-├── migrations/                # SQL secuencial (0005 → 0039)
-└── functions/                 # Edge Functions legacy
+└── migrations/                # SQL secuencial (0005 → 0046)
 
 api/
 └── admin-users.js             # Vercel Function: crear/resetear usuarios
+                                # (reemplaza una Edge Function de Supabase
+                                # que ya no forma parte del repo)
 
 docs/
-├── SECURITY.md                # Arquitectura de roles y RLS
+├── SECURITY.md                # Roles, RLS y su historial de hallazgos
 ├── AUDITORIA_FRONTEND.md      # Auditoría de componentes frontend
-└── SIGMA_Estado_Actual.md     # Estado de implementación y pendientes
+├── AUDITORIA_INDICE.md        # Índice de todos los hallazgos de auditoría
+├── ESQUEMA_Y_MIGRACIONES.md   # Esquema de BD e índice de migraciones
+├── MATRIZ_PERMISOS.md         # Catálogo completo de permisos (RBAC)
+├── ARQUITECTURA.md            # Decisiones de arquitectura y sus motivos
+└── FLUJO_ASISTENCIAS_QR.md    # Flujo end-to-end del módulo QR
 ```
 
 ## Roles y permisos
 
-Los roles se definen en la tabla `roles` (no en código). Cada rol tiene un
-objeto JSONB `permisos` con las claves booleanas del sistema:
+Los roles se definen en la tabla `roles` (no en código) — cualquier admin
+puede crear un rol nuevo con su propia combinación de permisos desde la UI,
+sin tocar SQL. Cada rol tiene un objeto JSONB `permisos` con 16 claves
+booleanas (`puedeEditarHorarios`, `puedeGestionarQR`, `puedeVerAuditoria`,
+etc.) agrupadas en 5 categorías: Horarios, Catálogos académicos, Respaldo
+de datos, Módulo QR y Administración.
 
-| Permiso | Descripción |
-|---|---|
-| `puedeImportarExcel` | Cargar planillas de horarios |
-| `puedeEditarHorarios` / `puedeBorrarHorarios` | Modificar datos de horarios |
-| `puedeGestionarTrimestres` | Crear/cerrar lapsos académicos |
-| `puedeGestionarUsuarios` / `puedeGestionarRoles` | Administrar acceso |
-| `puedeGestionarQR` | Abrir/cerrar sesiones QR |
-| `puedeVerReporteAsistencias` | Ver reportes sin gestionar QR |
-| `puedeVerLogs` / `puedeVerAuditoria` | Acceso a registros del sistema |
+El catálogo completo, con qué controla cada permiso y dónde se hace
+cumplir (RLS, RPC, o solo la interfaz), está en
+[`docs/MATRIZ_PERMISOS.md`](docs/MATRIZ_PERMISOS.md).
 
 Los roles pueden tener `restringe_programa = true`, que limita la visibilidad
 del usuario a los datos de su programa asignado.
@@ -126,8 +130,8 @@ Una vista previa (`UploadPreviewModal`) muestra los datos antes del insert.
 ## Instalación y desarrollo local
 
 ```bash
-git clone https://github.com/LS-Tech-Lab/horariospnf.git
-cd horariospnf
+git clone https://github.com/LS-Tech-Lab/sigmapnf.git
+cd sigmapnf
 npm install
 cp .env.example .env   # completar con credenciales de Supabase
 npm run dev
@@ -144,7 +148,7 @@ npm run dev
 ## Base de datos
 
 El esquema vive en `supabase/migrations/`, numerado secuencialmente (`0005` →
-`0039`). Para un entorno nuevo, ejecutar las migraciones en orden desde el SQL
+`0046`). Para un entorno nuevo, ejecutar las migraciones en orden desde el SQL
 Editor de Supabase o con la CLI:
 
 ```bash
@@ -152,7 +156,9 @@ supabase db push
 ```
 
 La arquitectura de seguridad (RLS, `tiene_permiso()`, tablas de auditoría)
-está documentada en [`docs/SECURITY.md`](docs/SECURITY.md).
+está documentada en [`docs/SECURITY.md`](docs/SECURITY.md); el esquema
+completo por tabla y el índice de todas las migraciones, en
+[`docs/ESQUEMA_Y_MIGRACIONES.md`](docs/ESQUEMA_Y_MIGRACIONES.md).
 
 ## Despliegue
 
@@ -167,4 +173,4 @@ automático. Variables de entorno requeridas en Vercel:
 
 ## Licencia
 
-Ver [`LICENSE`](LICENSE)
+Ver [`LICENSE`](LICENSE).
