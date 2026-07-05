@@ -17,6 +17,7 @@ import { supabase } from "../../lib/supabase";
 import { Spinner } from "./shared";
 import { validarPassword } from "../../utils/password";
 import useFocusTrap from "../../hooks/useFocusTrap";
+import "./ModalUsuario.css";
 
 export default function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, logAudit }) {
   const esNuevo = !usuario?.id;
@@ -150,44 +151,32 @@ export default function ModalUsuario({ usuario, roles, programas, onSave, onClos
 
   return (
     <div
-      style={{
-        position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16,
-      }}
+      className="mu-backdrop"
       role="presentation"
       onClick={onClose}
     >
       <div
         ref={dialogRef}
-        style={{
-          background: "#fff", borderRadius: 14, padding: 28, maxWidth: 480, width: "100%",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", gap: 18,
-        }}
+        className="mu-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-usuario-titulo"
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 id="modal-usuario-titulo" style={{ margin: 0, fontSize: 17, color: "var(--color-text-primary)", fontWeight: 700 }}>
+        <div className="mu-header">
+          <h2 id="modal-usuario-titulo" className="mu-title">
             {esNuevo ? "Nuevo usuario" : "Editar usuario"}
           </h2>
-          <button onClick={onClose} aria-label="Cerrar" style={{
-            background: "none", border: "none", cursor: "pointer",
-            fontSize: 20, color: "var(--color-text-tertiary)", lineHeight: 1,
-          }}>✕</button>
+          <button onClick={onClose} aria-label="Cerrar" className="mu-close">✕</button>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="mu-fields">
           {[
             { field: "nombre", label: "Nombre completo",  placeholder: "Ej: María González", type: "text" },
             { field: "email",  label: "Email",            placeholder: "correo@ejemplo.com",  type: "email", disabled: !esNuevo },
           ].map(({ field, label, placeholder, type, disabled }, idx) => (
             <div key={field}>
-              <label htmlFor={`usr-field-${field}`} style={{
-                fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)",
-                textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 5,
-              }}>{label}</label>
+              <label htmlFor={`usr-field-${field}`} className="mu-field-label">{label}</label>
               <input
                 id={`usr-field-${field}`}
                 ref={idx === 0 ? firstInputRef : undefined}
@@ -202,10 +191,7 @@ export default function ModalUsuario({ usuario, roles, programas, onSave, onClos
           ))}
 
           <div>
-            <label htmlFor="usr-field-password" style={{
-              fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)",
-              textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 5,
-            }}>
+            <label htmlFor="usr-field-password" className="mu-field-label">
               {esNuevo ? "Contraseña inicial" : "Nueva contraseña (dejar vacío para no cambiar)"}
             </label>
             <input
@@ -219,17 +205,14 @@ export default function ModalUsuario({ usuario, roles, programas, onSave, onClos
           </div>
 
           <div>
-            <label htmlFor="usr-field-rol" style={{
-              fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)",
-              textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 5,
-            }}>Rol</label>
+            <label htmlFor="usr-field-rol" className="mu-field-label">Rol</label>
             <select id="usr-field-rol" className="s-select s-select--full" value={form.rol} onChange={set("rol")}>
               {roles.map(r => (
                 <option key={r.nombre} value={r.nombre}>{r.emoji} {r.label}</option>
               ))}
             </select>
             {rolSeleccionado && (
-              <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--color-text-tertiary)" }}>
+              <p className="mu-field-hint">
                 {rolSeleccionado.restringe_programa
                   ? "Este rol restringe la vista a un solo programa — debes asignar uno."
                   : "✓ Acceso sin restricción de programa."}
@@ -239,10 +222,7 @@ export default function ModalUsuario({ usuario, roles, programas, onSave, onClos
 
           {rolSeleccionado?.restringe_programa && (
             <div>
-              <label htmlFor="usr-field-programa" style={{
-                fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)",
-                textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 5,
-              }}>Programa asignado</label>
+              <label htmlFor="usr-field-programa" className="mu-field-label">Programa asignado</label>
               <select id="usr-field-programa" className="s-select s-select--full" value={form.programa} onChange={set("programa")}>
                 <option value="">— Seleccionar programa —</option>
                 {programas.map(p => <option key={p} value={p}>{p}</option>)}
@@ -252,27 +232,19 @@ export default function ModalUsuario({ usuario, roles, programas, onSave, onClos
         </div>
 
         {error && (
-          <div style={{
-            background: "var(--color-danger-bg)", border: "1px solid var(--color-danger-light)",
-            borderRadius: 8, padding: "10px 14px", color: "var(--color-danger)", fontSize: 13,
-          }}>
+          <div className="mu-error">
             {error}
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        <div className="mu-actions">
           <button onClick={onClose} className="s-btn s-btn--cancel" disabled={saving}>
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            style={{
-              padding: "9px 20px", borderRadius: 8, border: "none",
-              cursor: saving ? "not-allowed" : "pointer",
-              background: "var(--brand-500)", color: "#fff", fontSize: 13, fontWeight: 600,
-              display: "flex", alignItems: "center", gap: 8, opacity: saving ? 0.7 : 1,
-            }}
+            className="mu-btn-save"
           >
             {saving && <Spinner />}
             {saving ? "Guardando…" : (esNuevo ? "Crear usuario" : "Guardar cambios")}
