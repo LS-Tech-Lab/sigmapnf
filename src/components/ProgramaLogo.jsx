@@ -119,34 +119,13 @@ function IconEducacionEspecial({ size }) {
 export default function ProgramaLogo({ programa = "todos", size = 32, expanded = false }) {
   const meta = PROGRAMA_META[programa] || PROGRAMA_META["todos"];
 
-  const containerStyle = {
-    width:         size,
-    height:        size,
-    borderRadius:  size * 0.25,
-    flexShrink:    0,
-    overflow:      "hidden",
-    display:       "flex",
-    alignItems:    "center",
-    justifyContent:"center",
-    background:    meta.useImg
-      ? "transparent"
-      : `linear-gradient(135deg, ${meta.color1}, ${meta.color2})`,
-    transition:    "background 0.3s",
-    position:      "relative",
-  };
-
   if (meta.useImg) {
     return (
-      <div style={{ ...containerStyle, background: "transparent", padding: 0 }}>
+      <div className="pl-container" style={{ '--pl-size': `${size}px`, '--pl-radius': `${size * 0.25}px` }}>
         <img
           src={meta.img}
           alt={meta.label}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "contain",
-            filter: "drop-shadow(0 2px 8px rgba(37,99,235,0.45))",
-          }}
+          className="pl-img"
           draggable={false}
         />
       </div>
@@ -156,9 +135,12 @@ export default function ProgramaLogo({ programa = "todos", size = 32, expanded =
   const Icon = meta.icon;
   return (
     <div
+      className="pl-container pl-container--icon"
       style={{
-        ...containerStyle,
-        boxShadow: `0 2px 10px ${meta.color1}66`,
+        '--pl-size': `${size}px`,
+        '--pl-radius': `${size * 0.25}px`,
+        '--pl-bg': `linear-gradient(135deg, ${meta.color1}, ${meta.color2})`,
+        '--pl-shadow': `0 2px 10px ${meta.color1}66`,
       }}
       title={meta.label}
     >
