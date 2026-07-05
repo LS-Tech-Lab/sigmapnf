@@ -1,0 +1,74 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   ModuleSelector.css
+   Migración A3 (auditoría 2026-07-05): estilos extraídos de ModuleSelector.jsx.
+   MODULES es un enum fijo y conocido de 2 variantes ("horarios" / "asistencias"),
+   no datos arbitrarios en tiempo de ejecución — se resuelve con clases
+   modificadoras (.module-card--horarios / .module-card--asistencias) en vez
+   de leer mod.color/mod.bg/mod.border desde JS e inyectarlos inline.
+   El hover simulado con onMouseEnter/onMouseLeave (estado `hovered` en React)
+   y la mutación directa de e.currentTarget.style.color en el botón de logout
+   se reemplazan por :hover puro en CSS.
+   Los alfa-hex "18"/"22" agregados a mod.color se convierten a rgba()
+   equivalentes (9.4% y 13.3%) para no depender de var(--token) + sufijo hex.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.module-page {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 24px;
+  background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--navy-800) 100%);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.module-header { text-align: center; margin-bottom: 40px; }
+
+.module-logo {
+  width: 80px; height: 80px; object-fit: contain; margin-bottom: 16px;
+  filter: drop-shadow(0 4px 16px rgba(37,99,235,0.35));
+}
+
+.module-title { margin: 0; font-size: 22px; font-weight: 700; color: var(--color-background-tertiary); letter-spacing: -0.3px; }
+.module-subtitle { margin: 4px 0 0; font-size: 12px; color: var(--color-text-tertiary); letter-spacing: 0.02em; }
+.module-welcome { margin: 10px 0 0; font-size: 14px; color: var(--color-text-tertiary); }
+.module-welcome-name { color: var(--color-border-info); font-weight: 600; }
+.module-hint { margin: 10px 0 0; font-size: 13px; color: var(--color-text-tertiary); }
+
+.module-grid { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; max-width: 680px; width: 100%; }
+
+.module-card {
+  flex: 1 1 260px; max-width: 300px; background: var(--navy-800); border: 2px solid var(--navy-700);
+  border-radius: 16px; padding: 28px 24px; cursor: pointer; text-align: left;
+  transition: all 0.18s cubic-bezier(.4,0,.2,1); box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.module-card:hover { transform: translateY(-3px); }
+
+.module-card--horarios:hover { background: var(--color-background-info); border-color: var(--brand-500); box-shadow: 0 12px 32px rgba(37,99,235,0.133); }
+.module-card--asistencias:hover { background: var(--color-success-bg); border-color: var(--color-success); box-shadow: 0 12px 32px rgba(5,150,105,0.133); }
+
+.module-icon {
+  width: 52px; height: 52px; border-radius: 14px; background: var(--color-text-primary);
+  border: 1.5px solid #1E3A5F; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px; transition: all 0.18s;
+}
+.module-icon i { font-size: 24px; }
+
+.module-card--horarios:hover .module-icon { background: rgba(37,99,235,0.094); border-color: var(--brand-200); }
+.module-card--asistencias:hover .module-icon { background: rgba(5,150,105,0.094); border-color: #A7F3D0; }
+
+.module-title-card { font-size: 16px; font-weight: 700; color: var(--color-border-tertiary); margin-bottom: 8px; transition: color 0.18s; }
+.module-card--horarios:hover .module-title-card { color: var(--brand-500); }
+.module-card--asistencias:hover .module-title-card { color: var(--color-success); }
+
+.module-desc { font-size: 13px; color: var(--color-text-tertiary); line-height: 1.55; transition: color 0.18s; }
+.module-card:hover .module-desc { color: var(--navy-700); }
+
+.module-arrow { margin-top: 18px; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); display: flex; align-items: center; gap: 4px; transition: color 0.18s; }
+.module-arrow i { font-size: 14px; }
+.module-card--horarios:hover .module-arrow { color: var(--brand-500); }
+.module-card--asistencias:hover .module-arrow { color: var(--color-success); }
+
+.module-logout {
+  margin-top: 40px; background: none; border: none; color: var(--color-text-secondary);
+  font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 8px; transition: color 0.15s;
+}
+.module-logout:hover { color: var(--color-text-tertiary); }
