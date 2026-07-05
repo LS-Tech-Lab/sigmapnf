@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
-import { S } from "../../../constants";
 import { parseClase } from "../../../utils/parsing";
 import { diaSemana } from "./helpers";
 import SkeletonRow from "./SkeletonRow";
 import { guardarAusentesEnIDB, cargarAusentesDeIDB } from "../../../utils/reporteCache";
+import "./index.css";
+import "./VistaAusentes.css";
 
 function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) {
   const [ausentes,    setAusentes]    = useState([]);
@@ -103,36 +104,35 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
 
   if (modoOffline && !fechaCache && (dia !== "SÁBADO" && dia !== "DOMINGO")) {
     return (
-      <div style={{ ...S.card, padding: "32px 24px", textAlign: "center", color: "#92400E", background: "#FFFBEB", border: "1px solid #FDE68A" }}>
-        <i className="ti ti-wifi-off" style={{ fontSize: 32, display: "block", marginBottom: 10 }} aria-hidden="true" />
-        <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin conexión</div>
-        <div style={{ fontSize: 13 }}>No hay datos de ausentes guardados para esta fecha y programa.</div>
+      <div className="s-card va-offline-card">
+        <i className="ti ti-wifi-off va-offline-icon" aria-hidden="true" />
+        <div className="va-offline-title">Sin conexión</div>
+        <div className="va-offline-desc">No hay datos de ausentes guardados para esta fecha y programa.</div>
       </div>
     );
   }
 
   if (dia === "SÁBADO" || dia === "DOMINGO") {
     return (
-      <div style={{ textAlign: "center", padding: "48px 0", color: "#64748B", fontSize: 14 }}>
+      <div className="va-weekend">
         No hay clases asignadas los fines de semana.
       </div>
     );
   }
 
   return (
-    <div style={{ ...S.card, overflowX: "auto" }}>
-      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+    <div className="s-card va-card">
       {!loading && ausentes.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "48px 0", color: "#64748B", fontSize: 14 }}>
-          <i className="ti ti-mood-happy" style={{ fontSize: 36, color: "#22C55E", display: "block", marginBottom: 12 }} aria-hidden="true" />
+        <div className="va-empty">
+          <i className="ti ti-mood-happy va-empty-icon" aria-hidden="true" />
           Todos los docentes con clases hoy marcaron asistencia.
         </div>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table className="va-table">
           <thead>
             <tr>
               {["Nombre docente", "Cédula", "Clases asignadas hoy", "Programa"].map(h => (
-                <th key={h} style={S.th}>{h}</th>
+                <th key={h} className="s-th">{h}</th>
               ))}
             </tr>
           </thead>
@@ -140,31 +140,27 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
             {loading
               ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} cols={4} />)
               : ausentes.map((d, i) => (
-                <tr key={i}
-                  onMouseEnter={e => e.currentTarget.style.background = "#FFF7F7"}
-                  onMouseLeave={e => e.currentTarget.style.background = ""}
-                  style={{ transition: "background 0.1s" }}
-                >
-                  <td style={{ ...S.td, fontWeight: 600, color: "#0F172A" }}>{d.nombre}</td>
-                  <td style={{ ...S.td, fontFamily: "monospace", fontSize: 12 }}>
+                <tr key={i} className="va-row">
+                  <td className="s-td va-td-nombre">{d.nombre}</td>
+                  <td className="s-td va-td-cedula">
                     {d.sinVincular
-                      ? <span style={{ color: "#CBD5E1", fontStyle: "italic" }}>sin vincular</span>
-                      : <span style={{ color: "#DC2626", fontWeight: 600 }}>{d.cedula}</span>
+                      ? <span className="va-sinvincular">sin vincular</span>
+                      : <span className="va-cedula-value">{d.cedula}</span>
                     }
                   </td>
-                  <td style={S.td}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  <td className="s-td">
+                    <div className="va-clases-wrap">
                       {d.clases.map((c, j) => {
                         const { materia } = parseClase(c.clase);
                         return (
-                          <span key={j} style={{ fontSize: 11, background: "#FEF2F2", color: "#991B1B", border: "1px solid #FECACA", borderRadius: 5, padding: "2px 7px", fontWeight: 500 }}>
+                          <span key={j} className="va-clase-chip">
                             {materia || c.clase} · {c.sheet} · {c.hora}
                           </span>
                         );
                       })}
                     </div>
                   </td>
-                  <td style={{ ...S.td, fontSize: 12, color: "#64748B" }}>
+                  <td className="s-td va-td-programa">
                     {d.programa?.replace("PNF ", "") || "—"}
                   </td>
                 </tr>
@@ -174,13 +170,13 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
         </table>
       )}
       {modoOffline && fechaCache && (
-        <div style={{ padding: "8px 16px", fontSize: 12, color: "#92400E", background: "#FFFBEB", borderTop: "1px solid #FDE68A", display: "flex", alignItems: "center", gap: 6 }}>
-          <i className="ti ti-wifi-off" style={{ fontSize: 14 }} aria-hidden="true" />
+        <div className="va-offline-banner">
+          <i className="ti ti-wifi-off va-offline-banner-icon" aria-hidden="true" />
           Modo offline — datos del {new Date(fechaCache).toLocaleString("es-VE", { dateStyle: "short", timeStyle: "short" })}
         </div>
       )}
       {!loading && ausentes.length > 0 && (
-        <div style={{ padding: "10px 16px", fontSize: 12, color: "#64748B", borderTop: "1px solid #F1F5F9" }}>
+        <div className="va-summary">
           {ausentes.filter(d => !d.sinVincular).length} ausentes confirmados
           {ausentes.filter(d => d.sinVincular).length > 0 && ` · ${ausentes.filter(d => d.sinVincular).length} sin cédula vinculada (no verificables)`}
           {" · "} Día: {dia.charAt(0) + dia.slice(1).toLowerCase()}
