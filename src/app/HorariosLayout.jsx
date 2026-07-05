@@ -23,11 +23,8 @@ const UsuariosView  = lazy(() => import("../components/usuarios"));
 const LogsView      = lazy(() => import("../components/LogsView"));
 
 const LazyFallback = ({ label }) => (
-  <div style={{
-    display: "flex", alignItems: "center", justifyContent: "center",
-    height: 240, color: "var(--color-text-tertiary)", fontSize: 13, gap: 8,
-  }}>
-    <i className="ti ti-loader-2" style={{ fontSize: 20, animation: "spin 1s linear infinite" }} aria-hidden="true" />
+  <div className="hl-lazy-fallback">
+    <i className="ti ti-loader-2 hl-lazy-spin" aria-hidden="true" />
     {label}
   </div>
 );
@@ -122,10 +119,7 @@ export default function HorariosLayout({
   };
 
   return (
-    <div style={{
-      display: "flex", height: "100dvh", fontFamily: "var(--font-sans)",
-      background: "var(--color-background-tertiary)", overflow: "hidden",
-    }}>
+    <div className="hl-root">
 
       {cambiarPwdOpen && (
         <ModalCambiarPassword
@@ -158,35 +152,27 @@ export default function HorariosLayout({
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 299 }}
+          className="hl-overlay"
         />
       )}
 
       {/* ── SIDEBAR ────────────────────────────────────────────────────────── */}
       <div
         className={`sb-flow-spacer ${expanded ? "sb-expanded" : "sb-collapsed"}`}
-        style={{ flexShrink: 0, transition: "width .22s" }}
       />
       <aside
         className={`sb ${expanded ? "sb-expanded" : "sb-collapsed"} ${mobileOpen ? "mobile-open" : ""}`}
         onMouseEnter={() => !pinned && setHovered(true)}
         onMouseLeave={() => { if (!pinned) { setHovered(false); setAdminOpen(false); } }}
-        style={{
-          background: "var(--color-text-primary)", display: "flex", flexDirection: "column",
-          flexShrink: 0, borderRight: "1px solid var(--navy-800)", position: "relative",
-        }}
       >
         {/* Marca + pin */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8, padding: "14px 10px 12px",
-          borderBottom: "1px solid var(--navy-800)", flexShrink: 0,
-        }}>
+        <div className="hl-brand-row">
           <ProgramaLogo programa={appData.selectedPrograma ?? "todos"} size={32} />
-          <div className="sb-label" style={{ flex: 1, overflow: "hidden" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-background-tertiary)", whiteSpace: "nowrap" }}>
+          <div className="sb-label hl-brand-text-wrap">
+            <div className="hl-brand-title">
               SIGMA
             </div>
-            <div style={{ fontSize: 10, color: "var(--color-text-secondary)", marginTop: 1, whiteSpace: "nowrap" }}>
+            <div className="hl-brand-subtitle">
               Gest. y Módulos Académicos
             </div>
           </div>
@@ -203,15 +189,10 @@ export default function HorariosLayout({
         </div>
 
         {/* Trimestre activo */}
-        <div style={{ padding: "10px 10px 10px", borderBottom: "1px solid var(--navy-800)", flexShrink: 0 }}>
+        <div className="hl-lapso-box">
           {!expanded ? (
             <div
-              style={{
-                width: 32, height: 32, borderRadius: 7, flexShrink: 0,
-                background: modoConsulta ? "#451A03" : "#0C1A3A",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 14, cursor: modoConsulta ? "pointer" : "default",
-              }}
+              className={`hl-lapso-icon ${modoConsulta ? "hl-lapso-icon--consulta" : ""}`}
               onClick={() => modoConsulta && handleCambiarLapso(getCurrentLapso())}
               title={modoConsulta ? `Historial: ${lapso}` : `Trimestre activo: ${lapso}`}
             >
@@ -219,30 +200,19 @@ export default function HorariosLayout({
             </div>
           ) : (
             <div>
-              <div style={{
-                fontSize: 9, fontWeight: 700, color: "var(--navy-700)", textTransform: "uppercase",
-                letterSpacing: "0.08em", marginBottom: 3,
-              }}>
+              <div className="hl-lapso-label">
                 {modoConsulta ? "Consultando historial" : "Trimestre activo"}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{
-                  fontSize: 13, fontWeight: 700,
-                  color: modoConsulta ? "#FBBF24" : "var(--color-accent-light)", flex: 1, whiteSpace: "nowrap",
-                }}>
+              <div className="hl-lapso-row">
+                <span className={`hl-lapso-value ${modoConsulta ? "hl-lapso-value--consulta" : ""}`}>
                   {formatLapso(lapso)}
                 </span>
                 {modoConsulta && (
                   <button
                     onClick={() => handleCambiarLapso(getCurrentLapso())}
-                    style={{
-                      fontSize: 10, padding: "2px 7px", borderRadius: 5,
-                      border: "1px solid var(--navy-700)", background: "var(--navy-800)",
-                      color: "var(--color-accent-light)", cursor: "pointer", fontWeight: 600, flexShrink: 0,
-                      display: "flex", alignItems: "center",
-                    }}
+                    className="hl-lapso-reset-btn"
                   >
-                    <i className="ti ti-arrow-back-up" style={{ fontSize: 12 }} aria-hidden="true" />
+                    <i className="ti ti-arrow-back-up hl-icon-sm" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -251,17 +221,13 @@ export default function HorariosLayout({
         </div>
 
         {/* Selector de programa */}
-        <div style={{ padding: "8px 10px", borderBottom: "1px solid var(--navy-800)", flexShrink: 0 }}>
+        <div className="hl-programa-box">
           {expanded ? (
             <select
               value={appData.selectedPrograma}
               onChange={e => puedeSeleccionarPrograma && appData.setSelectedPrograma(e.target.value)}
               disabled={!puedeSeleccionarPrograma}
               className="s-select hl-select-dark"
-              style={{
-                opacity: puedeSeleccionarPrograma ? 1 : 0.6,
-                cursor: puedeSeleccionarPrograma ? "pointer" : "not-allowed",
-              }}
             >
               {puedeSeleccionarPrograma
                 ? appData.programasDisponibles.map(p => (
@@ -278,16 +244,13 @@ export default function HorariosLayout({
         </div>
 
         {/* Navegación */}
-        <nav style={{ flex: 1, padding: "8px 8px 6px", overflowY: "auto", overflowX: "hidden" }}>
+        <nav className="hl-nav">
           {navGroups.map((group, gi) => (
-            <div key={group.label} style={{ marginBottom: gi < navGroups.length - 1 ? 4 : 0 }}>
+            <div key={group.label} className={`hl-nav-group ${gi < navGroups.length - 1 ? "" : "hl-nav-group--last"}`}>
               {gi > 0 && (
-                <div style={{ height: 1, background: "var(--navy-800)", margin: "6px 4px 8px" }} />
+                <div className="hl-nav-divider" />
               )}
-              <div className="sb-group-title" style={{
-                fontSize: 9, fontWeight: 700, color: "var(--navy-700)", textTransform: "uppercase",
-                letterSpacing: "0.1em", padding: "0 8px", marginBottom: 4, transition: "opacity 0.15s",
-              }}>
+              <div className="sb-group-title hl-nav-title">
                 {group.label}
               </div>
               {group.items.map(item => {
@@ -299,8 +262,8 @@ export default function HorariosLayout({
                     className={`nav-item ${active ? "active" : ""}`}
                     onClick={() => { setView(item.id); setMobileOpen(false); }}
                   >
-                    <i className={`ti ${item.icon}`} style={{ fontSize: 16, flexShrink: 0, width: 20, textAlign: "center" }} aria-hidden="true" />
-                    <span className="sb-label" style={{ flex: 1 }}>{item.label}</span>
+                    <i className={`ti ${item.icon} hl-nav-icon`} aria-hidden="true" />
+                    <span className="sb-label hl-nav-label">{item.label}</span>
                     {badge > 0 && <span className="badge-red">{badge}</span>}
                     <span className="tooltip">
                       {item.label}{badge > 0 ? ` (${badge})` : ""}
@@ -327,25 +290,17 @@ export default function HorariosLayout({
             afectados por re-renders del sidebar (onMouseLeave/adminOpen) */}
 
         {/* Footer: botón admin */}
-        <div style={{ borderTop: "1px solid var(--navy-800)", padding: "8px 8px", flexShrink: 0 }}>
+        <div className="hl-footer">
           {(permisos.puedeImportarExcel || permisos.puedeHacerBackup || permisos.puedeBorrarHorarios) && (
             <button
               onClick={() => setAdminOpen(o => !o)}
-              className="nav-item"
-              style={{
-                marginBottom: 6,
-                color: adminOpen ? "var(--color-border-info)" : "var(--color-text-tertiary)",
-                background: adminOpen ? "var(--navy-800)" : "transparent",
-              }}
+              className={`nav-item hl-admin-btn ${adminOpen ? "hl-admin-btn--open" : ""}`}
               title="Administración"
             >
-              <i className="ti ti-settings" style={{ fontSize: 15, flexShrink: 0, width: 20, textAlign: "center" }} aria-hidden="true" />
-              <span className="sb-label" style={{ flex: 1 }}>Administración</span>
+              <i className="ti ti-settings hl-admin-icon" aria-hidden="true" />
+              <span className="sb-label hl-nav-label">Administración</span>
               {appData.uploading && (
-                <span style={{
-                  width: 8, height: 8, borderRadius: "50%", border: "1.5px solid var(--color-accent)",
-                  borderTop: "1.5px solid transparent", animation: "spin .7s linear infinite", flexShrink: 0,
-                }} />
+                <span className="hl-uploading-dot" />
               )}
               <span className="tooltip">Administración</span>
             </button>
@@ -354,7 +309,7 @@ export default function HorariosLayout({
       </aside>
 
       {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+      <div className="hl-content-col">
 
         {/* Topbar */}
         <header className="topbar">
@@ -363,16 +318,11 @@ export default function HorariosLayout({
             onClick={() => setMobileOpen(o => !o)}
             aria-label={mobileOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
             aria-expanded={mobileOpen}
-            style={{
-              display: "none", background: "none", border: "1px solid var(--color-border-tertiary)",
-              borderRadius: 6, padding: "5px 9px", cursor: "pointer", fontSize: 17,
-              color: "var(--navy-700)", flexShrink: 0, alignItems: "center",
-            }}
           >
             <i className="ti ti-menu-2" aria-hidden="true" />
           </button>
 
-          <div style={{ flex: 1, maxWidth: 420 }}>
+          <div className="hl-search-wrap">
             <GlobalSearch
               onNavigate={handleNavigate}
               docenteNames={appData.docenteNames}
@@ -397,11 +347,8 @@ export default function HorariosLayout({
           />
 
           {appData.isSyncing && (
-            <span style={{
-              fontSize: 11, color: "var(--color-text-tertiary)", whiteSpace: "nowrap",
-              flexShrink: 0, display: "flex", alignItems: "center", gap: 5,
-            }}>
-              <i className="ti ti-refresh" style={{ animation: "spin 1.1s linear infinite" }} aria-hidden="true" /> Actualizando…
+            <span className="hl-syncing">
+              <i className="ti ti-refresh hl-spin-slow" aria-hidden="true" /> Actualizando…
             </span>
           )}
 
@@ -409,13 +356,7 @@ export default function HorariosLayout({
           {pendientesCount > 0 && (
             <span
               title={`${pendientesCount} registro${pendientesCount > 1 ? 's' : ''} de asistencia pendiente${pendientesCount > 1 ? 's' : ''} de sincronizar`}
-              style={{
-                display: "flex", alignItems: "center", gap: 5,
-                padding: "3px 10px", borderRadius: 20, flexShrink: 0,
-                background: "#FEF3C7", border: "1px solid #FCD34D",
-                fontSize: 11, fontWeight: 600, color: "#92400E",
-                whiteSpace: "nowrap",
-              }}
+              className="hl-pendientes-badge"
             >
               <i className="ti ti-clock-exclamation" aria-hidden="true" />
               {pendientesCount} pendiente{pendientesCount > 1 ? 's' : ''}
@@ -425,24 +366,13 @@ export default function HorariosLayout({
 
         {/* Banner modo consulta */}
         {modoConsulta && (
-          <div style={{
-            background: "var(--color-warning-bg)", borderBottom: "1px solid var(--color-warning-border)",
-            padding: "7px 20px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
-          }}>
-            <span style={{
-              fontSize: 13, color: "var(--color-warning-text)", fontWeight: 600,
-              display: "flex", alignItems: "center", gap: 6,
-            }}>
+          <div className="hl-consulta-banner">
+            <span className="hl-consulta-text">
               <i className="ti ti-archive" aria-hidden="true" /> Modo consulta — estás viendo el trimestre {formatLapso(lapso)} (solo lectura)
             </span>
             <button
               onClick={() => handleCambiarLapso(getCurrentLapso())}
-              style={{
-                marginLeft: "auto", fontSize: 12, padding: "4px 12px", borderRadius: 6,
-                border: "1px solid var(--color-warning-border)", background: "#fff",
-                color: "var(--color-warning-text)", cursor: "pointer", fontWeight: 600,
-                flexShrink: 0, display: "flex", alignItems: "center", gap: 5,
-              }}
+              className="hl-consulta-btn"
             >
               <i className="ti ti-arrow-back-up" aria-hidden="true" /> Volver al trimestre activo
             </button>
@@ -450,7 +380,7 @@ export default function HorariosLayout({
         )}
 
         {/* Vistas */}
-        <main style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
+        <main className="hl-main">
           {view === "resumen" && (
             <ResumenView
               stats={appData.stats} data={appData.data}
