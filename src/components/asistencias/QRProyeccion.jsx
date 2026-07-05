@@ -107,7 +107,7 @@ export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinu
         <TopBar visible={barVisible} meta={null} turnoInfo={null} />
         <div className="qrp-waiting-wrap">
           <div className="qrp-waiting-box">
-            <span className="qrp-waiting-emoji" style={{ display: "block", marginBottom: 20 }}>📋</span>
+            <span className="qrp-waiting-emoji">📋</span>
             <div className="qrp-waiting-title">Esperando sesión QR</div>
             <div className="qrp-waiting-desc">
               El administrador debe iniciar la sesión desde su dispositivo en{" "}
@@ -163,7 +163,7 @@ export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinu
             {activa && (
               <div className="qrp-contador-wrap">
                 <div className="qrp-contador-item">
-                  <span className="qrp-contador-num" style={{ color: "#22C55E" }}>{conteo.entradas}</span>
+                  <span className="qrp-contador-num qrp-contador-num--entrada">{conteo.entradas}</span>
                   <span className="qrp-contador-label">
                     <i className="ti ti-login" aria-hidden="true" />
                     {conteo.entradas === 1 ? "docente entró" : "docentes entraron"}
@@ -171,7 +171,7 @@ export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinu
                 </div>
                 <div className="qrp-contador-divider" />
                 <div className="qrp-contador-item">
-                  <span className="qrp-contador-num" style={{ color: "#F87171" }}>{conteo.salidas}</span>
+                  <span className="qrp-contador-num qrp-contador-num--salida">{conteo.salidas}</span>
                   <span className="qrp-contador-label">
                     <i className="ti ti-logout" aria-hidden="true" />
                     {conteo.salidas === 1 ? "docente salió" : "docentes salieron"}
@@ -218,7 +218,7 @@ function TopBar({ visible, meta, turnoInfo, isOffline }) {
     <div className={`qrp-topbar ${visible ? "qrp-topbar--visible" : "qrp-topbar--hidden"}`}>
       <div className="qrp-topbar-inner">
         <div className="qrp-topbar-left">
-          <i className="ti ti-device-desktop" style={{ fontSize: 18, color: "#2563EB" }} aria-hidden="true" />
+          <i className="ti ti-device-desktop qrp-topbar-icon" aria-hidden="true" />
           <span className="qrp-topbar-title">Proyección de Asistencia</span>
           <span className="qrp-topbar-badge">Solo lectura</span>
           {/* Fix O-3: indicador compacto de red en la barra superior */}
@@ -609,6 +609,10 @@ const CSS = `
     gap: 8px;
     min-width: 0;
   }
+  .qrp-topbar-icon {
+    font-size: 18px;
+    color: #2563EB;
+  }
   .qrp-topbar-title {
     font-size: 14px;
     font-weight: 600;
@@ -662,6 +666,10 @@ const CSS = `
     text-align: center;
     max-width: 480px;
     width: 100%;
+  }
+  .qrp-waiting-emoji {
+    display: block;
+    margin-bottom: 20px;
   }
   .qrp-waiting-title {
     font-size: clamp(22px, 5vw, 32px);
@@ -802,6 +810,8 @@ const CSS = `
     line-height: 1;
     letter-spacing: -0.03em;
   }
+  .qrp-contador-num--entrada { color: #22C55E; }
+  .qrp-contador-num--salida { color: #F87171; }
   .qrp-contador-label {
     font-size: clamp(12px, 2vw, 16px);
     color: #94A3B8;
