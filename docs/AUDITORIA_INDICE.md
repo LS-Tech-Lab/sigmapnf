@@ -158,52 +158,51 @@ vez de asumirlo.
 | **U-2** | Adaptabilidad móvil: `.qrp-col-left` con `flex: 0 0 320px` (sin encoger) desbordaba horizontalmente en viewports ≤ ~372px; grid fijo `1fr 1fr` en `ModalRol` quedaba inusable en pantallas pequeñas. Revisión real contra el HEAD (no solo conteo de `@media`) confirmó que el resto de pantallas de mayor uso móvil (`DocenteScan`, `TurnoGrid`, `ReporteRango`, `LoginScreen`, `HistorialView`) ya tenían mitigación adecuada y no necesitaron cambios | `AdminQRPanel.css`, `usuarios/ModalRol.jsx` | ✅ Cerrado |
 | **U-3** | Sin trampa de foco de teclado en modales (accesibilidad) | `src/hooks/useFocusTrap.js` | ✅ Cerrado |
 | **U-4** | `Campo.jsx` (input del formulario de `DocenteScan`) renderiza `<label>` e `<input>` como hermanos, sin `htmlFor`/`id` que los asocie — un lector de pantalla no anuncia la etiqueta al enfocar el campo. Encontrado de forma indirecta: un test que intentaba ubicar el input por su label (`getByLabelText`, el método recomendado de Testing Library, que imita cómo un lector de pantalla encuentra el campo) no pudo hacerlo y tuvo que usar el `placeholder` como alternativa | `src/components/asistencias/DocenteScan/Campo.jsx` | ✅ Cerrado (`useId()` genera un id estable que conecta `label`↔`input`; el mensaje de error/hint también se enlaza vía `aria-describedby`, y `aria-invalid` se activa cuando hay error. `DocenteScan.flow.test.jsx` se actualizó para usar `getByLabelText` en vez del workaround de `placeholder`, quedando como guardia contra que esto se rompa de nuevo) |
-| **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | `LoginScreen`, `ConfirmModal`, `DocentesView`, `AdminQRPanel`(parcial, ver nota), `LogsView`, `MateriasView`, `UploadPreviewModal`, `PlanillaImprimibleBase`, `ReporteAsistencias/index`, `ReporteAsistencias/ReporteRango`, `ModalRol` ya tienen `.css` propio con solo residuo dinámico legítimo — ver nota | 🟡 **En curso** |
+| **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | `LoginScreen`, `ConfirmModal`, `DocentesView`, `AdminQRPanel`, `LogsView`, `MateriasView`, `UploadPreviewModal`, `PlanillaImprimibleBase`, `ReporteAsistencias/index`, `ReporteAsistencias/ReporteRango`, `ModalRol`, `usuarios/PestanaUsuarios` ya tienen `.css` propio con solo residuo dinámico legítimo — ver nota | 🟡 **En curso** |
 
-> **Nota de precisión sobre `U-1` (verificado contra HEAD, 4 de julio):**
-> el propio comentario de cabecera de `AdminQRPanel.jsx` afirma *"Eliminados
-> los 142 bloques `style={{}}` inline que existían en la versión
-> anterior"*. Eso fue cierto en el momento en que `U-1` se cerró, pero no
-> describe el HEAD actual: el archivo hoy tiene **34** bloques `style={{`
-> de nuevo — no porque el fix se haya revertido, sino porque funcionalidad
-> añadida después (`CountdownBar`, `FeedActividad`, `ContadorSesion`,
-> `ColaOfflinePanel`, `HistorialSesiones`) se escribió con estilo inline en
-> vez de seguir el patrón `.css` que `U-1` había establecido. `U-1` como
-> hallazgo puntual sigue cerrado (la migración que describe sí ocurrió),
-> pero el archivo como un todo vuelve a estar en la lista de pendientes de
-> `A3` — mismo principio que motivó la nota sobre no dar por buena una
-> afirmación sin verificarla contra el código real.
+> **Nota de precisión sobre `U-1` (histórico, verificado contra HEAD el
+> 4 de julio):** el propio comentario de cabecera de `AdminQRPanel.jsx`
+> afirmaba *"Eliminados los 142 bloques `style={{}}` inline que existían
+> en la versión anterior"*, pero funcionalidad añadida después
+> (`CountdownBar`, `FeedActividad`, `ContadorSesion`, `ColaOfflinePanel`,
+> `HistorialSesiones`) había vuelto a introducir 34 bloques inline sin
+> seguir el patrón `.css` que `U-1` estableció. **Actualización (HEAD
+> `abc4118`, 5 de julio):** ese backlog ya se migró — el archivo bajó de
+> 34 a **5** bloques, todos estilo dinámico legítimo. `U-1`/`AdminQRPanel`
+> se considera cerrado en ambos sentidos (el hallazgo puntual y el archivo
+> completo).
 >
-> **Nota sobre `A3` (verificado contra HEAD, 4 de julio):** el conteo de
-> **archivos** con `style={{` bajó de 40 a **33**, y el **volumen** de
-> estilos inline bajó de ~487 a **341** ocurrencias. De esos 33, **9 ya
-> están efectivamente cerrados** — lo que les queda es únicamente estilo
-> dinámico legítimo (color por dato en tiempo de ejecución: trayecto,
-> estadística, config de evento/acción), no deuda pendiente:
+> **Nota sobre `A3` (verificado contra HEAD `abc4118`, 5 de julio):** el
+> conteo de **archivos** con `style={{` es **33**, con **312**
+> ocurrencias totales. De esos 33, **10 ya están efectivamente
+> cerrados** — lo que les queda es únicamente estilo dinámico legítimo
+> (color por dato en tiempo de ejecución: trayecto, estadística, config
+> de evento/acción), no deuda pendiente:
 > `PlanillaImprimibleBase.jsx` (1), `MateriasView.jsx` (1),
 > `Avatar.jsx` (1), `ReporteAsistencias/index.jsx` (2),
 > `ReporteAsistencias/EstadoChip.jsx` (2), `DocentesView.jsx` (3),
-> `UploadPreviewModal.jsx` (3), `ModalRol.jsx` (3),
+> `UploadPreviewModal.jsx` (3), `ModalRol.jsx` (3), `AdminQRPanel.jsx` (5),
 > `ReporteAsistencias/ReporteRango.jsx` (5), `LogsView.jsx` (5),
-> `ResumenView.jsx` (8). Cada uno con `.css` dedicado, build limpio y
-> suite completa (152/152) verificados antes de integrarse.
+> `ResumenView.jsx` (8), **`usuarios/PestanaUsuarios.jsx` (1 — cerrado en
+> esta sesión)**. Cada uno con `.css` dedicado, build limpio y suite
+> completa (152/152) verificados antes de integrarse.
 >
-> **Pendiente real, por tamaño:** `AdminQRPanel.jsx` (34 — ver nota de
-> precisión arriba), `usuarios/PestanaUsuarios.jsx` (33),
-> `ModalCambiarPassword.jsx` (30), `usuarios/PestanaRoles.jsx` (24),
-> `SeccionesView.jsx` (22), `TurnoGrid.jsx` (21),
-> `ReporteAsistencias/VistaAusentes.jsx` (20), `ConflictosView.jsx` (20),
-> `ModuleSelector.jsx` (17), `usuarios/ModalUsuario.jsx` (14),
-> `HorariosView.jsx`/`GlobalSearch.jsx` (10), `usuarios/shared.jsx` (9),
-> `usuarios/index.jsx` (8), `PlanillaQR.jsx` (7),
+> **Pendiente real, por tamaño:** `ModalCambiarPassword.jsx` (30),
+> `usuarios/PestanaRoles.jsx` (24), `SeccionesView.jsx` (22),
+> `TurnoGrid.jsx` (21), `ReporteAsistencias/VistaAusentes.jsx` (20),
+> `ConflictosView.jsx` (20), `ModuleSelector.jsx` (17),
+> `usuarios/ModalUsuario.jsx` (14), `HorariosView.jsx`/`GlobalSearch.jsx`
+> (10), `usuarios/shared.jsx` (9), `usuarios/index.jsx` (8),
+> `PlanillaQR.jsx` (7),
 > `ReporteAsistencias/AlertaSinVincular.jsx`/`ErrorBoundary.jsx` (6),
 > `QRProyeccion.jsx`/`Toast.jsx`/`StatCard.jsx` (4), `ProgramaLogo.jsx` (3),
-> `SkeletonRow.jsx` (1).
+> `SkeletonRow.jsx` (1 — estático: ancho fijo por columna del esqueleto de
+> carga, no depende de datos en runtime; no confundir con dinámico
+> legítimo).
 >
-> El helper `S` bajó a **3 archivos** que todavía lo importan:
-> `PestanaUsuarios.jsx`, `VistaAusentes.jsx`, `SkeletonRow.jsx` — antes se
-> listaba `ReporteRango.jsx` en su lugar, pero ya no lo importa tras su
-> migración.
+> El helper `S` bajó a **2 archivos** que todavía lo importan:
+> `VistaAusentes.jsx`, `SkeletonRow.jsx` — `PestanaUsuarios.jsx` ya no lo
+> importa tras su migración en esta sesión.
 
 ---
 
