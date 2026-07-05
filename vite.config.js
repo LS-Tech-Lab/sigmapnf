@@ -13,7 +13,13 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
-        registerType: 'autoUpdate',
+        // Fix ARCH-7: 'autoUpdate' recargaba la página SOLA en cuanto el
+        // Service Worker detectaba una versión nueva (evento "activated"
+        // de workbox-window), sin avisar ni esperar a que el usuario
+        // terminara lo que estaba haciendo — interrumpía el login a mitad
+        // de escribir el correo. 'prompt' deja la decisión al usuario vía
+        // el banner de main.jsx (updateSW se dispara solo al hacer clic).
+        registerType: 'prompt',
         devOptions: { enabled: false },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,woff,woff2}'],
