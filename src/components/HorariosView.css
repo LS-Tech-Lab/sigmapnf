@@ -1,0 +1,38 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   HorariosView.css
+   Migración A3 (auditoría 2026-07-05): estilos extraídos de HorariosView.jsx.
+   El tab activo ("horarios" / "conflictos") es un enum fijo y conocido de 2
+   variantes — se resuelve con clases modificadoras (.hv-tab--active,
+   .hv-filters-row--conflictos, .hv-content--conflictos) en vez de leer
+   `tab === t.id` en cada style inline.
+   Los className "horarios-filters" / "day-buttons" no tenían reglas CSS en
+   ningún lado del proyecto (ganchos sin usar) — se renombran a hv-filters/
+   hv-days, que sí llevan estilo real.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.hv-root { display: flex; flex-direction: column; height: 100%; }
+
+.hv-filters { padding: 14px 20px; background: #fff; border-bottom: 1px solid var(--color-border-tertiary); }
+
+.hv-filters-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.hv-filters-row--conflictos { margin-bottom: 0; }
+
+.hv-title { margin: 0; font-size: 18px; font-weight: 700; color: var(--color-text-primary); margin-right: 4px; display: flex; align-items: center; gap: 8px; }
+.hv-title-icon { color: var(--brand-500); }
+
+.hv-tabs { display: flex; gap: 4px; background: var(--color-background-tertiary); border-radius: 10px; padding: 4px; }
+
+.hv-tab {
+  padding: 6px 14px; border-radius: 7px; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: all 0.15s;
+  display: flex; align-items: center; gap: 6px;
+  background: transparent; color: var(--color-text-tertiary);
+}
+.hv-tab--active { background: #fff; color: var(--color-text-primary); box-shadow: 0 1px 3px rgba(15,23,42,0.10); }
+
+.hv-count { font-size: 13px; color: var(--color-text-tertiary); margin-left: auto; font-weight: 600; }
+
+.hv-days { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.hv-content { flex: 1; overflow: auto; padding: 12px 16px; }
+.hv-content--conflictos { padding: 0; }
