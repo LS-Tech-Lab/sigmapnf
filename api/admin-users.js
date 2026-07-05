@@ -58,6 +58,29 @@ async function handleRequest(req, res) {
     return res.status(403).json({ error: "No tienes permiso para gestionar usuarios." });
   }
 
+  // ── SEC-10: jerarquía fija del rol admin ─────────────────────────
+  // Regla fija (no depende de la tabla dinámica `roles`, igual que
+  // en las RPCs SQL — ver migración 0050): solo una cuenta con rol
+  // 'admin' puede asignar el rol 'admin' o tocar (resetear contraseña,
+  // eliminar) una cuenta que ya lo tiene. Este endpoint reimplementa
+  // create/reset_password/delete directamente contra Auth Admin API +
+  // REST con la Service Role Key, sin pasar por las RPCs SQL — por
+  // eso necesita su propio guard, no basta con corregir la BD.
+  let callerEsAdmin = false;
+  {
+    const callerProfileRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${userData.id}&select=rol`,
+      {
+        headers: {
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          apikey: SERVICE_ROLE_KEY,
+        },
+      }
+    );
+    const callerProfileArr = await callerProfileRes.json();
+    callerEsAdmin = callerProfileArr?.[0]?.rol === "admin";
+  }
+
   const body = req.body;
   const { action } = body;
 
@@ -67,6 +90,9 @@ async function handleRequest(req, res) {
 
     if (!email || !password || !nombre || !rol) {
       return res.status(400).json({ error: "Faltan campos obligatorios." });
+    }
+    if (rol === "admin" && !callerEsAdmin) {
+      return res.status(403).json({ error: "Solo una cuenta con rol admin puede asignar el rol admin." });
     }
     const errorPwd = validarPassword(password);
     if (errorPwd) {
@@ -138,6 +164,21 @@ async function handleRequest(req, res) {
     if (!user_id || !password) {
       return res.status(400).json({ error: "Faltan campos obligatorios." });
     }
+    if (!callerEsAdmin) {
+      const targetProfileRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${user_id}&select=rol`,
+        {
+          headers: {
+            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+            apikey: SERVICE_ROLE_KEY,
+          },
+        }
+      );
+      const targetProfileArr = await targetProfileRes.json();
+      if (targetProfileArr?.[0]?.rol === "admin") {
+        return res.status(403).json({ error: "Solo una cuenta con rol admin puede resetear la contraseña de otra cuenta admin." });
+      }
+    }
     const errorPwdReset = validarPassword(password);
     if (errorPwdReset) {
       return res.status(400).json({ error: errorPwdReset });
@@ -171,6 +212,22 @@ async function handleRequest(req, res) {
     // Evitar auto-eliminación
     if (user_id === userData.id) {
       return res.status(400).json({ error: "No puedes eliminar tu propia cuenta." });
+    }
+
+    if (!callerEsAdmin) {
+      const targetProfileRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${user_id}&select=rol`,
+        {
+          headers: {
+            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+            apikey: SERVICE_ROLE_KEY,
+          },
+        }
+      );
+      const targetProfileArr = await targetProfileRes.json();
+      if (targetProfileArr?.[0]?.rol === "admin") {
+        return res.status(403).json({ error: "Solo una cuenta con rol admin puede eliminar otra cuenta admin." });
+      }
     }
 
     // Borrar perfil primero
