@@ -84,8 +84,6 @@ export const S = {
   input: { fontSize: 13, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#fff", color: "#0F172A", outline: "none", fontWeight: 500 },
 };
 
-// responsiveCSS eliminado — nunca inyectado; el responsive vive en AppStyles.js (auditoría §5.5)
-
 // ── MEJORA #11: Configuración de turnos ─────────────────────────────────────
 // Para activar el turno NOCTURNO, cambia `habilitado: false` a `true`.
 // No se requiere modificar ningún otro archivo.
