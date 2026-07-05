@@ -1,0 +1,44 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   ModalUsuario.css
+   Migración A3 (auditoría 2026-07-05): estilos extraídos de usuarios/ModalUsuario.jsx.
+   El estado "guardando" del botón de acción se resuelve con el pseudo-selector
+   :disabled (el botón ya recibe el atributo disabled={saving}) en vez de
+   lógica ternaria inline para cursor/opacity.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.mu-backdrop {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.6);
+  display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px;
+}
+
+.mu-dialog {
+  background: #fff; border-radius: 14px; padding: 28px; max-width: 480px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 18px;
+}
+
+.mu-header { display: flex; justify-content: space-between; align-items: center; }
+.mu-title { margin: 0; font-size: 17px; color: var(--color-text-primary); font-weight: 700; }
+.mu-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--color-text-tertiary); line-height: 1; }
+
+.mu-fields { display: flex; flex-direction: column; gap: 14px; }
+
+.mu-field-label {
+  font-size: 12px; font-weight: 600; color: var(--color-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 5px;
+}
+
+.mu-field-hint { margin: 6px 0 0; font-size: 11px; color: var(--color-text-tertiary); }
+
+.mu-error {
+  background: var(--color-danger-bg); border: 1px solid var(--color-danger-light);
+  border-radius: 8px; padding: 10px 14px; color: var(--color-danger); font-size: 13px;
+}
+
+.mu-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+.mu-btn-save {
+  padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer;
+  background: var(--brand-500); color: #fff; font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+}
+.mu-btn-save:disabled { cursor: not-allowed; opacity: 0.7; }
