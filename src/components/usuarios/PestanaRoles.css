@@ -1,0 +1,70 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   PestanaRoles.css
+   Migración A3 (auditoría 2026-07-05): estilos extraídos de PestanaRoles.jsx.
+   El color/fondo/borde del avatar de cada rol (hex2rgba(r.color, ...)) depende
+   del color elegido para ese rol en particular — son datos, no decisiones de
+   estilo — y se mantienen inline vía CSS custom properties
+   (--avatar-bg, --avatar-border). Las clases .pr-card-visible / .pr-badge-warning
+   ya existían en src/index.css desde antes de esta migración y se mantienen ahí.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.pr-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.pr-header-desc { margin: 0; font-size: 13px; color: var(--color-text-tertiary); }
+
+.pr-btn-nuevo {
+  padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+  background: var(--color-role-coord); color: #fff; font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 16px;
+}
+
+.pr-loading { padding: 40px; text-align: center; }
+
+.pr-list { display: flex; flex-direction: column; gap: 8px; }
+
+.pr-card-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; }
+
+.pr-avatar {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: var(--avatar-bg);
+  border: 1px solid var(--avatar-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+
+.pr-info { flex: 1; }
+.pr-info-top { display: flex; align-items: center; gap: 8px; }
+.pr-label { font-size: 14px; font-weight: 700; color: var(--color-text-primary); }
+.pr-lock { font-size: 11px; color: var(--color-text-tertiary); }
+.pr-meta { font-size: 12px; color: var(--color-text-tertiary); margin-top: 2px; }
+.pr-code { background: var(--color-background-tertiary); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+
+.pr-actions { display: flex; gap: 6px; align-items: center; }
+.pr-btn-icon {
+  background: none; border: 1px solid var(--color-border-tertiary);
+  border-radius: 7px; padding: 5px 10px; cursor: pointer;
+  font-size: 13px; color: var(--color-text-mid);
+}
+.pr-btn-icon--danger { color: var(--color-danger); }
+.pr-chevron { color: var(--color-text-tertiary); font-size: 16px; }
+
+.pr-detail { border-top: 1px solid var(--color-background-tertiary); padding: 16px; }
+.pr-detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+
+.pr-group-title {
+  font-size: 11px; font-weight: 700; color: var(--color-text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 5px;
+}
+
+.pr-item-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.pr-item-icon { font-size: 13px; flex-shrink: 0; color: var(--color-border-secondary); }
+.pr-item-icon--active { color: var(--color-success); }
+.pr-item-label { font-size: 12px; color: var(--color-text-tertiary); }
+.pr-item-label--active { color: var(--color-text-primary); }
+
+.pr-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--color-text-primary); color: #fff; border-radius: 10px;
+  padding: 10px 20px; font-size: 13px; font-weight: 500; z-index: 2000;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3); white-space: nowrap;
+}
