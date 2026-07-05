@@ -1,0 +1,82 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   PestanaUsuarios.css
+   Migración A3 (auditoría 2026-07): estilos extraídos de PestanaUsuarios.jsx.
+   El color de fondo/borde de cada tarjeta de estadística (según el dato que
+   representa) depende de un array de datos en tiempo de ejecución y se
+   mantiene inline vía CSS custom properties (--stat-bg/--stat-border/--stat-color).
+   El resto son estados binarios conocidos (activo/inactivo) resueltos con
+   clases modificadoras en vez de lógica ternaria inline.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.pu-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.pu-search-input { flex: 1 1 220px; }
+
+.pu-btn-nuevo {
+  padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+  background: var(--brand-500); color: #fff; font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+
+.pu-stats { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.pu-stat {
+  background: var(--stat-bg); border: 1px solid var(--stat-border);
+  border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; gap: 10px;
+}
+.pu-stat-value { font-size: 22px; font-weight: 800; color: var(--stat-color); }
+.pu-stat-label { font-size: 12px; color: var(--stat-color); font-weight: 600; }
+
+.pu-huerfanos-banner {
+  background: #FEF9EC; border: 1px solid #F59E0B; border-radius: 10px;
+  padding: 12px 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;
+}
+.pu-huerfanos-header { display: flex; align-items: center; gap: 8px; }
+.pu-huerfanos-icon { color: var(--color-warning); font-size: 16px; }
+.pu-huerfanos-title { font-size: 13px; font-weight: 700; color: var(--color-warning-text); }
+.pu-huerfanos-desc { margin: 0; font-size: 12px; color: #78350F; line-height: 1.5; }
+.pu-huerfanos-list { display: flex; flex-direction: column; gap: 4px; }
+.pu-huerfano-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--color-warning-bg); border: 1px solid var(--color-warning-border);
+  border-radius: 7px; padding: 6px 10px;
+}
+.pu-huerfano-email { font-size: 12px; font-weight: 600; color: var(--color-text-primary); }
+.pu-huerfano-date { font-size: 11px; color: var(--color-warning-text); margin-left: 8px; }
+.pu-huerfano-delete {
+  background: none; border: 1px solid #F59E0B; border-radius: 6px;
+  padding: 4px 10px; cursor: pointer; font-size: 12px; color: #B45309;
+  display: flex; align-items: center; gap: 4px; font-weight: 600;
+}
+
+.pu-loading { padding: 40px; text-align: center; }
+
+.pu-table-card { overflow-x: auto; }
+.pu-table { width: 100%; border-collapse: collapse; }
+.pu-th--right { text-align: right; }
+.pu-td-empty { text-align: center; padding: 32px; color: var(--color-text-tertiary); }
+.pu-td-right { text-align: right; }
+
+.pu-row--inactivo { opacity: 0.5; }
+
+.pu-user-name { font-weight: 600; color: var(--color-text-primary); font-size: 13px; }
+.pu-user-email { font-size: 12px; color: var(--color-text-tertiary); margin-top: 2px; }
+.pu-programa { font-size: 13px; color: var(--color-text-secondary); }
+
+.pu-badge-estado--activo { --badge-bg: var(--color-success-bg); --badge-color: var(--color-success); }
+.pu-badge-estado--inactivo { --badge-bg: var(--color-background-tertiary); --badge-color: var(--color-text-tertiary); }
+
+.pu-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.pu-action-btn {
+  background: none; border: 1px solid var(--color-border-tertiary);
+  border-radius: 7px; padding: 5px 10px; cursor: pointer;
+  font-size: 13px; color: var(--color-text-mid);
+}
+.pu-action-btn--activar { color: var(--color-success); }
+.pu-action-btn--desactivar { color: var(--color-danger); }
+.pu-action-btn--eliminar { border-color: var(--color-danger-light); color: var(--color-danger); }
+
+.pu-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--color-text-primary); color: #fff; border-radius: 10px;
+  padding: 10px 20px; font-size: 13px; font-weight: 500; z-index: 2000;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3); white-space: nowrap;
+}
