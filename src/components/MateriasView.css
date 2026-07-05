@@ -21,6 +21,22 @@
 .mv-list-card { flex: 1; overflow-y: auto; }
 .mv-list-header { padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
 
+/* Bug: en tablet (≤1024px), src/index.css fuerza `.mv-left-panel` a
+   `max-height: 260px`, pero ese cap cae en el wrapper, no en el propio
+   `.mv-list-card` que tiene el `overflow-y: auto`. Depender de que el
+   `max-height` del ancestro fuerce el flex-shrink del hijo es frágil
+   entre motores de render (funciona en desktop porque `.mv-body` tiene
+   altura fija heredada; en algunas tablets el shrink no se aplica y la
+   lista crece sin scroll). Fix: acotar directamente el elemento que
+   scrollea, con el mismo valor que ya usa el wrapper — así no depende
+   de la resolución del flexbox padre. Ver mismo fix en DocentesView.css. */
+@media (max-width: 1024px) {
+  .mv-list-card { max-height: 260px; }
+}
+@media (max-width: 640px) {
+  .mv-list-card { max-height: 220px; }
+}
+
 .mv-list-item { padding: 10px 14px; cursor: pointer; font-size: 14px; font-weight: 400; background: transparent; color: var(--navy-700); border-bottom: 1px solid var(--color-background-tertiary); display: flex; justify-content: space-between; align-items: center; }
 .mv-list-item--active { font-weight: 600; background: var(--color-background-info); color: var(--brand-600); }
 .mv-list-item-count { font-size: 12px; background: var(--color-background-tertiary); border-radius: 10px; padding: 2px 8px; color: var(--color-text-tertiary); font-weight: 600; }
