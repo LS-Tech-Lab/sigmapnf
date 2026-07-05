@@ -185,3 +185,50 @@
 @keyframes offlinePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
 @keyframes feedFlash    { 0% { background: #DCFCE7; } 100% { background: var(--color-background-subtle, #F8FAFC); } }
 @keyframes pulse        { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   Residuo A3 (auditoría 2026-07-02, segunda pasada sobre este archivo): U-1
+   migró 142 bloques style={{}} en junio, pero funcionalidad añadida después
+   (CountdownBar, FeedActividad, ContadorSesion, ColaOfflinePanel,
+   HistorialSesiones, y varios ajustes en el panel principal) volvió a
+   introducir estilo inline. Esta sección cierra ese residuo. Los colores que
+   dependen de datos reales (progreso de countdown, tipo ENTRADA/SALIDA) se
+   mantienen inline por diseño.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.qrp-cdb-time { font-weight: 700; }
+.qrp-qr-canvas { display: block; border-radius: 6px; }
+
+.qrp-feed-icon { font-size: 18px; flex-shrink: 0; }
+.qrp-feed-icon--salida { color: #DC2626; }
+.qrp-feed-icon--entrada { color: #16A34A; }
+.qrp-feed-main { flex: 1; min-width: 0; }
+.qrp-feed-right { text-align: right; flex-shrink: 0; }
+.qrp-feed-tipo--salida { color: #DC2626; }
+.qrp-feed-tipo--entrada { color: #15803D; }
+
+.qrp-ic-12 { font-size: 12px; }
+.qrp-ic-12-mr4 { font-size: 12px; margin-right: 4px; }
+.qrp-ic-14 { font-size: 14px; }
+.qrp-ic-15 { font-size: 15px; }
+.qrp-ic-danger-22 { font-size: 22px; color: #DC2626; }
+.qrp-ic-22 { font-size: 22px; }
+.qrp-ic-danger-20 { font-size: 20px; color: #DC2626; flex-shrink: 0; }
+.qrp-flex-main { flex: 1; min-width: 0; }
+
+.qrp-turno-hora { color: var(--color-text-tertiary); }
+.qrp-turno-btn--sel .qrp-turno-hora { color: var(--brand-400, #3B82F6); }
+.qrp-turno-list--locked .qrp-turno-btn--ok { opacity: 0.45; cursor: not-allowed; }
+.qrp-turno-list--locked .qrp-turno-btn--sel { cursor: not-allowed; }
+
+.qrp-turno-aviso-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.qrp-turno-aviso-icon--warn { color: #D97706; }
+.qrp-turno-aviso-icon--error { color: #DC2626; }
+
+.qrp-input-base { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--color-border); font-size: 13px; color: var(--color-text-primary); background: var(--color-surface); box-sizing: border-box; cursor: auto; }
+.qrp-input-base--disabled { background: var(--color-background-subtle); cursor: not-allowed; }
+.qrp-select-base { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--color-border); font-size: 13px; color: var(--color-text-primary); background: var(--color-surface); box-sizing: border-box; cursor: pointer; }
+.qrp-select-base--disabled { background: var(--color-background-subtle); cursor: not-allowed; }
+
+.qrp-error-icon { font-size: 15px; flex-shrink: 0; }
+.qrp-turno-wrap { margin-bottom: 14px; }
