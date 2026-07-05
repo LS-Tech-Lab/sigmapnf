@@ -6,6 +6,15 @@
  * U-1 (auditoría Junio 2026): estilos migrados a AdminQRPanel.css usando
  * tokens del sistema (var(--brand-*), var(--color-*)). Eliminados los 142
  * bloques style={{}} inline que existían en la versión anterior.
+ *
+ * A3 (auditoría 2026-07-02, segunda pasada): funcionalidad añadida después
+ * de U-1 (CountdownBar, FeedActividad, ContadorSesion, ColaOfflinePanel,
+ * HistorialSesiones) había vuelto a introducir 34 bloques style={{}}. Se
+ * migraron todos salvo 2 legítimamente dinámicos (color de la barra de
+ * countdown, que depende del tiempo restante). Si este comentario alguna
+ * vez vuelve a no coincidir con el código, confiar en un grep de
+ * `style={{` sobre el archivo, no en este texto — así se detectó la
+ * desincronización anterior (ver docs/AUDITORIA_INDICE.md, nota bajo U-1).
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -40,7 +49,7 @@ function CountdownBar({ segundos, total }) {
     <div className="qrp-cdb-root">
       <div className="qrp-cdb-header">
         <span>Próxima rotación</span>
-        <span style={{ color, fontWeight: 700 }}>
+        <span className="qrp-cdb-time" style={{ color }}>
           {Math.floor(segundos / 60)}:{String(segundos % 60).padStart(2, "0")}
         </span>
       </div>
@@ -65,7 +74,7 @@ export function QRDisplay({ qrUrl, segundos, ttlMinutes, size = 280 }) {
 
   return (
     <div className="qrp-qr-wrap">
-      <canvas ref={canvasRef} style={{ display: "block", borderRadius: 6 }} />
+      <canvas ref={canvasRef} className="qrp-qr-canvas" />
       <CountdownBar segundos={segundos} total={ttlMinutes * 60} />
       <p className="qrp-cdb-note">
         Se regenera automáticamente tras cada escaneo. Las fotos compartidas no son válidas.
@@ -87,16 +96,15 @@ function FeedActividad({ registros, flash }) {
             className={`qrp-feed-row ${i === 0 ? "qrp-feed-row--first" : "qrp-feed-row--rest"} ${i < registros.length - 1 ? "qrp-feed-row-sep" : ""}`}
           >
             <i
-              className={r.tipo === "SALIDA" ? "ti ti-circle-x" : "ti ti-circle-check"}
-              style={{ fontSize: 18, color: r.tipo === "SALIDA" ? "#DC2626" : "#16A34A", flexShrink: 0 }}
+              className={`${r.tipo === "SALIDA" ? "ti ti-circle-x" : "ti ti-circle-check"} qrp-feed-icon ${r.tipo === "SALIDA" ? "qrp-feed-icon--salida" : "qrp-feed-icon--entrada"}`}
               aria-hidden="true"
             />
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="qrp-feed-main">
               <div className="qrp-feed-name">{r.nombre_docente}</div>
               <div className="qrp-feed-ced">{r.cedula_docente}</div>
             </div>
-            <div style={{ textAlign: "right", flexShrink: 0 }}>
-              <div className="qrp-feed-tipo" style={{ color: r.tipo === "SALIDA" ? "#DC2626" : "#15803D" }}>
+            <div className="qrp-feed-right">
+              <div className={`qrp-feed-tipo ${r.tipo === "SALIDA" ? "qrp-feed-tipo--salida" : "qrp-feed-tipo--entrada"}`}>
                 {r.tipo === "SALIDA" ? "Salida" : "Entrada"}
               </div>
               <div className="qrp-feed-hora">
@@ -141,14 +149,14 @@ function ContadorSesion({ sessionId }) {
       <div className="qrp-counter-card qrp-counter-card--e">
         <div className={`qrp-counter-n qrp-counter-n--e`}>{stats.entradas}</div>
         <div className="qrp-counter-lbl qrp-counter-lbl--e">
-          <i className="ti ti-login" style={{ fontSize: 12 }} aria-hidden="true" />
+          <i className="ti ti-login qrp-ic-12" aria-hidden="true" />
           {stats.entradas === 1 ? "docente entró" : "docentes entraron"}
         </div>
       </div>
       <div className="qrp-counter-card qrp-counter-card--s">
         <div className={`qrp-counter-n qrp-counter-n--s`}>{stats.salidas}</div>
         <div className="qrp-counter-lbl qrp-counter-lbl--s">
-          <i className="ti ti-logout" style={{ fontSize: 12 }} aria-hidden="true" />
+          <i className="ti ti-logout qrp-ic-12" aria-hidden="true" />
           {stats.salidas === 1 ? "docente salió" : "docentes salieron"}
         </div>
       </div>
@@ -197,13 +205,13 @@ function ColaOfflinePanel() {
         className={`qrp-cola-toggle ${conteo > 0 ? "qrp-cola-toggle--pending" : "qrp-cola-toggle--empty"}`}
       >
         <span className="qrp-cola-toggle-left">
-          <i className="ti ti-clock-upload" style={{ fontSize: 14 }} aria-hidden="true" />
+          <i className="ti ti-clock-upload qrp-ic-14" aria-hidden="true" />
           Cola offline
           {conteo != null && conteo > 0 && (
             <span className="qrp-cola-badge">{conteo}</span>
           )}
         </span>
-        <i className={`ti ti-chevron-${expandido ? "up" : "down"}`} style={{ fontSize: 12 }} aria-hidden="true" />
+        <i className={`ti ti-chevron-${expandido ? "up" : "down"} qrp-ic-12`} aria-hidden="true" />
       </button>
 
       {expandido && (
@@ -240,11 +248,11 @@ function ColaOfflinePanel() {
               </div>
               <div className="qrp-cola-actions">
                 <button onClick={handlePurgarExpirados} disabled={purgando} className="qrp-btn-purgar-exp">
-                  <i className="ti ti-trash" style={{ fontSize: 12, marginRight: 4 }} aria-hidden="true" />
+                  <i className="ti ti-trash qrp-ic-12-mr4" aria-hidden="true" />
                   Purgar expirados
                 </button>
                 <button onClick={() => setConfirmPurga(true)} disabled={purgando} className="qrp-btn-purgar-all">
-                  <i className="ti ti-trash-x" style={{ fontSize: 12, marginRight: 4 }} aria-hidden="true" />
+                  <i className="ti ti-trash-x qrp-ic-12-mr4" aria-hidden="true" />
                   Vaciar todo
                 </button>
               </div>
@@ -258,7 +266,7 @@ function ColaOfflinePanel() {
           <div className="qrp-modal">
             <div className="qrp-modal-header">
               <div className="qrp-modal-icon">
-                <i className="ti ti-trash-x" style={{ fontSize: 22, color: "#DC2626" }} aria-hidden="true" />
+                <i className="ti ti-trash-x qrp-ic-danger-22" aria-hidden="true" />
               </div>
               <div>
                 <div id="modal-purga-title" className="qrp-modal-title">¿Vaciar cola offline?</div>
@@ -324,10 +332,10 @@ function HistorialSesiones({ fecha, sessionIdActiva }) {
     <div className="qrp-hist">
       <button onClick={() => setExpandido(v => !v)} className="qrp-hist-toggle">
         <span className="qrp-hist-toggle-left">
-          <i className="ti ti-history" style={{ fontSize: 14 }} aria-hidden="true" />
+          <i className="ti ti-history qrp-ic-14" aria-hidden="true" />
           Historial de sesiones hoy
         </span>
-        <i className={`ti ti-chevron-${expandido ? "up" : "down"}`} style={{ fontSize: 12 }} aria-hidden="true" />
+        <i className={`ti ti-chevron-${expandido ? "up" : "down"} qrp-ic-12`} aria-hidden="true" />
       </button>
 
       {expandido && (
@@ -345,7 +353,7 @@ function HistorialSesiones({ fecha, sessionIdActiva }) {
             return (
               <div key={s.id} className={`qrp-hist-row ${i < sesionesAnteriores.length - 1 ? "qrp-hist-row-sep" : ""}`}>
                 <span className={`qrp-hist-dot ${s.activa ? "qrp-hist-dot--on" : "qrp-hist-dot--off"}`} />
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="qrp-flex-main">
                   <div className="qrp-hist-title">
                     {turnoConf?.label || s.turno}
                     {s.programa && <span className="qrp-hist-prog"> · {s.programa.replace("PNF ", "")}</span>}
@@ -444,7 +452,7 @@ export default function AdminQRPanel({
       {/* Banner offline */}
       {isOffline && (
         <div className="qrp-offline-banner">
-          <i className="ti ti-wifi-off" style={{ fontSize: 20, color: "#DC2626", flexShrink: 0 }} aria-hidden="true" />
+          <i className="ti ti-wifi-off qrp-ic-danger-20" aria-hidden="true" />
           <div>
             <div className="qrp-offline-title">Sin conexión a internet</div>
             <div className="qrp-offline-sub">
@@ -460,14 +468,14 @@ export default function AdminQRPanel({
       <div className="qrp-header">
         <div>
           <h1 className="qrp-header-title">
-            <i className="ti ti-qrcode" style={{ fontSize: 22 }} aria-hidden="true" />
+            <i className="ti ti-qrcode qrp-ic-22" aria-hidden="true" />
             Control de Asistencias QR
           </h1>
           <p className="qrp-header-subtitle">Genera el código QR y proyéctalo. Los docentes escanean y eligen Entrada o Salida.</p>
         </div>
         {onVerReporte && (
           <button onClick={onVerReporte} className="qrp-btn-reporte">
-            <i className="ti ti-clipboard-list" style={{ fontSize: 15 }} aria-hidden="true" />
+            <i className="ti ti-clipboard-list qrp-ic-15" aria-hidden="true" />
             Ver reporte del día
           </button>
         )}
@@ -488,14 +496,14 @@ export default function AdminQRPanel({
               max={hoy}
               onChange={e => setFecha(e.target.value)}
               disabled={activa}
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--color-border)", fontSize: 13, color: "var(--color-text-primary)", background: activa ? "var(--color-background-subtle)" : "var(--color-surface)", cursor: activa ? "not-allowed" : "auto", boxSizing: "border-box" }}
+              className={`qrp-input-base${activa ? ' qrp-input-base--disabled' : ''}`}
             />
           </label>
 
           {/* Turno */}
-          <div style={{ marginBottom: 14 }}>
+          <div className="qrp-turno-wrap">
             <span className="qrp-field-label">Turno</span>
-            <div className="qrp-turno-list">
+            <div className={`qrp-turno-list${activa ? ' qrp-turno-list--locked' : ''}`}>
               {TURNOS_VISIBLES.map(t => {
                 const disponible  = turnoDisponible(t.id);
                 const seleccionado = turno === t.id;
@@ -507,10 +515,9 @@ export default function AdminQRPanel({
                     disabled={activa || !disponible}
                     title={!disponible ? `Este turno ${turnoIndisponibleRazon(t.id)} hoy` : ""}
                     className={`qrp-turno-btn ${cls}`}
-                    style={{ opacity: !disponible ? 0.55 : activa && !seleccionado ? 0.45 : 1, cursor: activa || !disponible ? "not-allowed" : "pointer" }}
                   >
                     <span>{t.label}{!disponible && esHoy ? ` · ${turnoIndisponibleRazon(t.id)}` : ""}</span>
-                    <span className="qrp-turno-hora" style={{ color: seleccionado ? "var(--brand-400, #3B82F6)" : "var(--color-text-tertiary)" }}>{t.hora}</span>
+                    <span className="qrp-turno-hora">{t.hora}</span>
                   </button>
                 );
               })}
@@ -525,8 +532,7 @@ export default function AdminQRPanel({
             return (
               <div className={`qrp-turno-aviso ${esAnticipado ? "qrp-turno-aviso--warn" : "qrp-turno-aviso--error"}`}>
                 <i
-                  className={`ti ${esAnticipado ? "ti-clock" : "ti-alert-triangle"}`}
-                  style={{ fontSize: 15, flexShrink: 0, marginTop: 1, color: esAnticipado ? "#D97706" : "#DC2626" }}
+                  className={`ti ${esAnticipado ? "ti-clock" : "ti-alert-triangle"} qrp-turno-aviso-icon ${esAnticipado ? "qrp-turno-aviso-icon--warn" : "qrp-turno-aviso-icon--error"}`}
                   aria-hidden="true"
                 />
                 <span className={`qrp-turno-aviso-text ${esAnticipado ? "qrp-turno-aviso-text--warn" : "qrp-turno-aviso-text--error"}`}>
@@ -546,7 +552,7 @@ export default function AdminQRPanel({
               value={programa}
               onChange={e => setPrograma(e.target.value)}
               disabled={activa}
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--color-border)", fontSize: 13, color: "var(--color-text-primary)", background: activa ? "var(--color-background-subtle)" : "var(--color-surface)", cursor: activa ? "not-allowed" : "pointer", boxSizing: "border-box" }}
+              className={`qrp-select-base${activa ? ' qrp-select-base--disabled' : ''}`}
             >
               <option value="">Todos los programas</option>
               {DEFAULT_PROGRAMAS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -556,7 +562,7 @@ export default function AdminQRPanel({
           {/* Error */}
           {error && (
             <div className="qrp-error-box">
-              <i className="ti ti-alert-triangle" style={{ fontSize: 15, flexShrink: 0 }} aria-hidden="true" />
+              <i className="ti ti-alert-triangle qrp-error-icon" aria-hidden="true" />
               {error}
             </div>
           )}
@@ -568,17 +574,17 @@ export default function AdminQRPanel({
               disabled={btnDisabled}
               className={`qrp-btn-iniciar ${btnDisabled ? "qrp-btn-iniciar--off" : "qrp-btn-iniciar--on"}`}
             >
-              <i className="ti ti-player-play" style={{ fontSize: 15 }} aria-hidden="true" />
+              <i className="ti ti-player-play qrp-ic-15" aria-hidden="true" />
               {loading ? "Iniciando…" : "Iniciar sesión QR"}
             </button>
           ) : (
             <div className="qrp-btn-group">
               <button onClick={renovarManual} disabled={loading} className="qrp-btn-renovar">
-                <i className="ti ti-refresh" style={{ fontSize: 14 }} aria-hidden="true" />
+                <i className="ti ti-refresh qrp-ic-14" aria-hidden="true" />
                 Regenerar QR ahora
               </button>
               <button onClick={() => setConfirmCierre(true)} className="qrp-btn-cerrar">
-                <i className="ti ti-player-stop" style={{ fontSize: 14 }} aria-hidden="true" />
+                <i className="ti ti-player-stop qrp-ic-14" aria-hidden="true" />
                 Cerrar sesión
               </button>
 
@@ -587,7 +593,7 @@ export default function AdminQRPanel({
                   <div className="qrp-modal">
                     <div className="qrp-modal-header">
                       <div className="qrp-modal-icon">
-                        <i className="ti ti-alert-triangle" style={{ fontSize: 22, color: "#DC2626" }} aria-hidden="true" />
+                        <i className="ti ti-alert-triangle qrp-ic-danger-22" aria-hidden="true" />
                       </div>
                       <div>
                         <div id="modal-cierre-title" className="qrp-modal-title">¿Cerrar la sesión QR?</div>
@@ -643,7 +649,7 @@ export default function AdminQRPanel({
                 <div className="qrp-active-qr-btns">
                   {onVerProyeccion && (
                     <button onClick={onVerProyeccion} className="qrp-btn-proyeccion">
-                      <i className="ti ti-device-desktop" style={{ fontSize: 15 }} aria-hidden="true" />
+                      <i className="ti ti-device-desktop qrp-ic-15" aria-hidden="true" />
                       Proyección aquí
                     </button>
                   )}
@@ -652,7 +658,7 @@ export default function AdminQRPanel({
                     title="Abre la proyección en una ventana separada (ideal para segundo monitor o proyector)"
                     className="qrp-btn-nueva-ventana"
                   >
-                    <i className="ti ti-external-link" style={{ fontSize: 15 }} aria-hidden="true" />
+                    <i className="ti ti-external-link qrp-ic-15" aria-hidden="true" />
                     Nueva ventana
                   </button>
                 </div>
