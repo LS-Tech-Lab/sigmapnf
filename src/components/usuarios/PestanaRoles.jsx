@@ -15,6 +15,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { GRUPOS_PERMISOS, hex2rgba, Spinner, ModalConfirm } from "./shared";
 import ModalRol from "./ModalRol";
+import "./PestanaRoles.css";
 
 export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: showToastProp, logAudit }) {
   const [roles,     setRoles]     = useState([]);
@@ -63,19 +64,15 @@ export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-tertiary)" }}>
+      <div className="pr-header">
+        <p className="pr-header-desc">
           Los roles del sistema (marcados con 🔒) no se pueden eliminar ni renombrar,
           pero sí puedes editar sus permisos. Los roles personalizados son totalmente gestionables.
         </p>
         {permisosUsuario.puedeGestionarRoles && (
           <button
             onClick={() => setModalRol(null)}
-            style={{
-              padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
-              background: "var(--color-role-coord)", color: "#fff", fontSize: 13, fontWeight: 600,
-              display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 16,
-            }}
+            className="pr-btn-nuevo"
           >
             <i className="ti ti-plus" /> Nuevo rol
           </button>
@@ -83,9 +80,9 @@ export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: "center" }}><Spinner /></div>
+        <div className="pr-loading"><Spinner /></div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="pr-list">
           {roles.map(r => {
             const abierto = expandido === r.nombre;
             const permsCounts = Object.entries(r.permisos || {}).filter(([, v]) => v === true).length;
@@ -93,23 +90,20 @@ export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged
               <div key={r.nombre} className="s-card pr-card-visible">
                 {/* Cabecera del rol */}
                 <div
-                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer" }}
+                  className="pr-card-header"
                   onClick={() => setExpandido(abierto ? null : r.nombre)}
                 >
-                  <div style={{
-                    width: 38, height: 38, borderRadius: 10,
-                    background: hex2rgba(r.color, 0.12),
-                    border: `1px solid ${hex2rgba(r.color, 0.25)}`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 18, flexShrink: 0,
-                  }}>
+                  <div
+                    className="pr-avatar"
+                    style={{ "--avatar-bg": hex2rgba(r.color, 0.12), "--avatar-border": hex2rgba(r.color, 0.25) }}
+                  >
                     {r.emoji}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-primary)" }}>{r.label}</span>
+                  <div className="pr-info">
+                    <div className="pr-info-top">
+                      <span className="pr-label">{r.label}</span>
                       {r.es_sistema && (
-                        <span title="Rol del sistema" style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>🔒</span>
+                        <span title="Rol del sistema" className="pr-lock">🔒</span>
                       )}
                       {r.restringe_programa && (
                         <span className="s-badge pr-badge-warning">
@@ -117,17 +111,14 @@ export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 12, color: "var(--color-text-tertiary)", marginTop: 2 }}>
-                      <code style={{
-                        background: "var(--color-background-tertiary)",
-                        padding: "1px 5px", borderRadius: 4, fontSize: 11,
-                      }}>{r.nombre}</code>
+                    <div className="pr-meta">
+                      <code className="pr-code">{r.nombre}</code>
                       &nbsp;·&nbsp;{permsCounts} permiso{permsCounts !== 1 ? "s" : ""} activo{permsCounts !== 1 ? "s" : ""}
                       &nbsp;·&nbsp;{r.usuarios_count} usuario{r.usuarios_count !== 1 ? "s" : ""}
                     </div>
                   </div>
                   <div
-                    style={{ display: "flex", gap: 6, alignItems: "center" }}
+                    className="pr-actions"
                     onClick={e => e.stopPropagation()}
                   >
                     {permisosUsuario.puedeGestionarRoles && (
@@ -135,57 +126,40 @@ export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged
                         <button
                           onClick={() => setModalRol(r)}
                           title="Editar"
-                          style={{
-                            background: "none", border: "1px solid var(--color-border-tertiary)",
-                            borderRadius: 7, padding: "5px 10px", cursor: "pointer",
-                            fontSize: 13, color: "var(--color-text-mid)",
-                          }}
+                          className="pr-btn-icon"
                         ><i className="ti ti-pencil" /></button>
                         {!r.es_sistema && (
                           <button
                             onClick={() => setConfirm(r)}
                             title="Eliminar"
-                            style={{
-                              background: "none", border: "1px solid var(--color-border-tertiary)",
-                              borderRadius: 7, padding: "5px 10px", cursor: "pointer",
-                              fontSize: 13, color: "var(--color-danger)",
-                            }}
+                            className="pr-btn-icon pr-btn-icon--danger"
                           ><i className="ti ti-trash" /></button>
                         )}
                       </>
                     )}
                     <i
-                      className={`ti ti-chevron-${abierto ? "up" : "down"}`}
-                      style={{ color: "var(--color-text-tertiary)", fontSize: 16 }}
+                      className={`ti ti-chevron-${abierto ? "up" : "down"} pr-chevron`}
                     />
                   </div>
                 </div>
 
                 {/* Detalle expandible */}
                 {abierto && (
-                  <div style={{ borderTop: "1px solid var(--color-background-tertiary)", padding: 16 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+                  <div className="pr-detail">
+                    <div className="pr-detail-grid">
                       {GRUPOS_PERMISOS.map(g => (
                         <div key={g.grupo}>
-                          <div style={{
-                            fontSize: 11, fontWeight: 700, color: "var(--color-text-tertiary)",
-                            textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6,
-                            display: "flex", alignItems: "center", gap: 5,
-                          }}>
+                          <div className="pr-group-title">
                             <i className={`ti ${g.icono}`} /> {g.grupo}
                           </div>
                           {g.items.map(item => {
                             const activo = r.permisos?.[item.key] === true;
                             return (
-                              <div key={item.key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                              <div key={item.key} className="pr-item-row">
                                 <i
-                                  className={`ti ti-${activo ? "check" : "x"}`}
-                                  style={{
-                                    fontSize: 13, flexShrink: 0,
-                                    color: activo ? "var(--color-success)" : "var(--color-border-secondary)",
-                                  }}
+                                  className={`ti ti-${activo ? "check" : "x"} pr-item-icon${activo ? " pr-item-icon--active" : ""}`}
                                 />
-                                <span style={{ fontSize: 12, color: activo ? "var(--color-text-primary)" : "var(--color-text-tertiary)" }}>
+                                <span className={`pr-item-label${activo ? " pr-item-label--active" : ""}`}>
                                   {item.label}
                                 </span>
                               </div>
@@ -223,12 +197,7 @@ export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged
       )}
 
       {toastMsg && (
-        <div style={{
-          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
-          background: "var(--color-text-primary)", color: "#fff", borderRadius: 10,
-          padding: "10px 20px", fontSize: 13, fontWeight: 500, zIndex: 2000,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.3)", whiteSpace: "nowrap",
-        }}>{toastMsg}</div>
+        <div className="pr-toast">{toastMsg}</div>
       )}
     </div>
   );
