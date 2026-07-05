@@ -36,7 +36,7 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 |---|---|---|---|---|
 | **S1** | Cualquier usuario autenticado podía `UPDATE`/`INSERT`/`DELETE` horarios de cualquier programa (política heredada `FOR ALL` + RLS nunca habilitado en la tabla padre particionada) | `horarios` (padre + particiones) | `0035`, `0045` | ✅ Cerrado |
 | **S2** | `docentes`/`materias`: la política de escritura (`FOR ALL`) solo exigía `auth.role() = 'authenticated'`, sin verificar el permiso granular (`puedeEditarDocentes`/`puedeEditarMaterias`/`puedeImportarExcel`/`puedeRestaurarBackup`). Mismo patrón que `S1`, alcance más angosto — un informe externo lo reportó como "RLS nunca habilitado + anon con acceso total", pero RLS ya estaba activo y anon ya estaba bloqueado; el hueco real era más específico (falso positivo parcial, verificado contra `pg_policies` real antes de escribir la migración) | `docentes`, `materias` | `0046` | ✅ Cerrado |
-| **S3** | Estilos inline (`style={{...}}`) bloquean una política CSP estricta (`unsafe-inline` necesario mientras existan) | 40 archivos `.jsx` todavía con `style={{` — ver nota bajo `A3` | — | 🟡 **Abierto** — bloqueado por `A3` |
+| **S3** | Estilos inline (`style={{...}}`) bloquean una política CSP estricta (`unsafe-inline` necesario mientras existan) | `HorariosView.jsx` (migrado, entregado, pendiente de pegarse en el repo — ver nota bajo `A3`); `ReporteAsistencias/SkeletonRow.jsx` (1 estilo estático por índice de columna, no dinámico legítimo) | — | 🟡 **Abierto** — bloqueado por los 2 últimos residuos de `A3`, ver nota |
 | **SEC-2** | Stack trace completo de errores visible en producción (fuga de información interna) | `src/components/ErrorBoundary.jsx` | — | ✅ Cerrado (solo se renderiza en desarrollo) |
 | **SEC-3** | Sin validación centralizada de fortaleza de contraseñas | `src/utils/password.js` | — | ✅ Cerrado |
 | **SEC-5** | Lockout de login normal en `localStorage` no resistía pestañas privadas (mismo patrón que `O-8`, para PIN) | `src/components/LoginScreen.jsx`, `src/utils/pinOffline.js` | — | ✅ Cerrado (migrado a IDB, cliente) |
@@ -96,6 +96,7 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 | **A2** | `log_audit_event` sin registrar rol/programa del actor | Bloque 5, migración `0025` | ✅ Cerrado |
 | **ARCH-4** | Sin cobertura de tests para lógica crítica (`useAuth`, cola offline) | `useAuth.test.js`, `offlineQueue.test.js` | ✅ Cerrado |
 | **ARCH-5** | Sin tests de integración para hooks compuestos ni para flujos de usuario completos (escaneo QR, carga de horarios, gestión de usuarios) | Ver nota debajo | ✅ **Cerrado** |
+| **ARCH-6** | El CSS embebido de `QRProyeccion.jsx` (`const CSS = \`...\`` inyectado vía `<style>`) contiene el stylesheet completo duplicado dentro del mismo template literal — dos copias consecutivas de ~300 líneas. La primera es una versión vieja e incompleta que queda pisada por la segunda (correcta) solo por cascada CSS, mismo selector/especificidad. No afecta el render (la copia buena va después), pero duplica ~300 líneas muertas en el bundle. Encontrado de forma incidental al migrar `A3` en este archivo (5 de julio) | `src/components/asistencias/QRProyeccion.jsx` | 🟡 **Pendiente** — señalado, sin corregir; fuera del alcance de `A3` |
 
 > **Nota sobre `ARCH-5` (detalle por archivo, actualizado 4 de julio):** no
 > todos los archivos listados prueban lo mismo — es importante no
@@ -158,7 +159,7 @@ vez de asumirlo.
 | **U-2** | Adaptabilidad móvil: `.qrp-col-left` con `flex: 0 0 320px` (sin encoger) desbordaba horizontalmente en viewports ≤ ~372px; grid fijo `1fr 1fr` en `ModalRol` quedaba inusable en pantallas pequeñas. Revisión real contra el HEAD (no solo conteo de `@media`) confirmó que el resto de pantallas de mayor uso móvil (`DocenteScan`, `TurnoGrid`, `ReporteRango`, `LoginScreen`, `HistorialView`) ya tenían mitigación adecuada y no necesitaron cambios | `AdminQRPanel.css`, `usuarios/ModalRol.jsx` | ✅ Cerrado |
 | **U-3** | Sin trampa de foco de teclado en modales (accesibilidad) | `src/hooks/useFocusTrap.js` | ✅ Cerrado |
 | **U-4** | `Campo.jsx` (input del formulario de `DocenteScan`) renderiza `<label>` e `<input>` como hermanos, sin `htmlFor`/`id` que los asocie — un lector de pantalla no anuncia la etiqueta al enfocar el campo. Encontrado de forma indirecta: un test que intentaba ubicar el input por su label (`getByLabelText`, el método recomendado de Testing Library, que imita cómo un lector de pantalla encuentra el campo) no pudo hacerlo y tuvo que usar el `placeholder` como alternativa | `src/components/asistencias/DocenteScan/Campo.jsx` | ✅ Cerrado (`useId()` genera un id estable que conecta `label`↔`input`; el mensaje de error/hint también se enlaza vía `aria-describedby`, y `aria-invalid` se activa cuando hay error. `DocenteScan.flow.test.jsx` se actualizó para usar `getByLabelText` en vez del workaround de `placeholder`, quedando como guardia contra que esto se rompa de nuevo) |
-| **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | `LoginScreen`, `ConfirmModal`, `DocentesView`, `AdminQRPanel`, `LogsView`, `MateriasView`, `UploadPreviewModal`, `PlanillaImprimibleBase`, `ReporteAsistencias/index`, `ReporteAsistencias/ReporteRango`, `ModalRol`, `usuarios/PestanaUsuarios` ya tienen `.css` propio con solo residuo dinámico legítimo — ver nota | 🟡 **En curso** |
+| **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | 21 de 22 archivos con `style={{` ya cerrados (solo residuo dinámico legítimo); 1 archivo migrado y entregado pero sin pegar en el repo (`HorariosView.jsx`); 1 residuo estático menor sin cerrar (`SkeletonRow.jsx`) — ver nota | 🟡 **Prácticamente cerrado** — 2 ítems residuales, ver nota |
 
 > **Nota de precisión sobre `U-1` (histórico, verificado contra HEAD el
 > 4 de julio):** el propio comentario de cabecera de `AdminQRPanel.jsx`
@@ -172,37 +173,79 @@ vez de asumirlo.
 > se considera cerrado en ambos sentidos (el hallazgo puntual y el archivo
 > completo).
 >
-> **Nota sobre `A3` (verificado contra HEAD `abc4118`, 5 de julio):** el
-> conteo de **archivos** con `style={{` es **33**, con **312**
-> ocurrencias totales. De esos 33, **10 ya están efectivamente
-> cerrados** — lo que les queda es únicamente estilo dinámico legítimo
-> (color por dato en tiempo de ejecución: trayecto, estadística, config
-> de evento/acción), no deuda pendiente:
+> **Nota sobre `A3` (verificado contra HEAD `4380e23`, 5 de julio):** la
+> migración archivo-por-archivo terminó. El conteo de **archivos** con
+> `style={{` es **22** (bajó de 33), con **muchas menos ocurrencias en
+> total** — de esos 22, **21 ya están efectivamente cerrados**: lo que
+> les queda es únicamente estilo dinámico legítimo (color por dato en
+> tiempo de ejecución: trayecto, rol, estadística, tamaño de avatar,
+> config de evento/acción), no deuda pendiente:
 > `PlanillaImprimibleBase.jsx` (1), `MateriasView.jsx` (1),
-> `Avatar.jsx` (1), `ReporteAsistencias/index.jsx` (2),
-> `ReporteAsistencias/EstadoChip.jsx` (2), `DocentesView.jsx` (3),
-> `UploadPreviewModal.jsx` (3), `ModalRol.jsx` (3), `AdminQRPanel.jsx` (5),
-> `ReporteAsistencias/ReporteRango.jsx` (5), `LogsView.jsx` (5),
-> `ResumenView.jsx` (8), **`usuarios/PestanaUsuarios.jsx` (1 — cerrado en
-> esta sesión)**. Cada uno con `.css` dedicado, build limpio y suite
-> completa (152/152) verificados antes de integrarse.
+> `Avatar.jsx` (1), `usuarios/shared.jsx` (1), `usuarios/PestanaUsuarios.jsx`
+> (1), `usuarios/PestanaRoles.jsx` (1), `StatCard.jsx` (1),
+> `GlobalSearch.jsx` (1), `ConflictosView.jsx` (1),
+> `ReporteAsistencias/index.jsx` (2), `ReporteAsistencias/EstadoChip.jsx`
+> — **cerrado a 0 estilos**, ya no aparece en este conteo —,
+> `TurnoGrid.jsx` (2), `ProgramaLogo.jsx` (2), `ModalCambiarPassword.jsx`
+> (2), `DocentesView.jsx` (3), `UploadPreviewModal.jsx` (3), `ModalRol.jsx`
+> (3), `SeccionesView.jsx` (3), `AdminQRPanel.jsx` (5), `LogsView.jsx` (5),
+> `ReporteAsistencias/ReporteRango.jsx` (5), `ResumenView.jsx` (8). Cada
+> uno con `.css` dedicado (o consolidado en `index.css` cuando tenía menos
+> de ~5 reglas — convención de esta sesión), build limpio y suite completa
+> (152/152) verificados antes de integrarse.
 >
-> **Pendiente real, por tamaño:** `ModalCambiarPassword.jsx` (30),
-> `usuarios/PestanaRoles.jsx` (24), `SeccionesView.jsx` (22),
-> `TurnoGrid.jsx` (21), `ReporteAsistencias/VistaAusentes.jsx` (20),
-> `ConflictosView.jsx` (20), `ModuleSelector.jsx` (17),
-> `usuarios/ModalUsuario.jsx` (14), `HorariosView.jsx`/`GlobalSearch.jsx`
-> (10), `usuarios/shared.jsx` (9), `usuarios/index.jsx` (8),
-> `PlanillaQR.jsx` (7),
-> `ReporteAsistencias/AlertaSinVincular.jsx`/`ErrorBoundary.jsx` (6),
-> `QRProyeccion.jsx`/`Toast.jsx`/`StatCard.jsx` (4), `ProgramaLogo.jsx` (3),
-> `SkeletonRow.jsx` (1 — estático: ancho fijo por columna del esqueleto de
-> carga, no depende de datos en runtime; no confundir con dinámico
-> legítimo).
+> **Cerrados en la sesión del 5 de julio (16 archivos trabajados):**
+> `ConflictosView.jsx` (20→1), `ModuleSelector.jsx` (17→0, eliminó el
+> `useState` de hover simulado), `usuarios/ModalUsuario.jsx` (14→0),
+> `HorariosView.jsx` (10→0 en local — **ver discrepancia abajo**),
+> `GlobalSearch.jsx` (10→1), `usuarios/shared.jsx` (9→1, `Badge`/
+> `ModalConfirm`/`Spinner`), `usuarios/index.jsx` (8→0),
+> `asistencias/PlanillaQR.jsx` (7→0), `ReporteAsistencias/
+> AlertaSinVincular.jsx` (6→0), `ErrorBoundary.jsx` (6→0),
+> `asistencias/QRProyeccion.jsx` (4→0 — ver hallazgo nuevo abajo),
+> `Toast.jsx` (4→0, eliminó el objeto `palette` de JS),
+> `StatCard.jsx` (4→1), `ProgramaLogo.jsx` (3→2),
+> `ReporteAsistencias/EstadoChip.jsx` (2→0, eliminó el objeto `map` de JS),
+> `Avatar.jsx` (1→1).
 >
-> El helper `S` bajó a **2 archivos** que todavía lo importan:
-> `VistaAusentes.jsx`, `SkeletonRow.jsx` — `PestanaUsuarios.jsx` ya no lo
-> importa tras su migración en esta sesión.
+> **⚠️ Discrepancia encontrada al reverificar contra HEAD real
+> (`4380e23`):** `HorariosView.jsx` se migró y se entregó completo
+> (10→0) en esta sesión, y su `.css` (`HorariosView.css`) sí llegó a
+> pegarse en el repo — pero el `.jsx` no. El HEAD real todavía tiene el
+> archivo viejo con los 10 `style={{` originales, sin el `import
+> './HorariosView.css'`. Es el mismo patrón de "archivo entregado pero no
+> aplicado" que ya había ocurrido antes con otros archivos en sesiones
+> previas (ver la advertencia general al inicio de este documento sobre
+> verificar contra HEAD real). **Sigue siendo el único bloqueo real de
+> `A3`/`S3`** — el archivo migrado ya existe, solo falta pegarlo.
+>
+> **Hallazgo nuevo, fuera del alcance de `A3` (`asistencias/
+> QRProyeccion.jsx`):** el CSS embebido del componente (`const CSS =
+> \`...\``, inyectado vía `<style>{CSS}</style>` en vez de un archivo
+> `.css` importado) contiene el stylesheet **completo duplicado dentro
+> del mismo template literal** — dos copias consecutivas de ~300 líneas
+> cada una. La primera copia es además una versión **vieja e incompleta**
+> (sin los modificadores `--sm`/`--col`/`--row` de la segunda), que queda
+> pisada por la segunda solo gracias a la cascada CSS (mismo selector,
+> misma especificidad, la última declarada gana). No es un bug funcional
+> visible — el render es correcto porque la copia buena va después — pero
+> duplica ~300 líneas muertas en el bundle. No se corrigió en esta sesión
+> por estar fuera del alcance de `A3`; queda pendiente de asignarle un ID
+> y decidir si se aborda (ver `ARCH-6` más abajo).
+>
+> **Pendiente real, por tamaño:** solo `HorariosView.jsx` (10, migración
+> ya lista, solo falta pegarse) y `SkeletonRow.jsx` (1 — estático: ancho
+> fijo por columna del esqueleto de carga vía `[120, 90, 160, 90, 80,
+> 100][i]`, no depende de datos en runtime; candidato a resolverse con
+> `:nth-child()` en CSS puro, mismo patrón ya aplicado en `TurnoGrid` y
+> `GlobalSearch` — no confundir con dinámico legítimo).
+>
+> El helper `S` de `src/constants/index.js` ya no lo importa **ningún**
+> archivo (bajó de 2) — `usuarios/shared.jsx` y `ReporteAsistencias/
+> VistaAusentes.jsx` fueron los últimos en dejar de usarlo, en esta y la
+> sesión anterior respectivamente. Ese sub-objetivo de la migración está
+> **100% cerrado**, independientemente de que `HorariosView.jsx` siga
+> pendiente de pegarse.
 
 ---
 
@@ -282,9 +325,12 @@ Cuando se cierre un nuevo hallazgo:
    alguien dé por cerrado algo que solo se cerró a medias.
 
 **Abiertos ahora mismo:** `S3`/`A3` (la misma tarea, vista desde seguridad
-y desde UI respectivamente) y `SEC-9` (bajo riesgo, señalado por
-transparencia) — ver la nota bajo `A3` arriba para el detalle del
-reemplazo de estilos inline pendiente, archivo por archivo. `FE-3` queda
+y desde UI respectivamente) — prácticamente cerrada, solo bloqueada por
+`HorariosView.jsx` (migrado y entregado, pendiente de pegarse en el repo)
+y el residuo estático menor de `SkeletonRow.jsx` (1 estilo) — ver la nota
+bajo `A3` arriba para el detalle. `SEC-9` (bajo riesgo, señalado por
+transparencia) y `ARCH-6` (CSS duplicado en `QRProyeccion.jsx`, hallazgo
+nuevo de esta sesión, sin corregir) también siguen abiertos. `FE-3` queda
 parcialmente abierto pero es la misma tarea que `A3`/`S3` vista desde el
 ángulo de identidad visual, no un cuarto hallazgo independiente. Con el
 cierre de `SEC-6`, `SEC-7`, `SEC-8`, `S2`, `ARCH-5`, `U-4`, `FE-1`, `FE-2`,
@@ -362,3 +408,34 @@ no 4 como se había escrito en un borrador intermedio de esta misma
 pasada — se verificó de nuevo con grep antes de cerrar. `AUDITORIA_FRONTEND.md`
 se elimina del repo con este cambio; su contenido íntegro vive ahora en la
 sección `FE-N` de este documento.*
+
+*Quinta pasada (5 de julio de 2026) — sesión de migración `A3` archivo por
+archivo, verificada al final contra el HEAD real del repo (`4380e23`,
+tras `git fetch && git reset --hard origin/main`) en vez de solo contra
+lo entregado en el chat. Se trabajaron 16 archivos: `ConflictosView.jsx`
+(20→1), `ModuleSelector.jsx` (17→0), `usuarios/ModalUsuario.jsx` (14→0),
+`HorariosView.jsx` (10→0 en local), `GlobalSearch.jsx` (10→1),
+`usuarios/shared.jsx` (9→1), `usuarios/index.jsx` (8→0),
+`asistencias/PlanillaQR.jsx` (7→0), `ReporteAsistencias/
+AlertaSinVincular.jsx` (6→0), `ErrorBoundary.jsx` (6→0),
+`asistencias/QRProyeccion.jsx` (4→0), `Toast.jsx` (4→0), `StatCard.jsx`
+(4→1), `ProgramaLogo.jsx` (3→2), `ReporteAsistencias/EstadoChip.jsx`
+(2→0), `Avatar.jsx` (1→1). El helper `S` quedó en **0 archivos** que lo
+importen (bajó de 2). Al reverificar contra HEAD real se encontró que
+**`HorariosView.jsx` se entregó y su `.css` se pegó, pero el `.jsx`
+migrado no llegó a aplicarse** — el HEAD real seguía con los 10
+`style={{` originales; se volvió a entregar en el mismo chat. Es el
+mismo patrón de "archivo entregado pero no aplicado" documentado en
+sesiones anteriores de esta migración. Se estableció además una
+convención nueva durante la sesión: componentes con menos de ~5 reglas
+CSS se consolidan directamente en `src/index.css` con prefijo de
+componente (`qr-`, `eb-`, `asv-`, `pl-`, `ec-`, `av-`, `sc-`) en vez de
+crear un archivo `.css` individual — evita fragmentar el bundle CSS sin
+necesidad para casos pequeños. Se encontró de forma incidental y se
+documentó como `ARCH-6` (nuevo) un CSS embebido completo duplicado
+dentro del mismo template literal en `QRProyeccion.jsx`, fuera del
+alcance de esta migración — sin corregir, señalado para una sesión
+futura. Con `HorariosView.jsx` pendiente solo de pegarse y
+`SkeletonRow.jsx` como único residuo estático real (1 estilo, ya
+señalado en pasadas anteriores), `A3`/`S3` quedan a un paso de cerrarse
+por completo.*
