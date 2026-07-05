@@ -11,18 +11,12 @@ export default function Avatar({ name, size = 36 }) {
 
   return (
     <div
+      className="av-root"
       style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.38,
-        fontWeight: 700,
-        background: `hsl(${hue},55%,90%)`,
-        color: `hsl(${hue},55%,35%)`,
-        flexShrink: 0,
+        '--av-size': `${size}px`,
+        '--av-font-size': `${size * 0.38}px`,
+        '--av-bg': `hsl(${hue},55%,90%)`,
+        '--av-color': `hsl(${hue},55%,35%)`,
       }}
     >
       {initials}
