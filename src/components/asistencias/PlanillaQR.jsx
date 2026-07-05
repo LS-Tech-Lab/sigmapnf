@@ -131,24 +131,24 @@ export default function PlanillaQR({ permisos = {}, profile }) {
 
   return (
     <div>
-      <div style={{ padding: "16px 20px 0", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <div className="qr-filters">
         <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>Trimestre</div>
+          <div className="qr-filter-label">Trimestre</div>
           <select
             value={lapso}
             onChange={(e) => setLapso(e.target.value)}
-            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #E2E8F0", fontSize: 13, fontWeight: 600, color: "#0F172A" }}
+            className="qr-filter-select"
           >
             {getLapsosDisponibles().map(l => <option key={l} value={l}>{formatLapso(l)}</option>)}
           </select>
         </div>
         {!restringidoAPrograma && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>Programa</div>
+            <div className="qr-filter-label">Programa</div>
             <select
               value={programa}
               onChange={(e) => setPrograma(e.target.value)}
-              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #E2E8F0", fontSize: 13, fontWeight: 600, color: "#0F172A" }}
+              className="qr-filter-select"
             >
               <option value="todos">Todos los programas</option>
               {programasDisponibles.map(p => <option key={p} value={p}>{p}</option>)}
@@ -158,8 +158,8 @@ export default function PlanillaQR({ permisos = {}, profile }) {
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>
-          <i className="ti ti-loader-2" style={{ fontSize: 20, animation: "spin 1s linear infinite" }} aria-hidden="true" /> Cargando horario…
+        <div className="qr-loading">
+          <i className="ti ti-loader-2 qr-loading-icon" aria-hidden="true" /> Cargando horario…
         </div>
       ) : error ? (
         <div className="s-card qr-error-card">
