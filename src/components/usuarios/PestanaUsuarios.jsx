@@ -14,8 +14,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
-import { S } from "../../constants";
 import { hex2rgba, Badge, Spinner, ModalConfirm } from "./shared";
+import "./PestanaUsuarios.css";
 import ModalUsuario from "./ModalUsuario";
 
 export default function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp, logAudit }) {
@@ -129,85 +129,68 @@ export default function PestanaUsuarios({ permisos, roles, programas, showToast:
   return (
     <div>
       {/* Barra de herramientas */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
+      <div className="pu-toolbar">
         <input
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre o email…"
-          style={{ ...S.input, flex: "1 1 220px" }}
+          className="s-input pu-search-input"
         />
-        <select style={S.select} value={filtroRol} onChange={e => setFiltroRol(e.target.value)}>
+        <select className="s-select" value={filtroRol} onChange={e => setFiltroRol(e.target.value)}>
           <option value="todos">Todos los roles</option>
           {roles.map(r => <option key={r.nombre} value={r.nombre}>{r.emoji} {r.label}</option>)}
         </select>
         {permisos.puedeGestionarUsuarios && (
-          <button
-            onClick={() => setModalNuevo(true)}
-            style={{
-              padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
-              background: "var(--brand-500)", color: "#fff", fontSize: 13, fontWeight: 600,
-              display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
-            }}
-          >
+          <button onClick={() => setModalNuevo(true)} className="pu-btn-nuevo">
             <i className="ti ti-user-plus" /> Nuevo usuario
           </button>
         )}
       </div>
 
       {/* Estadísticas rápidas */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="pu-stats">
         {[
           { label: "Total",    value: usuarios.length,             color: "var(--brand-500)",     bg: "var(--color-background-info)" },
           { label: "Activos",  value: totalActivos,                color: "var(--color-success)",  bg: "var(--color-success-bg)" },
           { label: "Inactivos",value: usuarios.length - totalActivos, color: "var(--color-danger)", bg: "var(--color-danger-bg)" },
         ].map(s => (
-          <div key={s.label} style={{
-            background: s.bg, border: `1px solid ${hex2rgba(s.color, 0.2)}`,
-            borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10,
-          }}>
-            <span style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</span>
-            <span style={{ fontSize: 12, color: s.color, fontWeight: 600 }}>{s.label}</span>
+          <div
+            key={s.label}
+            className="pu-stat"
+            style={{ "--stat-bg": s.bg, "--stat-border": hex2rgba(s.color, 0.2), "--stat-color": s.color }}
+          >
+            <span className="pu-stat-value">{s.value}</span>
+            <span className="pu-stat-label">{s.label}</span>
           </div>
         ))}
       </div>
 
       {/* Banner usuarios huérfanos */}
       {huerfanos.length > 0 && (
-        <div style={{
-          background: "#FEF9EC", border: "1px solid #F59E0B", borderRadius: 10,
-          padding: "12px 16px", marginBottom: 16, display: "flex", flexDirection: "column", gap: 8,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <i className="ti ti-alert-triangle" style={{ color: "var(--color-warning)", fontSize: 16 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-warning-text)" }}>
+        <div className="pu-huerfanos-banner">
+          <div className="pu-huerfanos-header">
+            <i className="ti ti-alert-triangle pu-huerfanos-icon" />
+            <span className="pu-huerfanos-title">
               {huerfanos.length} usuario{huerfanos.length !== 1 ? "s" : ""} sin perfil detectado{huerfanos.length !== 1 ? "s" : ""}
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: 12, color: "#78350F", lineHeight: 1.5 }}>
+          <p className="pu-huerfanos-desc">
             Estos usuarios existen en el sistema de autenticación pero{" "}
             <strong>no tienen perfil en la base de datos</strong>, por lo que no pueden iniciar sesión.
             Probablemente se crearon antes de la corrección del constraint de roles. Puedes eliminarlos permanentemente:
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div className="pu-huerfanos-list">
             {huerfanos.map(h => (
-              <div key={h.id} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                background: "var(--color-warning-bg)", border: "1px solid var(--color-warning-border)",
-                borderRadius: 7, padding: "6px 10px",
-              }}>
+              <div key={h.id} className="pu-huerfano-item">
                 <div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-primary)" }}>{h.email}</span>
-                  <span style={{ fontSize: 11, color: "var(--color-warning-text)", marginLeft: 8 }}>
+                  <span className="pu-huerfano-email">{h.email}</span>
+                  <span className="pu-huerfano-date">
                     Creado: {new Date(h.created_at).toLocaleDateString("es-VE")}
                   </span>
                 </div>
                 <button
                   onClick={() => setConfirm({ usuario: h, accion: "delete_orphan" })}
-                  style={{
-                    background: "none", border: "1px solid #F59E0B", borderRadius: 6,
-                    padding: "4px 10px", cursor: "pointer", fontSize: 12, color: "#B45309",
-                    display: "flex", alignItems: "center", gap: 4, fontWeight: 600,
-                  }}
+                  className="pu-huerfano-delete"
                 >
                   <i className="ti ti-trash" /> Eliminar
                 </button>
@@ -219,75 +202,60 @@ export default function PestanaUsuarios({ permisos, roles, programas, showToast:
 
       {/* Tabla */}
       {loading ? (
-        <div style={{ padding: 40, textAlign: "center" }}><Spinner /></div>
+        <div className="pu-loading"><Spinner /></div>
       ) : (
-        <div style={{ ...S.card, overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="s-card pu-table-card">
+          <table className="pu-table">
             <thead>
               <tr>
                 {["Usuario", "Rol", "Programa", "Estado", ""].map((h, i) => (
-                  <th key={i} style={{ ...S.th, textAlign: i === 4 ? "right" : "left" }}>{h}</th>
+                  <th key={i} className={`s-th${i === 4 ? " pu-th--right" : ""}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {usuariosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ ...S.td, textAlign: "center", padding: 32, color: "var(--color-text-tertiary)" }}>
+                  <td colSpan={5} className="s-td pu-td-empty">
                     Sin resultados
                   </td>
                 </tr>
               ) : usuariosFiltrados.map(u => {
                 const rolInfo = roles.find(r => r.nombre === u.rol);
                 return (
-                  <tr key={u.id} style={{ opacity: u.activo ? 1 : 0.5 }}>
-                    <td style={S.td}>
-                      <div style={{ fontWeight: 600, color: "var(--color-text-primary)", fontSize: 13 }}>{u.nombre}</div>
-                      <div style={{ fontSize: 12, color: "var(--color-text-tertiary)", marginTop: 2 }}>{u.email}</div>
+                  <tr key={u.id} className={u.activo ? "" : "pu-row--inactivo"}>
+                    <td className="s-td">
+                      <div className="pu-user-name">{u.nombre}</div>
+                      <div className="pu-user-email">{u.email}</div>
                     </td>
-                    <td style={S.td}>
+                    <td className="s-td">
                       <Badge color={rolInfo?.color}>{rolInfo?.emoji || "👤"} {rolInfo?.label || u.rol}</Badge>
                     </td>
-                    <td style={S.td}>
-                      <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>{u.programa || "—"}</span>
+                    <td className="s-td">
+                      <span className="pu-programa">{u.programa || "—"}</span>
                     </td>
-                    <td style={S.td}>
-                      <span style={{ ...S.badge(
-                        u.activo ? "var(--color-success-bg)" : "var(--color-background-tertiary)",
-                        u.activo ? "var(--color-success)" : "var(--color-text-tertiary)"
-                      ) }}>
+                    <td className="s-td">
+                      <span className={`s-badge ${u.activo ? "pu-badge-estado--activo" : "pu-badge-estado--inactivo"}`}>
                         {u.activo ? "Activo" : "Inactivo"}
                       </span>
                     </td>
-                    <td style={{ ...S.td, textAlign: "right" }}>
+                    <td className="s-td pu-td-right">
                       {permisos.puedeGestionarUsuarios && (
-                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <div className="pu-actions">
                           <button
                             onClick={() => setModalEditar(u)}
                             title="Editar"
-                            style={{
-                              background: "none", border: "1px solid var(--color-border-tertiary)",
-                              borderRadius: 7, padding: "5px 10px", cursor: "pointer",
-                              fontSize: 13, color: "var(--color-text-mid)",
-                            }}
+                            className="pu-action-btn"
                           ><i className="ti ti-pencil" /></button>
                           <button
                             onClick={() => setConfirm({ usuario: u, nuevoActivo: !u.activo })}
                             title={u.activo ? "Desactivar" : "Activar"}
-                            style={{
-                              background: "none", border: "1px solid var(--color-border-tertiary)",
-                              borderRadius: 7, padding: "5px 10px", cursor: "pointer", fontSize: 13,
-                              color: u.activo ? "var(--color-danger)" : "var(--color-success)",
-                            }}
+                            className={`pu-action-btn ${u.activo ? "pu-action-btn--desactivar" : "pu-action-btn--activar"}`}
                           ><i className={u.activo ? "ti ti-user-off" : "ti ti-user-check"} /></button>
                           <button
                             onClick={() => setConfirm({ usuario: u, accion: "delete" })}
                             title="Eliminar permanentemente"
-                            style={{
-                              background: "none", border: "1px solid var(--color-danger-light)",
-                              borderRadius: 7, padding: "5px 10px", cursor: "pointer",
-                              fontSize: 13, color: "var(--color-danger)",
-                            }}
+                            className="pu-action-btn pu-action-btn--eliminar"
                           ><i className="ti ti-trash" /></button>
                         </div>
                       )}
@@ -341,14 +309,7 @@ export default function PestanaUsuarios({ permisos, roles, programas, showToast:
         />
       )}
 
-      {toastMsg && (
-        <div style={{
-          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
-          background: "var(--color-text-primary)", color: "#fff", borderRadius: 10,
-          padding: "10px 20px", fontSize: 13, fontWeight: 500, zIndex: 2000,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.3)", whiteSpace: "nowrap",
-        }}>{toastMsg}</div>
-      )}
+      {toastMsg && <div className="pu-toast">{toastMsg}</div>}
     </div>
   );
 }
