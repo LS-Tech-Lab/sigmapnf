@@ -58,6 +58,35 @@ async function handleRequest(req, res) {
     return res.status(403).json({ error: "No tienes permiso para gestionar usuarios." });
   }
 
+  // ── SEC-11: rate limiting por cuenta ─────────────────────────────
+  // Máx. 10 acciones por minuto por cuenta que llama a este endpoint
+  // (create/reset_password/delete/delete_orphan comparten el mismo
+  // límite: es por endpoint, no por acción). Mismo patrón que
+  // scan_rate_limit (D-3) — ver migración 0051.
+  const rateLimitRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/rpc/registrar_admin_action_rate_limit`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        apikey: SERVICE_ROLE_KEY,
+      },
+      body: JSON.stringify({ p_actor_id: userData.id }),
+    }
+  );
+  const rateLimitData = await rateLimitRes.json();
+  if (!rateLimitRes.ok) {
+    // Fail-closed: si la RPC de rate limiting falla (ej. migración no
+    // aplicada aún), no se debe abrir la puerta a acciones ilimitadas.
+    return res.status(500).json({ error: "No se pudo verificar el límite de solicitudes." });
+  }
+  if (!rateLimitData.permitido) {
+    return res.status(429).json({
+      error: `Demasiadas acciones administrativas en poco tiempo. Intenta de nuevo en ${rateLimitData.reintentar_en_seg}s.`,
+    });
+  }
+
   // ── SEC-10: jerarquía fija del rol admin ─────────────────────────
   // Regla fija (no depende de la tabla dinámica `roles`, igual que
   // en las RPCs SQL — ver migración 0050): solo una cuenta con rol
