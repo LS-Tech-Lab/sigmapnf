@@ -71,13 +71,9 @@ function useFileInputs({ fileRef, backupRef, onFile, onBackup }) {
 function FullScreenSpinner({ label }) {
   return (
     <div className="full-screen-loading">
-      <div style={{
-        width: 32, height: 32, border: "3px solid #1E3A5F",
-        borderTop: "3px solid var(--color-accent)",
-        borderRadius: "50%", animation: "spin 0.8s linear infinite",
-      }} />
+      <div className="app-spinner-ring" />
       {label && (
-        <span style={{ color: "var(--color-text-tertiary)", fontSize: 14 }}>
+        <span className="app-spinner-label">
           {label}
         </span>
       )}
@@ -222,24 +218,17 @@ export default function App() {
 
   // Fix #19: Supabase no responde
   if (shell.supabaseDown) return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      height: "100vh", background: "var(--color-text-primary)", color: "var(--color-border-tertiary)",
-      gap: 16, padding: 32, textAlign: "center", fontFamily: "var(--font-sans)",
-    }}>
-      <i className="ti ti-wifi-off" style={{ fontSize: 44, color: "#F87171" }} aria-hidden="true" />
-      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "var(--color-background-tertiary)" }}>
+    <div className="app-error-screen">
+      <i className="ti ti-wifi-off app-error-icon app-error-icon--danger" aria-hidden="true" />
+      <h2 className="app-error-title">
         Servicio no disponible
       </h2>
-      <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-tertiary)", maxWidth: 460, lineHeight: 1.6 }}>
+      <p className="app-error-desc">
         No se pudo conectar con el servidor. Puede ser un problema temporal de red o del servicio.
       </p>
       <button
         onClick={() => { shell.setSupabaseDown(false); window.location.reload(); }}
-        style={{
-          marginTop: 8, padding: "9px 22px", background: "var(--brand-500)", color: "#fff",
-          border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer",
-        }}
+        className="app-error-btn"
       >
         Reintentar
       </button>
@@ -247,23 +236,19 @@ export default function App() {
   );
 
   if (supabaseConfigError) return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      height: "100vh", background: "var(--color-text-primary)", color: "var(--color-border-tertiary)",
-      gap: 16, padding: 32, textAlign: "center", fontFamily: "var(--font-sans)",
-    }}>
-      <i className="ti ti-alert-triangle" style={{ fontSize: 44, color: "#FBBF24" }} aria-hidden="true" />
-      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "var(--color-background-tertiary)" }}>
+    <div className="app-error-screen">
+      <i className="ti ti-alert-triangle app-error-icon app-error-icon--warning" aria-hidden="true" />
+      <h2 className="app-error-title">
         Configuración incompleta
       </h2>
-      <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-tertiary)", maxWidth: 460, lineHeight: 1.6 }}>
+      <p className="app-error-desc">
         {supabaseConfigError}
       </p>
     </div>
   );
 
   if (user === undefined) return (
-    <div className="full-screen-loading" style={{ color: "var(--color-text-tertiary)", fontSize: 15 }}>
+    <div className="full-screen-loading app-loading-text">
       Verificando sesión…
     </div>
   );
