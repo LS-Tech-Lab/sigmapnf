@@ -154,27 +154,95 @@ vez de asumirlo.
 
 | ID | Descripción | Archivo(s) clave | Estado |
 |---|---|---|---|
-| **U-1** | Estilos inline en `AdminQRPanel` — primer caso migrado a CSS externo, sentó el patrón que luego siguió A3 | `AdminQRPanel.jsx` / `.css` | ✅ Cerrado |
+| **U-1** | Estilos inline en `AdminQRPanel` — primer caso migrado a CSS externo, sentó el patrón que luego siguió A3 | `AdminQRPanel.jsx` / `.css` | ✅ Cerrado (ver nota de precisión bajo `A3`) |
 | **U-2** | Adaptabilidad móvil: `.qrp-col-left` con `flex: 0 0 320px` (sin encoger) desbordaba horizontalmente en viewports ≤ ~372px; grid fijo `1fr 1fr` en `ModalRol` quedaba inusable en pantallas pequeñas. Revisión real contra el HEAD (no solo conteo de `@media`) confirmó que el resto de pantallas de mayor uso móvil (`DocenteScan`, `TurnoGrid`, `ReporteRango`, `LoginScreen`, `HistorialView`) ya tenían mitigación adecuada y no necesitaron cambios | `AdminQRPanel.css`, `usuarios/ModalRol.jsx` | ✅ Cerrado |
 | **U-3** | Sin trampa de foco de teclado en modales (accesibilidad) | `src/hooks/useFocusTrap.js` | ✅ Cerrado |
 | **U-4** | `Campo.jsx` (input del formulario de `DocenteScan`) renderiza `<label>` e `<input>` como hermanos, sin `htmlFor`/`id` que los asocie — un lector de pantalla no anuncia la etiqueta al enfocar el campo. Encontrado de forma indirecta: un test que intentaba ubicar el input por su label (`getByLabelText`, el método recomendado de Testing Library, que imita cómo un lector de pantalla encuentra el campo) no pudo hacerlo y tuvo que usar el `placeholder` como alternativa | `src/components/asistencias/DocenteScan/Campo.jsx` | ✅ Cerrado (`useId()` genera un id estable que conecta `label`↔`input`; el mensaje de error/hint también se enlaza vía `aria-describedby`, y `aria-invalid` se activa cuando hay error. `DocenteScan.flow.test.jsx` se actualizó para usar `getByLabelText` en vez del workaround de `placeholder`, quedando como guardia contra que esto se rompa de nuevo) |
-| **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | `LoginScreen`, `ConfirmModal`, `DocentesView`, `AdminQRPanel`, `LogsView`, `MateriasView`, `UploadPreviewModal`, `PlanillaImprimibleBase`, `ReporteAsistencias/index`, `ModalRol` ya tienen `.css` propio — ver nota | 🟡 **En curso** |
+| **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | `LoginScreen`, `ConfirmModal`, `DocentesView`, `AdminQRPanel`(parcial, ver nota), `LogsView`, `MateriasView`, `UploadPreviewModal`, `PlanillaImprimibleBase`, `ReporteAsistencias/index`, `ReporteAsistencias/ReporteRango`, `ModalRol` ya tienen `.css` propio con solo residuo dinámico legítimo — ver nota | 🟡 **En curso** |
 
+> **Nota de precisión sobre `U-1` (verificado contra HEAD, 4 de julio):**
+> el propio comentario de cabecera de `AdminQRPanel.jsx` afirma *"Eliminados
+> los 142 bloques `style={{}}` inline que existían en la versión
+> anterior"*. Eso fue cierto en el momento en que `U-1` se cerró, pero no
+> describe el HEAD actual: el archivo hoy tiene **34** bloques `style={{`
+> de nuevo — no porque el fix se haya revertido, sino porque funcionalidad
+> añadida después (`CountdownBar`, `FeedActividad`, `ContadorSesion`,
+> `ColaOfflinePanel`, `HistorialSesiones`) se escribió con estilo inline en
+> vez de seguir el patrón `.css` que `U-1` había establecido. `U-1` como
+> hallazgo puntual sigue cerrado (la migración que describe sí ocurrió),
+> pero el archivo como un todo vuelve a estar en la lista de pendientes de
+> `A3` — mismo principio que motivó la nota sobre no dar por buena una
+> afirmación sin verificarla contra el código real.
+>
 > **Nota sobre `A3` (verificado contra HEAD, 4 de julio):** el conteo de
-> **archivos** con `style={{` sigue en **40** — el mismo número que cuando
-> se abrió el hallazgo — pero no es que no haya habido avance: el
-> **volumen** de estilos inline bajó de ~894 a **487** ocurrencias, porque
-> varios de esos 40 archivos (`DocentesView`, `LogsView`, `MateriasView`,
-> `UploadPreviewModal`, `PlanillaImprimibleBase`, `ReporteAsistencias/index`,
-> `ModalRol`) ya tienen su `.css` dedicado y solo les queda un residuo
-> parcial sin migrar — no arrancaron de cero. El objeto `S` (el helper más
-> viejo, previo incluso a este esquema de estilos inline puro) también bajó
-> de 9 a **4 archivos** que todavía lo importan: `ReporteRango.jsx`,
-> `SkeletonRow.jsx`, `VistaAusentes.jsx` y `PestanaUsuarios.jsx`. Ninguno de
-> los 40 archivos llegó todavía a cero `style={{`, así que el hallazgo
-> sigue abierto, pero el "40 archivos pendientes" del texto original ya no
-> describe con precisión cuánto trabajo real queda — es más preciso hablar
-> de 487 ocurrencias repartidas de forma desigual.
+> **archivos** con `style={{` bajó de 40 a **33**, y el **volumen** de
+> estilos inline bajó de ~487 a **341** ocurrencias. De esos 33, **9 ya
+> están efectivamente cerrados** — lo que les queda es únicamente estilo
+> dinámico legítimo (color por dato en tiempo de ejecución: trayecto,
+> estadística, config de evento/acción), no deuda pendiente:
+> `PlanillaImprimibleBase.jsx` (1), `MateriasView.jsx` (1),
+> `Avatar.jsx` (1), `ReporteAsistencias/index.jsx` (2),
+> `ReporteAsistencias/EstadoChip.jsx` (2), `DocentesView.jsx` (3),
+> `UploadPreviewModal.jsx` (3), `ModalRol.jsx` (3),
+> `ReporteAsistencias/ReporteRango.jsx` (5), `LogsView.jsx` (5),
+> `ResumenView.jsx` (8). Cada uno con `.css` dedicado, build limpio y
+> suite completa (152/152) verificados antes de integrarse.
+>
+> **Pendiente real, por tamaño:** `AdminQRPanel.jsx` (34 — ver nota de
+> precisión arriba), `usuarios/PestanaUsuarios.jsx` (33),
+> `ModalCambiarPassword.jsx` (30), `usuarios/PestanaRoles.jsx` (24),
+> `SeccionesView.jsx` (22), `TurnoGrid.jsx` (21),
+> `ReporteAsistencias/VistaAusentes.jsx` (20), `ConflictosView.jsx` (20),
+> `ModuleSelector.jsx` (17), `usuarios/ModalUsuario.jsx` (14),
+> `HorariosView.jsx`/`GlobalSearch.jsx` (10), `usuarios/shared.jsx` (9),
+> `usuarios/index.jsx` (8), `PlanillaQR.jsx` (7),
+> `ReporteAsistencias/AlertaSinVincular.jsx`/`ErrorBoundary.jsx` (6),
+> `QRProyeccion.jsx`/`Toast.jsx`/`StatCard.jsx` (4), `ProgramaLogo.jsx` (3),
+> `SkeletonRow.jsx` (1).
+>
+> El helper `S` bajó a **3 archivos** que todavía lo importan:
+> `PestanaUsuarios.jsx`, `VistaAusentes.jsx`, `SkeletonRow.jsx` — antes se
+> listaba `ReporteRango.jsx` en su lugar, pero ya no lo importa tras su
+> migración.
+
+---
+
+## 🎨 Identidad visual y sistema de diseño
+
+Esquema `FE-N` (Frontend). Fusionado desde `AUDITORIA_FRONTEND.md`, un
+documento aparte que auditaba específicamente identidad visual e
+iconografía — se integra aquí para tener un solo índice de auditoría en
+vez de dos con superposición parcial (ambos tocan estilos inline y el
+objeto `S`). Cada fila se reverificó contra el HEAD actual antes de
+fusionarse, no se copió tal cual del documento original. `AUDITORIA_FRONTEND.md`
+se elimina del repo tras esta fusión — su contenido vive ahora aquí.
+
+| ID | Descripción | Archivo(s) clave | Estado |
+|---|---|---|---|
+| **FE-1** | Iconografía funcional resuelta con emojis nativos del SO (📅👥⚙️🎓✅⚠️…) en sidebar, topbar, modales y tarjetas — varía de apariencia según SO/navegador y no transmite seriedad institucional | `src/app/buildNavGroups.js`, `App.jsx`, `AdminMenu.jsx`, `LoginScreen.jsx`, `ModuleSelector.jsx`, `ConfirmModal.jsx` (primera pasada); resto de vistas (segunda pasada) | ✅ Cerrado — verificado con un grep de rango Unicode de emoji sobre **todo** `src/`: cero coincidencias como icono funcional. Los únicos emoji que sobreviven en el código son `EMOJIS_PRESET` en `usuarios/shared.jsx` (selector deliberado de emoji para personalizar un rol, es la funcionalidad en sí, no un ícono de UI) y un puñado dentro de `logger.warn(...)` / un comentario — mensajes de diagnóstico de desarrollo, no interfaz |
+| **FE-2** | Tipografía sin identidad — solo `system-ui`, sin fuente propia ni jerarquía tipográfica definida | `src/index.css` | ✅ Cerrado — fuente **Inter** confirmada en `index.css` |
+| **FE-3** | Tokens de diseño incompletos: faltaban escalas de espaciado/sombras/radios; gran parte de los componentes usaba estilos inline con hex repetidos en vez de tokens | `src/index.css`, objeto `S` en `src/constants/index.js` | 🟡 **Parcialmente cerrado** — la escala de tokens sí se completó (espaciado, sombras, `:focus-visible`), pero la segunda mitad de este mismo hallazgo (estilos inline con hex repetido en vez de tokens) es exactamente la causa raíz de `S3`/`A3` — no son hallazgos distintos, `S3`/`A3` es la continuación de `FE-3` con más profundidad y alcance (33 archivos en vez de los "algunos" que mencionaba `FE-3` originalmente). Seguir el estado real en `A3`, no aquí |
+| **FE-4** | Sin estado `:focus-visible` accesible consistente para navegación por teclado | `src/index.css` | ✅ Cerrado — 6 reglas `:focus-visible` confirmadas en `index.css` |
+
+> **Nota sobre la lista "pendiente fase 2" del documento original:** listaba
+> conteos de emoji por archivo (`UsuariosView.jsx` 25, `LogsView.jsx` 24,
+> `HistorialView.jsx` 22, `AdminQRPanel.jsx` 14, `ResumenView.jsx` 13,
+> `DocentesView.jsx` 12, etc.) como trabajo pendiente. Verificado contra
+> HEAD: esa lista ya no aplica. `UsuariosView.jsx` ya ni existe — se
+> refactorizó en la carpeta `usuarios/` (varios archivos) en un trabajo
+> aparte de arquitectura, no de iconografía. Los demás archivos de la
+> lista se revisaron uno por uno con el mismo grep de rango Unicode: cero
+> emoji funcional en ninguno. Este hallazgo se puede dar por **completado
+> en su totalidad**, no solo en la primera pasada que documentaba el
+> archivo original.
+>
+> **Sugerencias del documento original que siguen sin implementarse**
+> (no eran hallazgos de auditoría propiamente, sino mejoras sugeridas a
+> futuro — se preservan aquí para no perderlas al fusionar):
+> dividir `App.jsx` (1500+ líneas) y vistas grandes en subcomponentes;
+> evaluar `code-splitting` con `import()` dinámico por vista para reducir
+> el bundle inicial (~917 KB en la medición original). Ninguna de las dos
+> es bloqueante para `S3`/`A3`.
 
 ---
 
@@ -216,10 +284,13 @@ Cuando se cierre un nuevo hallazgo:
 
 **Abiertos ahora mismo:** `S3`/`A3` (la misma tarea, vista desde seguridad
 y desde UI respectivamente) y `SEC-9` (bajo riesgo, señalado por
-transparencia) — ver `AUDITORIA_FRONTEND.md` para el detalle del
-reemplazo de estilos inline pendiente. Con el cierre de `SEC-6`, `SEC-7`,
-`SEC-8`, `S2`, `ARCH-5`, `U-4` y todo `FIX-CI-N`, no queda ningún otro
-hallazgo de seguridad, accesibilidad, testing ni de CI/automatización
+transparencia) — ver la nota bajo `A3` arriba para el detalle del
+reemplazo de estilos inline pendiente, archivo por archivo. `FE-3` queda
+parcialmente abierto pero es la misma tarea que `A3`/`S3` vista desde el
+ángulo de identidad visual, no un cuarto hallazgo independiente. Con el
+cierre de `SEC-6`, `SEC-7`, `SEC-8`, `S2`, `ARCH-5`, `U-4`, `FE-1`, `FE-2`,
+`FE-4` y todo `FIX-CI-N`, no queda ningún otro hallazgo de seguridad,
+accesibilidad, testing, iconografía/tipografía ni de CI/automatización
 abierto en este índice. Para el índice de migraciones SQL y el esquema de
 base de datos, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
@@ -271,3 +342,24 @@ método. Si en el futuro se recuerda un hallazgo puntual de esa auditoría
 (aunque sea de memoria), se puede verificar contra el estado actual sin
 necesitar el documento completo — igual que se hizo con la colisión `S1`
 externo / `S2` de este índice.*
+
+*Cuarta pasada (4 de julio de 2026) — esta rama de trabajo (migración A3
+archivo por archivo + fusión de `AUDITORIA_FRONTEND.md`) había divergido en
+paralelo de la rama que agregó `SEC-7`/`SEC-8`/`SEC-9` (la de la "Tercera
+pasada" de arriba): ambas partieron del mismo punto y avanzaron sin verse.
+Se reconcilió tomando el HEAD real del repo como base (que ya tenía
+`SEC-7`/`SEC-8`/`SEC-9` correctos) y aplicando encima, ya reverificado
+contra código: (1) cifras de `A3` recalculadas — **33 archivos, 341
+ocurrencias** (bajó de 40/487), con **9 archivos ya efectivamente
+cerrados** listados por nombre; (2) nota de precisión en `U-1`:
+`AdminQRPanel.jsx` afirma en su propio comentario de cabecera que ya no
+tiene `style={{`, pero el HEAD real muestra 34 — funcionalidad añadida
+después de aquel fix no siguió su patrón; (3) fusión completa de
+`AUDITORIA_FRONTEND.md` como sección `FE-N` (`FE-1` a `FE-4`), con
+`FE-3` marcado explícitamente como el mismo hallazgo que `S3`/`A3` visto
+desde otro ángulo, para no mantener dos contadores que se desincronicen;
+(4) corregido un dato propio: el helper `S` lo importan **3** archivos,
+no 4 como se había escrito en un borrador intermedio de esta misma
+pasada — se verificó de nuevo con grep antes de cerrar. `AUDITORIA_FRONTEND.md`
+se elimina del repo con este cambio; su contenido íntegro vive ahora en la
+sección `FE-N` de este documento.*
