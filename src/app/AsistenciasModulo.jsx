@@ -10,9 +10,8 @@ const ReporteAsistencias = lazy(() => import("../components/asistencias/ReporteA
 const PlanillaQR         = lazy(() => import("../components/asistencias/PlanillaQR"));
 
 const QRFallback = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center",
-    height: 240, color: "var(--color-text-tertiary)", fontSize: 13, gap: 8 }}>
-    <i className="ti ti-loader-2" style={{ fontSize: 20, animation: "spin 1s linear infinite" }} aria-hidden="true" />
+  <div className="lazy-fallback">
+    <i className="ti ti-loader-2 lazy-spin" aria-hidden="true" />
     Cargando…
   </div>
 );
@@ -103,7 +102,7 @@ export default function AsistenciasModulo({
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--color-background-tertiary)", fontFamily: "var(--font-sans)" }}>
+    <div className="asm-root">
 
       {cambiarPwdOpen && (
         <ModalCambiarPassword
@@ -113,45 +112,25 @@ export default function AsistenciasModulo({
       )}
 
       {/* Topbar */}
-      <header style={{
-        background: "#fff",
-        borderBottom: "1px solid var(--color-border-tertiary)",
-        display: "flex", alignItems: "center", gap: 12,
-        padding: "0 20px", height: 52, flexShrink: 0,
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 200,
-        transition: "transform 0.35s ease",
-        transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
-      }}>
+      <header className={`asm-topbar ${headerVisible ? "" : "asm-topbar--hidden"}`}>
 
         {/* Volver al selector — solo si también tiene acceso a horarios */}
         {tieneHorarios && (
           <button
             onClick={() => { qrSession.cerrarSesion(); onVolverSelector(); }}
-            style={{
-              background: "none", border: "1px solid var(--color-border-tertiary)",
-              borderRadius: 7, padding: "5px 12px", cursor: "pointer",
-              fontSize: 13, fontWeight: 600, color: "var(--navy-700)",
-              display: "flex", alignItems: "center", gap: 6,
-            }}
+            className="asm-back-btn"
           >
             <i className="ti ti-arrow-left" aria-hidden="true" /> Módulos
           </button>
         )}
 
         {/* Pestañas internas */}
-        <div style={{ display: "flex", gap: 4 }}>
+        <div className="asm-tabs">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setSubView(tab.id)}
-              style={{
-                padding: "5px 14px", borderRadius: 7, border: "none",
-                background: subView === tab.id ? "var(--color-background-info)" : "transparent",
-                color:      subView === tab.id ? "var(--brand-600)" : "var(--color-text-tertiary)",
-                fontWeight: subView === tab.id ? 700 : 500,
-                fontSize: 13, cursor: "pointer", transition: "all 0.12s",
-                display: "flex", alignItems: "center", gap: 6,
-              }}
+              className={`asm-tab ${subView === tab.id ? "asm-tab--active" : ""}`}
             >
               <i className={`ti ${tab.icon}`} aria-hidden="true" /> {tab.label}
             </button>
@@ -160,17 +139,9 @@ export default function AsistenciasModulo({
 
         {/* Indicador de sesión QR activa */}
         {qrSession.activa && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 6,
-            padding: "3px 10px", background: "#F0FDF4",
-            border: "1px solid #86EFAC", borderRadius: 20,
-          }}>
-            <span style={{
-              width: 7, height: 7, borderRadius: "50%", background: "#22C55E",
-              display: "inline-block", animation: "pulse 1.4s ease-in-out infinite",
-            }} />
-            <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#15803D" }}>Sesión activa</span>
+          <div className="asm-session-badge">
+            <span className="asm-session-dot" />
+            <span className="asm-session-text">Sesión activa</span>
           </div>
         )}
 
@@ -178,13 +149,7 @@ export default function AsistenciasModulo({
         {pendientesCount > 0 && (
           <span
             title={`${pendientesCount} registro${pendientesCount > 1 ? 's' : ''} de asistencia pendiente${pendientesCount > 1 ? 's' : ''} de sincronizar`}
-            style={{
-              display: "flex", alignItems: "center", gap: 5,
-              padding: "3px 10px", borderRadius: 20, flexShrink: 0,
-              background: "#FEF3C7", border: "1px solid #FCD34D",
-              fontSize: 11, fontWeight: 600, color: "#92400E",
-              whiteSpace: "nowrap",
-            }}
+            className="asm-pendientes-badge"
           >
             <i className="ti ti-clock-exclamation" aria-hidden="true" />
             {pendientesCount} pendiente{pendientesCount > 1 ? 's' : ''}
@@ -206,7 +171,7 @@ export default function AsistenciasModulo({
       </header>
 
       {/* Sub-vistas */}
-      <main style={{ paddingTop: subView === "proyeccion" ? 0 : 52 }}>
+      <main className={`asm-main ${subView === "proyeccion" ? "asm-main--proyeccion" : ""}`}>
         <ErrorBoundary>
           <Suspense fallback={<QRFallback />}>
             {subView === "panel" && (
