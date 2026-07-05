@@ -3,6 +3,7 @@ import { DAYS, BLOQUES_DIURNO, BLOQUES_VESPERTINO } from '../constants';
 import { getTurnoDeRegistro } from '../utils/turno';
 import TurnoGrid from './TurnoGrid';
 import ConflictosView from './ConflictosView';
+import './HorariosView.css';
 
 export default function HorariosView({
   filtered,
@@ -36,24 +37,19 @@ export default function HorariosView({
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div className="hv-root">
       {/* ── Tabs + filtros ── */}
-      <div className="horarios-filters" style={{ padding: "14px 20px", background: "#fff", borderBottom: "1px solid #E2E8F0" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: tab === 'horarios' ? 10 : 0, flexWrap: "wrap" }}>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0F172A", marginRight: 4, display: "flex", alignItems: "center", gap: 8 }}>
-            <i className="ti ti-calendar-event" style={{ color: "#2563EB" }} aria-hidden="true" /> Horarios
+      <div className="hv-filters">
+        <div className={`hv-filters-row${tab === 'conflictos' ? ' hv-filters-row--conflictos' : ''}`}>
+          <h1 className="hv-title">
+            <i className="ti ti-calendar-event hv-title-icon" aria-hidden="true" /> Horarios
           </h1>
           {/* Pill tabs */}
-          <div style={{ display: "flex", gap: 4, background: "#F1F5F9", borderRadius: 10, padding: 4 }}>
+          <div className="hv-tabs">
             {TABS.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)} style={{
-                padding: "6px 14px", borderRadius: 7, border: "none", cursor: "pointer",
-                fontSize: 13, fontWeight: 600, transition: "all 0.15s",
-                display: "flex", alignItems: "center", gap: 6,
-                background: tab === t.id ? "#fff" : "transparent",
-                color: tab === t.id ? "#0F172A" : "#64748B",
-                boxShadow: tab === t.id ? "0 1px 3px rgba(15,23,42,0.10)" : "none",
-              }}><i className={`ti ${t.icon}`} aria-hidden="true" /> {t.label}</button>
+              <button key={t.id} onClick={() => setTab(t.id)} className={`hv-tab${tab === t.id ? ' hv-tab--active' : ''}`}>
+                <i className={`ti ${t.icon}`} aria-hidden="true" /> {t.label}
+              </button>
             ))}
           </div>
           {tab === 'horarios' && (
@@ -66,12 +62,12 @@ export default function HorariosView({
                 <option value="all">Todas las secciones</option>
                 {seccionesByTrayecto.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <span style={{ fontSize: 13, color: "#64748B", marginLeft: "auto", fontWeight: 600 }}>{filtered.length} clases</span>
+              <span className="hv-count">{filtered.length} clases</span>
             </>
           )}
         </div>
         {tab === 'horarios' && (
-          <div className="day-buttons" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div className="hv-days">
             {["all", ...DAYS].map(d => (
               <button key={d} onClick={() => setActiveDay(d)} className={`s-btn ${activeDay === d ? "s-btn--active" : ""}`}>
                 {d === "all" ? "Semana completa" : d.charAt(0) + d.slice(1).toLowerCase()}
@@ -82,7 +78,7 @@ export default function HorariosView({
       </div>
 
       {/* ── Contenido ── */}
-      <div style={{ flex: 1, overflow: "auto", padding: tab === 'conflictos' ? 0 : "12px 16px" }}>
+      <div className={`hv-content${tab === 'conflictos' ? ' hv-content--conflictos' : ''}`}>
         {tab === 'horarios' && (
           <>
             {fd.length > 0 && <TurnoGrid bloques={BLOQUES_DIURNO} turnoLabel="DIURNO" filtered={fd} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} />}
