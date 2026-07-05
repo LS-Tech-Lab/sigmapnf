@@ -5,6 +5,8 @@
  * sub-módulos de Gestión de Usuarios y Roles.
  */
 
+import './shared.css';
+
 // ─── Catálogo de permisos ─────────────────────────────────────────────────────
 export const GRUPOS_PERMISOS = [
   {
@@ -73,51 +75,27 @@ export const EMOJIS_PRESET = ["👤", "👑", "🏛️", "📋", "📷", "🔑",
 
 // ─── Micro-componentes ────────────────────────────────────────────────────────
 export function Badge({ color, children }) {
+  const c = color || "var(--color-text-mid)";
   return (
-    <span style={{
-      background: hex2rgba(color || "var(--color-text-mid)", 0.12),
-      color: color || "var(--color-text-mid)",
-      border: `1px solid ${hex2rgba(color || "var(--color-text-mid)", 0.25)}`,
-      borderRadius: 999, padding: "2px 10px",
-      fontSize: 12, fontWeight: 600,
-      display: "inline-flex", alignItems: "center", gap: 4,
-    }}>
+    <span className="shared-badge" style={{ '--badge-bg': hex2rgba(c, 0.12), '--badge-color': c, '--badge-border': hex2rgba(c, 0.25) }}>
       {children}
     </span>
   );
 }
 
 export function Spinner() {
-  return (
-    <div style={{
-      width: 20, height: 20,
-      border: "2px solid var(--color-border-tertiary)",
-      borderTop: "2px solid var(--brand-500)",
-      borderRadius: "50%", animation: "spin 0.7s linear infinite", flexShrink: 0,
-    }} />
-  );
+  return <div className="shared-spinner" />;
 }
 
 export function ModalConfirm({ titulo, mensaje, onConfirm, onCancel, peligro = true }) {
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      zIndex: 1100, padding: 16,
-    }}>
-      <div style={{
-        background: "#fff", borderRadius: 12, padding: 28, maxWidth: 380, width: "100%",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
-      }}>
-        <h3 style={{ margin: "0 0 8px", fontSize: 16, color: "var(--color-text-primary)" }}>{titulo}</h3>
-        <p style={{ margin: "0 0 24px", fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.6 }}>{mensaje}</p>
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button onClick={onCancel} style={{ padding: "8px 18px" }}>Cancelar</button>
-          <button onClick={onConfirm} style={{
-            padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer",
-            fontSize: 13, fontWeight: 600,
-            background: peligro ? "var(--color-danger)" : "var(--brand-500)", color: "#fff",
-          }}>Confirmar</button>
+    <div className="shared-confirm-backdrop">
+      <div className="shared-confirm-dialog">
+        <h3 className="shared-confirm-title">{titulo}</h3>
+        <p className="shared-confirm-msg">{mensaje}</p>
+        <div className="shared-confirm-actions">
+          <button onClick={onCancel} className="shared-confirm-cancel">Cancelar</button>
+          <button onClick={onConfirm} className={`shared-confirm-btn${peligro ? '' : ' shared-confirm-btn--safe'}`}>Confirmar</button>
         </div>
       </div>
     </div>
