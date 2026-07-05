@@ -17,6 +17,7 @@ import { supabase } from "../../lib/supabase";
 import { DEFAULT_PROGRAMAS } from "../../constants";
 import PestanaUsuarios from "./PestanaUsuarios";
 import PestanaRoles    from "./PestanaRoles";
+import "./index.css";
 
 export default function UsuariosView({ permisos, programas, logAudit, showToast }) {
   const programasDisponibles = programas?.length ? programas : DEFAULT_PROGRAMAS;
@@ -40,31 +41,28 @@ export default function UsuariosView({ permisos, programas, logAudit, showToast 
 
   if (!puedeUsuarios && !puedeRoles) {
     return (
-      <div style={{ padding: 40, textAlign: "center", color: "var(--color-text-tertiary)" }}>
+      <div className="uv-sin-permiso">
         No tienes permiso para acceder a esta sección.
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 900, margin: "0 auto", fontFamily: "system-ui,-apple-system,sans-serif" }}>
+    <div className="uv-root">
       {/* Encabezado */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--color-text-primary)" }}>
-          <i className="ti ti-crown" style={{ marginRight: 8, color: "var(--color-role-coord)" }} />
+      <div className="uv-header">
+        <h1 className="uv-title">
+          <i className="ti ti-crown uv-title-icon" />
           Gestión de Usuarios y Roles
         </h1>
-        <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--color-text-tertiary)" }}>
+        <p className="uv-subtitle">
           Administra quién puede acceder al sistema y qué puede hacer.
         </p>
       </div>
 
       {/* Pestañas (solo si tiene ambos permisos) */}
       {puedeUsuarios && puedeRoles && (
-        <div style={{
-          display: "flex", gap: 2, marginBottom: 20,
-          background: "var(--color-background-tertiary)", borderRadius: 10, padding: 3, width: "fit-content",
-        }}>
+        <div className="uv-tabs">
           {[
             { id: "usuarios", icon: "ti-users",       label: "Usuarios" },
             { id: "roles",    icon: "ti-shield-lock",  label: "Roles y Permisos" },
@@ -72,14 +70,7 @@ export default function UsuariosView({ permisos, programas, logAudit, showToast 
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              style={{
-                padding: "7px 18px", borderRadius: 8, border: "none", cursor: "pointer",
-                fontSize: 13, fontWeight: 600, transition: "all 0.15s",
-                background: tab === t.id ? "#fff" : "transparent",
-                color: tab === t.id ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
-                boxShadow: tab === t.id ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                display: "flex", alignItems: "center", gap: 6,
-              }}
+              className={`uv-tab${tab === t.id ? ' uv-tab--active' : ''}`}
             >
               <i className={`ti ${t.icon}`} /> {t.label}
             </button>
