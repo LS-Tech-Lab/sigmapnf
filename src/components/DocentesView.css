@@ -25,6 +25,20 @@
 .dv-list-card { flex: 1; overflow-y: auto; }
 .dv-list-header { padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
 
+/* Mismo bug y mismo fix que .mv-list-card en MateriasView.css: en
+   tablet (≤1024px) src/index.css acota `.dv-left-panel` con
+   `max-height: 260px`, pero ese cap no fuerza de forma confiable el
+   flex-shrink de `.dv-list-card` (el hijo que en verdad tiene
+   `overflow-y: auto`) en todos los motores de render — la lista queda
+   estática en vez de scrollear. Se acota directamente el elemento que
+   scrollea, con el mismo valor que ya usa el wrapper. */
+@media (max-width: 1024px) {
+  .dv-list-card { max-height: 260px; }
+}
+@media (max-width: 640px) {
+  .dv-list-card { max-height: 220px; }
+}
+
 .dv-list-item { padding: 10px 14px; cursor: pointer; font-size: 14px; font-weight: 400; background: transparent; color: var(--navy-700); border-bottom: 1px solid var(--color-background-tertiary); display: flex; justify-content: space-between; align-items: center; }
 .dv-list-item--active { font-weight: 600; background: var(--color-background-info); color: var(--brand-600); }
 .dv-list-item-name { display: flex; align-items: center; gap: 6px; }
