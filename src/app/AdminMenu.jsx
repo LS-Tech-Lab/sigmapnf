@@ -19,8 +19,7 @@ function AdminMenu({ onClose, modoConsulta, fileRef, backupRef, permisos }) {
 
   return (
     <div ref={ref} className="admin-menu">
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", textTransform: "uppercase",
-        letterSpacing: "0.08em", padding: "4px 10px 6px" }}>
+      <div className="am-section-title">
         Datos del trimestre
       </div>
 
@@ -52,8 +51,7 @@ function AdminMenu({ onClose, modoConsulta, fileRef, backupRef, permisos }) {
       {!modoConsulta && permisos.puedeBorrarHorarios && (
         <>
           <div className="admin-divider" />
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", textTransform: "uppercase",
-            letterSpacing: "0.08em", padding: "4px 10px 6px" }}>
+          <div className="am-section-title">
             Zona de peligro
           </div>
           <button className="admin-item danger" disabled={disabled || !appData.data.length}
@@ -66,19 +64,18 @@ function AdminMenu({ onClose, modoConsulta, fileRef, backupRef, permisos }) {
       <div className="admin-divider" />
 
       {/* Estado de conexión */}
-      <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 10px" }}>
-        <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-          background: appData.isOffline ? "#EF4444" : "#22C55E" }} />
-        <span style={{ fontSize: 11, color: appData.isOffline ? "#FCA5A5" : "#4ADE80", fontWeight: 600 }}>
+      <div className="am-status-row">
+        <span className={`am-status-dot ${appData.isOffline ? "am-status-dot--offline" : ""}`} />
+        <span className={`am-status-text ${appData.isOffline ? "am-status-text--offline" : ""}`}>
           {appData.isOffline ? "Sin conexión" : "En línea"}
         </span>
         {appData.data.length > 0 && (
-          <span style={{ fontSize: 11, color: "#475569", marginLeft: "auto" }}>
+          <span className="am-status-count">
             {appData.data.length} registros
           </span>
         )}
       </div>
-      <div style={{ fontSize: 10, color: "#334155", padding: "0 10px 4px" }}>
+      <div className="am-last-sync">
         Últ. sync: {appData.lastSync}
       </div>
     </div>
