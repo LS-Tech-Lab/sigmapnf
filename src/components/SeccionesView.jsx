@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { DAYS, TRAYECTO_COLORS, TRAYECTO_BG, ALL_TRAYECTOS } from '../constants';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../utils/time';
 import { parseClase } from '../utils/parsing';
+import './SeccionesView.css';
 
 export default function SeccionesView({ data, getDocName, getMateriaName }) {
   const allSecciones = useMemo(() => [...new Set(data.map(d => d.sheet.trim()))].sort(), [data]);
@@ -45,45 +46,42 @@ export default function SeccionesView({ data, getDocName, getMateriaName }) {
   const byDay = useMemo(() => DAYS.reduce((acc, day) => { acc[day] = entries.filter(e => e.dia === day).sort((a, b) => getHoraMin(a) - getHoraMin(b)); return acc; }, {}), [entries]);
 
   return (
-    <div className="secciones-layout" style={{ padding: 20, display: "flex", gap: 16, flex: 1, height: 0, overflow: "hidden" }}>
-      <div className="secciones-left-panel" style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+    <div className="secciones-layout sv-root">
+      <div className="secciones-left-panel sv-left-panel">
         <select value={filterTray} onChange={e => setFilterTray(e.target.value)} className="s-select s-select--full">
           <option value="all">Todos los trayectos</option>
           {ALL_TRAYECTOS.map(t => <option key={t} value={t}>Trayecto {t}</option>)}
         </select>
         <div className="s-card sv-list-panel">
-          <div style={{ padding: "10px 14px", fontSize: 12, fontWeight: 700, color: "#64748B", letterSpacing: "0.06em", textTransform: "uppercase", borderBottom: "1px solid #E2E8F0", background: "#F8FAFC" }}>{filteredSecciones.length} secciones</div>
+          <div className="sv-list-header">{filteredSecciones.length} secciones</div>
           {filteredSecciones.map(s => {
             const tray = getTrayectoIndicador(s);
             return (
               <div key={s} onClick={() => setSelSheet(s)}
-                style={{
-                  padding: "10px 14px", cursor: "pointer", fontSize: 14,
-                  fontWeight: selSheet === s ? 600 : 400,
-                  background: selSheet === s ? "#EFF6FF" : "transparent",
-                  color: selSheet === s ? "#1D4ED8" : "#334155",
-                  borderBottom: "1px solid #F1F5F9", display: "flex", alignItems: "center", gap: 8
-                }}
+                className={`sv-seccion-item${selSheet === s ? " sv-seccion-item--active" : ""}`}
               >
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: TRAYECTO_COLORS[tray] || "#ccc", flexShrink: 0 }} />
+                <span className="sv-seccion-dot" style={{ "--dot-color": TRAYECTO_COLORS[tray] || "#ccc" }} />
                 {s}
               </div>
             );
           })}
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div className="sv-right-panel">
         {info && (
           <>
             <div className="s-card sv-info-card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+              <div className="sv-info-header">
                 <div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{selSheet}</div>
-                  <div style={{ fontSize: 14, color: "#64748B", marginTop: 2, fontWeight: 500 }}>{programaSeccion}</div>
+                  <div className="sv-info-title">{selSheet}</div>
+                  <div className="sv-info-subtitle">{programaSeccion}</div>
                 </div>
-                <span style={{ background: TRAYECTO_BG[info.trayecto] || "#f3f4f6", color: TRAYECTO_COLORS[info.trayecto] || "#555", borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Trayecto {info.trayecto}</span>
+                <span
+                  className="sv-trayecto-badge"
+                  style={{ "--badge-bg": TRAYECTO_BG[info.trayecto] || "#f3f4f6", "--badge-color": TRAYECTO_COLORS[info.trayecto] || "#555" }}
+                >Trayecto {info.trayecto}</span>
               </div>
-              <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+              <div className="sv-stats-row">
                 {[
                   ["Turno", info.turno],
                   ["Sección", info.seccion],
@@ -92,37 +90,37 @@ export default function SeccionesView({ data, getDocName, getMateriaName }) {
                   ["Total clases", entries.length]
                 ].filter(Boolean).map(([l, v]) => (
                   <div key={l}>
-                    <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{l}</div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "#0F172A", marginTop: 3 }}>{v}</div>
+                    <div className="sv-stat-label">{l}</div>
+                    <div className="sv-stat-value">{v}</div>
                   </div>
                 ))}
               </div>
             </div>
             <div className="s-card">
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", borderBottom: "2px solid #E2E8F0" }}>
+              <div className="sv-days-header">
                 {DAYS.map(day => (
-                  <div key={day} style={{ padding: "12px 14px", borderRight: "1px solid #E2E8F0", fontWeight: 700, fontSize: 12, color: "#334155", textTransform: "uppercase", letterSpacing: "0.05em", background: "#F8FAFC" }}>
+                  <div key={day} className="sv-day-header-cell">
                     {day.slice(0, 3)}
                   </div>
                 ))}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)" }}>
+              <div className="sv-days-body">
                 {DAYS.map(day => (
-                  <div key={day} style={{ padding: "10px 10px", borderRight: "1px solid #F1F5F9", minHeight: 130 }}>
+                  <div key={day} className="sv-day-col">
                     {(byDay[day] || []).map((e, i) => {
                       const { materia: rm, docente: docenteParseado } = parseClase(e.clase);
                       const rd = e.docentes?.nombre_raw || docenteParseado;
                       const materia = getMateriaName(rm), docente = getDocName(rd);
                       const col = TRAYECTO_COLORS[e.trayecto] || "#555", bg = TRAYECTO_BG[e.trayecto] || "#f5f5f5";
                       return (
-                        <div key={i} style={{ background: bg, borderLeft: `3px solid ${col}`, borderRadius: 6, padding: "6px 10px", marginBottom: 6 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: col, lineHeight: 1.3 }}>{materia.length > 24 ? materia.slice(0, 22) + "…" : materia}</div>
-                          <div style={{ fontSize: 11, color: col, opacity: 0.75, marginTop: 2, fontWeight: 500 }}>{getHoraDisplayDeRegistro(e)}</div>
-                          {docente && <div style={{ fontSize: 11, color: col, opacity: 0.7, marginTop: 2, fontWeight: 500 }}>{docente.split(" ")[0]}</div>}
+                        <div key={i} className="sv-clase-card" style={{ "--clase-bg": bg, "--clase-color": col }}>
+                          <div className="sv-clase-materia">{materia.length > 24 ? materia.slice(0, 22) + "…" : materia}</div>
+                          <div className="sv-clase-hora">{getHoraDisplayDeRegistro(e)}</div>
+                          {docente && <div className="sv-clase-docente">{docente.split(" ")[0]}</div>}
                         </div>
                       );
                     })}
-                    {!byDay[day]?.length && <div style={{ fontSize: 12, color: "#CBD5E1", textAlign: "center", marginTop: 30, fontWeight: 500 }}>—</div>}
+                    {!byDay[day]?.length && <div className="sv-day-empty">—</div>}
                   </div>
                 ))}
               </div>
