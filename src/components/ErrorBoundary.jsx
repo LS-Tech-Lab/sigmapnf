@@ -34,36 +34,23 @@ export default class ErrorBoundary extends React.Component {
     if (!this.state.hasError) return this.props.children;
 
     return (
-      <div style={{
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        height: "100vh", gap: 16, padding: 32, fontFamily: "system-ui, sans-serif",
-        background: "#0F172A", color: "#E2E8F0", textAlign: "center",
-      }}>
-        <i className="ti ti-alert-triangle" style={{ fontSize: 48, color: "#FBBF24" }} aria-hidden="true" />
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "#F1F5F9" }}>
+      <div className="eb-root">
+        <i className="ti ti-alert-triangle eb-icon" aria-hidden="true" />
+        <h2 className="eb-title">
           Algo salió mal
         </h2>
-        <p style={{ margin: 0, fontSize: 14, color: "#94A3B8", maxWidth: 420, lineHeight: 1.6 }}>
+        <p className="eb-desc">
           {this.state.error?.message || "Error inesperado en la aplicación."}
         </p>
         {/* Stack trace visible SOLO en desarrollo (SEC-2) */}
         {import.meta.env.DEV && this.state.stack && (
-          <pre style={{
-            marginTop: 12, padding: "12px 16px", background: "#1E293B", borderRadius: 8,
-            fontSize: 10, color: "#CBD5E1", textAlign: "left", overflowX: "auto",
-            maxWidth: "100%", whiteSpace: "pre-wrap", wordBreak: "break-all",
-            maxHeight: 300, overflowY: "auto",
-          }}>
+          <pre className="eb-stack">
             {this.state.stack}
           </pre>
         )}
         <button
           onClick={() => window.location.reload()}
-          style={{
-            marginTop: 8, padding: "10px 24px", borderRadius: 8, border: "none",
-            background: "#3B82F6", color: "#fff", fontSize: 14, fontWeight: 600,
-            cursor: "pointer",
-          }}
+          className="eb-btn"
         >
           Recargar página
         </button>
