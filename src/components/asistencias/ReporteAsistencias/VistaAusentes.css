@@ -1,0 +1,46 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   VistaAusentes.css
+   Migración A3 (auditoría 2026-07-05): estilos extraídos de VistaAusentes.jsx.
+   Reutiliza .s-card / .s-th / .s-td (src/index.css), que reemplazan al helper
+   S del componente (S.card/S.th/S.td eran objetos idénticos a esas clases).
+   El @keyframes shimmer ya vive en ReporteAsistencias/index.css — se retira
+   aquí la etiqueta <style> inline duplicada (ver nota en ese archivo).
+   El hover de fila se resuelve con :hover en CSS puro en vez de
+   onMouseEnter/onMouseLeave en JS.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.s-card.va-offline-card { padding: 32px 24px; text-align: center; color: var(--color-warning-text); background: var(--color-warning-bg); border: 1px solid var(--color-warning-border); }
+.va-offline-icon { font-size: 32px; display: block; margin-bottom: 10px; }
+.va-offline-title { font-weight: 600; margin-bottom: 4px; }
+.va-offline-desc { font-size: 13px; }
+
+.va-weekend { text-align: center; padding: 48px 0; color: var(--color-text-tertiary); font-size: 14px; }
+
+.s-card.va-card { overflow-x: auto; }
+
+.va-empty { text-align: center; padding: 48px 0; color: var(--color-text-tertiary); font-size: 14px; }
+.va-empty-icon { font-size: 36px; color: #22C55E; display: block; margin-bottom: 12px; }
+
+.va-table { width: 100%; border-collapse: collapse; }
+
+.va-row { transition: background 0.1s; }
+.va-row:hover { background: #FFF7F7; }
+
+.va-td-nombre { font-weight: 600; color: var(--color-text-primary); }
+.va-td-cedula { font-family: monospace; font-size: 12px; }
+.va-sinvincular { color: var(--color-border-secondary); font-style: italic; }
+.va-cedula-value { color: var(--color-danger); font-weight: 600; }
+
+.va-clases-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
+.va-clase-chip { font-size: 11px; background: var(--color-danger-bg); color: #991B1B; border: 1px solid #FECACA; border-radius: 5px; padding: 2px 7px; font-weight: 500; }
+
+.va-td-programa { font-size: 12px; color: var(--color-text-tertiary); }
+
+.va-offline-banner {
+  padding: 8px 16px; font-size: 12px; color: var(--color-warning-text);
+  background: var(--color-warning-bg); border-top: 1px solid var(--color-warning-border);
+  display: flex; align-items: center; gap: 6px;
+}
+.va-offline-banner-icon { font-size: 14px; }
+
+.va-summary { padding: 10px 16px; font-size: 12px; color: var(--color-text-tertiary); border-top: 1px solid var(--color-background-tertiary); }
