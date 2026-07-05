@@ -21,27 +21,19 @@ function AlertaSinVincular({ cedulasPresentes, loading }) {
   if (sinVincular.length === 0) return null;
 
   return (
-    <div style={{
-      background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10,
-      padding: "12px 16px", marginBottom: 16,
-      display: "flex", alignItems: "flex-start", gap: 10,
-    }}>
-      <i className="ti ti-alert-triangle" style={{ fontSize: 20, color: "#D97706", flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+    <div className="asv-box">
+      <i className="ti ti-alert-triangle asv-icon" aria-hidden="true" />
       <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
+        <div className="asv-title">
           {sinVincular.length} cédula{sinVincular.length > 1 ? "s" : ""} sin vincular al sistema de horarios
         </div>
-        <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.5 }}>
+        <div className="asv-desc">
           Los siguientes docentes marcaron asistencia pero su cédula no coincidió con ningún docente del horario.
           Ve a <strong>Docentes</strong> y asigna manualmente la cédula correspondiente para que su horario aparezca en el escaneo.
         </div>
-        <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div className="asv-chips">
           {sinVincular.map(c => (
-            <span key={c} style={{
-              fontSize: 12, fontFamily: "monospace", fontWeight: 700,
-              background: "#FEF3C7", color: "#92400E",
-              border: "1px solid #FDE68A", borderRadius: 5, padding: "2px 8px",
-            }}>
+            <span key={c} className="asv-chip">
               {c}
             </span>
           ))}
