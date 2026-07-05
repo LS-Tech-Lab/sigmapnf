@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { validarPassword } from "../utils/password";
+import "./ModalCambiarPassword.css";
 
 // ── Pestaña activa ────────────────────────────────────────────────────
 const TABS = [
@@ -138,33 +139,14 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
     onCerrar();
   };
 
-  // ── Estilos compartidos ───────────────────────────────────────────
-  const inputStyle = {
-    width: "100%", padding: "9px 12px", borderRadius: 8,
-    border: "1px solid #E5E7EB", fontSize: 13, outline: "none",
-    boxSizing: "border-box", fontFamily: "inherit",
-  };
-  const labelStyle = {
-    fontSize: 12, fontWeight: 600, color: "#374151",
-    display: "block", marginBottom: 5,
-  };
-
   return (
     <div
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 1000, padding: 20,
-      }}
+      className="mcp-backdrop"
       role="presentation"
       onClick={onCerrar}
     >
       <div
-        style={{
-          background: "#fff", borderRadius: 14, padding: 28,
-          maxWidth: 400, width: "100%",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.2)",
-        }}
+        className="mcp-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-cuenta-titulo"
@@ -172,41 +154,28 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
       >
 
         {/* Cabecera */}
-        <div style={{ marginBottom: 18 }}>
+        <div className="mcp-header">
           <i
-            className={`ti ${tab === "password" ? "ti-key" : "ti-mail"}`}
-            style={{ fontSize: 28, color: "#2563EB", marginBottom: 6, display: "block" }}
+            className={`ti ${tab === "password" ? "ti-key" : "ti-mail"} mcp-header-icon`}
             aria-hidden="true"
           />
-          <h2 id="modal-cuenta-titulo" style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 700, color: "#0F172A" }}>
+          <h2 id="modal-cuenta-titulo" className="mcp-title">
             Configuración de cuenta
           </h2>
-          <p style={{ margin: 0, fontSize: 12, color: "#64748B" }}>
+          <p className="mcp-subtitle">
             Cambia tu contraseña o tu correo electrónico.
           </p>
         </div>
 
         {/* Pestañas */}
-        <div style={{
-          display: "flex", gap: 4, marginBottom: 20,
-          background: "#F1F5F9", borderRadius: 9, padding: 4,
-        }}>
+        <div className="mcp-tabs">
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => { setTab(t.id); setError(null); }}
-              style={{
-                flex: 1, padding: "7px 0", borderRadius: 7, border: "none",
-                background: tab === t.id ? "#fff" : "transparent",
-                color: tab === t.id ? "#1E40AF" : "#64748B",
-                fontWeight: tab === t.id ? 700 : 500,
-                fontSize: 13, cursor: "pointer",
-                boxShadow: tab === t.id ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
-                transition: "all .15s",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              }}
+              className={`mcp-tab${tab === t.id ? " mcp-tab--active" : ""}`}
             >
-              <i className={`ti ${t.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
+              <i className={`ti ${t.icon} mcp-tab-icon`} aria-hidden="true" />
               {t.label}
             </button>
           ))}
@@ -214,38 +183,37 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
 
         {/* ── Panel: Contraseña ───────────────────────────────────── */}
         {tab === "password" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="mcp-panel">
             <div>
-              <label htmlFor="pwd-actual" style={labelStyle}>Contraseña actual *</label>
+              <label htmlFor="pwd-actual" className="mcp-field-label">Contraseña actual *</label>
               <input
                 id="pwd-actual"
                 ref={firstInputRef}
                 type="password" value={actual}
                 onChange={e => { setActual(e.target.value); resetError(); }}
                 placeholder="Tu contraseña actual"
-                style={inputStyle} autoComplete="current-password"
+                className="mcp-input" autoComplete="current-password"
               />
             </div>
 
             <div>
-              <label htmlFor="pwd-nueva" style={labelStyle}>Nueva contraseña * (mín. 8 caracteres)</label>
+              <label htmlFor="pwd-nueva" className="mcp-field-label">Nueva contraseña * (mín. 8 caracteres)</label>
               <input
                 id="pwd-nueva"
                 type="password" value={nueva}
                 onChange={e => { setNueva(e.target.value); resetError(); }}
                 placeholder="Mínimo 8 caracteres"
-                style={inputStyle} autoComplete="new-password"
+                className="mcp-input" autoComplete="new-password"
               />
               {fortaleza && (
-                <div style={{ marginTop: 6 }}>
-                  <div style={{ height: 4, borderRadius: 4, background: "#E5E7EB", overflow: "hidden" }}>
-                    <div style={{
-                      height: "100%", borderRadius: 4,
-                      width: fortaleza.width, background: fortaleza.color,
-                      transition: "width 0.3s, background 0.3s",
-                    }} />
+                <div className="mcp-strength-wrap">
+                  <div className="mcp-strength-track">
+                    <div
+                      className="mcp-strength-fill"
+                      style={{ "--strength-width": fortaleza.width, "--strength-color": fortaleza.color }}
+                    />
                   </div>
-                  <span style={{ fontSize: 11, color: fortaleza.color, fontWeight: 600, marginTop: 3, display: "block" }}>
+                  <span className="mcp-strength-label" style={{ "--strength-color": fortaleza.color }}>
                     {fortaleza.label}
                   </span>
                 </div>
@@ -253,22 +221,22 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
             </div>
 
             <div>
-              <label htmlFor="pwd-confirmar" style={labelStyle}>Confirmar nueva contraseña *</label>
+              <label htmlFor="pwd-confirmar" className="mcp-field-label">Confirmar nueva contraseña *</label>
               <input
                 id="pwd-confirmar"
                 type="password" value={confirmar}
                 onChange={e => { setConfirmar(e.target.value); resetError(); }}
                 placeholder="Repite la nueva contraseña"
-                style={{ ...inputStyle, borderColor: confirmar && nueva !== confirmar ? "#FCA5A5" : "#E5E7EB" }}
+                className={`mcp-input${confirmar && nueva !== confirmar ? " mcp-input--error" : ""}`}
                 autoComplete="new-password"
               />
               {confirmar && nueva !== confirmar && (
-                <span style={{ fontSize: 11, color: "#EF4444", marginTop: 3, display: "block" }}>
+                <span className="mcp-hint mcp-hint--error">
                   Las contraseñas no coinciden.
                 </span>
               )}
               {confirmar && nueva === confirmar && nueva.length >= 8 && (
-                <span style={{ fontSize: 11, color: "#16A34A", marginTop: 3, display: "block" }}>
+                <span className="mcp-hint mcp-hint--success">
                   ✓ Las contraseñas coinciden.
                 </span>
               )}
@@ -278,59 +246,52 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
 
         {/* ── Panel: Correo ───────────────────────────────────────── */}
         {tab === "email" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{
-              background: "#EFF6FF", border: "1px solid #BFDBFE",
-              borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#1E40AF",
-              display: "flex", gap: 8, alignItems: "flex-start",
-            }}>
-              <i className="ti ti-info-circle" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+          <div className="mcp-panel">
+            <div className="mcp-email-info">
+              <i className="ti ti-info-circle mcp-email-info-icon" aria-hidden="true" />
               Se enviará un enlace de confirmación al nuevo correo. El cambio se aplica al hacer clic en ese enlace.
             </div>
 
             <div>
-              <label htmlFor="email-pwd-actual" style={labelStyle}>Contraseña actual * (para verificar)</label>
+              <label htmlFor="email-pwd-actual" className="mcp-field-label">Contraseña actual * (para verificar)</label>
               <input
                 id="email-pwd-actual"
                 ref={firstInputRef}
                 type="password" value={passwordEmail}
                 onChange={e => { setPasswordEmail(e.target.value); resetError(); }}
                 placeholder="Tu contraseña actual"
-                style={inputStyle} autoComplete="current-password"
+                className="mcp-input" autoComplete="current-password"
               />
             </div>
 
             <div>
-              <label htmlFor="email-nuevo" style={labelStyle}>Nuevo correo electrónico *</label>
+              <label htmlFor="email-nuevo" className="mcp-field-label">Nuevo correo electrónico *</label>
               <input
                 id="email-nuevo"
                 type="email" value={nuevoEmail}
                 onChange={e => { setNuevoEmail(e.target.value); resetError(); }}
                 placeholder="nuevo@correo.com"
-                style={inputStyle} autoComplete="email"
+                className="mcp-input" autoComplete="email"
               />
             </div>
 
             <div>
-              <label htmlFor="email-confirmar" style={labelStyle}>Confirmar nuevo correo *</label>
+              <label htmlFor="email-confirmar" className="mcp-field-label">Confirmar nuevo correo *</label>
               <input
                 id="email-confirmar"
                 type="email" value={confirmarEmail}
                 onChange={e => { setConfirmarEmail(e.target.value); resetError(); }}
                 placeholder="Repite el nuevo correo"
-                style={{
-                  ...inputStyle,
-                  borderColor: confirmarEmail && nuevoEmail !== confirmarEmail ? "#FCA5A5" : "#E5E7EB",
-                }}
+                className={`mcp-input${confirmarEmail && nuevoEmail !== confirmarEmail ? " mcp-input--error" : ""}`}
                 autoComplete="email"
               />
               {confirmarEmail && nuevoEmail !== confirmarEmail && (
-                <span style={{ fontSize: 11, color: "#EF4444", marginTop: 3, display: "block" }}>
+                <span className="mcp-hint mcp-hint--error">
                   Los correos no coinciden.
                 </span>
               )}
               {confirmarEmail && nuevoEmail === confirmarEmail && emailValido(nuevoEmail) && (
-                <span style={{ fontSize: 11, color: "#16A34A", marginTop: 3, display: "block" }}>
+                <span className="mcp-hint mcp-hint--success">
                   ✓ Los correos coinciden.
                 </span>
               )}
@@ -340,40 +301,26 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
 
         {/* Error general */}
         {error && (
-          <div style={{
-            background: "#FEF2F2", color: "#DC2626", borderRadius: 8,
-            padding: "10px 14px", fontSize: 13, marginTop: 14,
-          }}>
-            <i className="ti ti-alert-circle" style={{ fontSize: 14, verticalAlign: "middle", marginRight: 6 }} aria-hidden="true" />
+          <div className="mcp-error-box">
+            <i className="ti ti-alert-circle mcp-error-icon" aria-hidden="true" />
             {error}
           </div>
         )}
 
         {/* Botones */}
-        <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
-          <button onClick={onCerrar}
-            style={{
-              flex: 1, padding: "10px 0", borderRadius: 8,
-              border: "1px solid #E5E7EB", background: "#F9FAFB",
-              color: "#374151", cursor: "pointer", fontSize: 13, fontWeight: 600,
-            }}>
+        <div className="mcp-actions">
+          <button onClick={onCerrar} className="mcp-btn-cancel">
             Cancelar
           </button>
           <button
             onClick={tab === "password" ? handleGuardarPassword : handleGuardarEmail}
             disabled={(tab === "password" ? !validoPassword : !validoEmail) || guardando}
-            style={{
-              flex: 2, padding: "10px 0", borderRadius: 8, border: "none",
-              background: ((tab === "password" ? validoPassword : validoEmail) && !guardando) ? "#2563EB" : "#E5E7EB",
-              color:      ((tab === "password" ? validoPassword : validoEmail) && !guardando) ? "#fff"    : "#94A3B8",
-              cursor:     ((tab === "password" ? validoPassword : validoEmail) && !guardando) ? "pointer" : "not-allowed",
-              fontSize: 13, fontWeight: 700,
-            }}>
+            className="mcp-btn-submit">
             {guardando
               ? "Actualizando…"
               : tab === "password"
-                ? <><i className="ti ti-key"  style={{ fontSize: 14, verticalAlign: "middle", marginRight: 6 }} aria-hidden="true" />Actualizar contraseña</>
-                : <><i className="ti ti-mail" style={{ fontSize: 14, verticalAlign: "middle", marginRight: 6 }} aria-hidden="true" />Actualizar correo</>
+                ? <><i className="ti ti-key mcp-btn-icon" aria-hidden="true" />Actualizar contraseña</>
+                : <><i className="ti ti-mail mcp-btn-icon" aria-hidden="true" />Actualizar correo</>
             }
           </button>
         </div>
