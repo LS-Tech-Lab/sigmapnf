@@ -463,14 +463,69 @@ textarea:focus-visible,
    puntual.
 
    Prefijo por archivo para que no colisionen entre sí (sc- StatCard,
-   qr- PlanillaQR, hl- HorariosLayout, cv- ConflictosView, pr- PestanaRoles).
+   qr- PlanillaQR, hl- HorariosLayout, cv- ConflictosView, pr- PestanaRoles,
+   eb- ErrorBoundary, asv- AlertaSinVincular, pl- ProgramaLogo, ec- EstadoChip,
+   av- Avatar).
    ────────────────────────────────────────────────────────────────────────── */
 
 /* StatCard.jsx */
 .sc-root { padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
+.sc-icon-wrap { width: 44px; height: 44px; border-radius: 10px; background: var(--stat-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sc-icon { font-size: 20px; color: var(--stat-color); }
+.sc-value { font-size: 24px; font-weight: 700; color: #0F172A; line-height: 1.1; }
+.sc-label { font-size: 12px; color: #64748B; margin-top: 2px; font-weight: 500; }
 
 /* PlanillaQR.jsx */
 .qr-error-card { margin: 20px; padding: 20px; color: #B91C1C; font-size: 14px; }
+.qr-filters { padding: 16px 20px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.qr-filter-label { font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 6px; text-transform: uppercase; }
+.qr-filter-select { padding: 8px 12px; border-radius: 8px; border: 1px solid #E2E8F0; font-size: 13px; font-weight: 600; color: #0F172A; }
+.qr-loading { padding: 40px; text-align: center; color: #94A3B8; font-size: 14px; }
+.qr-loading-icon { font-size: 20px; animation: spin 1s linear infinite; }
+
+/* ErrorBoundary.jsx */
+.eb-root { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 16px; padding: 32px; font-family: system-ui, sans-serif; background: var(--navy-900); color: var(--color-border-tertiary); text-align: center; }
+.eb-icon { font-size: 48px; color: #FBBF24; }
+.eb-title { margin: 0; font-size: 20px; font-weight: 600; color: var(--color-background-tertiary); }
+.eb-desc { margin: 0; font-size: 14px; color: #94A3B8; max-width: 420px; line-height: 1.6; }
+.eb-stack { margin-top: 12px; padding: 12px 16px; background: var(--navy-800); border-radius: 8px; font-size: 10px; color: var(--color-border-secondary); text-align: left; overflow-x: auto; max-width: 100%; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; }
+.eb-btn { margin-top: 8px; padding: 10px 24px; border-radius: 8px; border: none; background: var(--color-accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+/* AlertaSinVincular.jsx */
+.asv-box { background: var(--color-warning-bg); border: 1px solid var(--color-warning-border); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; }
+.asv-icon { font-size: 20px; color: var(--color-warning); flex-shrink: 0; margin-top: 1px; }
+.asv-title { font-size: 13px; font-weight: 700; color: var(--color-warning-text); margin-bottom: 4px; }
+.asv-desc { font-size: 12px; color: #78350F; line-height: 1.5; }
+.asv-chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.asv-chip { font-size: 12px; font-family: monospace; font-weight: 700; background: #FEF3C7; color: var(--color-warning-text); border: 1px solid var(--color-warning-border); border-radius: 5px; padding: 2px 8px; }
+
+/* ProgramaLogo.jsx */
+.pl-container {
+  width: var(--pl-size); height: var(--pl-size); border-radius: var(--pl-radius);
+  flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: var(--pl-bg, transparent); transition: background 0.3s; position: relative;
+}
+.pl-container--icon { box-shadow: var(--pl-shadow); }
+.pl-img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(37,99,235,0.45)); }
+
+/* Avatar.jsx */
+.av-root {
+  width: var(--av-size); height: var(--av-size); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--av-font-size); font-weight: 700; flex-shrink: 0;
+  background: var(--av-bg); color: var(--av-color);
+}
+
+/* EstadoChip.jsx */
+.ec-chip {
+  padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--ec-border); background: var(--ec-bg); color: var(--ec-color);
+}
+.ec-chip--completo      { --ec-bg: #F0FDF4; --ec-color: #15803D; --ec-border: #86EFAC; }
+.ec-chip--solo_entrada  { --ec-bg: #FFFBEB; --ec-color: #92400E; --ec-border: #FDE68A; }
+.ec-chip--solo_salida   { --ec-bg: #FEF2F2; --ec-color: #DC2626; --ec-border: #FECACA; }
+.ec-chip-icon { font-size: 12px; }
 
 /* HorariosLayout.jsx — select de programa en sidebar oscuro */
 .hl-select-dark { width: 100%; background: var(--navy-800); color: var(--color-border-secondary); border-color: var(--navy-700); font-size: 12px; padding: 6px 8px; }
