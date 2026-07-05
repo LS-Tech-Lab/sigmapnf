@@ -1,0 +1,61 @@
+<svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="900" height="320" fill="#F8FAFC"/>
+
+  <!-- Paso 1: escanear -->
+  <g transform="translate(20,20)">
+    <rect width="260" height="280" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    <text x="130" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="#0F172A">1. Escanear el QR</text>
+    <rect x="70" y="55" width="120" height="120" rx="8" fill="#0F172A"/>
+    <rect x="85" y="70" width="90" height="90" fill="#FFFFFF"/>
+    <rect x="95" y="80" width="20" height="20" fill="#0F172A"/>
+    <rect x="145" y="80" width="20" height="20" fill="#0F172A"/>
+    <rect x="95" y="130" width="20" height="20" fill="#0F172A"/>
+    <rect x="125" y="105" width="20" height="20" fill="#0F172A"/>
+    <text x="130" y="200" text-anchor="middle" font-size="11" fill="#475569">Apunta la cámara del</text>
+    <text x="130" y="216" text-anchor="middle" font-size="11" fill="#475569">celular al QR proyectado</text>
+    <rect x="30" y="235" width="200" height="28" rx="14" fill="#EFF6FF"/>
+    <text x="130" y="253" text-anchor="middle" font-size="10" fill="#2563EB">Se abre en el navegador</text>
+  </g>
+
+  <!-- flecha -->
+  <path d="M 295 160 L 335 160" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Paso 2: confirmar datos -->
+  <g transform="translate(345,20)">
+    <rect width="260" height="280" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    <text x="130" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="#0F172A">2. Confirmar datos</text>
+    <rect x="20" y="50" width="220" height="34" rx="8" fill="#F1F5F9"/>
+    <text x="30" y="71" font-size="11" fill="#334155">Cédula: 12.345.678</text>
+    <rect x="20" y="92" width="220" height="34" rx="8" fill="#F1F5F9"/>
+    <text x="30" y="113" font-size="11" fill="#334155">Nombre: María Pérez</text>
+    <text x="130" y="150" text-anchor="middle" font-size="11" fill="#475569">¿Es correcto?</text>
+    <rect x="30" y="170" width="90" height="34" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="75" y="191" text-anchor="middle" font-size="11" fill="#475569">Corregir</text>
+    <rect x="140" y="170" width="90" height="34" rx="8" fill="#16A34A"/>
+    <text x="185" y="191" text-anchor="middle" font-size="11" fill="#FFFFFF" font-weight="600">Confirmar</text>
+    <rect x="30" y="235" width="200" height="28" rx="14" fill="#FFFBEB"/>
+    <text x="130" y="253" text-anchor="middle" font-size="10" fill="#B45309">Solo la 1ª vez en el dispositivo</text>
+  </g>
+
+  <path d="M 620 160 L 660 160" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Paso 3: resultado -->
+  <g transform="translate(670,20)">
+    <rect width="210" height="280" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    <text x="105" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="#0F172A">3. Listo</text>
+    <circle cx="105" cy="95" r="34" fill="#DCFCE7"/>
+    <path d="M 90 95 L 102 107 L 122 82" stroke="#16A34A" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="105" y="150" text-anchor="middle" font-size="12" font-weight="600" fill="#16A34A">Entrada registrada</text>
+    <text x="105" y="168" text-anchor="middle" font-size="10" fill="#64748B">8:03 a.m. — Lunes</text>
+    <rect x="20" y="200" width="170" height="60" rx="8" fill="#FEF2F2"/>
+    <text x="105" y="220" text-anchor="middle" font-size="9" fill="#B91C1C">Si el QR ya cambió:</text>
+    <text x="105" y="235" text-anchor="middle" font-size="9" fill="#B91C1C">solo hay que volver a</text>
+    <text x="105" y="250" text-anchor="middle" font-size="9" fill="#B91C1C">escanear, sin retipear</text>
+  </g>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#94A3B8"/>
+    </marker>
+  </defs>
+</svg>

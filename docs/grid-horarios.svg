@@ -1,0 +1,47 @@
+<svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="900" height="340" fill="#F8FAFC"/>
+  <rect x="20" y="20" width="860" height="300" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+
+  <text x="50" y="52" font-size="15" font-weight="700" fill="#0F172A">Horarios — Turno DIURNO</text>
+  <rect x="700" y="35" width="150" height="28" rx="8" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="775" y="54" text-anchor="middle" font-size="10" fill="#334155">Sección 1 ▾</text>
+
+  <!-- grid header (dias) -->
+  <g transform="translate(140,80)">
+    <text x="0" y="14" font-size="10" font-weight="700" fill="#64748B" text-anchor="middle">Lunes</text>
+    <text x="140" y="14" font-size="10" font-weight="700" fill="#64748B" text-anchor="middle">Martes</text>
+    <text x="280" y="14" font-size="10" font-weight="700" fill="#64748B" text-anchor="middle">Miércoles</text>
+    <text x="420" y="14" font-size="10" font-weight="700" fill="#64748B" text-anchor="middle">Jueves</text>
+    <text x="560" y="14" font-size="10" font-weight="700" fill="#64748B" text-anchor="middle">Viernes</text>
+  </g>
+
+  <!-- horas -->
+  <g font-size="9" fill="#94A3B8">
+    <text x="55" y="115">7:00</text>
+    <text x="55" y="165">9:00</text>
+    <text x="55" y="215">11:00</text>
+    <text x="55" y="265">1:00</text>
+  </g>
+
+  <!-- bloques de clase -->
+  <g transform="translate(75,100)">
+    <rect x="0"   y="0"  width="130" height="45" rx="6" fill="#DBEAFE" stroke="#93C5FD"/>
+    <text x="65" y="16" text-anchor="middle" font-size="9" font-weight="600" fill="#1D4ED8">Programación I</text>
+    <text x="65" y="30" text-anchor="middle" font-size="8" fill="#3B82F6">Prof. Pérez · Aula 3</text>
+
+    <rect x="140" y="0" width="130" height="90" rx="6" fill="#DCFCE7" stroke="#86EFAC"/>
+    <text x="205" y="16" text-anchor="middle" font-size="9" font-weight="600" fill="#15803D">Base de Datos</text>
+    <text x="205" y="30" text-anchor="middle" font-size="8" fill="#16A34A">Prof. Ruiz · Aula 5</text>
+
+    <rect x="280" y="50" width="130" height="45" rx="6" fill="#FEF3C7" stroke="#FCD34D"/>
+    <text x="345" y="66" text-anchor="middle" font-size="9" font-weight="600" fill="#B45309">Matemática II</text>
+    <text x="345" y="80" text-anchor="middle" font-size="8" fill="#D97706">Prof. Gómez · Aula 1</text>
+
+    <!-- conflicto -->
+    <rect x="420" y="0" width="130" height="45" rx="6" fill="#FEE2E2" stroke="#FCA5A5" stroke-width="2"/>
+    <text x="485" y="16" text-anchor="middle" font-size="9" font-weight="700" fill="#B91C1C">⚠ Redes I</text>
+    <text x="485" y="30" text-anchor="middle" font-size="8" fill="#DC2626">Choque de aula</text>
+  </g>
+
+  <text x="450" y="315" text-anchor="middle" font-size="9" fill="#94A3B8">Click en un bloque para ver el detalle completo y editarlo (si tienes permiso)</text>
+</svg>
