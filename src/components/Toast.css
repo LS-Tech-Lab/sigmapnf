@@ -1,0 +1,36 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   Toast.css
+   Migración A3 (auditoría 2026-07-05): estilos extraídos de Toast.jsx.
+   `type` es un enum fijo y conocido de 4 variantes (success/error/warning/info),
+   no un dato arbitrario en tiempo de ejecución — el objeto `palette` en JS se
+   elimina y se resuelve con clases modificadoras (.toast--success, etc.).
+   @keyframes slideIn ya está centralizado en src/index.css.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed; top: 20px; right: 20px; z-index: 9999;
+  border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  max-width: 380px; min-width: 260px;
+  display: flex; align-items: stretch;
+  animation: slideIn 0.25s ease;
+  cursor: pointer; overflow: hidden;
+  border: 1px solid var(--toast-border);
+  background: var(--toast-bg);
+}
+
+.toast--success { --toast-bg: #F0FDF4; --toast-border: #16A34A; --toast-bar: #16A34A; --toast-text: #14532D; }
+.toast--error   { --toast-bg: #FEF2F2; --toast-border: #DC2626; --toast-bar: #DC2626; --toast-text: #7F1D1D; }
+.toast--warning { --toast-bg: #FFFBEB; --toast-border: #D97706; --toast-bar: #D97706; --toast-text: #78350F; }
+.toast--info    { --toast-bg: #EFF6FF; --toast-border: #2563EB; --toast-bar: #2563EB; --toast-text: #1E3A8A; }
+
+.toast-bar { width: 4px; background: var(--toast-bar); flex-shrink: 0; }
+
+.toast-text {
+  flex: 1; padding: 13px 14px; font-size: 13px; font-weight: 500;
+  color: var(--toast-text); line-height: 1.5; word-break: break-word;
+}
+
+.toast-close {
+  background: none; border: none; color: var(--toast-text); opacity: 0.5;
+  cursor: pointer; font-size: 18px; padding: 0 12px; flex-shrink: 0; line-height: 1;
+}
