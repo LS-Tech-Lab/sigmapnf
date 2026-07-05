@@ -1,0 +1,26 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   usuarios/index.css
+   Migración A3 (auditoría 2026-07-05): estilos extraídos de usuarios/index.jsx
+   (UsuariosView). El tab activo ("usuarios" / "roles") es un enum fijo y
+   conocido de 2 variantes — se resuelve con la clase modificadora
+   .uv-tab--active en vez de leer `tab === t.id` en cada style inline.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.uv-sin-permiso { padding: 40px; text-align: center; color: var(--color-text-tertiary); }
+
+.uv-root { padding: 24px; max-width: 900px; margin: 0 auto; font-family: system-ui, -apple-system, sans-serif; }
+
+.uv-header { margin-bottom: 24px; }
+.uv-title { margin: 0; font-size: 20px; font-weight: 800; color: var(--color-text-primary); }
+.uv-title-icon { margin-right: 8px; color: var(--color-role-coord); }
+.uv-subtitle { margin: 6px 0 0; font-size: 13px; color: var(--color-text-tertiary); }
+
+.uv-tabs { display: flex; gap: 2px; margin-bottom: 20px; background: var(--color-background-tertiary); border-radius: 10px; padding: 3px; width: fit-content; }
+
+.uv-tab {
+  padding: 7px 18px; border-radius: 8px; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: all 0.15s;
+  background: transparent; color: var(--color-text-tertiary);
+  display: flex; align-items: center; gap: 6px;
+}
+.uv-tab--active { background: #fff; color: var(--color-text-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
