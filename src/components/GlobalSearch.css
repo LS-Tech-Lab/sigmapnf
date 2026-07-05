@@ -1,0 +1,41 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   GlobalSearch.css
+   Migración A3 (auditoría 2026-07-05): estilos extraídos de GlobalSearch.jsx.
+   La clase "global-search" ya tenía reglas responsive en src/index.css
+   (max-width en breakpoints) — se conserva intacta, junto a "gs-root" para
+   el resto del estilo.
+   El separador entre resultados (`borderTop: i > 0 ? ... : none`) dependía
+   solo de la posición del índice, no de datos reales — se resuelve con
+   `:not(:first-child)` en CSS puro.
+   El color/fondo del badge de trayecto sí depende de datos reales
+   (TRAYECTO_BG/TRAYECTO_COLORS indexados por r.trayecto, con fallback) —
+   se mantiene inline vía CSS custom properties (--tag-bg, --tag-color).
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.gs-root { position: relative; width: 280px; }
+
+.gs-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--color-background-secondary); border: 1px solid var(--color-border-tertiary);
+  border-radius: 8px; padding: 7px 12px;
+}
+
+.gs-icon { font-size: 16px; color: var(--color-text-tertiary); }
+
+.gs-input { border: none; background: transparent; outline: none; font-size: 14px; color: var(--color-text-primary); width: 100%; font-weight: 500; }
+
+.gs-clear { border: none; background: none; cursor: pointer; color: var(--color-text-tertiary); font-size: 16px; }
+
+.gs-results {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; min-width: 280px;
+  background: #fff; border-radius: 10px; border: 1px solid var(--color-border-tertiary);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 200; overflow: hidden;
+}
+
+.gs-result { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.gs-result:not(:first-child) { border-top: 1px solid var(--color-background-tertiary); }
+
+.gs-badge { background: var(--tag-bg); color: var(--tag-color); border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+
+.gs-result-title { font-weight: 600; color: var(--color-text-primary); }
+.gs-result-sub { font-size: 12px; color: var(--color-text-tertiary); font-weight: 500; }
