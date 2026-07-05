@@ -23,8 +23,8 @@ const UsuariosView  = lazy(() => import("../components/usuarios"));
 const LogsView      = lazy(() => import("../components/LogsView"));
 
 const LazyFallback = ({ label }) => (
-  <div className="hl-lazy-fallback">
-    <i className="ti ti-loader-2 hl-lazy-spin" aria-hidden="true" />
+  <div className="lazy-fallback">
+    <i className="ti ti-loader-2 lazy-spin" aria-hidden="true" />
     {label}
   </div>
 );
