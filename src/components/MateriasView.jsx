@@ -1,88 +1,130 @@
-/* ──────────────────────────────────────────────────────────────────────────────
-   MateriasView.css
-   Migración A3 (auditoría 2026-07-02): estilos extraídos de MateriasView.jsx.
-   Reutiliza .s-card / .s-th / .s-td / .s-input (src/index.css). Comparte
-   estructura con DocentesView.css (mismo patrón de panel izquierdo + detalle).
-   Las reglas responsive existentes para `.materias-layout` / `.materias-left-panel`
-   (src/index.css, media queries) no se tocan.
-   El color de trayecto (TRAYECTO_BG/COLORS) se mantiene inline por ser datos.
-   ────────────────────────────────────────────────────────────────────────────── */
+import React, { useState, useEffect, useMemo } from 'react';
+import { DAYS, TRAYECTO_COLORS, TRAYECTO_BG } from '../constants';
+import { getHoraDisplayDeRegistro, getHoraMin } from '../utils/time';
+import { getTurnoDeRegistro } from '../utils/turno';
+import { parseClase } from '../utils/parsing';
+import Avatar from './Avatar';
+import './MateriasView.css';
 
-.mv-root { display: flex; flex-direction: column; flex: 1; height: 0; overflow: hidden; }
+export default function MateriasView({ byMateria, initialSel, onConsumeNav, getMateriaName, onSaveMateriaName, data, getDocName, modoConsulta, lapso }) {
+  const sorted = Object.keys(byMateria).sort();
+  const [sel, setSel] = useState(initialSel || null), [search, setSearch] = useState("");
+  const [editingName, setEditingName] = useState(false), [editValue, setEditValue] = useState(""), [saving, setSaving] = useState(false);
 
-/* En tablet/móvil (≤1024px), .mv-body (=.materias-layout) pasa a
-   height:auto (ver src/index.css) para apilar panel + detalle en
-   columna. Pero .mv-root, un nivel más arriba, seguía con
-   height:0 + overflow:hidden SIN excepción — así que recortaba
-   ese contenido ya crecido a una altura fija, sin scrollbar,
-   dejando la lista (y todo lo demás) inalcanzable más allá del
-   corte. El padre real, <main> en HorariosLayout.jsx, ya tiene
-   overflow:auto — dejamos que la página completa scrollee ahí en
-   vez de intentar contener todo en un panel de altura fija. */
-@media (max-width: 1024px) {
-  .mv-root { height: auto; overflow: visible; }
+  useEffect(() => { if (initialSel) { setSel(initialSel); onConsumeNav(); } }, [initialSel, onConsumeNav]);
+  // Solo actualizar editValue cuando cambia la selección, NO cuando cambia getMateriaName.
+  // Misma razón que DocentesView: evitar condición de carrera al guardar.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (sel) { setEditValue(getMateriaName(sel)); setEditingName(false); } }, [sel]);
+
+  const selEntries = sel && byMateria[sel] ? byMateria[sel] : [];
+  const filteredSorted = search ? sorted.filter(m => getMateriaName(m).toLowerCase().includes(search.toLowerCase())) : sorted;
+
+  const saveEdit = async () => {
+    const t = editValue.trim();
+    if (t && sel && onSaveMateriaName) {
+      setSaving(true);
+      const res = await onSaveMateriaName(sel, t);
+      setSaving(false);
+      if (res.success) {
+        setEditingName(false);
+        if (res.targetRaw) setSel(res.targetRaw);
+      }
+    } else setEditingName(false);
+  };
+
+  const asignaciones = useMemo(() => {
+    if (!selEntries.length) return [];
+    return selEntries.slice().sort((a, b) => {
+      const ia = DAYS.indexOf(a.dia), ib = DAYS.indexOf(b.dia);
+      return (ia !== -1 ? ia : 9) - (ib !== -1 ? ib : 9) || getHoraMin(a) - getHoraMin(b);
+    });
+  }, [selEntries]);
+
+  return (
+    <div className="mv-root">
+      {modoConsulta && (
+        <div className="mv-modo-banner">
+          <i className="ti ti-archive mv-modo-icon" aria-hidden="true" />
+          <span className="mv-modo-text">
+            Modo consulta — trimestre {lapso} (solo lectura)
+          </span>
+        </div>
+      )}
+    <div className="materias-layout mv-body">
+      <div className="materias-left-panel mv-left-panel">
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrar materia…" className="s-input mv-search-input" />
+        <div className="s-card mv-list-card">
+          <div className="mv-list-header">{filteredSorted.length} materias</div>
+          {filteredSorted.map(m => (
+            <div key={m} onClick={() => { setSel(m); setEditingName(false); }}
+              className={`mv-list-item${sel === m ? ' mv-list-item--active' : ''}`}
+            >
+              <span>{getMateriaName(m)}</span>
+              <span className="mv-list-item-count">{byMateria[m].length}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mv-detail-panel">
+        {!sel ? <div className="mv-detail-empty">Selecciona una materia para ver detalles</div> : (
+          <>
+            <div className="s-card mv-header-card">
+              <Avatar name={getMateriaName(sel)} size={52} />
+              <div className="mv-header-main">
+                {editingName ? (
+                  <div className="mv-name-edit-row">
+                    <input value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingName(false); }} autoFocus className="s-input mv-name-edit-input" />
+                    <button onClick={saveEdit} disabled={saving} className="mv-btn-save">{saving ? "Guardando..." : "Guardar"}</button>
+                    <button onClick={() => setEditingName(false)} className="mv-btn-cancel">Cancelar</button>
+                  </div>
+                ) : (
+                  <div className="mv-name-row">
+                    <div className="mv-name-text">{getMateriaName(sel)}</div>
+                    {onSaveMateriaName && (
+                      <button onClick={() => { setEditValue(getMateriaName(sel)); setEditingName(true); }} title="Editar" className="mv-edit-btn"><i className="ti ti-pencil" aria-hidden="true" /> Editar</button>
+                    )}
+                  </div>
+                )}
+                <div className="mv-meta-row">
+                  {selEntries.length} clases asignadas
+                  {selEntries.length > 0 && <span className="mv-trayecto-count-badge">{new Set(selEntries.map(e => e.trayecto)).size} trayecto(s)</span>}
+                </div>
+              </div>
+            </div>
+            <div className="s-card">
+              <div className="mv-table-header"><i className="ti ti-list-details" aria-hidden="true" /> Asignaciones</div>
+              <div className="mv-table-wrap">
+                <table className="mv-table">
+                  <thead>
+                    <tr>
+                      {["Día", "Hora", "Turno", "Sección", "Trayecto", "Docente"].map(h => <th key={h} className="s-th">{h}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {asignaciones.map((e, i) => {
+                      const tr = getTurnoDeRegistro(e);
+                      const { docente: docenteParseado } = parseClase(e.clase);
+                      const rd = e.docentes?.nombre_raw || docenteParseado;
+                      return (
+                        <tr key={i}>
+                          <td className="s-td mv-td-dia">{e.dia.charAt(0)+e.dia.slice(1).toLowerCase()}</td>
+                          <td className="s-td mv-td-hora">{getHoraDisplayDeRegistro(e)}</td>
+                          <td className="s-td"><span className={`mv-turno-badge${tr === "DIURNO" ? ' mv-turno-badge--diurno' : ' mv-turno-badge--vespertino'}`}><span className="mv-turno-badge-inner"><i className={`ti ${tr === "DIURNO" ? "ti-sun-high" : "ti-moon-stars"}`} aria-hidden="true" /> {tr === "DIURNO" ? "Diurno" : "Vespertino"}</span></span></td>
+                          <td className="s-td mv-td-seccion">{e.sheet?.trim() || ""}</td>
+                          <td className="s-td"><span className="mv-trayecto-badge" style={{ background: TRAYECTO_BG[e.trayecto] || "var(--color-background-subtle)", color: TRAYECTO_COLORS[e.trayecto] || "#555" }}>{e.trayecto}</span></td>
+                          <td className="s-td mv-td-docente">{rd && getDocName ? getDocName(rd) : (rd || "—")}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+    </div>
+  );
 }
-
-.mv-modo-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: 7px 20px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.mv-modo-icon { color: var(--color-warning-text); font-size: 14px; }
-.mv-modo-text { font-size: 13px; color: var(--color-warning-text); font-weight: 600; }
-
-.mv-body { padding: 20px; display: flex; gap: 16px; flex: 1; height: 0; overflow: hidden; }
-.mv-left-panel { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
-.mv-search-input { width: 100%; box-sizing: border-box; }
-
-.mv-list-card { flex: 1; overflow-y: auto; }
-.mv-list-header { padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
-
-/* Bug: en tablet (≤1024px), src/index.css fuerza `.mv-left-panel` a
-   `max-height: 260px`, pero ese cap cae en el wrapper, no en el propio
-   `.mv-list-card` que tiene el `overflow-y: auto`. Depender de que el
-   `max-height` del ancestro fuerce el flex-shrink del hijo es frágil
-   entre motores de render (funciona en desktop porque `.mv-body` tiene
-   altura fija heredada; en algunas tablets el shrink no se aplica y la
-   lista crece sin scroll). Fix: acotar directamente el elemento que
-   scrollea, con el mismo valor que ya usa el wrapper — así no depende
-   de la resolución del flexbox padre. Ver mismo fix en DocentesView.css. */
-@media (max-width: 1024px) {
-  .mv-list-card { max-height: 260px; }
-}
-@media (max-width: 640px) {
-  .mv-list-card { max-height: 220px; }
-}
-
-.mv-list-item { padding: 10px 14px; cursor: pointer; font-size: 14px; font-weight: 400; background: transparent; color: var(--navy-700); border-bottom: 1px solid var(--color-background-tertiary); display: flex; justify-content: space-between; align-items: center; }
-.mv-list-item--active { font-weight: 600; background: var(--color-background-info); color: var(--brand-600); }
-.mv-list-item-count { font-size: 12px; background: var(--color-background-tertiary); border-radius: 10px; padding: 2px 8px; color: var(--color-text-tertiary); font-weight: 600; }
-
-.mv-detail-panel { flex: 1; overflow-y: auto; }
-.mv-detail-empty { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--color-text-tertiary); font-size: 15px; font-weight: 500; }
-
-.mv-header-card { padding: 18px 22px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; }
-.mv-header-main { flex: 1; }
-.mv-name-edit-row { display: flex; align-items: center; gap: 8px; }
-.mv-name-edit-input { font-size: 16px; font-weight: 600; flex: 1; }
-.mv-btn-save { padding: 6px 14px; background: var(--brand-500); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
-.mv-btn-save:disabled { cursor: not-allowed; opacity: 0.6; }
-.mv-btn-cancel { padding: 6px 12px; background: var(--color-background-tertiary); color: var(--color-text-tertiary); border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
-.mv-name-row { display: flex; align-items: center; gap: 8px; }
-.mv-name-text { font-size: 19px; font-weight: 700; color: var(--color-text-primary); }
-.mv-edit-btn { background: none; border: 1px solid var(--color-border-tertiary); border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 12px; color: var(--color-text-tertiary); font-weight: 500; display: inline-flex; align-items: center; gap: 5px; }
-.mv-meta-row { font-size: 13px; color: var(--color-text-tertiary); margin-top: 4px; font-weight: 500; }
-.mv-trayecto-count-badge { margin-left: 10px; background: var(--color-background-info); color: var(--brand-500); border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
-
-.mv-table-header { padding: 14px 18px; border-bottom: 2px solid var(--color-border-tertiary); font-size: 14px; font-weight: 700; color: var(--navy-700); display: flex; align-items: center; gap: 7px; }
-.mv-table-wrap { overflow-x: auto; }
-.mv-table { width: 100%; border-collapse: collapse; }
-.mv-table tbody tr:nth-child(even) { background: #FAFAFB; }
-.mv-table tbody tr:nth-child(odd) { background: #fff; }
-.mv-td-dia { font-weight: 500; }
-.mv-td-hora { color: var(--color-text-tertiary); white-space: nowrap; font-size: 12px; font-weight: 500; }
-.mv-td-seccion { font-weight: 500; color: var(--color-text-tertiary); }
-.mv-td-docente { font-weight: 500; }
-
-.mv-turno-badge { border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
-.mv-turno-badge--diurno { background: var(--color-background-info); color: var(--brand-500); }
-.mv-turno-badge--vespertino { background: #FDF2F8; color: #DB2777; }
-.mv-turno-badge-inner { display: inline-flex; align-items: center; gap: 5px; }
-
-.mv-trayecto-badge { border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
