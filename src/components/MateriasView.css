@@ -10,6 +10,19 @@
 
 .mv-root { display: flex; flex-direction: column; flex: 1; height: 0; overflow: hidden; }
 
+/* En tablet/móvil (≤1024px), .mv-body (=.materias-layout) pasa a
+   height:auto (ver src/index.css) para apilar panel + detalle en
+   columna. Pero .mv-root, un nivel más arriba, seguía con
+   height:0 + overflow:hidden SIN excepción — así que recortaba
+   ese contenido ya crecido a una altura fija, sin scrollbar,
+   dejando la lista (y todo lo demás) inalcanzable más allá del
+   corte. El padre real, <main> en HorariosLayout.jsx, ya tiene
+   overflow:auto — dejamos que la página completa scrollee ahí en
+   vez de intentar contener todo en un panel de altura fija. */
+@media (max-width: 1024px) {
+  .mv-root { height: auto; overflow: visible; }
+}
+
 .mv-modo-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: 7px 20px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .mv-modo-icon { color: var(--color-warning-text); font-size: 14px; }
 .mv-modo-text { font-size: 13px; color: var(--color-warning-text); font-weight: 600; }
