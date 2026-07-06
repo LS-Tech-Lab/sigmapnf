@@ -31,7 +31,17 @@
 .mv-left-panel { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
 .mv-search-input { width: 100%; box-sizing: border-box; }
 
-.mv-list-card { flex: 1; overflow-y: auto; }
+.mv-list-card { flex: 1; }
+/* El bundler (Vite/Rollup) no garantiza que el CSS de este componente se
+   concatene DESPUÉS de `.s-card` (src/index.css) en el archivo final —
+   en producción termina antes, y como ambos selectores tienen la misma
+   especificidad (una clase), `.s-card{overflow:hidden}` le ganaba a
+   `overflow-y:auto` por orden de aparición, dejando la lista con la
+   altura correcta (max-height sí se aplicaba) pero sin poder scrollear
+   (BUG real reportado: "no permite desplazar hacia abajo, está
+   estática"). Selector compuesto = más especificidad que `.s-card` solo,
+   gana pase lo que pase con el orden del bundle. */
+.s-card.mv-list-card { overflow-y: auto; }
 .mv-list-header { padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
 
 /* Bug: en tablet (≤1024px), src/index.css fuerza `.mv-left-panel` a
