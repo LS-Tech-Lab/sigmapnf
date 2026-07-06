@@ -10,6 +10,16 @@
 
 .dv-root { display: flex; flex-direction: column; flex: 1; height: 0; overflow: hidden; }
 
+/* Mismo bug y mismo fix que .mv-root en MateriasView.css: en tablet
+   (≤1024px) .dv-body pasa a height:auto, pero .dv-root seguía con
+   height:0+overflow:hidden sin excepción, recortando ese contenido
+   ya crecido sin dar forma de scrollear hasta él. <main> en
+   HorariosLayout.jsx ya tiene overflow:auto — se deja que la
+   página scrollee ahí en este breakpoint. */
+@media (max-width: 1024px) {
+  .dv-root { height: auto; overflow: visible; }
+}
+
 .dv-modo-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: 7px 20px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .dv-modo-icon { color: var(--color-warning-text); font-size: 14px; }
 .dv-modo-text { font-size: 13px; color: var(--color-warning-text); font-weight: 600; }
