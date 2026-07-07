@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DAYS, TRAYECTO_COLORS, TRAYECTO_BG } from '../constants';
+import { DAYS, trayectoClass } from '../constants';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../utils/time';
 import { getTurnoDeRegistro } from '../utils/turno';
 import { parseClase } from '../utils/parsing';
@@ -112,7 +112,7 @@ export default function MateriasView({ byMateria, initialSel, onConsumeNav, getM
                           <td className="s-td mv-td-hora">{getHoraDisplayDeRegistro(e)}</td>
                           <td className="s-td"><span className={`mv-turno-badge${tr === "DIURNO" ? ' mv-turno-badge--diurno' : ' mv-turno-badge--vespertino'}`}><span className="mv-turno-badge-inner"><i className={`ti ${tr === "DIURNO" ? "ti-sun-high" : "ti-moon-stars"}`} aria-hidden="true" /> {tr === "DIURNO" ? "Diurno" : "Vespertino"}</span></span></td>
                           <td className="s-td mv-td-seccion">{e.sheet?.trim() || ""}</td>
-                          <td className="s-td"><span className="mv-trayecto-badge" style={{ background: TRAYECTO_BG[e.trayecto] || "var(--color-background-subtle)", color: TRAYECTO_COLORS[e.trayecto] || "#555" }}>{e.trayecto}</span></td>
+                          <td className="s-td"><span className={`mv-trayecto-badge ${trayectoClass(e.trayecto)}`}>{e.trayecto}</span></td>
                           <td className="s-td mv-td-docente">{rd && getDocName ? getDocName(rd) : (rd || "—")}</td>
                         </tr>
                       );
