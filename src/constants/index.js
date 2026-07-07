@@ -36,6 +36,21 @@ export const TRAYECTO_BG = {
   "4-1": "#ECFDF5", "4-2": "#D1FAE5", "4-3": "#A7F3D0",
 };
 
+// Fix A3/S3 (auditoría QA 5/jul/2026, fases 1-2): antes, cada componente que
+// pintaba color por trayecto leía TRAYECTO_BG/TRAYECTO_COLORS e inyectaba el
+// valor vía style={{...}} inline — bloqueaba poder quitar 'unsafe-inline' de
+// la CSP (S3). Como el dominio es fijo (13 trayectos, hardcodeados arriba,
+// nunca cambian en runtime), se puede resolver con clases CSS fijas en vez
+// de estilo inline. trayectoClass() devuelve el sufijo de clase; las 13
+// combinaciones (--trayecto-bg/--trayecto-color/--tag-bg/--tag-color/
+// --badge-bg/--badge-color/--dot-color/--clase-bg/--clase-color/
+// --clase-shadow/--clase-border/--fill-color) están definidas en index.css.
+// Uso: className={`dv-trayecto-badge ${trayectoClass(t)}`}
+export function trayectoClass(trayecto) {
+  const key = (trayecto ?? "").toString().trim().toLowerCase();
+  return key ? `trayecto-${key}` : "trayecto-desconocido";
+}
+
 export const BLOQUES_DIURNO = [
   { inicio: "7:30AM", fin: "8:15AM", label: "7:30 – 8:15 AM" },
   { inicio: "8:15AM", fin: "9:00AM", label: "8:15 – 9:00 AM" },
