@@ -36,7 +36,7 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 |---|---|---|---|---|
 | **S1** | Cualquier usuario autenticado podía `UPDATE`/`INSERT`/`DELETE` horarios de cualquier programa (política heredada `FOR ALL` + RLS nunca habilitado en la tabla padre particionada) | `horarios` (padre + particiones) | `0035`, `0045` | ✅ Cerrado |
 | **S2** | `docentes`/`materias`: la política de escritura (`FOR ALL`) solo exigía `auth.role() = 'authenticated'`, sin verificar el permiso granular (`puedeEditarDocentes`/`puedeEditarMaterias`/`puedeImportarExcel`/`puedeRestaurarBackup`). Mismo patrón que `S1`, alcance más angosto — un informe externo lo reportó como "RLS nunca habilitado + anon con acceso total", pero RLS ya estaba activo y anon ya estaba bloqueado; el hueco real era más específico (falso positivo parcial, verificado contra `pg_policies` real antes de escribir la migración) | `docentes`, `materias` | `0046` | ✅ Cerrado |
-| **S3** | Estilos inline (`style={{...}}`) bloquean una política CSP estricta (`unsafe-inline` necesario mientras existan) | Ver nota bajo `A3` — el alcance real es mayor al que este índice reportaba (auditoría QA externa, 5 de julio) | — | 🟡 **Abierto** — verificado el 5 de julio: `vercel.json` todavía tiene `style-src 'self' 'unsafe-inline'`; correcto, porque `src/components/` aún tiene 6 archivos con estilos inline reales pendientes (ver nota bajo `A3`) |
+| **S3** | Estilos inline (`style={{...}}`) bloquean una política CSP estricta (`unsafe-inline` necesario mientras existan) | Ver nota bajo `A3` | — | 🟡 **Abierto** — `vercel.json` sigue con `style-src 'self' 'unsafe-inline'`; correcto — tras Fase 1-2 quedan 18 ocurrencias reales en 9 archivos, todas ya diagnosticadas (Fase 3/4/5, ver nota bajo `A3`), ninguna resuelta todavía |
 | **SEC-2** | Stack trace completo de errores visible en producción (fuga de información interna) | `src/components/ErrorBoundary.jsx` | — | ✅ Cerrado (solo se renderiza en desarrollo) |
 | **SEC-3** | Sin validación centralizada de fortaleza de contraseñas | `src/utils/password.js` | — | ✅ Cerrado |
 | **SEC-5** | Lockout de login normal en `localStorage` no resistía pestañas privadas (mismo patrón que `O-8`, para PIN) | `src/components/LoginScreen.jsx`, `src/utils/pinOffline.js` | — | ✅ Cerrado (migrado a IDB, cliente) |
@@ -164,7 +164,7 @@ vez de asumirlo.
 | **U-2** | Adaptabilidad móvil: `.qrp-col-left` con `flex: 0 0 320px` (sin encoger) desbordaba horizontalmente en viewports ≤ ~372px; grid fijo `1fr 1fr` en `ModalRol` quedaba inusable en pantallas pequeñas. Revisión real contra el HEAD (no solo conteo de `@media`) confirmó que el resto de pantallas de mayor uso móvil (`DocenteScan`, `TurnoGrid`, `ReporteRango`, `LoginScreen`, `HistorialView`) ya tenían mitigación adecuada y no necesitaron cambios | `AdminQRPanel.css`, `usuarios/ModalRol.jsx` | ✅ Cerrado |
 | **U-3** | Sin trampa de foco de teclado en modales (accesibilidad) | `src/hooks/useFocusTrap.js` | ✅ Cerrado |
 | **U-4** | `Campo.jsx` (input del formulario de `DocenteScan`) renderiza `<label>` e `<input>` como hermanos, sin `htmlFor`/`id` que los asocie — un lector de pantalla no anuncia la etiqueta al enfocar el campo. Encontrado de forma indirecta: un test que intentaba ubicar el input por su label (`getByLabelText`, el método recomendado de Testing Library, que imita cómo un lector de pantalla encuentra el campo) no pudo hacerlo y tuvo que usar el `placeholder` como alternativa | `src/components/asistencias/DocenteScan/Campo.jsx` | ✅ Cerrado (`useId()` genera un id estable que conecta `label`↔`input`; el mensaje de error/hint también se enlaza vía `aria-describedby`, y `aria-invalid` se activa cuando hay error. `DocenteScan.flow.test.jsx` se actualizó para usar `getByLabelText` en vez del workaround de `placeholder`, quedando como guardia contra que esto se rompa de nuevo) |
-| **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | Ver nota — el alcance real resultó más grande de lo que este índice reportaba: la auditoría QA externa del 5 de julio grepeó **todo** `src/` (no solo `src/components/`) y encontró 157 ocurrencias en 29 archivos, incluyendo 7 en `src/app/` nunca antes contados | 🟡 **Abierto** — `src/app/` (el shell principal) ya se verificó migrado (ver nota); quedan pendientes 6 archivos en `src/components/` ya conocidos de sesiones anteriores |
+| **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | Ver nota — de 54 ocurrencias/22 archivos (tras cerrar `src/app/`), Fase 1-2 bajó el repo a 18 ocurrencias reales en 9 archivos | 🟡 **Abierto** — quedan 3 categorías identificadas y decididas, sin ejecutar aún: Fase 3 (color de rol personalizado, necesita constraint en BD — 6 archivos), Fase 4 (% continuo, bucketizar a incrementos de 5% — 3 archivos), Fase 5 (casos genuinamente difíciles: hash de nombre en Avatar, altura de celda en TurnoGrid — 2 archivos) |
 | **U-5** | Los 7 archivos del shell principal (`src/app/`) — `HorariosLayout.jsx`, `UserMenu.jsx`, `AsistenciasModulo.jsx`, `App.jsx`, `AdminMenu.jsx`, `SinPerfilAsignado.jsx`, `CuentaDesactivada.jsx` — tenían cero reglas `@media` propias por ser estilos inline; `U-2` solo había verificado pantallas de *funcionalidad* (QR, horarios, login), nunca el *shell* que las contiene (sidebar, menú de usuario, layout de asistencias). Hallazgo de la auditoría QA externa del 5 de julio | mismos 7 archivos + `src/index.css` | ✅ Cerrado — verificado contra HEAD real el 5 de julio: los 7 archivos migrados a clases con prefijo (`hl-`, `um-`, `asm-`, `adm-`, `spa-`, `cd-`) consolidadas en `src/index.css`, con reglas `@media` incluidas (ej. bloque `@media (max-width: 640px)` con `.hl-brand-row`, `.hl-consulta-banner`, `.hl-consulta-btn`). `UserMenu.jsx` conserva 1 estilo inline legítimo (`style={{ "--um-role-color": rolColor }}`, una CSS custom property con color dinámico por dato — no es deuda pendiente) |
 | **U-6** | El bundle sin dividir (`ARCH-7`) también es un problema de experiencia: pantalla en blanco más larga de lo necesario en la primera carga, especialmente en redes móviles. Hallazgo de la auditoría QA externa del 5 de julio | mismo que `ARCH-7` | 🟡 **Abierto** — mismo remedio que `ARCH-7` (`React.lazy` + `Suspense` por vista), misma sesión de trabajo |
 
@@ -360,12 +360,18 @@ Cuando se cierre un nuevo hallazgo:
    `V-1`), decirlo explícitamente en la columna de descripción — evita que
    alguien dé por cerrado algo que solo se cerró a medias.
 
-**Abiertos ahora mismo:** `S3`/`A3` — el alcance real resultó mayor al
-reportado (ver nota bajo `A3`), pero el shell principal (`src/app/`) ya
-se cerró; queda pendiente el mismo grupo de 6 archivos en
-`src/components/` (`LogsView.jsx`, `ReporteRango.jsx`, `DocentesView.jsx`,
-`SeccionesView.jsx`, `UploadPreviewModal.jsx`, `ModalRol.jsx`) ya
-identificado en sesiones anteriores. `SEC-9` (bajo riesgo, señalado por
+**Abiertos ahora mismo:** `S3`/`A3` — tras cerrar el shell (`src/app/`) y
+ejecutar las Fases 1-2 (13 clases de trayecto + configs fijas de
+`LogsView`/`StatCard`/`ProgramaLogo`/stats/skeletons/fortaleza de
+contraseña), el repo bajó de 54 a 18 ocurrencias reales en 9 archivos.
+Lo que queda son 3 categorías ya diagnosticadas, sin ejecutar: Fase 3
+(color de rol personalizado — `UserMenu.jsx`, `PestanaRoles.jsx`,
+`usuarios/shared.jsx`, `ModalRol.jsx` — necesita un `CHECK` en
+`roles.color` antes de poder cerrarse con clases fijas), Fase 4 (% real
+continuo — `ResumenView.jsx`, `ReporteRango.jsx`, `AdminQRPanel.jsx` —
+decidido bucketizar a incrementos de 5%) y Fase 5 (casos genuinamente
+difíciles sin decidir — `Avatar.jsx` por hash de nombre, `TurnoGrid.jsx`
+por altura de celda calculada). `SEC-9` (bajo riesgo, señalado por
 transparencia) y `ARCH-6` (CSS duplicado en `QRProyeccion.jsx`) siguen
 abiertos. `D-6` (vulnerabilidades de `xlsx`, sin parche disponible),
 `ARCH-7`/`U-6` (bundle sin dividir por ruta) y `ARCH-8` (`HorariosLayout.jsx`
@@ -512,3 +518,50 @@ adopción de `var(--token)` en las reglas nuevas quedó mixta. Nota: la
 mención de `HorariosView.jsx` pendiente de pegarse en la pasada anterior
 no se reverificó en esta sesión — quedó fuera del alcance de la
 auditoría QA, que no lo señaló como hallazgo.*
+
+*Octava pasada (5 de julio de 2026) — ejecución de las Fases 1 y 2 del plan
+acordado para cerrar `A3`/`S3` de verdad (no solo el shell). Diagnóstico
+previo: un CSP `style-src` sin `unsafe-inline` bloquea cualquier atributo
+`style`, sea un color literal o una CSS custom property — así que "usar
+`--var` en vez de color directo" nunca iba a cerrar `S3` por sí solo; solo
+mover el dato a un dominio **enumerable** (clases fijas) lo hace. Se
+revisó el origen real de cada residuo restante en todo `src/` (no solo los
+4 archivos mencionados originalmente) y se encontraron bastantes más de
+los esperados, todos hardcodeados en el propio código, no datos de
+usuario:
+- **Fase 1** (13 clases `.trayecto-<n>` en `index.css`, TRAYECTO_BG/COLORS
+  es un dominio fijo): cerró `DocentesView.jsx`, `SeccionesView.jsx`,
+  `MateriasView.jsx`, `ConflictosView.jsx`, `GlobalSearch.jsx`,
+  `PlanillaImprimibleBase.jsx` a 0 estilos inline; `ResumenView.jsx` y
+  `TurnoGrid.jsx` bajaron parcialmente (les queda algo de Fase 4/5, ver
+  abajo).
+- **Fase 2** (datos igual de fijos pero sin relación con trayecto): cerró
+  a 0 `LogsView.jsx` (`EVENTO_CONFIG`/`ACCION_CONFIG`), `StatCard.jsx`
+  (refactor de prop `color` arbitraria a `variant` fijo, 8 call sites en
+  `ResumenView`/`DocentesView`), `ProgramaLogo.jsx` (tamaño siempre 32,
+  gradiente por programa fijo), `PestanaUsuarios.jsx` (stats), `SkeletonRow.jsx`
+  y ambos archivos de `ReporteAsistencias/` (stats + skeleton por
+  `nth-child`), `ModalCambiarPassword.jsx` (4 niveles de fortaleza, no un %
+  continuo) y `UploadPreviewModal.jsx` (subcomponentes `Tag`/`StatChip`/
+  `EmptyState` refactorizados de `color/bg/border` a `variant`, con la
+  paleta interna `C` eliminada por quedar sin uso). En `ReporteRango.jsx`
+  y `AdminQRPanel.jsx` se cerró el color (umbral fijo de 3 estados),
+  dejando solo el ancho (% continuo real) inline para Fase 4.
+- **Efecto colateral — 2 bugs latentes corregidos**: `PestanaUsuarios.jsx`
+  llamaba `hex2rgba()` con strings `"var(--brand-500)"` en vez de un hex
+  real, generando `rgba(NaN,NaN,NaN,0.2)` silenciosamente (el borde de las
+  3 tarjetas de stats nunca se veía como debía); `StatCard.jsx` tenía el
+  mismo problema con `${color}18` para las 4 tarjetas de `DocentesView`
+  que pasaban `color="var(--brand-500)"` etc. Ambos se corrigieron de paso
+  al definir las clases fijas con el hex real ya resuelto.
+- **Resultado verificado contra HEAD real**: 152/152 tests, `vite build`
+  limpio. El repo bajó de 54 ocurrencias reales en 22 archivos a 18 en 9
+  archivos, todas ya diagnosticadas y clasificadas: Fase 3 (color de rol
+  personalizado — `UserMenu.jsx`, `PestanaRoles.jsx`, `usuarios/shared.jsx`
+  `Badge`, `ModalRol.jsx` — pendiente de un `CHECK` en `roles.color`
+  antes de poder cerrarse), Fase 4 (% continuo — `ResumenView.jsx`,
+  `ReporteRango.jsx`, `AdminQRPanel.jsx` — decidido bucketizar a
+  incrementos de 5%, sin ejecutar todavía) y Fase 5 (casos genuinamente
+  difíciles — `Avatar.jsx` por hash de nombre, `TurnoGrid.jsx` por altura
+  de celda calculada — sin decisión tomada aún). `A3`/`S3` siguen
+  **abiertos** hasta que se ejecuten esas 3 fases.*
