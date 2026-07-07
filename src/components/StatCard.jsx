@@ -1,8 +1,15 @@
 import React from 'react';
 
-export default function StatCard({ label, value, icon, color = "#2563EB" }) {
+// Fix A3/S3 (auditoría QA 5/jul/2026, Fase 2): antes recibía un `color`
+// arbitrario e inyectaba `--stat-bg`/`--stat-color` vía style inline. Los 8
+// usos reales en todo el repo (ResumenView, DocentesView) solo pasan uno de
+// 7 colores fijos — se reemplaza por `variant` + clases en index.css.
+// De paso corrige un bug latente: cuando `color` venía como `var(--brand-500)`
+// (DocentesView), `${color}18` producía el string inválido
+// "var(--brand-500)18" — el tinte de fondo de esas 4 tarjetas nunca se veía.
+export default function StatCard({ label, value, icon, variant = "brand" }) {
   return (
-    <div className="s-card sc-root" style={{ '--stat-bg': `${color}18`, '--stat-color': color }}>
+    <div className={`s-card sc-root sc-root--${variant}`}>
       <div className="sc-icon-wrap">
         <i className={`ti ${icon} sc-icon`} aria-hidden="true" />
       </div>
