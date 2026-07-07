@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { DAYS, TRAYECTO_COLORS, TRAYECTO_BG, ALL_TRAYECTOS } from '../constants';
+import { DAYS, ALL_TRAYECTOS, trayectoClass } from '../constants';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../utils/time';
 import { parseClase } from '../utils/parsing';
 import './SeccionesView.css';
@@ -60,7 +60,7 @@ export default function SeccionesView({ data, getDocName, getMateriaName }) {
               <div key={s} onClick={() => setSelSheet(s)}
                 className={`sv-seccion-item${selSheet === s ? " sv-seccion-item--active" : ""}`}
               >
-                <span className="sv-seccion-dot" style={{ "--dot-color": TRAYECTO_COLORS[tray] || "#ccc" }} />
+                <span className={`sv-seccion-dot ${trayectoClass(tray)}`} />
                 {s}
               </div>
             );
@@ -77,8 +77,7 @@ export default function SeccionesView({ data, getDocName, getMateriaName }) {
                   <div className="sv-info-subtitle">{programaSeccion}</div>
                 </div>
                 <span
-                  className="sv-trayecto-badge"
-                  style={{ "--badge-bg": TRAYECTO_BG[info.trayecto] || "#f3f4f6", "--badge-color": TRAYECTO_COLORS[info.trayecto] || "#555" }}
+                  className={`sv-trayecto-badge ${trayectoClass(info.trayecto)}`}
                 >Trayecto {info.trayecto}</span>
               </div>
               <div className="sv-stats-row">
@@ -111,9 +110,8 @@ export default function SeccionesView({ data, getDocName, getMateriaName }) {
                       const { materia: rm, docente: docenteParseado } = parseClase(e.clase);
                       const rd = e.docentes?.nombre_raw || docenteParseado;
                       const materia = getMateriaName(rm), docente = getDocName(rd);
-                      const col = TRAYECTO_COLORS[e.trayecto] || "#555", bg = TRAYECTO_BG[e.trayecto] || "#f5f5f5";
                       return (
-                        <div key={i} className="sv-clase-card" style={{ "--clase-bg": bg, "--clase-color": col }}>
+                        <div key={i} className={`sv-clase-card ${trayectoClass(e.trayecto)}`}>
                           <div className="sv-clase-materia">{materia.length > 24 ? materia.slice(0, 22) + "…" : materia}</div>
                           <div className="sv-clase-hora">{getHoraDisplayDeRegistro(e)}</div>
                           {docente && <div className="sv-clase-docente">{docente.split(" ")[0]}</div>}
