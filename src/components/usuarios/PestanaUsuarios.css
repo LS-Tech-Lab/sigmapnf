@@ -1,9 +1,14 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    PestanaUsuarios.css
    Migración A3 (auditoría 2026-07): estilos extraídos de PestanaUsuarios.jsx.
-   El color de fondo/borde de cada tarjeta de estadística (según el dato que
-   representa) depende de un array de datos en tiempo de ejecución y se
-   mantiene inline vía CSS custom properties (--stat-bg/--stat-border/--stat-color).
+   Fix A3/S3 Fase 2 (auditoría QA 2026-07-05): el color de las 3 tarjetas de
+   estadística (Total/Activos/Inactivos) es fijo — 3 estados conocidos, no
+   un dato arbitrario — ya no se inyecta vía style inline
+   (--stat-bg/--stat-border/--stat-color), lo definen .pu-stat--total/
+   --activos/--inactivos. De paso corrige un bug latente: hex2rgba() se
+   llamaba con strings tipo "var(--brand-500)" en vez de un hex real,
+   generando "rgba(NaN,NaN,NaN,0.2)" — el borde de las 3 tarjetas nunca se
+   vio como se pretendía.
    El resto son estados binarios conocidos (activo/inactivo) resueltos con
    clases modificadoras en vez de lógica ternaria inline.
    ────────────────────────────────────────────────────────────────────────────── */
@@ -19,11 +24,16 @@
 
 .pu-stats { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .pu-stat {
-  background: var(--stat-bg); border: 1px solid var(--stat-border);
   border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; gap: 10px;
 }
-.pu-stat-value { font-size: 22px; font-weight: 800; color: var(--stat-color); }
-.pu-stat-label { font-size: 12px; color: var(--stat-color); font-weight: 600; }
+.pu-stat--total      { background: var(--color-background-info); border: 1px solid rgba(37,99,235,0.2); }
+.pu-stat--activos    { background: var(--color-success-bg);       border: 1px solid rgba(5,150,105,0.2); }
+.pu-stat--inactivos  { background: var(--color-danger-bg);        border: 1px solid rgba(220,38,38,0.2); }
+.pu-stat-value { font-size: 22px; font-weight: 800; }
+.pu-stat-label { font-size: 12px; font-weight: 600; }
+.pu-stat--total .pu-stat-value, .pu-stat--total .pu-stat-label { color: var(--brand-500); }
+.pu-stat--activos .pu-stat-value, .pu-stat--activos .pu-stat-label { color: var(--color-success); }
+.pu-stat--inactivos .pu-stat-value, .pu-stat--inactivos .pu-stat-label { color: var(--color-danger); }
 
 .pu-huerfanos-banner {
   background: #FEF9EC; border: 1px solid #F59E0B; border-radius: 10px;
