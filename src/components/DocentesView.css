@@ -10,16 +10,6 @@
 
 .dv-root { display: flex; flex-direction: column; flex: 1; height: 0; overflow: hidden; }
 
-/* Mismo bug y mismo fix que .mv-root en MateriasView.css: en tablet
-   (≤1024px) .dv-body pasa a height:auto, pero .dv-root seguía con
-   height:0+overflow:hidden sin excepción, recortando ese contenido
-   ya crecido sin dar forma de scrollear hasta él. <main> en
-   HorariosLayout.jsx ya tiene overflow:auto — se deja que la
-   página scrollee ahí en este breakpoint. */
-@media (max-width: 1024px) {
-  .dv-root { height: auto; overflow: visible; }
-}
-
 .dv-modo-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: 7px 20px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .dv-modo-icon { color: var(--color-warning-text); font-size: 14px; }
 .dv-modo-text { font-size: 13px; color: var(--color-warning-text); font-weight: 600; }
@@ -32,31 +22,8 @@
 
 .dv-search-input { width: 100%; box-sizing: border-box; }
 
-.dv-list-card { flex: 1; }
-/* Mismo bug real que .mv-list-card en MateriasView.css: en el bundle de
-   producción, `.s-card{overflow:hidden}` (src/index.css) termina
-   apareciendo DESPUÉS de esta regla, y con igual especificidad (una
-   clase cada una) gana el que aparece último — dejando la lista con la
-   altura correcta pero sin poder scrollear, en cualquier tamaño de
-   pantalla (confirmado también en laptop, no es un problema de
-   breakpoint). Selector compuesto = especificidad mayor que `.s-card`
-   solo, no depende del orden del bundler. */
-.s-card.dv-list-card { overflow-y: auto; }
+.dv-list-card { flex: 1; overflow-y: auto; }
 .dv-list-header { padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
-
-/* Mismo bug y mismo fix que .mv-list-card en MateriasView.css: en
-   tablet (≤1024px) src/index.css acota `.dv-left-panel` con
-   `max-height: 260px`, pero ese cap no fuerza de forma confiable el
-   flex-shrink de `.dv-list-card` (el hijo que en verdad tiene
-   `overflow-y: auto`) en todos los motores de render — la lista queda
-   estática en vez de scrollear. Se acota directamente el elemento que
-   scrollea, con el mismo valor que ya usa el wrapper. */
-@media (max-width: 1024px) {
-  .dv-list-card { max-height: 260px; }
-}
-@media (max-width: 640px) {
-  .dv-list-card { max-height: 220px; }
-}
 
 .dv-list-item { padding: 10px 14px; cursor: pointer; font-size: 14px; font-weight: 400; background: transparent; color: var(--navy-700); border-bottom: 1px solid var(--color-background-tertiary); display: flex; justify-content: space-between; align-items: center; }
 .dv-list-item--active { font-weight: 600; background: var(--color-background-info); color: var(--brand-600); }
@@ -97,7 +64,7 @@
 .dv-cedula-value--unset { color: var(--color-border-secondary); }
 
 .dv-trayecto-badges { display: flex; gap: 8px; flex-wrap: wrap; }
-.dv-trayecto-badge { border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.dv-trayecto-badge { background: var(--trayecto-bg, #f3f4f6); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
 
 .dv-conflict-card { background: var(--color-danger-bg); border: 1px solid #FECACA; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; display: flex; gap: 10px; align-items: flex-start; }
 .dv-conflict-icon { font-size: 17px; color: var(--color-danger); margin-top: 1px; }
@@ -129,6 +96,10 @@
 .dv-table tbody tr:nth-child(odd) { background: #fff; }
 
 .dv-td-dia { font-weight: 600; color: var(--color-text-primary); }
+/* Fix A3 (Fase 2): antes era un ternario inline (2 estados: nuevo día vs.
+   mismo día), ahora modificador de clase fijo. */
+.dv-td-dia--nuevo-dia { border-top: 2px solid var(--color-border-tertiary); }
+.dv-td-dia--mismo-dia { border-top: 1px solid var(--color-background-tertiary); }
 .dv-td-hora { color: var(--color-text-tertiary); white-space: nowrap; font-size: 12px; font-weight: 500; }
 .dv-td-materia { font-weight: 600; font-size: 13px; }
 .dv-td-seccion { color: var(--color-text-tertiary); font-weight: 500; font-size: 12px; }
