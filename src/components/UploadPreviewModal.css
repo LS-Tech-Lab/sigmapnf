@@ -1,16 +1,19 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    UploadPreviewModal.css
    Migración A3 (auditoría 2026-07-02): estilos extraídos de
-   UploadPreviewModal.jsx. Los subcomponentes reutilizables (Tag, StatChip,
-   EmptyState) siguen aceptando color/bg/border como props — provienen de la
-   paleta interna fija `C` del propio archivo, no de datos arbitrarios — y se
-   pasan al CSS vía custom properties (--tag-color, --chip-bg, etc.), el mismo
-   patrón ya usado para los badges de trayecto en otros componentes.
+   UploadPreviewModal.jsx.
+   Fix A3/S3 Fase 2 (auditoría QA 2026-07-05): los subcomponentes reutilizables
+   (Tag, StatChip, EmptyState) reciben `color`/`bg`/`border` provenientes de la
+   paleta interna fija `C` — un dominio 100% enumerable, sin dato arbitrario de
+   por medio. Se refactorizaron a un prop `variant` (accent/neutral/ok/warn/
+   muted/faint) + clases fijas, en vez de custom properties inline.
    Los 3 handlers onMouseEnter/onMouseLeave que simulaban :hover con JS se
    reemplazan por :hover en CSS puro.
    ────────────────────────────────────────────────────────────────────────────── */
 
-.upm-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; white-space: nowrap; color: var(--tag-color); background: var(--tag-bg); border: 1px solid var(--tag-border); }
+.upm-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+.upm-tag--accent  { color: #2563EB; background: #EFF6FF; border: 1px solid #BFDBFE; }
+.upm-tag--neutral { color: #475569; background: #E2E8F0; border: 1px solid #CBD5E1; }
 
 .upm-section-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #E2E8F0; flex-shrink: 0; background: #F8FAFC; }
 .upm-section-header--accent { background: #EFF6FF; }
@@ -68,7 +71,11 @@
 
 .upm-stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; padding: 14px 16px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; flex-shrink: 0; }
 
-.upm-stat-chip { display: flex; flex-direction: column; align-items: center; padding: 10px 8px; border-radius: 10px; gap: 2px; color: var(--chip-color); background: var(--chip-bg); border: 1px solid var(--chip-border); }
+.upm-stat-chip { display: flex; flex-direction: column; align-items: center; padding: 10px 8px; border-radius: 10px; gap: 2px; }
+.upm-stat-chip--accent { color: #2563EB; background: #EFF6FF; border: 1px solid #BFDBFE; }
+.upm-stat-chip--ok     { color: #059669; background: #ECFDF5; border: 1px solid #A7F3D0; }
+.upm-stat-chip--warn   { color: #B45309; background: #FFFBEB; border: 1px solid #FDE68A; }
+.upm-stat-chip--muted  { color: #475569; background: #F1F5F9; border: 1px solid #E2E8F0; }
 .upm-stat-chip-icon { font-size: 16px; color: inherit; }
 .upm-stat-chip-value { font-size: 20px; font-weight: 800; color: inherit; line-height: 1.1; }
 .upm-stat-chip-label { font-size: 10px; font-weight: 600; color: inherit; opacity: 0.75; text-align: center; line-height: 1.2; }
@@ -98,7 +105,7 @@
 .upm-btn-confirm--disabled { background: #E2E8F0; color: #94A3B8; cursor: not-allowed; }
 
 /* ── Micro-componentes ──────────────────────────────────────────────────── */
-.upm-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; gap: 8px; color: var(--empty-color); }
+.upm-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; gap: 8px; color: #94A3B8; }
 .upm-empty-state-icon { font-size: 32px; color: inherit; }
 .upm-empty-state-title { font-weight: 700; font-size: 14px; color: inherit; }
 .upm-empty-state-body { font-size: 12px; color: inherit; opacity: 0.7; }
