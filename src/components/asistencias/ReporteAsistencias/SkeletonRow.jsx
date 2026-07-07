@@ -5,10 +5,7 @@ function SkeletonRow({ cols = 6 }) {
     <tr>
       {Array.from({ length: cols }).map((_, i) => (
         <td key={i} className="s-td">
-          <div
-            className="ra-skeleton-bar"
-            style={{ "--skeleton-width": `${[120, 90, 160, 90, 80, 100][i] || 100}px` }}
-          />
+          <div className="ra-skeleton-bar" />
         </td>
       ))}
     </tr>
