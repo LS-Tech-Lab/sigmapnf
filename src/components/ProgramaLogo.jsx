@@ -115,13 +115,29 @@ function IconEducacionEspecial({ size }) {
 }
 
 // ── Componente principal ─────────────────────────────────────────────────────
+// Fix A3/S3 (auditoría QA 5/jul/2026, Fase 2): los 2 usos reales en todo el
+// repo (HorariosLayout.jsx) siempre llaman con size={32} — no hay caso real
+// de tamaño variable, así que --pl-size/--pl-radius se fijan en CSS en vez
+// de inline. El gradiente color1/color2 depende de `programa`, un dominio
+// fijo de 5 claves (PROGRAMA_META, arriba) — se resuelve con
+// programaClass() + clases .pl-container--<programa> en vez de style inline.
+function programaClass(programa) {
+  const slugs = {
+    "todos": "todos",
+    "PNF Informática": "informatica",
+    "PNF Contaduría Pública": "contaduria",
+    "PNF Agroalimentación": "agroalimentacion",
+    "PNF Educación Especial": "educacion-especial",
+  };
+  return `pl-container--${slugs[programa] || "todos"}`;
+}
 
 export default function ProgramaLogo({ programa = "todos", size = 32, expanded = false }) {
   const meta = PROGRAMA_META[programa] || PROGRAMA_META["todos"];
 
   if (meta.useImg) {
     return (
-      <div className="pl-container" style={{ '--pl-size': `${size}px`, '--pl-radius': `${size * 0.25}px` }}>
+      <div className={`pl-container ${programaClass(programa)}`}>
         <img
           src={meta.img}
           alt={meta.label}
@@ -135,13 +151,7 @@ export default function ProgramaLogo({ programa = "todos", size = 32, expanded =
   const Icon = meta.icon;
   return (
     <div
-      className="pl-container pl-container--icon"
-      style={{
-        '--pl-size': `${size}px`,
-        '--pl-radius': `${size * 0.25}px`,
-        '--pl-bg': `linear-gradient(135deg, ${meta.color1}, ${meta.color2})`,
-        '--pl-shadow': `0 2px 10px ${meta.color1}66`,
-      }}
+      className={`pl-container pl-container--icon ${programaClass(programa)}`}
       title={meta.label}
     >
       <Icon size={size * 0.78} />
