@@ -7,17 +7,37 @@
    @keyframes global, definirlo una vez aquí es suficiente para las tres
    vistas — las otras dos etiquetas <style> inline se retiran cuando les
    toque su propia pasada de migración, sin romper nada mientras tanto.
-   Los estilos que dependen de datos reales (color por estadística) se
-   mantienen inline por diseño.
+   Fix A3/S3 Fase 2 (auditoría QA 2026-07-05): --skeleton-width (ancho fijo
+   por índice de columna, no por dato) y el color de las 4 stat cards
+   (literales en el propio array, no derivados de datos) ya no van vía
+   style inline — ver .ra-table--fecha/--rango nth-child, .ra-stat-card--*
+   y .ra-pct--* más abajo. Solo el color del % de asistencia sigue con un
+   componente inline pendiente: el ANCHO de la barra/etiqueta es un valor
+   continuo real (0-100 exacto), pendiente de bucketizar (Fase 4).
    ────────────────────────────────────────────────────────────────────────────── */
 
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 .ra-skeleton-bar {
-  height: 14px; width: var(--skeleton-width); border-radius: 4px;
+  height: 14px; width: 100px; border-radius: 4px;
   background: linear-gradient(90deg,#F1F5F9 25%,#E2E8F0 50%,#F1F5F9 75%);
   background-size: 200% 100%; animation: shimmer 1.4s infinite;
 }
+/* SkeletonRow.jsx (usado en index.jsx, siempre con cols=6) */
+.ra-table--fecha .s-td:nth-child(1) .ra-skeleton-bar { width: 120px; }
+.ra-table--fecha .s-td:nth-child(2) .ra-skeleton-bar { width: 90px; }
+.ra-table--fecha .s-td:nth-child(3) .ra-skeleton-bar { width: 160px; }
+.ra-table--fecha .s-td:nth-child(4) .ra-skeleton-bar { width: 90px; }
+.ra-table--fecha .s-td:nth-child(5) .ra-skeleton-bar { width: 80px; }
+.ra-table--fecha .s-td:nth-child(6) .ra-skeleton-bar { width: 100px; }
+/* ReporteRango.jsx (siempre 7 columnas) */
+.ra-table--rango .s-td:nth-child(1) .ra-skeleton-bar { width: 100px; }
+.ra-table--rango .s-td:nth-child(2) .ra-skeleton-bar { width: 150px; }
+.ra-table--rango .s-td:nth-child(3) .ra-skeleton-bar { width: 60px; }
+.ra-table--rango .s-td:nth-child(4) .ra-skeleton-bar { width: 60px; }
+.ra-table--rango .s-td:nth-child(5) .ra-skeleton-bar { width: 60px; }
+.ra-table--rango .s-td:nth-child(6) .ra-skeleton-bar { width: 50px; }
+.ra-table--rango .s-td:nth-child(7) .ra-skeleton-bar { width: 80px; }
 
 .ra-root { padding: 24px; max-width: 980px; margin: 0 auto; }
 
@@ -46,6 +66,39 @@
 .ra-stat-card { border-radius: 10px; padding: 14px 16px; }
 .ra-stat-value { font-size: 22px; font-weight: 800; }
 .ra-stat-label { font-size: 12px; color: #64748B; margin-top: 2px; font-weight: 500; }
+/* Fix A3 Fase 2: valores fijos hardcodeados en el propio array, sin
+   depender de ningún dato — antes se leían via style inline. */
+.ra-stat-card--docentes { background: #EFF6FF; border: 1px solid #2563EB22; }
+.ra-stat-card--dias      { background: #ECFDF5; border: 1px solid #05966922; }
+.ra-stat-card--alta      { background: #F0FDF4; border: 1px solid #15803D22; }
+.ra-stat-card--baja      { background: #FEF2F2; border: 1px solid #DC262622; }
+.ra-stat-value--docentes { color: #2563EB; }
+.ra-stat-value--dias      { color: #059669; }
+.ra-stat-value--alta      { color: #15803D; }
+.ra-stat-value--baja      { color: #DC2626; }
+/* ReporteAsistencias/index.jsx (5 stats, prefijo distinto para no chocar
+   con los de ReporteRango.jsx que comparten .ra-stat-card/.ra-stat-value) */
+.ra-stat-card--presentes      { background: #EFF6FF; border: 1px solid #2563EB22; }
+.ra-stat-card--entrada-salida { background: #ECFDF5; border: 1px solid #05966922; }
+.ra-stat-card--solo-entrada   { background: #FFFBEB; border: 1px solid #D9770622; }
+.ra-stat-card--primer         { background: #F5F3FF; border: 1px solid #7C3AED22; }
+.ra-stat-card--ultimo         { background: #FEF2F2; border: 1px solid #DC262622; }
+.ra-stat-value--presentes      { color: #2563EB; }
+.ra-stat-value--entrada-salida { color: #059669; }
+.ra-stat-value--solo-entrada   { color: #D97706; }
+.ra-stat-value--primer         { color: #7C3AED; }
+.ra-stat-value--ultimo         { color: #DC2626; }
+
+.ra-pct-label { font-weight: 700; font-size: 13px; }
+.ra-pct-fill { height: 100%; border-radius: 4px; }
+/* Umbral de 3 estados (>=75%/>=50%/<50%) — fijo, no continuo. El ancho de
+   la barra sí es continuo y sigue inline (ver nota de cabecera, Fase 4). */
+.ra-pct-label.ra-pct--alta  { color: #15803D; }
+.ra-pct-label.ra-pct--media { color: #D97706; }
+.ra-pct-label.ra-pct--baja  { color: #DC2626; }
+.ra-pct-fill.ra-pct--alta  { background: #15803D; }
+.ra-pct-fill.ra-pct--media { background: #D97706; }
+.ra-pct-fill.ra-pct--baja  { background: #DC2626; }
 
 .ra-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #E2E8F0; }
 .ra-tab-btn { padding: 8px 18px; border: none; background: none; cursor: pointer; font-size: 13px; font-weight: 500; color: #64748B; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.12s; display: flex; align-items: center; gap: 5px; }
