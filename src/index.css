@@ -470,10 +470,21 @@ textarea:focus-visible,
 
 /* StatCard.jsx */
 .sc-root { padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
-.sc-icon-wrap { width: 44px; height: 44px; border-radius: 10px; background: var(--stat-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.sc-icon { font-size: 20px; color: var(--stat-color); }
+.sc-icon-wrap { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sc-icon { font-size: 20px; }
 .sc-value { font-size: 24px; font-weight: 700; color: #0F172A; line-height: 1.1; }
 .sc-label { font-size: 12px; color: #64748B; margin-top: 2px; font-weight: 500; }
+/* Fix A3/S3 Fase 2: 7 variantes fijas (antes `color` arbitrario + style
+   inline). Corrige de paso un bug latente: con var(--brand-500) como
+   `color`, "${color}18" producía un string inválido — el tinte de fondo de
+   Clases/Materias/Secciones/Trayectos (DocentesView) nunca se veía. */
+.sc-root--danger     .sc-icon-wrap { background: rgba(220,38,38,0.09); }  .sc-root--danger     .sc-icon { color: #DC2626; }
+.sc-root--success    .sc-icon-wrap { background: rgba(5,150,105,0.09); }  .sc-root--success    .sc-icon { color: #059669; }
+.sc-root--purple     .sc-icon-wrap { background: rgba(139,92,246,0.09); } .sc-root--purple     .sc-icon { color: #8B5CF6; }
+.sc-root--sky        .sc-icon-wrap { background: rgba(14,165,233,0.09); } .sc-root--sky        .sc-icon { color: #0EA5E9; }
+.sc-root--brand      .sc-icon-wrap { background: rgba(37,99,235,0.09); }  .sc-root--brand      .sc-icon { color: var(--brand-500); }
+.sc-root--warning    .sc-icon-wrap { background: rgba(217,119,6,0.09); }  .sc-root--warning    .sc-icon { color: var(--color-warning); }
+.sc-root--role-coord .sc-icon-wrap { background: rgba(124,58,237,0.09); } .sc-root--role-coord .sc-icon { color: var(--color-role-coord); }
 
 /* PlanillaQR.jsx */
 .qr-error-card { margin: 20px; padding: 20px; color: #B91C1C; font-size: 14px; }
@@ -500,12 +511,19 @@ textarea:focus-visible,
 .asv-chip { font-size: 12px; font-family: monospace; font-weight: 700; background: #FEF3C7; color: var(--color-warning-text); border: 1px solid var(--color-warning-border); border-radius: 5px; padding: 2px 8px; }
 
 /* ProgramaLogo.jsx */
+/* Fix A3/S3 Fase 2: los 2 usos reales siempre son size=32 — ancho/alto/radio
+   fijos en vez de --pl-size/--pl-radius inline. El gradiente por programa
+   (dominio fijo de 5 claves, PROGRAMA_META en el propio componente) usa
+   .pl-container--<programa> en vez de --pl-bg/--pl-shadow inline. */
 .pl-container {
-  width: var(--pl-size); height: var(--pl-size); border-radius: var(--pl-radius);
+  width: 32px; height: 32px; border-radius: 8px;
   flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center;
-  background: var(--pl-bg, transparent); transition: background 0.3s; position: relative;
+  transition: background 0.3s; position: relative;
 }
-.pl-container--icon { box-shadow: var(--pl-shadow); }
+.pl-container--todos, .pl-container--informatica { background: transparent; }
+.pl-container--icon.pl-container--contaduria          { background: linear-gradient(135deg, #065F46, #34D399); box-shadow: 0 2px 10px #065F4666; }
+.pl-container--icon.pl-container--agroalimentacion     { background: linear-gradient(135deg, #14532D, #86EFAC); box-shadow: 0 2px 10px #14532D66; }
+.pl-container--icon.pl-container--educacion-especial   { background: linear-gradient(135deg, #581C87, #C084FC); box-shadow: 0 2px 10px #581C8766; }
 .pl-img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(37,99,235,0.45)); }
 
 /* Avatar.jsx */
@@ -790,3 +808,96 @@ textarea:focus-visible,
 .tg-card { margin-bottom: 16px; }
 .tg-th-hora { padding: 10px 12px; font-size: 12px; width: 110px; }
 .tg-th-day { padding: 10px 10px; font-size: 13px; border-left: 1px solid #E2E8F0; text-align: center; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Fix A3/S3 (auditoría QA 5/jul/2026, Fase 1) — Clases fijas de trayecto.
+
+   El color por trayecto (TRAYECTO_BG/TRAYECTO_COLORS, src/constants/index.js)
+   es un dominio FIJO de 13 valores hardcodeados que nunca cambian en
+   runtime — no es "dato" en el sentido que bloquea CSP, solo se venía
+   inyectando vía style={{...}} inline por comodidad. Estas 13 clases
+   (una por trayecto, generadas con trayectoClass() en constants/index.js)
+   definen todas las custom properties que los componentes ya consumían
+   (--tag-bg/--tag-color, --badge-bg/--badge-color, --dot-color,
+   --clase-bg/--clase-color/--clase-shadow/--clase-border, --fill-color,
+   --trayecto-bg/--trayecto-color) para que dejen de necesitar `style`.
+   Afecta: DocentesView, SeccionesView, MateriasView, ConflictosView,
+   TurnoGrid, GlobalSearch, ResumenView, PlanillaImprimibleBase.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.trayecto-inicial, .trayecto-1-1, .trayecto-1-2, .trayecto-1-3,
+.trayecto-2-1, .trayecto-2-2, .trayecto-2-3,
+.trayecto-3-1, .trayecto-3-2, .trayecto-3-3,
+.trayecto-4-1, .trayecto-4-2, .trayecto-4-3,
+.trayecto-desconocido {
+  --tag-bg: var(--trayecto-bg); --tag-color: var(--trayecto-color);
+  --badge-bg: var(--trayecto-bg); --badge-color: var(--trayecto-color);
+  --clase-bg: var(--trayecto-bg); --clase-color: var(--trayecto-color);
+  --fill-color: var(--trayecto-color); --dot-color: var(--trayecto-color);
+}
+
+.trayecto-inicial { --trayecto-bg: #F5F3FF; --trayecto-color: #8B5CF6; --clase-shadow: #8B5CF655; --clase-border: #8B5CF630; }
+.trayecto-1-1     { --trayecto-bg: #EFF6FF; --trayecto-color: #2563EB; --clase-shadow: #2563EB55; --clase-border: #2563EB30; }
+.trayecto-1-2     { --trayecto-bg: #DBEAFE; --trayecto-color: #1D4ED8; --clase-shadow: #1D4ED855; --clase-border: #1D4ED830; }
+.trayecto-1-3     { --trayecto-bg: #BFDBFE; --trayecto-color: #1E40AF; --clase-shadow: #1E40AF55; --clase-border: #1E40AF30; }
+.trayecto-2-1     { --trayecto-bg: #FEF2F2; --trayecto-color: #DC2626; --clase-shadow: #DC262655; --clase-border: #DC262630; }
+.trayecto-2-2     { --trayecto-bg: #FEE2E2; --trayecto-color: #B91C1C; --clase-shadow: #B91C1C55; --clase-border: #B91C1C30; }
+.trayecto-2-3     { --trayecto-bg: #FECACA; --trayecto-color: #991B1B; --clase-shadow: #991B1B55; --clase-border: #991B1B30; }
+.trayecto-3-1     { --trayecto-bg: #FFFBEB; --trayecto-color: #D97706; --clase-shadow: #D9770655; --clase-border: #D9770630; }
+.trayecto-3-2     { --trayecto-bg: #FEF3C7; --trayecto-color: #B45309; --clase-shadow: #B4530955; --clase-border: #B4530930; }
+.trayecto-3-3     { --trayecto-bg: #FDE68A; --trayecto-color: #92400E; --clase-shadow: #92400E55; --clase-border: #92400E30; }
+.trayecto-4-1     { --trayecto-bg: #ECFDF5; --trayecto-color: #059669; --clase-shadow: #05966955; --clase-border: #05966930; }
+.trayecto-4-2     { --trayecto-bg: #D1FAE5; --trayecto-color: #047857; --clase-shadow: #04785755; --clase-border: #04785730; }
+.trayecto-4-3     { --trayecto-bg: #A7F3D0; --trayecto-color: #065F46; --clase-shadow: #065F4655; --clase-border: #065F4630; }
+/* Trayecto no reconocido (dato inesperado) — mismo fallback que cada
+   componente ya usaba en su `|| valor` original, ahora centralizado. */
+.trayecto-desconocido { --trayecto-bg: var(--color-background-subtle); --trayecto-color: var(--color-text-tertiary); --clase-shadow: transparent; --clase-border: transparent; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Fix A3/S3 (auditoría QA 5/jul/2026, Fase 2) — Clases fijas para configs
+   ya hardcodeadas en el propio código (no son "dato" tampoco): eventos y
+   acciones de LogsView, niveles de fortaleza de contraseña, colores de
+   distribución fija en ResumenView, estado de % en ReporteRango/AdminQRPanel.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* LogsView.jsx — EVENTO_CONFIG / ACCION_CONFIG (dominio fijo, ~18 claves) */
+.lv-c-login          { --lv-bg: #F0FDF4; --lv-color: #16A34A; }
+.lv-c-logout         { --lv-bg: #FEF2F2; --lv-color: #DC2626; }
+.lv-c-login_fallido  { --lv-bg: #FFFBEB; --lv-color: #D97706; }
+.lv-c-default        { --lv-bg: #F8FAFC; --lv-color: #475569; }
+.lv-a-importar_excel     { --lv-color: #1D4ED8; }
+.lv-a-borrar_horarios    { --lv-color: #DC2626; }
+.lv-a-editar_docente,
+.lv-a-unificar_docente,
+.lv-a-editar_materia,
+.lv-a-unificar_materia   { --lv-color: #0F766E; }
+.lv-a-cerrar_trimestre   { --lv-color: #7C3AED; }
+.lv-a-crear_trimestre    { --lv-color: #2563EB; }
+.lv-a-restaurar_backup   { --lv-color: #D97706; }
+.lv-a-exportar_backup    { --lv-color: #64748B; }
+.lv-a-crear_usuario      { --lv-color: #2563EB; }
+.lv-a-editar_usuario     { --lv-color: #475569; }
+.lv-a-activar_usuario    { --lv-color: #16A34A; }
+.lv-a-desactivar_usuario { --lv-color: #DC2626; }
+.lv-a-gestionar_usuario  { --lv-color: #7C3AED; }
+.lv-a-crear_rol          { --lv-color: #2563EB; }
+.lv-a-editar_rol         { --lv-color: #0F766E; }
+.lv-a-eliminar_rol       { --lv-color: #DC2626; }
+.lv-a-default            { --lv-color: #475569; }
+
+/* ModalCambiarPassword.jsx — los 4 niveles de fortaleza y sus reglas
+   compuestas viven en ModalCambiarPassword.css (fix A3/S3 Fase 2). */
+
+/* ResumenView.jsx — colores fijos de distribución (no trayecto, hardcodeados
+   en el propio componente: día/docente/materia/turno) */
+.rv-fill--dia      { --fill-color: #059669; }
+.rv-fill--docente  { --fill-color: #7C3AED; }
+.rv-fill--materia  { --fill-color: #D97706; }
+.rv-fill--diurno    { --fill-color: #2563EB; }
+.rv-fill--vespertino{ --fill-color: #DB2777; }
+
+/* ReporteRango.jsx / AdminQRPanel.jsx — el % de asistencia y el % de la
+   cuenta regresiva del QR son continuos (ver Fase 4, pendiente); el color
+   asociado (umbral fijo de 3 estados) se resuelve directamente en el CSS
+   de cada componente (ReporteAsistencias/index.css, AdminQRPanel.css) con
+   selectores compuestos, no aquí. */
