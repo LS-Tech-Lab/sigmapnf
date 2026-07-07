@@ -7,7 +7,7 @@
 // Horarios (AsistenciasView.jsx), eliminado por redundante: la misma
 // planilla ya es accesible desde Asistencias QR.
 import React, { useState, useMemo } from 'react';
-import { DAYS, TRAYECTO_BG, TRAYECTO_COLORS } from '../../constants';
+import { DAYS, trayectoClass } from '../../constants';
 import { getTurnoDeRegistro } from '../../utils/turno';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../../utils/time';
 import { parseClase } from '../../utils/parsing';
@@ -120,7 +120,7 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
                       <div key={i} className="pib-materia-row">
                         <span className="pib-materia-name">{c.materia}</span>
                         <span className="pib-materia-seccion">— {c.seccion}</span>
-                        {c.trayecto && <span className="pib-materia-trayecto" style={{ background: TRAYECTO_BG[c.trayecto] || "#F1F5F9", color: TRAYECTO_COLORS[c.trayecto] || "#334155" }}>T.{c.trayecto}</span>}
+                        {c.trayecto && <span className={`pib-materia-trayecto ${trayectoClass(c.trayecto)}`}>T.{c.trayecto}</span>}
                       </div>
                     ))}
                   </td>
