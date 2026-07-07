@@ -25,9 +25,9 @@
 .lv-no-access-text { font-size: 14px; }
 
 /* ── Badges (dinámicos por config, ver comentario arriba) ─────────────────── */
-.lv-evento-badge { border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+.lv-evento-badge { background: var(--lv-bg, #F8FAFC); color: var(--lv-color, #475569); border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
 .lv-evento-badge-icon { font-size: 12px; }
-.lv-accion-badge { font-size: 13px; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.lv-accion-badge { color: var(--lv-color, #475569); font-size: 13px; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
 .lv-accion-badge-icon { font-size: 14px; }
 
 /* ── Filtros ───────────────────────────────────────────────────────────────── */
@@ -44,7 +44,7 @@
 .lv-fecha-field { display: flex; align-items: center; gap: 6px; }
 .lv-fecha-label { font-size: 12px; color: var(--color-text-tertiary); white-space: nowrap; }
 .lv-icon-14 { font-size: 14px; }
-.lv-stat-chip { border-radius: 8px; padding: 8px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.lv-stat-chip { background: var(--lv-bg, #F8FAFC); color: var(--lv-color, #475569); border-radius: 8px; padding: 8px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
 .lv-stat-chip-count { font-weight: 700; font-size: 18px; }
 
 /* ── Estados de carga/vacío ───────────────────────────────────────────────── */
@@ -69,9 +69,9 @@
 
 /* ── Auditoría ─────────────────────────────────────────────────────────────── */
 .lv-audit-list { display: flex; flex-direction: column; gap: 8px; }
-.lv-audit-card { border-left: 3px solid var(--audit-accent, var(--color-border-tertiary)); }
+.lv-audit-card { border-left: 3px solid var(--lv-color, var(--color-border-tertiary)); }
 .lv-audit-header { display: flex; align-items: center; padding: 12px 16px; cursor: pointer; gap: 12px; user-select: none; }
-.lv-audit-header-icon { font-size: 20px; flex-shrink: 0; }
+.lv-audit-header-icon { font-size: 20px; flex-shrink: 0; color: var(--lv-color, var(--color-text-tertiary)); }
 .lv-audit-main { flex: 1; min-width: 0; }
 .lv-audit-badges-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .lv-audit-badge { border-radius: 5px; padding: 1px 7px; font-size: 11px; font-weight: 600; }
