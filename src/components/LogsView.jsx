@@ -56,10 +56,23 @@ const ACCION_CONFIG = {
   ELIMINAR_ROL:        { icon: "ti-shield-off",     color: "#DC2626" },
 };
 
+// Fix A3/S3 (auditoría QA 5/jul/2026, Fase 2): EVENTO_CONFIG/ACCION_CONFIG
+// son objetos fijos hardcodeados arriba — no son "dato" en el sentido que
+// bloquea CSP. Las clases .lv-c-<evento>/.lv-a-<accion> (ver src/index.css)
+// reemplazan el fondo/color que antes se inyectaba vía estilo inline.
+function eventoClass(evento) {
+  const key = (evento || "").toLowerCase();
+  return EVENTO_CONFIG[key] ? `lv-c-${key}` : "lv-c-default";
+}
+function accionClass(accion) {
+  const key = (accion || "").toLowerCase();
+  return ACCION_CONFIG[accion?.toUpperCase()] ? `lv-a-${key}` : "lv-a-default";
+}
+
 function EventoBadge({ evento }) {
-  const cfg = EVENTO_CONFIG[evento] || { label: evento, icon: "ti-info-circle", color: "#475569", bg: "#F8FAFC" };
+  const cfg = EVENTO_CONFIG[evento] || { label: evento, icon: "ti-info-circle" };
   return (
-    <span className="lv-evento-badge" style={{ background: cfg.bg, color: cfg.color }}>
+    <span className={`lv-evento-badge ${eventoClass(evento)}`}>
       <i className={`ti ${cfg.icon} lv-evento-badge-icon`} aria-hidden="true" />
       {cfg.label}
     </span>
@@ -67,9 +80,9 @@ function EventoBadge({ evento }) {
 }
 
 function AccionBadge({ accion }) {
-  const cfg = ACCION_CONFIG[accion] || { icon: "ti-info-circle", color: "#475569" };
+  const cfg = ACCION_CONFIG[accion] || { icon: "ti-info-circle" };
   return (
-    <span className="lv-accion-badge" style={{ color: cfg.color }}>
+    <span className={`lv-accion-badge ${accionClass(accion)}`}>
       <i className={`ti ${cfg.icon} lv-accion-badge-icon`} aria-hidden="true" />
       {accion.replace(/_/g, " ")}
     </span>
@@ -120,7 +133,7 @@ function TabSesiones({ permisos }) {
       {/* Mini stats */}
       <div className="lv-filtros-row--center">
         {Object.entries(EVENTO_CONFIG).map(([k, v]) => (
-          <div key={k} className="lv-stat-chip" style={{ background: v.bg, color: v.color }}>
+          <div key={k} className={`lv-stat-chip ${eventoClass(k)}`}>
             <span className="lv-stat-chip-count">{stats[k] || 0}</span>
             <i className={`ti ${v.icon} lv-icon-14`} aria-hidden="true" />
             <span>{v.label}</span>
@@ -338,14 +351,13 @@ function TabAuditoria({ permisos }) {
             const cfg = ACCION_CONFIG[log.accion] || { icon: "ti-info-circle", color: "#475569" };
 
             return (
-              <div key={log.id} className="s-card lv-audit-card" style={{ "--audit-accent": cfg.color }}>
+              <div key={log.id} className={`s-card lv-audit-card ${accionClass(log.accion)}`}>
                 {/* Cabecera */}
                 <div
                   onClick={() => setExpandido(isOpen ? null : log.id)}
                   className="lv-audit-header">
 
-                  <i className={`ti ${cfg.icon} lv-audit-header-icon`}
-                     style={{ color: cfg.color }} aria-hidden="true" />
+                  <i className={`ti ${cfg.icon} lv-audit-header-icon`} aria-hidden="true" />
 
                   <div className="lv-audit-main">
                     <div className="lv-audit-badges-row">
