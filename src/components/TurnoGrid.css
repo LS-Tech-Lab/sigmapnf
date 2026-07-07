@@ -3,13 +3,17 @@
    Migración A3 (auditoría 2026-07-05): estilos extraídos de TurnoGrid.jsx.
    .tg-card / .tg-th-hora / .tg-th-day ya existían en src/index.css y se
    mantienen ahí.
-   Dinámico legítimo que se mantiene inline vía CSS custom properties:
-   - --cell-height: alto de celda combinada, depende del rowspan calculado.
-   - --clase-bg / --clase-color / --clase-shadow / --clase-border: colores de
-     trayecto (TRAYECTO_BG/TRAYECTO_COLORS indexados por dato), y sus variantes
-     con alpha ("#RRGGBB" + sufijo de opacidad) para el resaltado al expandir.
-   - --clase-height: alto de la tarjeta de clase cuando hay varias en la misma
-     celda combinada (depende de cuántas entradas comparten el bloque).
+   Fix A3/S3 Fase 1 (auditoría QA 2026-07-05): --clase-bg/--clase-color/
+   --clase-shadow/--clase-border (color de trayecto) ya NO son dinámicos —
+   TRAYECTO_BG/TRAYECTO_COLORS es un dominio fijo de 13 valores, ahora
+   definido por la clase .trayecto-<n> (ver src/index.css) en vez de style
+   inline.
+   Pendiente (fuera del alcance de esta fase — ver auditoría, "casos
+   genuinamente difíciles"): --cell-height y --clase-height siguen inline,
+   son una dimensión geométrica calculada en runtime (rowspan combinado /
+   cuántas entradas comparten el bloque), no un color — se evaluará en una
+   fase futura si el máximo de bloques por turno es acotado y se puede
+   convertir a un set fijo de clases.
    El alternado de fila (zebra) y el estado expandido/colapsado de la tarjeta
    de clase se resuelven con selectores CSS (:nth-child, modificadora
    .tg-clase--expanded) en vez de lógica ternaria inline.
@@ -51,7 +55,7 @@
 .tg-cell-data { padding: 4px; border-top: 1px solid var(--color-border-tertiary); border-left: 1px solid var(--color-border-tertiary); vertical-align: top; height: var(--cell-height); }
 
 .tg-clase {
-  background: var(--clase-bg); border-left: 3px solid var(--clase-color);
+  background: var(--clase-bg, #f0f0f0); border-left: 3px solid var(--clase-color, #555);
   border-radius: 6px; padding: 5px 8px; cursor: pointer; transition: all 0.15s;
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   height: var(--clase-height); min-height: 38px;
@@ -60,7 +64,7 @@
 .tg-clase:not(:last-child) { margin-bottom: 3px; }
 .tg-clase--expanded {
   padding: 6px 8px;
-  box-shadow: 0 0 0 2px var(--clase-shadow), 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 0 0 2px var(--clase-shadow, transparent), 0 2px 8px rgba(0,0,0,0.08);
   height: auto;
 }
 
