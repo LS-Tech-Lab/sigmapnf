@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { DAYS, TRAYECTO_BG, TRAYECTO_COLORS } from '../constants';
+import { DAYS, trayectoClass } from '../constants';
 import { getTurnoDeRegistro, findStartBlock } from '../utils/turno';
 import { countBlocks, getHoraDisplayDeRegistro } from '../utils/time';
 import { parseClase } from '../utils/parsing';
@@ -78,7 +78,6 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
                           const { materia: rawMateria, docente: docenteParseado } = parseClase(e.clase);
                           const rawDoc = e.docentes?.nombre_raw || docenteParseado;
                           const materia = getMateriaName(rawMateria), docente = getDocName(rawDoc);
-                          const bg = TRAYECTO_BG[e.trayecto] || "#f0f0f0", col = TRAYECTO_COLORS[e.trayecto] || "#555";
                           const toggleExpand = () => setExpandedCell(isExp ? null : cellKey);
                           return (
                             <div
@@ -89,9 +88,8 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
                               aria-label={`${materia}${docente ? ` — ${docente}` : ""}. Presiona Enter para ${isExp ? "ocultar" : "ver"} detalles.`}
                               onClick={toggleExpand}
                               onKeyDown={ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggleExpand(); } }}
-                              className={`tg-clase${isExp ? " tg-clase--expanded" : ""}`}
+                              className={`tg-clase ${trayectoClass(e.trayecto)}${isExp ? " tg-clase--expanded" : ""}`}
                               style={{
-                                "--clase-bg": bg, "--clase-color": col, "--clase-shadow": `${col}55`, "--clase-border": `${col}30`,
                                 "--clase-height": !isExp && span > 0 ? `calc(${span * ROW_H - 10}px / ${entries.length})` : "auto",
                               }}
                             >
