@@ -44,17 +44,17 @@ const POLL_FALLBACK_MS = 5000;
 // ── Barra de cuenta regresiva ────────────────────────────────────────────────
 function CountdownBar({ segundos, total }) {
   const pct   = Math.max(0, (segundos / total) * 100);
-  const color = pct > 40 ? "#22C55E" : pct > 15 ? "#F59E0B" : "#EF4444";
+  const variant = pct > 40 ? "ok" : pct > 15 ? "warn" : "critical";
   return (
     <div className="qrp-cdb-root">
       <div className="qrp-cdb-header">
         <span>Próxima rotación</span>
-        <span className="qrp-cdb-time" style={{ color }}>
+        <span className={`qrp-cdb-time qrp-cdb--${variant}`}>
           {Math.floor(segundos / 60)}:{String(segundos % 60).padStart(2, "0")}
         </span>
       </div>
       <div className="qrp-cdb-track">
-        <div className="qrp-cdb-fill" style={{ width: `${pct}%`, background: color }} />
+        <div className={`qrp-cdb-fill qrp-cdb--${variant}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
