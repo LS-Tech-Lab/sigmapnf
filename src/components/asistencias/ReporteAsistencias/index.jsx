@@ -209,26 +209,26 @@ export default function ReporteAsistencias({ onVolverPanel }) {
       {/* Estadísticas */}
       <div className="ra-stats-grid">
         {[
-          { label: "Docentes presentes", value: totalDocentes, color: "#2563EB", bg: "#EFF6FF" },
-          { label: "Entrada y salida",   value: conSalida,     color: "#059669", bg: "#ECFDF5" },
-          { label: "Solo entrada",       value: soloEntrada,   color: "#D97706", bg: "#FFFBEB" },
+          { label: "Docentes presentes", value: totalDocentes, variant: "presentes" },
+          { label: "Entrada y salida",   value: conSalida,     variant: "entrada-salida" },
+          { label: "Solo entrada",       value: soloEntrada,   variant: "solo-entrada" },
           {
             label: "Primer registro",
             value: primerRegistro
               ? new Date(primerRegistro).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" })
               : "—",
-            color: "#7C3AED", bg: "#F5F3FF",
+            variant: "primer",
           },
           {
             label: "Último registro",
             value: ultimoRegistro
               ? new Date(ultimoRegistro).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" })
               : "—",
-            color: "#DC2626", bg: "#FEF2F2",
+            variant: "ultimo",
           },
         ].map(stat => (
-          <div key={stat.label} className="ra-stat-card" style={{ background: stat.bg, border: `1px solid ${stat.color}22` }}>
-            <div className="ra-stat-value" style={{ color: stat.color }}>{stat.value}</div>
+          <div key={stat.label} className={`ra-stat-card ra-stat-card--${stat.variant}`}>
+            <div className={`ra-stat-value ra-stat-value--${stat.variant}`}>{stat.value}</div>
             <div className="ra-stat-label">{stat.label}</div>
           </div>
         ))}
@@ -276,7 +276,7 @@ export default function ReporteAsistencias({ onVolverPanel }) {
       {/* Vista Presentes */}
       {tab === "presentes" && (
         <div className="s-card ra-table-wrap">
-          <table className="ra-table">
+          <table className="ra-table ra-table--fecha">
             <thead>
               <tr>
                 {["Cédula", "Nombre docente", "Estado", "Entrada", "Salida", "Programa"].map(h => (
