@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { DAYS, ALL_TRAYECTOS, TRAYECTO_BG, TRAYECTO_COLORS } from '../constants';
+import { DAYS, ALL_TRAYECTOS, trayectoClass } from '../constants';
 import { getTurnoDeRegistro } from '../utils/turno';
 import StatCard from './StatCard';
 import Avatar from './Avatar';
@@ -72,10 +72,10 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
       {tab === 'general' && (
         <>
           <div className="stats-grid-4">
-            <StatCard label="Conflictos activos" value={conflicts.length} icon="ti-alert-triangle" color={conflicts.length > 0 ? '#DC2626' : '#059669'} />
-            <StatCard label="Trayectos activos" value={metricas?.trayectosActivos || 0} icon="ti-chart-bar" color="#8B5CF6" />
-            <StatCard label="Prom. clases/día" value={metricas?.promedioClasesDia || 0} icon="ti-trending-up" color="#0EA5E9" />
-            <StatCard label="Docentes con conflictos" value={metricas?.docentesConConflicto || 0} icon="ti-user-exclamation" color={metricas?.docentesConConflicto > 0 ? '#DC2626' : '#059669'} />
+            <StatCard label="Conflictos activos" value={conflicts.length} icon="ti-alert-triangle" variant={conflicts.length > 0 ? 'danger' : 'success'} />
+            <StatCard label="Trayectos activos" value={metricas?.trayectosActivos || 0} icon="ti-chart-bar" variant="purple" />
+            <StatCard label="Prom. clases/día" value={metricas?.promedioClasesDia || 0} icon="ti-trending-up" variant="sky" />
+            <StatCard label="Docentes con conflictos" value={metricas?.docentesConConflicto || 0} icon="ti-user-exclamation" variant={metricas?.docentesConConflicto > 0 ? 'danger' : 'success'} />
           </div>
 
           <div className="rv-grid-2">
@@ -146,9 +146,9 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
             <div className="rv-analysis-title">Clases por trayecto</div>
             {Object.entries(metricas.trayectoCount).sort().map(([t, c]) => (
               <div key={t} className="rv-bar-row">
-                <span className="rv-trayecto-badge" style={{ background: TRAYECTO_BG[t] || '#f3f4f6', color: TRAYECTO_COLORS[t] || '#555' }}>{t}</span>
+                <span className={`rv-trayecto-badge ${trayectoClass(t)}`}>{t}</span>
                 <div className="rv-bar-track">
-                  <div className="rv-bar-fill" style={{ width: `${(c/stats.total)*100}%`, background: TRAYECTO_COLORS[t] || '#888' }} />
+                  <div className={`rv-bar-fill ${trayectoClass(t)}`} style={{ width: `${(c/stats.total)*100}%` }} />
                 </div>
                 <span className="rv-count-label rv-count-label--32">{c}</span>
               </div>
@@ -161,7 +161,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
               <div key={d} className="rv-bar-row">
                 <span className="rv-day-label">{d.charAt(0)+d.slice(1).toLowerCase()}</span>
                 <div className="rv-bar-track">
-                  <div className="rv-bar-fill" style={{ width: `${(metricas.dayCount[d]/metricas.maxDay)*100}%`, background: '#059669' }} />
+                  <div className="rv-bar-fill rv-fill--dia" style={{ width: `${(metricas.dayCount[d]/metricas.maxDay)*100}%` }} />
                 </div>
                 <span className="rv-count-label rv-count-label--32">{metricas.dayCount[d]}</span>
               </div>
@@ -175,7 +175,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
                 <span className="rv-rank">{idx+1}</span>
                 <span className="rv-bar-label">{getDocName(doc)}</span>
                 <div className="rv-bar-track rv-bar-track--w100">
-                  <div className="rv-bar-fill" style={{ width: `${(entries.length/metricas.maxLoadDocente)*100}%`, background: '#7C3AED' }} />
+                  <div className="rv-bar-fill rv-fill--docente" style={{ width: `${(entries.length/metricas.maxLoadDocente)*100}%` }} />
                 </div>
                 <span className="rv-count-label rv-count-label--24">{entries.length}</span>
               </div>
@@ -193,7 +193,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
                     {getMateriaName(mat).length > 28 ? getMateriaName(mat).slice(0,26)+'…' : getMateriaName(mat)}
                   </span>
                   <div className="rv-bar-track rv-bar-track--w100">
-                    <div className="rv-bar-fill" style={{ width: `${(cnt/metricas.maxMat)*100}%`, background: '#D97706' }} />
+                    <div className="rv-bar-fill rv-fill--materia" style={{ width: `${(cnt/metricas.maxMat)*100}%` }} />
                   </div>
                   <span className="rv-count-label rv-count-label--24">{cnt}</span>
                 </div>
@@ -205,12 +205,11 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
             <div className="rv-analysis-title">Distribución por turno</div>
             {Object.entries(metricas.turnoCount).sort().map(([t, cnt]) => {
               const pct = stats.total > 0 ? Math.round((cnt/stats.total)*100) : 0;
-              const colors = { DIURNO: '#2563EB', VESPERTINO: '#DB2777' };
               return (
                 <div key={t} className="rv-bar-row rv-bar-row--turno">
                   <span className="rv-turno-label">{t.charAt(0)+t.slice(1).toLowerCase()}</span>
                   <div className="rv-bar-track rv-bar-track--h14">
-                    <div className="rv-bar-fill" style={{ width: `${pct}%`, background: colors[t] || '#888' }} />
+                    <div className={`rv-bar-fill rv-fill--${t.toLowerCase()}`} style={{ width: `${pct}%` }} />
                   </div>
                   <span className="rv-count-label rv-count-label--60">{cnt} ({pct}%)</span>
                 </div>
@@ -225,9 +224,9 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
               const pct = metricas.seccionesCount > 0 ? (cnt/metricas.seccionesCount)*100 : 0;
               return (
                 <div key={t} className="rv-bar-row">
-                  <span className="rv-trayecto-badge" style={{ background: TRAYECTO_BG[t] || '#f3f4f6', color: TRAYECTO_COLORS[t] || '#555' }}>{t}</span>
+                  <span className={`rv-trayecto-badge ${trayectoClass(t)}`}>{t}</span>
                   <div className="rv-bar-track">
-                    <div className="rv-bar-fill" style={{ width: `${pct}%`, background: TRAYECTO_COLORS[t] || '#888' }} />
+                    <div className={`rv-bar-fill ${trayectoClass(t)}`} style={{ width: `${pct}%` }} />
                   </div>
                   <span className="rv-count-label rv-count-label--32">{cnt}</span>
                 </div>
