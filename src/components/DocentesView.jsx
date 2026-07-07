@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { DAYS, TRAYECTO_COLORS, TRAYECTO_BG } from '../constants';
+import { DAYS, trayectoClass } from '../constants';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../utils/time';
 import { parseClase } from '../utils/parsing';
 import Avatar from './Avatar';
@@ -154,7 +154,7 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
                   )}
                 </div>
               </div>
-              <div className="dv-trayecto-badges">{[...new Set(selEntries.map(e => e.trayecto))].sort().map(t => <span key={t} className="dv-trayecto-badge" style={{ background: TRAYECTO_BG[t] || "var(--color-background-subtle)", color: TRAYECTO_COLORS[t] || "#555" }}>T.{t}</span>)}</div>
+              <div className="dv-trayecto-badges">{[...new Set(selEntries.map(e => e.trayecto))].sort().map(t => <span key={t} className={`dv-trayecto-badge ${trayectoClass(t)}`}>T.{t}</span>)}</div>
             </div>
             {selConflicts.map((c, i) => (
               <div key={i} className="dv-conflict-card">
@@ -168,10 +168,10 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
             {docenteStats && (
               <>
                 <div className="dv-stats-grid">
-                  <StatCard label="Clases" value={docenteStats.totalClases} icon="ti-calendar-event" color="var(--brand-500)" />
-                  <StatCard label="Materias" value={docenteStats.totalMaterias} icon="ti-book-2" color="var(--color-warning)" />
-                  <StatCard label="Secciones" value={docenteStats.totalSecciones} icon="ti-school" color="var(--color-success)" />
-                  <StatCard label="Trayectos" value={docenteStats.totalTrayectos} icon="ti-chart-bar" color="var(--color-role-coord)" />
+                  <StatCard label="Clases" value={docenteStats.totalClases} icon="ti-calendar-event" variant="brand" />
+                  <StatCard label="Materias" value={docenteStats.totalMaterias} icon="ti-book-2" variant="warning" />
+                  <StatCard label="Secciones" value={docenteStats.totalSecciones} icon="ti-school" variant="success" />
+                  <StatCard label="Trayectos" value={docenteStats.totalTrayectos} icon="ti-chart-bar" variant="role-coord" />
                 </div>
                 <div className="s-card dv-day-card">
                   <div className="dv-day-title"><i className="ti ti-calendar-event" aria-hidden="true" /> Distribución por día</div>
@@ -210,10 +210,10 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
                       const prevEntry = i > 0 ? sortedEntries[i-1] : null;
                       return (
                         <tr key={i}>
-                          <td className="s-td dv-td-dia" style={{ borderTop: prevEntry && prevEntry.dia !== e.dia ? "2px solid var(--color-border-tertiary)" : "1px solid var(--color-background-tertiary)" }}>{e.dia.charAt(0)+e.dia.slice(1).toLowerCase()}</td>
+                          <td className={`s-td dv-td-dia ${prevEntry && prevEntry.dia !== e.dia ? "dv-td-dia--nuevo-dia" : "dv-td-dia--mismo-dia"}`}>{e.dia.charAt(0)+e.dia.slice(1).toLowerCase()}</td>
                           <td className="s-td dv-td-hora">{getHoraDisplayDeRegistro(e)}</td>
                           <td className="s-td dv-td-materia">{materia}</td>
-                          <td className="s-td"><span className="dv-trayecto-badge" style={{ background: TRAYECTO_BG[e.trayecto] || "var(--color-background-subtle)", color: TRAYECTO_COLORS[e.trayecto] || "#555" }}>{e.trayecto}</span></td>
+                          <td className="s-td"><span className={`dv-trayecto-badge ${trayectoClass(e.trayecto)}`}>{e.trayecto}</span></td>
                           <td className="s-td dv-td-seccion">{e.sheet?.trim() || ""}</td>
                         </tr>
                       );
