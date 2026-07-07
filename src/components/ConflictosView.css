@@ -6,9 +6,9 @@
    clases modificadoras (.cv-title-icon--ok, .cv-badge--ok) en vez de lógica
    ternaria inline.
    El color por trayecto (TRAYECTO_COLORS / TRAYECTO_BG, indexado por
-   e.trayecto, con fallback #555/#f5f5f5 cuando no hay color definido) sí
-   depende de datos reales — se mantiene inline vía CSS custom properties
-   (--tag-color, --tag-bg).
+   e.trayecto) es un dominio fijo de 13 valores (fix A3/S3 Fase 1, auditoría
+   QA 2026-07-05) — ya no se inyecta vía style inline, lo define la clase
+   fija .trayecto-<n> (ver src/index.css) vía --tag-color/--tag-bg.
    #94A3B8 y #F0FDF4/#16A34A no tienen token exacto en src/index.css
    (ver nota de la migración A3) — se dejan como hex literal.
    ────────────────────────────────────────────────────────────────────────────── */
@@ -59,8 +59,8 @@
 .cv-item-tags { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .cv-tag {
-  background: var(--tag-bg); border-left: 3px solid var(--tag-color);
+  background: var(--tag-bg, #f5f5f5); border-left: 3px solid var(--tag-color, #555);
   border-radius: 6px; padding: 6px 12px; font-size: 13px; font-weight: 500;
 }
-.cv-tag-title { font-weight: 600; color: var(--tag-color); }
-.cv-tag-sub { color: var(--tag-color); opacity: 0.7; font-size: 11px; }
+.cv-tag-title { font-weight: 600; color: var(--tag-color, #555); }
+.cv-tag-sub { color: var(--tag-color, #555); opacity: 0.7; font-size: 11px; }
