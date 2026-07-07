@@ -202,13 +202,13 @@ function ReporteRango({ onVolverDiario }) {
 
       <div className="ra-stats-grid">
         {[
-          { label: "Docentes en rango",  value: filtrados.length,                                                                                    color: "#2563EB", bg: "#EFF6FF" },
-          { label: "Días hábiles",       value: diasHabiles,                                                                                         color: "#059669", bg: "#ECFDF5" },
-          { label: "Asistencia ≥ 75%",  value: filtrados.filter(d => diasHabiles > 0 && (d.diasAsistidos / diasHabiles) >= 0.75).length,           color: "#15803D", bg: "#F0FDF4" },
-          { label: "Asistencia < 75%",  value: filtrados.filter(d => diasHabiles > 0 && (d.diasAsistidos / diasHabiles) <  0.75).length,           color: "#DC2626", bg: "#FEF2F2" },
+          { label: "Docentes en rango",  value: filtrados.length,                                                                                    variant: "docentes" },
+          { label: "Días hábiles",       value: diasHabiles,                                                                                         variant: "dias" },
+          { label: "Asistencia ≥ 75%",  value: filtrados.filter(d => diasHabiles > 0 && (d.diasAsistidos / diasHabiles) >= 0.75).length,           variant: "alta" },
+          { label: "Asistencia < 75%",  value: filtrados.filter(d => diasHabiles > 0 && (d.diasAsistidos / diasHabiles) <  0.75).length,           variant: "baja" },
         ].map(stat => (
-          <div key={stat.label} className="ra-stat-card" style={{ background: stat.bg, border: `1px solid ${stat.color}22` }}>
-            <div className="ra-stat-value" style={{ color: stat.color }}>{stat.value}</div>
+          <div key={stat.label} className={`ra-stat-card ra-stat-card--${stat.variant}`}>
+            <div className={`ra-stat-value ra-stat-value--${stat.variant}`}>{stat.value}</div>
             <div className="ra-stat-label">{stat.label}</div>
           </div>
         ))}
@@ -240,7 +240,7 @@ function ReporteRango({ onVolverDiario }) {
       )}
 
       <div className="s-card ra-table-wrap">
-        <table className="ra-table">
+        <table className="ra-table ra-table--rango">
           <thead>
             <tr>{["Cédula", "Nombre", "Días asistidos", "Días hábiles", "% Asistencia", "Horas est.", "Programa(s)"].map(h => <th key={h} className="s-th">{h}</th>)}</tr>
           </thead>
@@ -248,14 +248,14 @@ function ReporteRango({ onVolverDiario }) {
             {loading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>{Array.from({ length: 7 }).map((_, j) => (
-                    <td key={j} className="s-td"><div className="ra-skeleton-bar" style={{ width: [100, 150, 60, 60, 60, 50, 80][j] }} /></td>
+                    <td key={j} className="s-td"><div className="ra-skeleton-bar" /></td>
                   ))}</tr>
                 ))
               : filtrados.length === 0
                 ? <tr><td colSpan={7} className="s-td ra-td-empty-msg">No hay asistencias en este rango.</td></tr>
                 : filtrados.map(d => {
                     const pct   = diasHabiles > 0 ? Math.round((d.diasAsistidos / diasHabiles) * 100) : 0;
-                    const color = pct >= 75 ? "#15803D" : pct >= 50 ? "#D97706" : "#DC2626";
+                    const pctVariant = pct >= 75 ? "alta" : pct >= 50 ? "media" : "baja";
                     return (
                       <tr key={d.cedula}>
                         <td className="s-td ra-td-cedula">{d.cedula}</td>
@@ -263,9 +263,9 @@ function ReporteRango({ onVolverDiario }) {
                         <td className="s-td ra-td-center-bold">{d.diasAsistidos}</td>
                         <td className="s-td ra-td-center-muted">{diasHabiles}</td>
                         <td className="s-td ra-td-pct">
-                          <span className="ra-pct-label" style={{ color }}>{pct}%</span>
+                          <span className={`ra-pct-label ra-pct--${pctVariant}`}>{pct}%</span>
                           <div className="ra-pct-track">
-                            <div className="ra-pct-fill" style={{ width: `${pct}%`, background: color }} />
+                            <div className={`ra-pct-fill ra-pct--${pctVariant}`} style={{ width: `${pct}%` }} />
                           </div>
                         </td>
                         <td className="s-td ra-td-center-sm-muted">~{d.horasEstimadas}h</td>
