@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { TRAYECTO_BG, TRAYECTO_COLORS } from '../constants';
+import { trayectoClass } from '../constants';
 import { parseClase } from '../utils/parsing';
 import './GlobalSearch.css';
 
@@ -68,7 +68,7 @@ export default function GlobalSearch({ onNavigate, docenteNames, materiaNames, d
               onClick={() => { onNavigate(r); setOpen(false); setQ(""); }}
               className="gs-result"
             >
-              <span className="gs-badge" style={{ '--tag-bg': TRAYECTO_BG[r.trayecto] || 'var(--color-background-subtle)', '--tag-color': TRAYECTO_COLORS[r.trayecto] || '#555' }}>{r.trayecto}</span>
+              <span className={`gs-badge ${trayectoClass(r.trayecto)}`}>{r.trayecto}</span>
               <div>
                 <div className="gs-result-title">{r.materia}</div>
                 {r.docente && <div className="gs-result-sub">{r.docente}</div>}
