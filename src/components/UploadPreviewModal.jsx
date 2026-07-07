@@ -16,37 +16,13 @@
 import React, { useState } from "react";
 import "./UploadPreviewModal.css";
 
-// ── Paleta interna (alineada con el sistema de diseño del proyecto) ──
-const C = {
-  bg:         "#F8FAFC",
-  surface:    "#FFFFFF",
-  border:     "#E2E8F0",
-  borderFaint:"#F1F5F9",
-  text:       "#0F172A",
-  textSub:    "#475569",
-  textFaint:  "#94A3B8",
-  accent:     "#2563EB",
-  accentBg:   "#EFF6FF",
-  accentBdr:  "#BFDBFE",
-  warn:       "#B45309",
-  warnBg:     "#FFFBEB",
-  warnBdr:    "#FDE68A",
-  err:        "#DC2626",
-  errBg:      "#FEF2F2",
-  errBdr:     "#FECACA",
-  ok:         "#059669",
-  okBg:       "#ECFDF5",
-  okBdr:      "#A7F3D0",
-  navy:       "#0F172A",
-};
-
 // ── Helpers de presentación ──────────────────────────────────────────
 
 const DAYS_ORDER = ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES"];
 
-function Tag({ color, bg, border, children }) {
+function Tag({ variant = "neutral", children }) {
   return (
-    <span className="upm-tag" style={{ "--tag-color": color, "--tag-bg": bg, "--tag-border": border }}>{children}</span>
+    <span className={`upm-tag upm-tag--${variant}`}>{children}</span>
   );
 }
 
@@ -56,7 +32,7 @@ function SectionHeader({ icon, label, count, accent }) {
       <i className={`ti ${icon} upm-section-header-icon`} aria-hidden="true" />
       <span className="upm-section-header-label">{label}</span>
       {count != null && (
-        <Tag color={C.accent} bg={C.accentBg} border={C.accentBdr}>{count}</Tag>
+        <Tag variant="accent">{count}</Tag>
       )}
     </div>
   );
@@ -92,7 +68,7 @@ function TablaRegistros({ rows, limit = 200 }) {
             <div className="upm-sec-header">
               <i className="ti ti-layout-grid upm-sec-header-icon" aria-hidden="true" />
               <span className="upm-sec-header-label">{sec}</span>
-              <Tag color={C.textSub} bg="#E2E8F0" border="#CBD5E1">
+              <Tag variant="neutral">
                 {rows.filter(r => (r.sheet || r.seccion || "—") === sec).length} clases
               </Tag>
             </div>
@@ -164,7 +140,7 @@ function TablaCatalogo({ items, tipo }) {
       >
         <i className={`ti ${icon}`} aria-hidden="true" />
         {label}
-        <Tag color={C.textSub} bg="#E2E8F0" border="#CBD5E1">{items.length}</Tag>
+        <Tag variant="neutral">{items.length}</Tag>
         <i className={`ti ${show ? "ti-chevron-up" : "ti-chevron-down"} upm-catalogo-chevron`} aria-hidden="true" />
       </button>
       {show && (
@@ -275,16 +251,16 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
 
         {/* ── Tarjetas de resumen ── */}
         <div className="upm-stats-row">
-          <StatChip icon="ti-file-import" value={rows.length} label="Total leídas" color={C.accent} bg={C.accentBg} bdr={C.accentBdr} />
-          <StatChip icon="ti-circle-plus" value={newRows.length} label="A insertar" color={C.ok} bg={C.okBg} bdr={C.okBdr} />
+          <StatChip icon="ti-file-import" value={rows.length} label="Total leídas" variant="accent" />
+          <StatChip icon="ti-circle-plus" value={newRows.length} label="A insertar" variant="ok" />
           {duplicados.length > 0 && (
-            <StatChip icon="ti-copy" value={duplicados.length} label="Duplicadas" color={C.textSub} bg="#F1F5F9" bdr={C.border} />
+            <StatChip icon="ti-copy" value={duplicados.length} label="Duplicadas" variant="muted" />
           )}
           {sinDocente.length > 0 && (
-            <StatChip icon="ti-user-x" value={sinDocente.length} label="Sin docente" color={C.warn} bg={C.warnBg} bdr={C.warnBdr} />
+            <StatChip icon="ti-user-x" value={sinDocente.length} label="Sin docente" variant="warn" />
           )}
           {docentesCatalogo.length > 0 && (
-            <StatChip icon="ti-users" value={docentesCatalogo.length} label="Docentes (cat.)" color={C.textSub} bg="#F1F5F9" bdr={C.border} />
+            <StatChip icon="ti-users" value={docentesCatalogo.length} label="Docentes (cat.)" variant="muted" />
           )}
         </div>
 
@@ -328,14 +304,13 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
                   icon="ti-circle-check"
                   title="Sin registros nuevos"
                   body="Todas las clases del archivo ya existen en el sistema."
-                  color={C.textFaint}
                 />
               : <TablaRegistros rows={newRows} />
           )}
 
           {tab === "dup" && (
             duplicados.length === 0
-              ? <EmptyState icon="ti-circle-check" title="Sin duplicados" body="" color={C.textFaint} />
+              ? <EmptyState icon="ti-circle-check" title="Sin duplicados" body="" />
               : <TablaRegistros rows={duplicados} />
           )}
 
@@ -386,9 +361,9 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
 
 // ── Micro-componentes ────────────────────────────────────────────────
 
-function StatChip({ icon, value, label, color, bg, bdr }) {
+function StatChip({ icon, value, label, variant = "accent" }) {
   return (
-    <div className="upm-stat-chip" style={{ "--chip-color": color, "--chip-bg": bg, "--chip-border": bdr }}>
+    <div className={`upm-stat-chip upm-stat-chip--${variant}`}>
       <i className={`ti ${icon} upm-stat-chip-icon`} aria-hidden="true" />
       <span className="upm-stat-chip-value">{value}</span>
       <span className="upm-stat-chip-label">{label}</span>
@@ -396,9 +371,9 @@ function StatChip({ icon, value, label, color, bg, bdr }) {
   );
 }
 
-function EmptyState({ icon, title, body, color }) {
+function EmptyState({ icon, title, body }) {
   return (
-    <div className="upm-empty-state" style={{ "--empty-color": color }}>
+    <div className="upm-empty-state">
       <i className={`ti ${icon} upm-empty-state-icon`} aria-hidden="true" />
       <span className="upm-empty-state-title">{title}</span>
       {body && <span className="upm-empty-state-body">{body}</span>}
