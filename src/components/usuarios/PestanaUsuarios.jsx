@@ -14,7 +14,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
-import { hex2rgba, Badge, Spinner, ModalConfirm } from "./shared";
+import { Badge, Spinner, ModalConfirm } from "./shared";
 import "./PestanaUsuarios.css";
 import ModalUsuario from "./ModalUsuario";
 
@@ -150,14 +150,13 @@ export default function PestanaUsuarios({ permisos, roles, programas, showToast:
       {/* Estadísticas rápidas */}
       <div className="pu-stats">
         {[
-          { label: "Total",    value: usuarios.length,             color: "var(--brand-500)",     bg: "var(--color-background-info)" },
-          { label: "Activos",  value: totalActivos,                color: "var(--color-success)",  bg: "var(--color-success-bg)" },
-          { label: "Inactivos",value: usuarios.length - totalActivos, color: "var(--color-danger)", bg: "var(--color-danger-bg)" },
+          { label: "Total",    value: usuarios.length,             variant: "total" },
+          { label: "Activos",  value: totalActivos,                variant: "activos" },
+          { label: "Inactivos",value: usuarios.length - totalActivos, variant: "inactivos" },
         ].map(s => (
           <div
             key={s.label}
-            className="pu-stat"
-            style={{ "--stat-bg": s.bg, "--stat-border": hex2rgba(s.color, 0.2), "--stat-color": s.color }}
+            className={`pu-stat pu-stat--${s.variant}`}
           >
             <span className="pu-stat-value">{s.value}</span>
             <span className="pu-stat-label">{s.label}</span>
