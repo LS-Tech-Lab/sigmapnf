@@ -65,11 +65,11 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
   // ── Fortaleza contraseña ──────────────────────────────────────────
   const fortaleza = (() => {
     if (!nueva) return null;
-    if (nueva.length < 10) return { label: "Muy corta",  color: "#EF4444", width: "20%" };
+    if (nueva.length < 10) return { label: "Muy corta",  variant: "muy-corta" };
     if (!/[A-Z]/.test(nueva) || !/[0-9]/.test(nueva))
-                           return { label: "Regular",    color: "#EAB308", width: "50%" };
-    if (nueva.length < 14) return { label: "Buena",      color: "#22C55E", width: "80%" };
-    return                        { label: "Excelente",  color: "#16A34A", width: "100%" };
+                           return { label: "Regular",    variant: "regular" };
+    if (nueva.length < 14) return { label: "Buena",      variant: "buena" };
+    return                        { label: "Excelente",  variant: "excelente" };
   })();
 
   // ── Re-autenticar (compartido) ────────────────────────────────────
@@ -209,11 +209,10 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
                 <div className="mcp-strength-wrap">
                   <div className="mcp-strength-track">
                     <div
-                      className="mcp-strength-fill"
-                      style={{ "--strength-width": fortaleza.width, "--strength-color": fortaleza.color }}
+                      className={`mcp-strength-fill mcp-strength--${fortaleza.variant}`}
                     />
                   </div>
-                  <span className="mcp-strength-label" style={{ "--strength-color": fortaleza.color }}>
+                  <span className={`mcp-strength-label mcp-strength--${fortaleza.variant}`}>
                     {fortaleza.label}
                   </span>
                 </div>
