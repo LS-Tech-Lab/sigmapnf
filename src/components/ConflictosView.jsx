@@ -1,5 +1,5 @@
 import React from 'react';
-import { TRAYECTO_COLORS, TRAYECTO_BG } from '../constants';
+import { trayectoClass } from '../constants';
 import { getHoraDisplayDeRegistro } from '../utils/time';
 import { parseClase } from '../utils/parsing';
 import './ConflictosView.css';
@@ -40,9 +40,8 @@ export default function ConflictosView({ conflicts, onGoDocente, getDocName }) {
                   <div className="cv-item-tags">
                     {c.entries.map((e, j) => {
                       const { materia } = parseClase(e.clase);
-                      const col = TRAYECTO_COLORS[e.trayecto] || "#555", bg = TRAYECTO_BG[e.trayecto] || "#f5f5f5";
                       return (
-                        <div key={j} className="cv-tag" style={{ '--tag-color': col, '--tag-bg': bg }}>
+                        <div key={j} className={`cv-tag ${trayectoClass(e.trayecto)}`}>
                           <div className="cv-tag-title">{materia}</div>
                           <div className="cv-tag-sub">{e.sheet.trim()} · T.{e.trayecto}</div>
                         </div>
