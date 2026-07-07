@@ -4,9 +4,15 @@
    `...S.card` en este archivo se migran a la clase compartida `.s-card`
    (definida en index.css) + modificadores locales.
    Migración A3 (auditoría 2026-07-02): el resto de los estilos en línea de
-   este archivo se migra aquí. Los colores de trayecto (TRAYECTO_BG/COLORS) y
-   los anchos de barra calculados (%) se mantienen inline por ser datos en
-   tiempo de ejecución, no decisiones de estilo estáticas.
+   este archivo se migra aquí.
+   Fix A3/S3 Fase 1-2 (auditoría QA 2026-07-05): el color de las barras
+   (trayecto — dominio fijo de 13 valores; día/docente/materia/turno —
+   colores fijos hardcodeados en el propio componente) ya no se inyecta vía
+   style inline, lo definen las clases fijas .trayecto-<n> / .rv-fill--dia /
+   .rv-fill--docente / .rv-fill--materia / .rv-fill--diurno /
+   .rv-fill--vespertino (ver src/index.css) a través de --fill-color. Solo
+   el ANCHO de cada barra (%, valor continuo real) sigue inline — pendiente
+   de decidir en la Fase 4 (bucketización a incrementos de 5%).
    ────────────────────────────────────────────────────────────────────────────── */
 
 .rv-card { padding: 16px 20px; }
@@ -56,11 +62,11 @@
 
 .rv-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .rv-bar-row--turno { margin-bottom: 12px; }
-.rv-trayecto-badge { border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.rv-trayecto-badge { background: var(--trayecto-bg, #f3f4f6); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
 .rv-bar-track { flex: 1; background: #F1F5F9; border-radius: 4px; height: 12px; overflow: hidden; }
 .rv-bar-track--h14 { height: 14px; }
 .rv-bar-track--w100 { flex: none; width: 100px; height: 10px; }
-.rv-bar-fill { height: 100%; border-radius: 4px; }
+.rv-bar-fill { height: 100%; border-radius: 4px; background: var(--fill-color, #888); }
 .rv-rank { font-size: 12px; font-weight: 700; color: #CBD5E1; width: 16px; }
 .rv-bar-label { font-size: 13px; flex: 1; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .rv-day-label { font-size: 13px; width: 80px; color: #64748B; font-weight: 500; }
