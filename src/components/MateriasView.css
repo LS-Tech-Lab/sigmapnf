@@ -10,19 +10,6 @@
 
 .mv-root { display: flex; flex-direction: column; flex: 1; height: 0; overflow: hidden; }
 
-/* En tablet/móvil (≤1024px), .mv-body (=.materias-layout) pasa a
-   height:auto (ver src/index.css) para apilar panel + detalle en
-   columna. Pero .mv-root, un nivel más arriba, seguía con
-   height:0 + overflow:hidden SIN excepción — así que recortaba
-   ese contenido ya crecido a una altura fija, sin scrollbar,
-   dejando la lista (y todo lo demás) inalcanzable más allá del
-   corte. El padre real, <main> en HorariosLayout.jsx, ya tiene
-   overflow:auto — dejamos que la página completa scrollee ahí en
-   vez de intentar contener todo en un panel de altura fija. */
-@media (max-width: 1024px) {
-  .mv-root { height: auto; overflow: visible; }
-}
-
 .mv-modo-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: 7px 20px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .mv-modo-icon { color: var(--color-warning-text); font-size: 14px; }
 .mv-modo-text { font-size: 13px; color: var(--color-warning-text); font-weight: 600; }
@@ -31,34 +18,8 @@
 .mv-left-panel { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
 .mv-search-input { width: 100%; box-sizing: border-box; }
 
-.mv-list-card { flex: 1; }
-/* El bundler (Vite/Rollup) no garantiza que el CSS de este componente se
-   concatene DESPUÉS de `.s-card` (src/index.css) en el archivo final —
-   en producción termina antes, y como ambos selectores tienen la misma
-   especificidad (una clase), `.s-card{overflow:hidden}` le ganaba a
-   `overflow-y:auto` por orden de aparición, dejando la lista con la
-   altura correcta (max-height sí se aplicaba) pero sin poder scrollear
-   (BUG real reportado: "no permite desplazar hacia abajo, está
-   estática"). Selector compuesto = más especificidad que `.s-card` solo,
-   gana pase lo que pase con el orden del bundle. */
-.s-card.mv-list-card { overflow-y: auto; }
+.mv-list-card { flex: 1; overflow-y: auto; }
 .mv-list-header { padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
-
-/* Bug: en tablet (≤1024px), src/index.css fuerza `.mv-left-panel` a
-   `max-height: 260px`, pero ese cap cae en el wrapper, no en el propio
-   `.mv-list-card` que tiene el `overflow-y: auto`. Depender de que el
-   `max-height` del ancestro fuerce el flex-shrink del hijo es frágil
-   entre motores de render (funciona en desktop porque `.mv-body` tiene
-   altura fija heredada; en algunas tablets el shrink no se aplica y la
-   lista crece sin scroll). Fix: acotar directamente el elemento que
-   scrollea, con el mismo valor que ya usa el wrapper — así no depende
-   de la resolución del flexbox padre. Ver mismo fix en DocentesView.css. */
-@media (max-width: 1024px) {
-  .mv-list-card { max-height: 260px; }
-}
-@media (max-width: 640px) {
-  .mv-list-card { max-height: 220px; }
-}
 
 .mv-list-item { padding: 10px 14px; cursor: pointer; font-size: 14px; font-weight: 400; background: transparent; color: var(--navy-700); border-bottom: 1px solid var(--color-background-tertiary); display: flex; justify-content: space-between; align-items: center; }
 .mv-list-item--active { font-weight: 600; background: var(--color-background-info); color: var(--brand-600); }
@@ -95,4 +56,4 @@
 .mv-turno-badge--vespertino { background: #FDF2F8; color: #DB2777; }
 .mv-turno-badge-inner { display: inline-flex; align-items: center; gap: 5px; }
 
-.mv-trayecto-badge { border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.mv-trayecto-badge { background: var(--trayecto-bg, #f3f4f6); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
