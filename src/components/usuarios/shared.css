@@ -1,16 +1,18 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    shared.css
    Migración A3 (auditoría 2026-07-05): estilos extraídos de usuarios/shared.jsx.
-   El color de Badge depende del rol/dato en tiempo de ejecución (hex2rgba(color, ...))
-   — se mantiene inline vía CSS custom properties (--badge-color, --badge-bg,
-   --badge-border), igual que en el resto de la migración A3.
+   Fix A3/S3 Fase 3 (auditoría QA 2026-07-05): el color de Badge (rol,
+   sistema o personalizado) es un dominio fijo de 14 valores conocidos
+   (roleColorClass(), src/constants/index.js) — ya no se inyecta vía style
+   inline, lo define la clase .role-color--<slug> (ver src/index.css) a
+   través de --role-bg/--role-color/--role-border.
    @keyframes spin ya está centralizado en src/index.css — Spinner solo lo usa.
    ModalConfirm.peligro es un booleano fijo de 2 variantes (true/false) — se
    resuelve con la clase modificadora .shared-confirm-btn--safe.
    ────────────────────────────────────────────────────────────────────────────── */
 
 .shared-badge {
-  background: var(--badge-bg); color: var(--badge-color); border: 1px solid var(--badge-border);
+  background: var(--role-bg, var(--color-background-subtle)); color: var(--role-color, var(--color-text-mid)); border: 1px solid var(--role-border, var(--color-border));
   border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600;
   display: inline-flex; align-items: center; gap: 4px;
 }
