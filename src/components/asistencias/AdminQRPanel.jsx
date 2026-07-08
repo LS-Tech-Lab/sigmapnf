@@ -19,7 +19,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
-import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../constants";
+import { DEFAULT_PROGRAMAS, TURNOS_CONFIG, pctClass } from "../../constants";
 import { playRegistroSound, useFlashFeed } from "./useRegistroSound";
 import { supabase } from "../../lib/supabase";
 import { fechaHoyVE } from "../../utils/time";
@@ -54,7 +54,7 @@ function CountdownBar({ segundos, total }) {
         </span>
       </div>
       <div className="qrp-cdb-track">
-        <div className={`qrp-cdb-fill qrp-cdb--${variant}`} style={{ width: `${pct}%` }} />
+        <div className={`qrp-cdb-fill qrp-cdb--${variant} ${pctClass(pct)}`} />
       </div>
     </div>
   );
