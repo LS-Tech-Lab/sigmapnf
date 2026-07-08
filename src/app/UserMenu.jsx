@@ -1,4 +1,5 @@
 import React from "react";
+import { roleColorClass } from "../constants";
 
 /**
  * Menú desplegable de usuario.
@@ -47,7 +48,7 @@ export default function UserMenu({
           <div className="um-name">
             {profile.nombre && profile.nombre !== rolLabel ? profile.nombre : rolLabel}
           </div>
-          <div className="um-role" style={{ "--um-role-color": rolColor }}>
+          <div className={`um-role ${roleColorClass(rolColor)}`}>
             {rolLabel}
             {variant === "horarios" && profile.programa ? ` · ${profile.programa.replace("PNF ", "")}` : ""}
           </div>
