@@ -270,7 +270,7 @@ por categoría — el detalle completo de argumentos está en
 | Utilitarias de sesión | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa`, `tiene_permiso`, `fecha_hoy_ve` | `DEFINER`, solo lectura — devuelven vacío/null para `anon` sin exponer nada sensible |
 | Parsing / triggers | `parse_clase`, `parse_rango_hora`, `time_to_min`, `horario_docente_hoy`, `docentes_con_cedula`, `proteger_columnas_sensibles_user_profiles`, `proteger_roles_sistema`, `update_user_profiles_timestamp` | Mixto — las últimas 3 son funciones de trigger, no invocables directo vía RPC aunque `pg_proc` muestre permisos amplios |
 
-**Pendiente de una próxima verificación (no crítico, señalado por transparencia):** `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecen ejecutables por `anon` y nunca tuvieron un `REVOKE` explícito en ninguna migración — son de solo lectura y no delegan ninguna decisión de seguridad a un llamante anónimo (devuelven null/vacío), así que el riesgo es bajo, pero deberían auditarse con el mismo criterio que `SEC-8` en algún momento.
+**Cerrado (`SEC-9`, migración `0052`):** `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecían ejecutables por `anon` sin ningún `REVOKE` explícito en ninguna migración. Auditadas con el mismo criterio que `SEC-8`: `0052` resolvió cada función real vía `pg_proc` (ninguna fue creada por una migración de este repo, así que no había firma versionada) y le hizo `REVOKE ... FROM anon` + `GRANT ... TO authenticated`. Verificado contra la BD real tras aplicar: las 4 son `()` sin argumentos y su `EXECUTE` quedó en `authenticated`/`postgres`/`service_role` — `anon` ya no aparece.
 
 ---
 
