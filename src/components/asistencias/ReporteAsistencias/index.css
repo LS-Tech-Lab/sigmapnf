@@ -11,9 +11,11 @@
    por índice de columna, no por dato) y el color de las 4 stat cards
    (literales en el propio array, no derivados de datos) ya no van vía
    style inline — ver .ra-table--fecha/--rango nth-child, .ra-stat-card--*
-   y .ra-pct--* más abajo. Solo el color del % de asistencia sigue con un
-   componente inline pendiente: el ANCHO de la barra/etiqueta es un valor
-   continuo real (0-100 exacto), pendiente de bucketizar (Fase 4).
+   y .ra-pct--* más abajo.
+   Fix Fase 4 (5/jul/2026): el ANCHO de la barra de % (ReporteRango.jsx),
+   antes inline por ser un valor continuo real, ahora usa una de las 21
+   clases .w-pct-<n> (bucketizado a incrementos de 5%, pctClass() en
+   src/constants/index.js). `ReporteRango.jsx` queda a 0 estilos inline.
    ────────────────────────────────────────────────────────────────────────────── */
 
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
