@@ -2,6 +2,13 @@
    AdminQRPanel.css
    Estilos extraídos de AdminQRPanel.jsx (U-1, auditoría Junio 2026).
    Usa tokens del sistema definidos en src/index.css.
+   Fix A3/S3 Fase 2 (auditoría QA 2026-07-05): color del CountdownBar — umbral
+   fijo de 3 estados — ya no va vía style inline, ver .qrp-cdb--ok/--warn/
+   --critical más abajo.
+   Fix Fase 4 (5/jul/2026): el ANCHO del CountdownBar, antes inline por ser
+   un % continuo real, ahora usa una de las 21 clases .w-pct-<n>
+   (bucketizado a incrementos de 5%, pctClass() en src/constants/index.js).
+   `AdminQRPanel.jsx` queda a 0 estilos inline.
    ────────────────────────────────────────────────────────────────────────────── */
 
 /* ── Layout principal ─────────────────────────────────────────────────────── */
