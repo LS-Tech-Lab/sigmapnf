@@ -10,9 +10,11 @@
    colores fijos hardcodeados en el propio componente) ya no se inyecta vía
    style inline, lo definen las clases fijas .trayecto-<n> / .rv-fill--dia /
    .rv-fill--docente / .rv-fill--materia / .rv-fill--diurno /
-   .rv-fill--vespertino (ver src/index.css) a través de --fill-color. Solo
-   el ANCHO de cada barra (%, valor continuo real) sigue inline — pendiente
-   de decidir en la Fase 4 (bucketización a incrementos de 5%).
+   .rv-fill--vespertino (ver src/index.css) a través de --fill-color.
+   Fix Fase 4 (5/jul/2026): el ANCHO de cada barra, antes inline por ser un
+   % continuo real, ahora usa una de las 21 clases .w-pct-<n> (bucketizado
+   a incrementos de 5%, pctClass() en src/constants/index.js). `ResumenView`
+   queda a 0 estilos inline.
    ────────────────────────────────────────────────────────────────────────────── */
 
 .rv-card { padding: 16px 20px; }
