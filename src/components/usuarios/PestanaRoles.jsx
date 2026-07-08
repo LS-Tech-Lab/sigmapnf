@@ -13,7 +13,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
-import { GRUPOS_PERMISOS, hex2rgba, Spinner, ModalConfirm } from "./shared";
+import { GRUPOS_PERMISOS, Spinner, ModalConfirm } from "./shared";
+import { roleColorClass } from "../../constants";
 import ModalRol from "./ModalRol";
 import "./PestanaRoles.css";
 
@@ -94,8 +95,7 @@ export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged
                   onClick={() => setExpandido(abierto ? null : r.nombre)}
                 >
                   <div
-                    className="pr-avatar"
-                    style={{ "--avatar-bg": hex2rgba(r.color, 0.12), "--avatar-border": hex2rgba(r.color, 0.25) }}
+                    className={`pr-avatar ${roleColorClass(r.color)}`}
                   >
                     {r.emoji}
                   </div>
