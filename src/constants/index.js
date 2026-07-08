@@ -77,6 +77,51 @@ export const ROL_SIDEBAR = {
   operador_qr:    { label: "Operador QR",    color: "#34D399" },
 };
 
+// Fix A3/S3 Fase 3 (auditoría QA 5/jul/2026): el color de rol combina dos
+// dominios fijos — los 5 de ROL_SIDEBAR (arriba, roles del sistema) y los
+// 10 de COLORES_PRESET (usuarios/shared.jsx, roles personalizados vía
+// ModalRol). Juntos son 14 valores únicos conocidos, no un color arbitrario
+// — se resuelven con clases .role-color--<slug> (src/index.css) en vez de
+// style inline. Si se agrega un color a COLORES_PRESET, replicar aquí Y en
+// las clases de index.css para que no quede fuera de la lista.
+// IMPORTANTE: esto es solo la mitad frontend — la BD (tabla `roles`,
+// columna `color`) sigue aceptando texto libre hasta que se aplique la
+// migración 0052 con el CHECK correspondiente (ver nota en esa migración).
+const ROLE_COLOR_SLUGS = {
+  "#A78BFA": "sb-admin",
+  "#60A5FA": "sb-coordinador",
+  "#34D399": "sb-verde",
+  "#94A3B8": "sb-administrativo",
+  "var(--color-role-coord)": "role-coord",
+  "var(--brand-600)": "brand",
+  "#0F766E": "teal",
+  "var(--color-text-mid)": "mid",
+  "var(--color-success)": "success",
+  "var(--color-danger)": "danger",
+  "var(--color-warning)": "warning",
+  "#0891B2": "cyan",
+  "#9333EA": "purple",
+  "#BE185D": "pink",
+};
+export function roleColorClass(color) {
+  const key = (color ?? "").toString().trim();
+  return `role-color--${ROLE_COLOR_SLUGS[key] || "default"}`;
+}
+
+// Fix A3/S3 Fase 4 (auditoría QA 5/jul/2026): a diferencia de trayecto/rol/
+// configs (dominios ya fijos), el % de una barra de progreso es un valor
+// REALMENTE continuo (0-100, cualquier decimal) — no hay forma de
+// enumerarlo sin perder precisión. Se decidió bucketizar a incrementos de
+// 5% (21 clases fijas .w-pct-0 … .w-pct-100 en index.css) en vez de dejarlo
+// inline permanentemente. Pierde precisión visual (±2.5% en el peor caso),
+// gana el cierre completo de S3 para este tipo de dato.
+// Afecta: ResumenView.jsx, ReporteRango.jsx, AdminQRPanel.jsx.
+export function pctClass(pct) {
+  const n = Number.isFinite(pct) ? pct : 0;
+  const bucket = Math.max(0, Math.min(100, Math.round(n / 5) * 5));
+  return `w-pct-${bucket}`;
+}
+
 // NAV_ITEMS eliminado — reemplazado por buildNavGroups.js (código muerto, auditoría §5.4)
 
 // ⚠️ Este objeto tiene un espejo en CSS: ver sección "Clases espejo del
