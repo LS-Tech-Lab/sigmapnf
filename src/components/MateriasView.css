@@ -10,6 +10,19 @@
 
 .mv-root { display: flex; flex-direction: column; flex: 1; height: 0; overflow: hidden; }
 
+/* En tablet/móvil (≤1024px), .mv-body (=.materias-layout) pasa a
+   height:auto (ver src/index.css) para apilar panel + detalle en
+   columna. Pero .mv-root, un nivel más arriba, seguía con
+   height:0 + overflow:hidden SIN excepción — así que recortaba
+   ese contenido ya crecido a una altura fija, sin scrollbar,
+   dejando la lista (y todo lo demás) inalcanzable más allá del
+   corte. El padre real, <main> en HorariosLayout.jsx, ya tiene
+   overflow:auto — dejamos que la página completa scrollee ahí en
+   vez de intentar contener todo en un panel de altura fija. */
+@media (max-width: 1024px) {
+  .mv-root { height: auto; overflow: visible; }
+}
+
 .mv-modo-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: 7px 20px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .mv-modo-icon { color: var(--color-warning-text); font-size: 14px; }
 .mv-modo-text { font-size: 13px; color: var(--color-warning-text); font-weight: 600; }
@@ -18,7 +31,23 @@
 .mv-left-panel { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
 .mv-search-input { width: 100%; box-sizing: border-box; }
 
-.mv-list-card { flex: 1; overflow-y: auto; }
+.mv-list-card { flex: 1; }
+/* ⚠️ NO simplificar a `.mv-list-card { overflow-y: auto; }` — ya se revirtió
+   una vez y el bug volvió. Motivo: este elemento también lleva la clase
+   `.s-card` (overflow:hidden, src/index.css). Con la misma especificidad,
+   el bundler (Vite/Rollup) decide el ganador por orden de aparición en el
+   CSS final, y en esta build `.s-card` termina después de `.mv-list-card`
+   — le gana, y la lista queda sin poder scrollear aunque el alto sea
+   correcto (bug reportado: "no permite desplazar hacia abajo, está
+   estática"). El selector compuesto de abajo tiene más especificidad que
+   `.s-card` solo y gana siempre, sin depender del orden del bundler. */
+.s-card.mv-list-card { overflow-y: auto; }
+@media (max-width: 1024px) {
+  .mv-list-card { max-height: 260px; }
+}
+@media (max-width: 640px) {
+  .mv-list-card { max-height: 220px; }
+}
 .mv-list-header { padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
 
 .mv-list-item { padding: 10px 14px; cursor: pointer; font-size: 14px; font-weight: 400; background: transparent; color: var(--navy-700); border-bottom: 1px solid var(--color-background-tertiary); display: flex; justify-content: space-between; align-items: center; }
