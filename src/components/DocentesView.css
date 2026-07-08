@@ -10,6 +10,16 @@
 
 .dv-root { display: flex; flex-direction: column; flex: 1; height: 0; overflow: hidden; }
 
+/* Mismo bug y mismo fix que .mv-root en MateriasView.css: en tablet
+   (≤1024px) .dv-body pasa a height:auto, pero .dv-root seguía con
+   height:0+overflow:hidden sin excepción, recortando ese contenido
+   ya crecido sin dar forma de scrollear hasta él. <main> en
+   HorariosLayout.jsx ya tiene overflow:auto — se deja que la
+   página scrollee ahí en este breakpoint. */
+@media (max-width: 1024px) {
+  .dv-root { height: auto; overflow: visible; }
+}
+
 .dv-modo-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: 7px 20px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .dv-modo-icon { color: var(--color-warning-text); font-size: 14px; }
 .dv-modo-text { font-size: 13px; color: var(--color-warning-text); font-weight: 600; }
@@ -22,7 +32,21 @@
 
 .dv-search-input { width: 100%; box-sizing: border-box; }
 
-.dv-list-card { flex: 1; overflow-y: auto; }
+.dv-list-card { flex: 1; }
+/* ⚠️ NO simplificar a `.dv-list-card { overflow-y: auto; }` — ya se
+   revirtió una vez y el bug volvió. Mismo motivo que .mv-list-card en
+   MateriasView.css: este elemento también lleva la clase `.s-card`
+   (overflow:hidden), y con igual especificidad gana quien aparezca
+   después en el CSS final del bundler — que no es determinista/
+   controlable por orden de archivos fuente. El selector compuesto de
+   abajo tiene más especificidad que `.s-card` solo y gana siempre. */
+.s-card.dv-list-card { overflow-y: auto; }
+@media (max-width: 1024px) {
+  .dv-list-card { max-height: 260px; }
+}
+@media (max-width: 640px) {
+  .dv-list-card { max-height: 220px; }
+}
 .dv-list-header { padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
 
 .dv-list-item { padding: 10px 14px; cursor: pointer; font-size: 14px; font-weight: 400; background: transparent; color: var(--navy-700); border-bottom: 1px solid var(--color-background-tertiary); display: flex; justify-content: space-between; align-items: center; }
