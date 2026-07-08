@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { DAYS, ALL_TRAYECTOS, trayectoClass } from '../constants';
+import { DAYS, ALL_TRAYECTOS, trayectoClass, pctClass } from '../constants';
 import { getTurnoDeRegistro } from '../utils/turno';
 import StatCard from './StatCard';
 import Avatar from './Avatar';
@@ -148,7 +148,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
               <div key={t} className="rv-bar-row">
                 <span className={`rv-trayecto-badge ${trayectoClass(t)}`}>{t}</span>
                 <div className="rv-bar-track">
-                  <div className={`rv-bar-fill ${trayectoClass(t)}`} style={{ width: `${(c/stats.total)*100}%` }} />
+                  <div className={`rv-bar-fill ${trayectoClass(t)} ${pctClass((c/stats.total)*100)}`} />
                 </div>
                 <span className="rv-count-label rv-count-label--32">{c}</span>
               </div>
@@ -161,7 +161,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
               <div key={d} className="rv-bar-row">
                 <span className="rv-day-label">{d.charAt(0)+d.slice(1).toLowerCase()}</span>
                 <div className="rv-bar-track">
-                  <div className="rv-bar-fill rv-fill--dia" style={{ width: `${(metricas.dayCount[d]/metricas.maxDay)*100}%` }} />
+                  <div className={`rv-bar-fill rv-fill--dia ${pctClass((metricas.dayCount[d]/metricas.maxDay)*100)}`} />
                 </div>
                 <span className="rv-count-label rv-count-label--32">{metricas.dayCount[d]}</span>
               </div>
@@ -175,7 +175,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
                 <span className="rv-rank">{idx+1}</span>
                 <span className="rv-bar-label">{getDocName(doc)}</span>
                 <div className="rv-bar-track rv-bar-track--w100">
-                  <div className="rv-bar-fill rv-fill--docente" style={{ width: `${(entries.length/metricas.maxLoadDocente)*100}%` }} />
+                  <div className={`rv-bar-fill rv-fill--docente ${pctClass((entries.length/metricas.maxLoadDocente)*100)}`} />
                 </div>
                 <span className="rv-count-label rv-count-label--24">{entries.length}</span>
               </div>
@@ -193,7 +193,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
                     {getMateriaName(mat).length > 28 ? getMateriaName(mat).slice(0,26)+'…' : getMateriaName(mat)}
                   </span>
                   <div className="rv-bar-track rv-bar-track--w100">
-                    <div className="rv-bar-fill rv-fill--materia" style={{ width: `${(cnt/metricas.maxMat)*100}%` }} />
+                    <div className={`rv-bar-fill rv-fill--materia ${pctClass((cnt/metricas.maxMat)*100)}`} />
                   </div>
                   <span className="rv-count-label rv-count-label--24">{cnt}</span>
                 </div>
@@ -209,7 +209,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
                 <div key={t} className="rv-bar-row rv-bar-row--turno">
                   <span className="rv-turno-label">{t.charAt(0)+t.slice(1).toLowerCase()}</span>
                   <div className="rv-bar-track rv-bar-track--h14">
-                    <div className={`rv-bar-fill rv-fill--${t.toLowerCase()}`} style={{ width: `${pct}%` }} />
+                    <div className={`rv-bar-fill rv-fill--${t.toLowerCase()} ${pctClass(pct)}`} />
                   </div>
                   <span className="rv-count-label rv-count-label--60">{cnt} ({pct}%)</span>
                 </div>
@@ -226,7 +226,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
                 <div key={t} className="rv-bar-row">
                   <span className={`rv-trayecto-badge ${trayectoClass(t)}`}>{t}</span>
                   <div className="rv-bar-track">
-                    <div className={`rv-bar-fill ${trayectoClass(t)}`} style={{ width: `${pct}%` }} />
+                    <div className={`rv-bar-fill ${trayectoClass(t)} ${pctClass(pct)}`} />
                   </div>
                   <span className="rv-count-label rv-count-label--32">{cnt}</span>
                 </div>
