@@ -436,4 +436,518 @@ textarea:focus-visible,
 .s-input--full { width: 100%; box-sizing: border-box; }
 
 /* S.btn(active) — dos variantes según el booleano `active` */
-.s-btn { 
+.s-btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--color-border-tertiary); background: #fff; color: var(--color-text-mid); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+.s-btn--active { border-color: var(--brand-500); background: var(--color-background-info); color: var(--brand-600); font-weight: 600; }
+.s-btn--cancel { padding: 9px 20px; }
+.s-btn--sm { font-size: 12px; padding: 4px 10px; }
+
+/* Patrón "estado vacío" repetido tal cual en varios archivos
+   (ResumenView, HorariosView...): tarjeta centrada con ícono/texto atenuado. */
+.s-empty-state { padding: 60px 20px; text-align: center; color: #94A3B8; font-size: 15px; font-weight: 500; }
+
+/* S.badge(bg, col) — bg/col son dinámicos por color de rol/trayecto/estado,
+   no un set fijo enumerable como en HistorialView. Se resuelven con
+   custom properties: className="s-badge" style={{ '--badge-bg': bg, '--badge-color': col }}.
+   Sigue siendo un style={{...}} inline, pero de 2 propiedades en vez de 6-8. */
+.s-badge { background: var(--badge-bg, #F1F5F9); color: var(--badge-color, #334155); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Modificadores puntuales de archivos con muy poco CSS propio.
+
+   Criterio: si al migrar un archivo del hallazgo S el CSS resultante es
+   menos de ~5 reglas, va aquí en vez de en un .css nuevo — un archivo +
+   una línea de import por 1-2 reglas es más ruido que beneficio, y
+   fragmenta el CSS del bundle sin necesidad. Los archivos con una
+   extracción sustancial (HistorialView, ResumenView, DocenteScan, etc.)
+   siguen teniendo su propio .css — la regla es de escala, no una excepción
+   puntual.
+
+   Prefijo por archivo para que no colisionen entre sí (sc- StatCard,
+   qr- PlanillaQR, hl- HorariosLayout, cv- ConflictosView, pr- PestanaRoles,
+   eb- ErrorBoundary, asv- AlertaSinVincular, pl- ProgramaLogo, ec- EstadoChip,
+   av- Avatar).
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* StatCard.jsx */
+.sc-root { padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
+.sc-icon-wrap { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sc-icon { font-size: 20px; }
+.sc-value { font-size: 24px; font-weight: 700; color: #0F172A; line-height: 1.1; }
+.sc-label { font-size: 12px; color: #64748B; margin-top: 2px; font-weight: 500; }
+/* Fix A3/S3 Fase 2: 7 variantes fijas (antes `color` arbitrario + style
+   inline). Corrige de paso un bug latente: con var(--brand-500) como
+   `color`, "${color}18" producía un string inválido — el tinte de fondo de
+   Clases/Materias/Secciones/Trayectos (DocentesView) nunca se veía. */
+.sc-root--danger     .sc-icon-wrap { background: rgba(220,38,38,0.09); }  .sc-root--danger     .sc-icon { color: #DC2626; }
+.sc-root--success    .sc-icon-wrap { background: rgba(5,150,105,0.09); }  .sc-root--success    .sc-icon { color: #059669; }
+.sc-root--purple     .sc-icon-wrap { background: rgba(139,92,246,0.09); } .sc-root--purple     .sc-icon { color: #8B5CF6; }
+.sc-root--sky        .sc-icon-wrap { background: rgba(14,165,233,0.09); } .sc-root--sky        .sc-icon { color: #0EA5E9; }
+.sc-root--brand      .sc-icon-wrap { background: rgba(37,99,235,0.09); }  .sc-root--brand      .sc-icon { color: var(--brand-500); }
+.sc-root--warning    .sc-icon-wrap { background: rgba(217,119,6,0.09); }  .sc-root--warning    .sc-icon { color: var(--color-warning); }
+.sc-root--role-coord .sc-icon-wrap { background: rgba(124,58,237,0.09); } .sc-root--role-coord .sc-icon { color: var(--color-role-coord); }
+
+/* PlanillaQR.jsx */
+.qr-error-card { margin: 20px; padding: 20px; color: #B91C1C; font-size: 14px; }
+.qr-filters { padding: 16px 20px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.qr-filter-label { font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 6px; text-transform: uppercase; }
+.qr-filter-select { padding: 8px 12px; border-radius: 8px; border: 1px solid #E2E8F0; font-size: 13px; font-weight: 600; color: #0F172A; }
+.qr-loading { padding: 40px; text-align: center; color: #94A3B8; font-size: 14px; }
+.qr-loading-icon { font-size: 20px; animation: spin 1s linear infinite; }
+
+/* ErrorBoundary.jsx */
+.eb-root { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 16px; padding: 32px; font-family: system-ui, sans-serif; background: var(--navy-900); color: var(--color-border-tertiary); text-align: center; }
+.eb-icon { font-size: 48px; color: #FBBF24; }
+.eb-title { margin: 0; font-size: 20px; font-weight: 600; color: var(--color-background-tertiary); }
+.eb-desc { margin: 0; font-size: 14px; color: #94A3B8; max-width: 420px; line-height: 1.6; }
+.eb-stack { margin-top: 12px; padding: 12px 16px; background: var(--navy-800); border-radius: 8px; font-size: 10px; color: var(--color-border-secondary); text-align: left; overflow-x: auto; max-width: 100%; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; }
+.eb-btn { margin-top: 8px; padding: 10px 24px; border-radius: 8px; border: none; background: var(--color-accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+/* AlertaSinVincular.jsx */
+.asv-box { background: var(--color-warning-bg); border: 1px solid var(--color-warning-border); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; }
+.asv-icon { font-size: 20px; color: var(--color-warning); flex-shrink: 0; margin-top: 1px; }
+.asv-title { font-size: 13px; font-weight: 700; color: var(--color-warning-text); margin-bottom: 4px; }
+.asv-desc { font-size: 12px; color: #78350F; line-height: 1.5; }
+.asv-chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.asv-chip { font-size: 12px; font-family: monospace; font-weight: 700; background: #FEF3C7; color: var(--color-warning-text); border: 1px solid var(--color-warning-border); border-radius: 5px; padding: 2px 8px; }
+
+/* ProgramaLogo.jsx */
+/* Fix A3/S3 Fase 2: los 2 usos reales siempre son size=32 — ancho/alto/radio
+   fijos en vez de --pl-size/--pl-radius inline. El gradiente por programa
+   (dominio fijo de 5 claves, PROGRAMA_META en el propio componente) usa
+   .pl-container--<programa> en vez de --pl-bg/--pl-shadow inline. */
+.pl-container {
+  width: 32px; height: 32px; border-radius: 8px;
+  flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  transition: background 0.3s; position: relative;
+}
+.pl-container--todos, .pl-container--informatica { background: transparent; }
+.pl-container--icon.pl-container--contaduria          { background: linear-gradient(135deg, #065F46, #34D399); box-shadow: 0 2px 10px #065F4666; }
+.pl-container--icon.pl-container--agroalimentacion     { background: linear-gradient(135deg, #14532D, #86EFAC); box-shadow: 0 2px 10px #14532D66; }
+.pl-container--icon.pl-container--educacion-especial   { background: linear-gradient(135deg, #581C87, #C084FC); box-shadow: 0 2px 10px #581C8766; }
+.pl-img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(37,99,235,0.45)); }
+
+/* Avatar.jsx */
+.av-root {
+  width: var(--av-size); height: var(--av-size); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--av-font-size); font-weight: 700; flex-shrink: 0;
+  background: var(--av-bg); color: var(--av-color);
+}
+
+/* EstadoChip.jsx */
+.ec-chip {
+  padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--ec-border); background: var(--ec-bg); color: var(--ec-color);
+}
+.ec-chip--completo      { --ec-bg: #F0FDF4; --ec-color: #15803D; --ec-border: #86EFAC; }
+.ec-chip--solo_entrada  { --ec-bg: #FFFBEB; --ec-color: #92400E; --ec-border: #FDE68A; }
+.ec-chip--solo_salida   { --ec-bg: #FEF2F2; --ec-color: #DC2626; --ec-border: #FECACA; }
+.ec-chip-icon { font-size: 12px; }
+
+/* UserMenu.jsx — menú desplegable de usuario (A3, auditoría 2026-07-05) */
+.um-root { margin-left: auto; position: relative; }
+
+.um-trigger-btn {
+  display: flex; align-items: center; gap: 7px; cursor: pointer;
+  background: transparent; border: 1px solid var(--color-border-tertiary);
+  border-radius: 8px; padding: 4px 10px 4px 6px;
+  transition: background .13s, border-color .13s;
+}
+.um-trigger-btn--open { background: var(--color-background-tertiary); border-color: var(--color-border-secondary); }
+
+.um-avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg,var(--brand-500),var(--color-role-coord));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff;
+}
+.um-info { text-align: left; line-height: 1.3; }
+.um-name { font-size: 12px; font-weight: 700; color: var(--color-text-primary); white-space: nowrap; }
+.um-role { font-size: 10px; color: var(--role-color, var(--color-text-tertiary)); font-weight: 600; white-space: nowrap; }
+
+.um-chevron { font-size: 12px; color: var(--color-text-tertiary); transform: rotate(0deg); transition: transform .15s; }
+.um-chevron--open { transform: rotate(180deg); }
+
+.um-menu-overlay { position: fixed; inset: 0; z-index: 398; }
+.um-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; min-width: 200px;
+  background: #fff; border: 1px solid var(--color-border-tertiary); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 399; overflow: hidden;
+  animation: fadeDown .15s ease;
+}
+.um-menu-header { padding: 12px 14px 10px; border-bottom: 1px solid var(--color-background-tertiary); }
+.um-menu-name { font-size: 12px; font-weight: 700; color: var(--color-text-primary); }
+.um-menu-email { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+.um-menu-session { font-size: 10px; color: var(--color-text-tertiary); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.um-icon-xs { font-size: 11px; }
+
+.um-item {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 14px; border: none; background: transparent;
+  cursor: pointer; font-size: 13px; color: var(--navy-700); text-align: left;
+  transition: background .12s;
+}
+.um-item:hover { background: var(--color-background-secondary); }
+.um-item-icon { font-size: 15px; color: var(--color-text-tertiary); }
+
+.um-divider { height: 1px; background: var(--color-background-tertiary); }
+
+.um-item--danger { color: var(--color-danger-mid); }
+.um-item--danger:hover { background: #FFF5F5; }
+.um-item--danger .um-item-icon { color: inherit; }
+
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+
+/* SinPerfilAsignado.jsx / CuentaDesactivada.jsx — pantallas de bloqueo compartidas (A3, auditoría 2026-07-05) */
+.bs-wrap {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100vh; background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  font-family: system-ui, sans-serif; padding: 32px;
+}
+.bs-card {
+  background: #fff; border-radius: 16px; padding: 40px 32px;
+  max-width: 420px; width: 100%; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.bs-card--narrow { max-width: 400px; }
+.bs-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+.bs-icon--muted { color: #6B7280; }
+.bs-icon--danger { color: #EF4444; }
+.bs-title { margin: 0 0 8px; font-size: 20px; color: #111827; }
+.bs-desc { margin: 0 0 24px; font-size: 14px; color: #6B7280; line-height: 1.6; }
+.bs-btn { padding: 10px 24px; border-radius: 8px; border: none; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600; }
+.bs-btn--dark { background: #374151; }
+.bs-btn--primary { background: #2563EB; }
+
+
+.am-section-title { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px 6px; }
+.am-status-row { display: flex; align-items: center; gap: 7px; padding: 6px 10px; }
+.am-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: #22C55E; }
+.am-status-dot--offline { background: #EF4444; }
+.am-status-text { font-size: 11px; color: #4ADE80; font-weight: 600; }
+.am-status-text--offline { color: #FCA5A5; }
+.am-status-count { font-size: 11px; color: #475569; margin-left: auto; }
+.am-last-sync { font-size: 10px; color: #334155; padding: 0 10px 4px; }
+
+
+.app-spinner-ring {
+  width: 32px; height: 32px; border: 3px solid #1E3A5F;
+  border-top: 3px solid var(--color-accent);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+.app-spinner-label { color: var(--color-text-tertiary); font-size: 14px; }
+.app-loading-text { color: var(--color-text-tertiary); font-size: 15px; }
+
+.app-error-screen {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100vh; background: var(--color-text-primary); color: var(--color-border-tertiary);
+  gap: 16px; padding: 32px; text-align: center; font-family: var(--font-sans);
+}
+.app-error-icon { font-size: 44px; }
+.app-error-icon--danger { color: #F87171; }
+.app-error-icon--warning { color: #FBBF24; }
+.app-error-title { margin: 0; font-size: 20px; font-weight: 600; color: var(--color-background-tertiary); }
+.app-error-desc { margin: 0; font-size: 14px; color: var(--color-text-tertiary); max-width: 460px; line-height: 1.6; }
+.app-error-btn {
+  margin-top: 8px; padding: 9px 22px; background: var(--brand-500); color: #fff;
+  border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+
+
+.asm-root { min-height: 100vh; background: var(--color-background-tertiary); font-family: var(--font-sans); }
+.asm-topbar {
+  background: #fff; border-bottom: 1px solid var(--color-border-tertiary);
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 20px; height: 52px; flex-shrink: 0;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  transition: transform 0.35s ease; transform: translateY(0);
+}
+.asm-topbar--hidden { transform: translateY(-100%); }
+
+.asm-back-btn {
+  background: none; border: 1px solid var(--color-border-tertiary);
+  border-radius: 7px; padding: 5px 12px; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--navy-700);
+  display: flex; align-items: center; gap: 6px;
+}
+
+.asm-tabs { display: flex; gap: 4px; }
+.asm-tab {
+  padding: 5px 14px; border-radius: 7px; border: none;
+  background: transparent; color: var(--color-text-tertiary); font-weight: 500;
+  font-size: 13px; cursor: pointer; transition: all 0.12s;
+  display: flex; align-items: center; gap: 6px;
+}
+.asm-tab--active { background: var(--color-background-info); color: var(--brand-600); font-weight: 700; }
+
+.asm-session-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 10px; background: #F0FDF4;
+  border: 1px solid #86EFAC; border-radius: 20px;
+}
+.asm-session-dot { width: 7px; height: 7px; border-radius: 50%; background: #22C55E; display: inline-block; animation: pulse 1.4s ease-in-out infinite; }
+.asm-session-text { font-size: 12px; font-weight: 600; color: #15803D; }
+
+.asm-pendientes-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px; flex-shrink: 0;
+  background: #FEF3C7; border: 1px solid #FCD34D;
+  font-size: 11px; font-weight: 600; color: #92400E;
+  white-space: nowrap;
+}
+
+.asm-main { padding-top: 52px; }
+.asm-main--proyeccion { padding-top: 0; }
+
+/* HorariosLayout.jsx — shell completo del módulo Horarios (A3, auditoría 2026-07-05) */
+.hl-select-dark { width: 100%; background: var(--navy-800); color: var(--color-border-secondary); border-color: var(--navy-700); font-size: 12px; padding: 6px 8px; }
+.hl-select-dark:disabled { opacity: 0.6; cursor: not-allowed; }
+.hl-select-dark:not(:disabled) { cursor: pointer; opacity: 1; }
+
+/* Fallback compartido para vistas cargadas con React.lazy (HorariosLayout, AsistenciasModulo) */
+.lazy-fallback { display: flex; align-items: center; justify-content: center; height: 240px; color: var(--color-text-tertiary); font-size: 13px; gap: 8px; }
+.lazy-spin { font-size: 20px; animation: spin 1s linear infinite; }
+
+.hl-root { display: flex; height: 100dvh; font-family: var(--font-sans); background: var(--color-background-tertiary); overflow: hidden; }
+.hl-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 299; }
+
+.sb { background: var(--color-text-primary); display: flex; flex-direction: column; flex-shrink: 0; border-right: 1px solid var(--navy-800); position: relative; }
+.sb-flow-spacer { flex-shrink: 0; transition: width .22s; }
+
+.hl-brand-row { display: flex; align-items: center; gap: 8px; padding: 14px 10px 12px; border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
+.hl-brand-text-wrap { flex: 1; overflow: hidden; }
+.hl-brand-title { font-size: 13px; font-weight: 700; color: var(--color-background-tertiary); white-space: nowrap; }
+.hl-brand-subtitle { font-size: 10px; color: var(--color-text-secondary); margin-top: 1px; white-space: nowrap; }
+
+.hl-lapso-box { padding: 10px; border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
+.hl-lapso-icon {
+  width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0;
+  background: #0C1A3A; display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.hl-lapso-icon--consulta { background: #451A03; cursor: pointer; }
+.hl-lapso-label { font-size: 9px; font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
+.hl-lapso-row { display: flex; align-items: center; gap: 6px; }
+.hl-lapso-value { font-size: 13px; font-weight: 700; color: var(--color-accent-light); flex: 1; white-space: nowrap; }
+.hl-lapso-value--consulta { color: #FBBF24; }
+.hl-lapso-reset-btn {
+  font-size: 10px; padding: 2px 7px; border-radius: 5px;
+  border: 1px solid var(--navy-700); background: var(--navy-800);
+  color: var(--color-accent-light); cursor: pointer; font-weight: 600; flex-shrink: 0;
+  display: flex; align-items: center;
+}
+.hl-icon-sm { font-size: 12px; }
+
+.hl-programa-box { padding: 8px 10px; border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
+
+.hl-nav { flex: 1; padding: 8px 8px 6px; overflow-y: auto; overflow-x: hidden; }
+.hl-nav-group { margin-bottom: 4px; }
+.hl-nav-group--last { margin-bottom: 0; }
+.hl-nav-divider { height: 1px; background: var(--navy-800); margin: 6px 4px 8px; }
+.hl-nav-title { font-size: 9px; font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.1em; padding: 0 8px; margin-bottom: 4px; transition: opacity 0.15s; }
+.hl-nav-icon { font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; }
+.hl-nav-label { flex: 1; }
+
+.hl-footer { border-top: 1px solid var(--navy-800); padding: 8px; flex-shrink: 0; }
+.hl-admin-btn { margin-bottom: 6px; color: var(--color-text-tertiary); background: transparent; }
+.hl-admin-btn--open { color: var(--color-border-info); background: var(--navy-800); }
+.hl-admin-icon { font-size: 15px; flex-shrink: 0; width: 20px; text-align: center; }
+.hl-uploading-dot {
+  width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--color-accent);
+  border-top: 1.5px solid transparent; animation: spin .7s linear infinite; flex-shrink: 0;
+}
+
+.hamburger {
+  display: none; background: none; border: 1px solid var(--color-border-tertiary);
+  border-radius: 6px; padding: 5px 9px; cursor: pointer; font-size: 17px;
+  color: var(--navy-700); flex-shrink: 0; align-items: center;
+}
+.hl-content-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.hl-search-wrap { flex: 1; max-width: 420px; }
+.hl-syncing { font-size: 11px; color: var(--color-text-tertiary); white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 5px; }
+.hl-spin-slow { animation: spin 1.1s linear infinite; }
+.hl-pendientes-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px; flex-shrink: 0;
+  background: #FEF3C7; border: 1px solid #FCD34D;
+  font-size: 11px; font-weight: 600; color: #92400E;
+  white-space: nowrap;
+}
+
+.hl-consulta-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: 7px 20px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.hl-consulta-text { font-size: 13px; color: var(--color-warning-text); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.hl-consulta-btn {
+  margin-left: auto; font-size: 12px; padding: 4px 12px; border-radius: 6px;
+  border: 1px solid var(--color-warning-border); background: #fff;
+  color: var(--color-warning-text); cursor: pointer; font-weight: 600;
+  flex-shrink: 0; display: flex; align-items: center; gap: 5px;
+}
+
+.hl-main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+
+@media (max-width: 640px) {
+  .hl-brand-row { padding: 10px 8px 10px; }
+  .hl-consulta-banner { padding: 7px 12px; flex-wrap: wrap; }
+  .hl-consulta-btn { margin-left: 0; }
+}
+
+/* ConflictosView.jsx */
+.cv-empty { padding: 60px 20px; text-align: center; }
+.cv-item { border-left: 4px solid #EF4444; padding: 14px 18px; }
+
+/* PestanaRoles.jsx */
+.pr-card-visible { overflow: visible; }
+.pr-badge-warning { background: #FEF3C7; color: var(--color-warning-text); font-size: 11px; }
+
+/* SeccionesView.jsx */
+.sv-list-panel { flex: 1; overflow-y: auto; }
+.sv-info-card { padding: 18px 22px; margin-bottom: 16px; }
+
+/* TurnoGrid.jsx */
+.tg-card { margin-bottom: 16px; }
+.tg-th-hora { padding: 10px 12px; font-size: 12px; width: 110px; }
+.tg-th-day { padding: 10px 10px; font-size: 13px; border-left: 1px solid #E2E8F0; text-align: center; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Fix A3/S3 (auditoría QA 5/jul/2026, Fase 1) — Clases fijas de trayecto.
+
+   El color por trayecto (TRAYECTO_BG/TRAYECTO_COLORS, src/constants/index.js)
+   es un dominio FIJO de 13 valores hardcodeados que nunca cambian en
+   runtime — no es "dato" en el sentido que bloquea CSP, solo se venía
+   inyectando vía style={{...}} inline por comodidad. Estas 13 clases
+   (una por trayecto, generadas con trayectoClass() en constants/index.js)
+   definen todas las custom properties que los componentes ya consumían
+   (--tag-bg/--tag-color, --badge-bg/--badge-color, --dot-color,
+   --clase-bg/--clase-color/--clase-shadow/--clase-border, --fill-color,
+   --trayecto-bg/--trayecto-color) para que dejen de necesitar `style`.
+   Afecta: DocentesView, SeccionesView, MateriasView, ConflictosView,
+   TurnoGrid, GlobalSearch, ResumenView, PlanillaImprimibleBase.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.trayecto-inicial, .trayecto-1-1, .trayecto-1-2, .trayecto-1-3,
+.trayecto-2-1, .trayecto-2-2, .trayecto-2-3,
+.trayecto-3-1, .trayecto-3-2, .trayecto-3-3,
+.trayecto-4-1, .trayecto-4-2, .trayecto-4-3,
+.trayecto-desconocido {
+  --tag-bg: var(--trayecto-bg); --tag-color: var(--trayecto-color);
+  --badge-bg: var(--trayecto-bg); --badge-color: var(--trayecto-color);
+  --clase-bg: var(--trayecto-bg); --clase-color: var(--trayecto-color);
+  --fill-color: var(--trayecto-color); --dot-color: var(--trayecto-color);
+}
+
+.trayecto-inicial { --trayecto-bg: #F5F3FF; --trayecto-color: #8B5CF6; --clase-shadow: #8B5CF655; --clase-border: #8B5CF630; }
+.trayecto-1-1     { --trayecto-bg: #EFF6FF; --trayecto-color: #2563EB; --clase-shadow: #2563EB55; --clase-border: #2563EB30; }
+.trayecto-1-2     { --trayecto-bg: #DBEAFE; --trayecto-color: #1D4ED8; --clase-shadow: #1D4ED855; --clase-border: #1D4ED830; }
+.trayecto-1-3     { --trayecto-bg: #BFDBFE; --trayecto-color: #1E40AF; --clase-shadow: #1E40AF55; --clase-border: #1E40AF30; }
+.trayecto-2-1     { --trayecto-bg: #FEF2F2; --trayecto-color: #DC2626; --clase-shadow: #DC262655; --clase-border: #DC262630; }
+.trayecto-2-2     { --trayecto-bg: #FEE2E2; --trayecto-color: #B91C1C; --clase-shadow: #B91C1C55; --clase-border: #B91C1C30; }
+.trayecto-2-3     { --trayecto-bg: #FECACA; --trayecto-color: #991B1B; --clase-shadow: #991B1B55; --clase-border: #991B1B30; }
+.trayecto-3-1     { --trayecto-bg: #FFFBEB; --trayecto-color: #D97706; --clase-shadow: #D9770655; --clase-border: #D9770630; }
+.trayecto-3-2     { --trayecto-bg: #FEF3C7; --trayecto-color: #B45309; --clase-shadow: #B4530955; --clase-border: #B4530930; }
+.trayecto-3-3     { --trayecto-bg: #FDE68A; --trayecto-color: #92400E; --clase-shadow: #92400E55; --clase-border: #92400E30; }
+.trayecto-4-1     { --trayecto-bg: #ECFDF5; --trayecto-color: #059669; --clase-shadow: #05966955; --clase-border: #05966930; }
+.trayecto-4-2     { --trayecto-bg: #D1FAE5; --trayecto-color: #047857; --clase-shadow: #04785755; --clase-border: #04785730; }
+.trayecto-4-3     { --trayecto-bg: #A7F3D0; --trayecto-color: #065F46; --clase-shadow: #065F4655; --clase-border: #065F4630; }
+/* Trayecto no reconocido (dato inesperado) — mismo fallback que cada
+   componente ya usaba en su `|| valor` original, ahora centralizado. */
+.trayecto-desconocido { --trayecto-bg: var(--color-background-subtle); --trayecto-color: var(--color-text-tertiary); --clase-shadow: transparent; --clase-border: transparent; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Fix A3/S3 (auditoría QA 5/jul/2026, Fase 2) — Clases fijas para configs
+   ya hardcodeadas en el propio código (no son "dato" tampoco): eventos y
+   acciones de LogsView, niveles de fortaleza de contraseña, colores de
+   distribución fija en ResumenView, estado de % en ReporteRango/AdminQRPanel.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* LogsView.jsx — EVENTO_CONFIG / ACCION_CONFIG (dominio fijo, ~18 claves) */
+.lv-c-login          { --lv-bg: #F0FDF4; --lv-color: #16A34A; }
+.lv-c-logout         { --lv-bg: #FEF2F2; --lv-color: #DC2626; }
+.lv-c-login_fallido  { --lv-bg: #FFFBEB; --lv-color: #D97706; }
+.lv-c-default        { --lv-bg: #F8FAFC; --lv-color: #475569; }
+.lv-a-importar_excel     { --lv-color: #1D4ED8; }
+.lv-a-borrar_horarios    { --lv-color: #DC2626; }
+.lv-a-editar_docente,
+.lv-a-unificar_docente,
+.lv-a-editar_materia,
+.lv-a-unificar_materia   { --lv-color: #0F766E; }
+.lv-a-cerrar_trimestre   { --lv-color: #7C3AED; }
+.lv-a-crear_trimestre    { --lv-color: #2563EB; }
+.lv-a-restaurar_backup   { --lv-color: #D97706; }
+.lv-a-exportar_backup    { --lv-color: #64748B; }
+.lv-a-crear_usuario      { --lv-color: #2563EB; }
+.lv-a-editar_usuario     { --lv-color: #475569; }
+.lv-a-activar_usuario    { --lv-color: #16A34A; }
+.lv-a-desactivar_usuario { --lv-color: #DC2626; }
+.lv-a-gestionar_usuario  { --lv-color: #7C3AED; }
+.lv-a-crear_rol          { --lv-color: #2563EB; }
+.lv-a-editar_rol         { --lv-color: #0F766E; }
+.lv-a-eliminar_rol       { --lv-color: #DC2626; }
+.lv-a-default            { --lv-color: #475569; }
+
+/* ModalCambiarPassword.jsx — los 4 niveles de fortaleza y sus reglas
+   compuestas viven en ModalCambiarPassword.css (fix A3/S3 Fase 2). */
+
+/* ResumenView.jsx — colores fijos de distribución (no trayecto, hardcodeados
+   en el propio componente: día/docente/materia/turno) */
+.rv-fill--dia      { --fill-color: #059669; }
+.rv-fill--docente  { --fill-color: #7C3AED; }
+.rv-fill--materia  { --fill-color: #D97706; }
+.rv-fill--diurno    { --fill-color: #2563EB; }
+.rv-fill--vespertino{ --fill-color: #DB2777; }
+
+/* ReporteRango.jsx / AdminQRPanel.jsx — el % de asistencia y el % de la
+   cuenta regresiva del QR son continuos (ver Fase 4, pendiente); el color
+   asociado (umbral fijo de 3 estados) se resuelve directamente en el CSS
+   de cada componente (ReporteAsistencias/index.css, AdminQRPanel.css) con
+   selectores compuestos, no aquí. */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Fix A3/S3 (auditoría QA 5/jul/2026, Fase 3) — Clases fijas de color de rol.
+
+   Combina los 5 colores de ROL_SIDEBAR (roles del sistema) y los 10 de
+   COLORES_PRESET (usuarios/shared.jsx, roles personalizados) — 14 valores
+   únicos conocidos (roleColorClass(), src/constants/index.js). Define
+   --role-color/--role-bg/--role-border (bg = 12% alpha, border = 25% alpha,
+   mismo cálculo que hacía hex2rgba() antes). Afecta: UserMenu.jsx (.um-role),
+   usuarios/shared.jsx Badge (.shared-badge), PestanaRoles.jsx (.pr-avatar).
+   Pendiente para que S3 pueda cerrar de verdad: migración 0052 (CHECK en
+   roles.color) — hasta que se aplique, un color insertado fuera de esta
+   lista (ej. directo por API, sin pasar por el picker) cae en
+   .role-color--default sin romper visualmente, pero sí sin distinguirse.
+   ────────────────────────────────────────────────────────────────────────── */
+.role-color--sb-admin          { --role-color: #A78BFA; --role-bg: rgba(167,139,250,0.12); --role-border: rgba(167,139,250,0.25); }
+.role-color--sb-coordinador    { --role-color: #60A5FA; --role-bg: rgba(96,165,250,0.12);   --role-border: rgba(96,165,250,0.25); }
+.role-color--sb-verde          { --role-color: #34D399; --role-bg: rgba(52,211,153,0.12);   --role-border: rgba(52,211,153,0.25); }
+.role-color--sb-administrativo { --role-color: #94A3B8; --role-bg: rgba(148,163,184,0.12);  --role-border: rgba(148,163,184,0.25); }
+.role-color--role-coord { --role-color: #7C3AED; --role-bg: rgba(124,58,237,0.12); --role-border: rgba(124,58,237,0.25); }
+.role-color--brand      { --role-color: #1D4ED8; --role-bg: rgba(29,78,216,0.12);  --role-border: rgba(29,78,216,0.25); }
+.role-color--teal       { --role-color: #0F766E; --role-bg: rgba(15,118,110,0.12); --role-border: rgba(15,118,110,0.25); }
+.role-color--mid        { --role-color: #374151; --role-bg: rgba(55,65,81,0.12);   --role-border: rgba(55,65,81,0.25); }
+.role-color--success    { --role-color: #059669; --role-bg: rgba(5,150,105,0.12);  --role-border: rgba(5,150,105,0.25); }
+.role-color--danger     { --role-color: #DC2626; --role-bg: rgba(220,38,38,0.12);  --role-border: rgba(220,38,38,0.25); }
+.role-color--warning    { --role-color: #D97706; --role-bg: rgba(217,119,6,0.12);  --role-border: rgba(217,119,6,0.25); }
+.role-color--cyan       { --role-color: #0891B2; --role-bg: rgba(8,145,178,0.12);  --role-border: rgba(8,145,178,0.25); }
+.role-color--purple     { --role-color: #9333EA; --role-bg: rgba(147,51,234,0.12); --role-border: rgba(147,51,234,0.25); }
+.role-color--pink       { --role-color: #BE185D; --role-bg: rgba(190,24,93,0.12);  --role-border: rgba(190,24,93,0.25); }
+/* Color no reconocido (fuera de las 14 conocidas) — mismo fallback que cada
+   componente ya usaba en su `|| valor` original. */
+.role-color--default    { --role-color: var(--color-text-tertiary); --role-bg: var(--color-background-subtle); --role-border: var(--color-border); }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Fix A3/S3 (auditoría QA 5/jul/2026, Fase 4) — Ancho bucketizado (5%).
+
+   El % de una barra de progreso es un valor continuo real (0-100, cualquier
+   decimal) — a diferencia de trayecto/rol/configs, no es un dominio
+   enumerable sin pérdida. Se redondea al múltiplo de 5 más cercano
+   (pctClass(), src/constants/index.js) y se usa una de estas 21 clases en
+   vez de width inline. Precisión perdida: hasta ±2.5 puntos porcentuales.
+   Afecta: ResumenView.jsx, ReporteRango.jsx, AdminQRPanel.jsx.
+   ────────────────────────────────────────────────────────────────────────── */
+.w-pct-0   { width: 0%; }   .w-pct-5   { width: 5%; }   .w-pct-10  { width: 10%; }
+.w-pct-15  { width: 15%; }  .w-pct-20  { width: 20%; }  .w-pct-25  { width: 25%; }
+.w-pct-30  { width: 30%; }  .w-pct-35  { width: 35%; }  .w-pct-40  { width: 40%; }
+.w-pct-45  { width: 45%; }  .w-pct-50  { width: 50%; }  .w-pct-55  { width: 55%; }
+.w-pct-60  { width: 60%; }  .w-pct-65  { width: 65%; }  .w-pct-70  { width: 70%; }
+.w-pct-75  { width: 75%; }  .w-pct-80  { width: 80%; }  .w-pct-85  { width: 85%; }
+.w-pct-90  { width: 90%; }  .w-pct-95  { width: 95%; }  .w-pct-100 { width: 100%; }
