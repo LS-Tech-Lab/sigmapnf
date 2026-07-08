@@ -1,11 +1,13 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    PestanaRoles.css
    Migración A3 (auditoría 2026-07-05): estilos extraídos de PestanaRoles.jsx.
-   El color/fondo/borde del avatar de cada rol (hex2rgba(r.color, ...)) depende
-   del color elegido para ese rol en particular — son datos, no decisiones de
-   estilo — y se mantienen inline vía CSS custom properties
-   (--avatar-bg, --avatar-border). Las clases .pr-card-visible / .pr-badge-warning
-   ya existían en src/index.css desde antes de esta migración y se mantienen ahí.
+   Fix A3/S3 Fase 3 (auditoría QA 2026-07-05): el color/fondo/borde del
+   avatar de cada rol es un dominio fijo de 14 valores conocidos
+   (roleColorClass(), src/constants/index.js) — ya no se inyecta vía style
+   inline, lo define la clase .role-color--<slug> (ver src/index.css) a
+   través de --role-bg/--role-border. Las clases .pr-card-visible /
+   .pr-badge-warning ya existían en src/index.css desde antes de esta
+   migración y se mantienen ahí.
    ────────────────────────────────────────────────────────────────────────────── */
 
 .pr-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -25,8 +27,8 @@
 
 .pr-avatar {
   width: 38px; height: 38px; border-radius: 10px;
-  background: var(--avatar-bg);
-  border: 1px solid var(--avatar-border);
+  background: var(--role-bg, var(--color-background-subtle));
+  border: 1px solid var(--role-border, var(--color-border));
   display: flex; align-items: center; justify-content: center;
   font-size: 18px; flex-shrink: 0;
 }
