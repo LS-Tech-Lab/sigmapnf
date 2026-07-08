@@ -6,6 +6,7 @@
  */
 
 import './shared.css';
+import { roleColorClass } from '../../constants';
 
 // ─── Catálogo de permisos ─────────────────────────────────────────────────────
 export const GRUPOS_PERMISOS = [
@@ -75,9 +76,8 @@ export const EMOJIS_PRESET = ["👤", "👑", "🏛️", "📋", "📷", "🔑",
 
 // ─── Micro-componentes ────────────────────────────────────────────────────────
 export function Badge({ color, children }) {
-  const c = color || "var(--color-text-mid)";
   return (
-    <span className="shared-badge" style={{ '--badge-bg': hex2rgba(c, 0.12), '--badge-color': c, '--badge-border': hex2rgba(c, 0.25) }}>
+    <span className={`shared-badge ${roleColorClass(color)}`}>
       {children}
     </span>
   );
