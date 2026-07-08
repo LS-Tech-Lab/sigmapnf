@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
-import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../../constants";
+import { DEFAULT_PROGRAMAS, TURNOS_CONFIG, pctClass } from "../../../constants";
 import { fechaHoyVE } from "../../../utils/time";
 import { logger } from "../../../utils/logger";
 import { rangoFechas } from "./helpers";
@@ -265,7 +265,7 @@ function ReporteRango({ onVolverDiario }) {
                         <td className="s-td ra-td-pct">
                           <span className={`ra-pct-label ra-pct--${pctVariant}`}>{pct}%</span>
                           <div className="ra-pct-track">
-                            <div className={`ra-pct-fill ra-pct--${pctVariant}`} style={{ width: `${pct}%` }} />
+                            <div className={`ra-pct-fill ra-pct--${pctVariant} ${pctClass(pct)}`} />
                           </div>
                         </td>
                         <td className="s-td ra-td-center-sm-muted">~{d.horasEstimadas}h</td>
