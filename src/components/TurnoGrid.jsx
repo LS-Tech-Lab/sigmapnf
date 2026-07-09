@@ -30,7 +30,6 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
     return <div className="tg-loading">Cargando grilla...</div>;
   }
 
-  const ROW_H = 52;
   const esVespertino = turnoLabel !== "DIURNO";
 
   return (
@@ -73,7 +72,8 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
                     if (cell.empty) return <td key={day} className="tg-cell-empty" />;
                     const { entries, span } = cell.data;
                     return (
-                      <td key={day} rowSpan={span} className="tg-cell-data" style={{ "--cell-height": `${span * ROW_H}px` }}>
+                      <td key={day} rowSpan={span} className={`tg-cell-data tg-cell-data--span-${span}`}>
+                        <div className="tg-cell-inner">
                         {entries.map((e, i) => {
                           const { materia: rawMateria, docente: docenteParseado } = parseClase(e.clase);
                           const rawDoc = e.docentes?.nombre_raw || docenteParseado;
@@ -89,9 +89,6 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
                               onClick={toggleExpand}
                               onKeyDown={ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggleExpand(); } }}
                               className={`tg-clase ${trayectoClass(e.trayecto)}${isExp ? " tg-clase--expanded" : ""}`}
-                              style={{
-                                "--clase-height": !isExp && span > 0 ? `calc(${span * ROW_H - 10}px / ${entries.length})` : "auto",
-                              }}
                             >
                               <div className="tg-clase-materia">{materia}</div>
                               {docente && <div className="tg-clase-docente">{docente}</div>}
@@ -105,6 +102,7 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
                             </div>
                           );
                         })}
+                        </div>
                       </td>
                     );
                   })}
