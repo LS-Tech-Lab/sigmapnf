@@ -60,12 +60,13 @@ export const GRUPOS_PERMISOS = [
 export const TODOS_LOS_PERMISOS = GRUPOS_PERMISOS.flatMap(g => g.items.map(i => i.key));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-export const hex2rgba = (hex, a) => {
-  const r = parseInt(hex.slice(1, 3), 16),
-        g = parseInt(hex.slice(3, 5), 16),
-        b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${a})`;
-};
+// hex2rgba() se eliminó (5/jul/2026, cierre de S3): era la última fuente de
+// color arbitrario en tiempo de ejecución (recibía form.color/r.color, un
+// hex libre); con el <input type="color"> quitado de ModalRol.jsx y
+// roleColorClass() cubriendo los 10 COLORES_PRESET con clases fijas, ya no
+// tenía ningún llamador en todo el repo — quedaba como código muerto, tenía
+// además un bug latente (ver AUDITORIA_INDICE.md, pasada del 5/jul) al
+// recibir strings tipo "var(--brand-500)" en vez de un hex real.
 
 export const COLORES_PRESET = [
   "var(--color-role-coord)", "var(--brand-600)", "#0F766E", "var(--color-text-mid)", "var(--color-success)",
