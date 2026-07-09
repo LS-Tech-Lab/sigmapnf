@@ -32,7 +32,8 @@ const PROGRAMA_META = {
     label:   "Contaduría",
     color1:  "#065F46",
     color2:  "#34D399",
-    icon:    IconContaduria,
+    useImg:  true,
+    img:     "/logo-contaduria.png",
   },
   "PNF Agroalimentación": {
     label:   "Agroalimentación",
@@ -45,7 +46,8 @@ const PROGRAMA_META = {
     label:   "Educ. Especial",
     color1:  "#581C87",
     color2:  "#C084FC",
-    icon:    IconEducacionEspecial,
+    useImg:  true,
+    img:     "/logo-educacion.png",
   },
 };
 
