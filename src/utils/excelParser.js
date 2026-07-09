@@ -28,6 +28,16 @@ import { normalizarPrograma, parseClase } from "./parsing";
 
 export const TEMPLATE_VERSION = 2;
 
+// Fix D-6 (auditoría 5 de julio, complemento tras actualizar xlsx a 0.20.3):
+// límite de hojas/filas como defensa adicional. Un .xlsx es un zip — el
+// límite de 10 MB en MAX_FILE_SIZE_BYTES (useUpload.js) no acota el tamaño
+// ya descomprimido en memoria. Ningún horario real de la institución se
+// acerca a estos límites; existen solo para cortar el caso patológico
+// (zip bomb / hoja con cientos de miles de filas) antes de que XLSX.read
+// intente procesarla completa.
+const MAX_HOJAS = 60;
+const MAX_FILAS_POR_HOJA = 20000;
+
 const DIAS_VALIDOS = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"];
 
 // ── Hojas que se saltan silenciosamente (sin añadir a rechazadas) ────────────
@@ -311,6 +321,14 @@ export async function parseExcelFile(fileOrWorkbook, { lapso = null, selectedPro
     workbook = XLSX.read(binaryStr, { type: "binary" });
   }
 
+  // Fix D-6: cortar antes de procesar si el workbook excede los límites
+  // razonables (ver constantes arriba).
+  if (workbook.SheetNames.length > MAX_HOJAS) {
+    throw new Error(
+      `El archivo tiene ${workbook.SheetNames.length} hojas, más del máximo permitido (${MAX_HOJAS}).`
+    );
+  }
+
   const rows         = [];
   const rechazadas   = [];
   const advertencias = [];
@@ -326,6 +344,13 @@ export async function parseExcelFile(fileOrWorkbook, { lapso = null, selectedPro
 
     const worksheet = workbook.Sheets[sheetName];
     const json      = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+    // Fix D-6: cortar antes de procesar si una hoja excede el límite de filas.
+    if (json.length > MAX_FILAS_POR_HOJA) {
+      throw new Error(
+        `La hoja "${sheetName}" tiene ${json.length} filas, más del máximo permitido (${MAX_FILAS_POR_HOJA}).`
+      );
+    }
 
     const encabezado = detectarEncabezado(json);
     if (!encabezado) {
