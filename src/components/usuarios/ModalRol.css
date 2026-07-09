@@ -27,7 +27,9 @@
 .mr-color-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .mr-color-swatch { width: 24px; height: 24px; border-radius: 6px; cursor: pointer; box-sizing: border-box; border: 3px solid transparent; background: var(--role-color, #888); }
 .mr-color-swatch--active { border-color: var(--color-text-primary); }
-.mr-color-input { width: 28px; height: 28px; border: none; cursor: pointer; border-radius: 6px; padding: 0; }
+/* .mr-color-input se eliminó (5/jul/2026, cierre de S3): el <input
+   type="color"> libre se quitó de ModalRol.jsx, solo quedan los 10 swatches
+   del preset. */
 
 .mr-restringe-label { display: flex; align-items: center; gap: 10px; cursor: pointer; background: var(--color-background-secondary); border: 1px solid var(--color-border-tertiary); border-radius: 10px; padding: 12px 14px; }
 .mr-restringe-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--brand-500); }
@@ -51,7 +53,12 @@
 .mr-items-list { display: flex; flex-direction: column; }
 .mr-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; cursor: pointer; transition: background 0.1s; }
 .mr-item--divider { border-top: 1px solid var(--color-background-tertiary); }
-.mr-item-check { width: 15px; height: 15px; margin-top: 1px; cursor: pointer; flex-shrink: 0; }
+/* Fix A3/S3 (5/jul/2026): el tinte de fondo (al marcar el permiso) y el
+   accent-color del checkbox usan el --role-color/--role-tint-5 heredado de
+   la clase .role-color--<slug> puesta en el propio <label> (ver
+   src/index.css) — ya no vía style inline. */
+.mr-item--checked { background: var(--role-tint-5, transparent); }
+.mr-item-check { width: 15px; height: 15px; margin-top: 1px; cursor: pointer; flex-shrink: 0; accent-color: var(--role-color, currentColor); }
 .mr-item-title { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
 .mr-item-desc { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
 
