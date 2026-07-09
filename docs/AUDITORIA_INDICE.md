@@ -300,7 +300,7 @@ se elimina del repo tras esta fusión — su contenido vive ahora aquí.
 | **FE-2** | Tipografía sin identidad — solo `system-ui`, sin fuente propia ni jerarquía tipográfica definida | `src/index.css` | ✅ Cerrado — fuente **Inter** confirmada en `index.css` |
 | **FE-3** | Tokens de diseño incompletos: faltaban escalas de espaciado/sombras/radios; gran parte de los componentes usaba estilos inline con hex repetidos en vez de tokens | `src/index.css`, objeto `S` en `src/constants/index.js` | 🟡 **Parcialmente cerrado** — la escala de tokens sí se completó (espaciado, sombras, `:focus-visible`), pero la segunda mitad de este mismo hallazgo (estilos inline con hex repetido en vez de tokens) es exactamente la causa raíz de `S3`/`A3` — no son hallazgos distintos, `S3`/`A3` es la continuación de `FE-3` con más profundidad y alcance (33 archivos en vez de los "algunos" que mencionaba `FE-3` originalmente). Seguir el estado real en `A3`, no aquí |
 | **FE-4** | Sin estado `:focus-visible` accesible consistente para navegación por teclado | `src/index.css` | ✅ Cerrado — 6 reglas `:focus-visible` confirmadas en `index.css` |
-| **FE-5** | `HorariosLayout.jsx` mezclaba `fontSize`, colores y espaciados como números sueltos (`fontSize: 13`, `padding: "10px 10px 10px"`) en vez de los tokens ya definidos en `index.css`. Hallazgo de la auditoría QA externa del 5 de julio | `src/app/HorariosLayout.jsx` → clases `.hl-*` en `src/index.css` | 🟡 **Parcialmente cerrado** — al migrar el archivo a CSS externo (ver `U-5`) desapareció el problema de fondo (valores JS sueltos), pero la adopción de `var(--token)` en las reglas `.hl-*` nuevas quedó mixta: algunos `font-size`/`padding` siguen en px crudo en vez de tokens. No es la misma severidad que el hallazgo original (ya no hay objeto JS con valores mágicos desincronizados del CSS), pero conviene una pasada de limpieza puntual antes de dar esto por cerrado del todo |
+| **FE-5** | `HorariosLayout.jsx` mezclaba `fontSize`, colores y espaciados como números sueltos (`fontSize: 13`, `padding: "10px 10px 10px"`) en vez de los tokens ya definidos en `index.css`. Hallazgo de la auditoría QA externa del 5 de julio | `src/app/HorariosLayout.jsx` → clases `.hl-*` en `src/index.css` | ✅ **Cerrado con alcance acotado** — el problema de fondo (objeto JS con valores mágicos desincronizados del CSS) ya había desaparecido al migrar a CSS externo (`U-5`). De los `padding`/`margin`/`gap` en `.hl-*`, se migraron a `var(--space-N)` los 8 valores que coincidían exactamente con un token existente (ej. `8px` → `var(--space-2)`, `4px` → `var(--space-1)`, `12px` → `var(--space-3)`, `20px` → `var(--space-5)`) — cero cambio visual, son el mismo píxel referenciado por variable. Los valores que **no** coinciden con la escala actual (`6px`, `7px`, `10px`, `14px`, `1px`, `3px`) se dejaron en px crudo a propósito: forzarlos al grid de 4px habría sido un cambio de diseño real (mover espaciados visibles), no una limpieza, y eso requiere una pasada de UI con el diseñador/product owner, no una decisión unilateral en una tarea de auditoría. `font-size` se dejó fuera del alcance por la misma razón pero más grave: no existe ningún token de tipografía en todo `index.css` (solo `--font-sans` para la familia tipográfica) — las 98 declaraciones `font-size` del archivo completo, no solo las 14 de `.hl-*`, están en px crudo. Introducir una escala de `font-size` solo para `.hl-*` sería inconsistente con el resto del proyecto; si se quiere resolver de verdad, es una iniciativa aparte (definir la escala y aplicarla en todo el archivo), no parte de `FE-5` |
 
 > **Nota sobre la lista "pendiente fase 2" del documento original:** listaba
 > conteos de emoji por archivo (`UsuariosView.jsx` 25, `LogsView.jsx` 24,
@@ -381,11 +381,14 @@ apuntando a la versión parchada vía `cdn.sheetjs.com`, no era realmente
 (`HorariosLayout.jsx` y `App.jsx` concentraban demasiada responsabilidad)
 eran hallazgos nuevos de la auditoría QA externa del 5 de julio — los 4
 se verificaron **cerrados** contra HEAD real en la novena pasada (ver
-abajo). Solo `FE-5` queda parcialmente abierto (mismo motivo de siempre:
-la migración a CSS externo resolvió el problema de fondo, pero la
-adopción de `var(--token)` en las reglas `.hl-*` nuevas quedó mixta) junto
-con `FE-3`, que sigue siendo la misma tarea que `S3` vista desde
-identidad visual, no un hallazgo independiente. `SEC-10` y `SEC-11`
+abajo). `FE-5` también quedó **cerrada** en la decimotercera pasada (ver
+abajo), con alcance acotado: solo se migraron a `var(--space-N)` los
+valores que coinciden exactamente con la escala existente, dejando fuera
+a propósito los que no encajan (cambiar esos sería alterar espaciados
+visibles, no limpiar código) y la falta de una escala de `font-size` en
+todo el proyecto, documentada como iniciativa aparte. `FE-3` sigue siendo
+la misma tarea que `S3` vista desde identidad visual, no un hallazgo
+independiente. `SEC-10` y `SEC-11`
 (escalada de privilegios y rate limiting en gestión de usuarios,
 reportados por la misma auditoría QA) se verificaron contra HEAD real y
 están **cerrados** — migraciones `0050`/`0051` aplicadas y confirmadas en
@@ -703,3 +706,36 @@ julio solo `S3` (decisión de producto) y `FE-5` (limpieza puntual de
 tokens) quedan abiertos; todos los demás — `D-6`, `ARCH-6`, `ARCH-7`,
 `U-6`, `ARCH-8` — se verificaron cerrados contra HEAD real, no solo
 reportados de palabra.*
+
+*Decimotercera pasada (9 de julio de 2026) — cierre de `FE-5`. Revisados
+los 14 selectores `.hl-*` de `src/index.css` con `padding`/`margin`/`gap`
+en px crudo contra la escala de tokens existente en `:root`
+(`--space-1` a `--space-8` = 4/8/12/16/20/24/32px). De 17 valores
+numéricos encontrados, 8 coincidían exactamente con un token y se
+migraron a `var(--space-N)` (`.hl-select-dark`, `.hl-brand-row`,
+`.hl-programa-box`, `.hl-nav`, `.hl-nav-group`, `.hl-nav-divider`,
+`.hl-nav-title`, `.hl-footer`, `.hl-consulta-banner`) — sustitución
+mecánica, mismo valor en píxeles, cero cambio visual. Los 9 valores
+restantes (`6px`, `7px`, `10px`, `14px`, `1px`, `3px`, más los `gap` de
+`5px`/`6px`/`10px` que no forman parte de la escala) se dejaron en px
+crudo **a propósito**: no hay token que los represente sin cambiar el
+espaciado visible real, y decidir si vale la pena ensanchar la escala de
+`--space-*` para cubrirlos (o ajustar esos elementos al grid de 4px) es
+una decisión de diseño, no de limpieza de código — se deja fuera del
+alcance de este hallazgo.
+
+Sobre `font-size`: se confirmó que **no existe ninguna escala de
+tipografía** en todo `index.css` — solo `--font-sans` (familia
+tipográfica), sin tokens de tamaño. De las 98 declaraciones `font-size`
+del archivo completo, 14 están en `.hl-*` y las 84 restantes están
+repartidas por el resto del proyecto, todas en px crudo por igual.
+Tokenizar `font-size` solo en `.hl-*` habría creado una inconsistencia
+nueva (un archivo con escala, el resto sin ella) en vez de resolver una
+existente — así que se documenta como iniciativa aparte (definir una
+escala de `font-size` y aplicarla proyecto-completo) y no se fuerza aquí.
+
+**`FE-5` se da por cerrado** con este alcance: se resolvió todo lo que
+podía resolverse sin tomar decisiones de diseño no solicitadas. Sintaxis
+verificada (llaves balanceadas, 425/425). Con este cierre, de toda la
+auditoría QA externa del 5 de julio solo queda abierto `S3`, que depende
+de una decisión de producto ajena a este repo.*
