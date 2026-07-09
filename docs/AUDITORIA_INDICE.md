@@ -36,7 +36,7 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 |---|---|---|---|---|
 | **S1** | Cualquier usuario autenticado podía `UPDATE`/`INSERT`/`DELETE` horarios de cualquier programa (política heredada `FOR ALL` + RLS nunca habilitado en la tabla padre particionada) | `horarios` (padre + particiones) | `0035`, `0045` | ✅ Cerrado |
 | **S2** | `docentes`/`materias`: la política de escritura (`FOR ALL`) solo exigía `auth.role() = 'authenticated'`, sin verificar el permiso granular (`puedeEditarDocentes`/`puedeEditarMaterias`/`puedeImportarExcel`/`puedeRestaurarBackup`). Mismo patrón que `S1`, alcance más angosto — un informe externo lo reportó como "RLS nunca habilitado + anon con acceso total", pero RLS ya estaba activo y anon ya estaba bloqueado; el hueco real era más específico (falso positivo parcial, verificado contra `pg_policies` real antes de escribir la migración) | `docentes`, `materias` | `0046` | ✅ Cerrado |
-| **S3** | Estilos inline (`style={{...}}`) bloquean una política CSP estricta (`unsafe-inline` necesario mientras existan) | Ver nota bajo `A3` | — | 🟡 **Abierto** — `vercel.json` sigue con `style-src 'self' 'unsafe-inline'`. La decisión que queda es puramente de producto, acotada a **un solo archivo**: `ModalRol.jsx` tiene un `<input type="color">` libre para el color de rol personalizado. Cerrar `S3` del todo exige o restringir ese color a los 10 presets (perdiendo la libertad de elegir cualquier hex), o mantener `unsafe-inline` de forma permanente y acotada a ese único caso conocido. Sin decidir todavía |
+| **S3** | Estilos inline (`style={{...}}`) bloquean una política CSP estricta (`unsafe-inline` necesario mientras existan) | Ver nota bajo `A3` | — | ✅ Cerrado (5 de julio) — `vercel.json` ya no tiene `unsafe-inline` en `style-src`. Se decidió restringir `ModalRol.jsx` a los 10 presets (quitando el `<input type="color">` libre) en vez de mantener `unsafe-inline` permanente. Verificación adicional antes de cerrar: barrido completo por manipulación de `style` fuera de JSX (`.style.X =`, `setAttribute('style'...)`, `<style>` tags, `dangerouslySetInnerHTML`) — encontró y cerró 2 casos más que ningún grep de `style={{` detecta (ver pasada). No verificable con `vite build`/tests locales, solo en el navegador tras desplegar |
 | **SEC-2** | Stack trace completo de errores visible en producción (fuga de información interna) | `src/components/ErrorBoundary.jsx` | — | ✅ Cerrado (solo se renderiza en desarrollo) |
 | **SEC-3** | Sin validación centralizada de fortaleza de contraseñas | `src/utils/password.js` | — | ✅ Cerrado |
 | **SEC-5** | Lockout de login normal en `localStorage` no resistía pestañas privadas (mismo patrón que `O-8`, para PIN) | `src/components/LoginScreen.jsx`, `src/utils/pinOffline.js` | — | ✅ Cerrado (migrado a IDB, cliente) |
@@ -99,9 +99,10 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 | **A2** | `log_audit_event` sin registrar rol/programa del actor | Bloque 5, migración `0025` | ✅ Cerrado |
 | **ARCH-4** | Sin cobertura de tests para lógica crítica (`useAuth`, cola offline) | `useAuth.test.js`, `offlineQueue.test.js` | ✅ Cerrado |
 | **ARCH-5** | Sin tests de integración para hooks compuestos ni para flujos de usuario completos (escaneo QR, carga de horarios, gestión de usuarios) | Ver nota debajo | ✅ **Cerrado** |
-| **ARCH-6** | El CSS embebido de `QRProyeccion.jsx` (`const CSS = \`...\`` inyectado vía `<style>`) contiene el stylesheet completo duplicado dentro del mismo template literal — dos copias consecutivas de ~300 líneas. La primera es una versión vieja e incompleta que queda pisada por la segunda (correcta) solo por cascada CSS, mismo selector/especificidad. No afecta el render (la copia buena va después), pero duplica ~300 líneas muertas en el bundle. Encontrado de forma incidental al migrar `A3` en este archivo (5 de julio) | `src/components/asistencias/QRProyeccion.jsx` | 🟡 **Pendiente** — señalado, sin corregir; fuera del alcance de `A3` |
-| **ARCH-7** | Bundle de producción sin dividir por ruta — el chunk principal pesa 514 KB minificado (165 KB comprimido), por encima del umbral que Vite recomienda y advierte en cada build. Hallazgo de la auditoría QA externa del 5 de julio | `vite.config.js`; vistas grandes sin `React.lazy` (`HistorialView`, `LogsView`, `AsistenciasModulo`) | ✅ **Cerrado** — verificado contra HEAD real: `HorariosLayout.jsx` usa `lazy()` + `Suspense` para `HistorialView`, `UsuariosView` y `LogsView`; `AsistenciasModulo.jsx` hace lo mismo para `AdminQRPanel`, `QRProyeccion`, `ReporteAsistencias` y `PlanillaQR`, cada uno con su propio fallback |
-| **ARCH-8** | `HorariosLayout.jsx` (561 líneas) y `App.jsx` (353 líneas) concentran layout, navegación, estado de sesión (y hasta hace poco, estilos) en un solo archivo cada uno — cualquier cambio pequeño obliga a leer el archivo completo. Hallazgo de la auditoría QA externa del 5 de julio | `src/app/HorariosLayout.jsx`, `src/App.jsx` | ✅ **Cerrado** — verificado contra HEAD real: `HorariosLayout.jsx` bajó a 293 líneas, con sidebar y topbar extraídos a `src/app/HorariosSidebar.jsx` (208 líneas) y `src/app/HorariosTopbar.jsx` (105 líneas); `App.jsx` delega sesión/perfil/módulo activo a hooks dedicados (`useAppShell`, `useModuloActivo`, `usePerfilEfectivo`, entre otros) en vez de manejarlo inline |
+| **ARCH-6** | El CSS embebido de `QRProyeccion.jsx` (`const CSS = \`...\`` inyectado vía `<style>`) contiene el stylesheet completo duplicado dentro del mismo template literal — dos copias consecutivas de ~300 líneas. La primera es una versión vieja e incompleta que queda pisada por la segunda (correcta) solo por cascada CSS, mismo selector/especificidad. No afecta el render (la copia buena va después), pero duplica ~300 líneas muertas en el bundle. Encontrado de forma incidental al migrar `A3` en este archivo (5 de julio) | `src/components/asistencias/QRProyeccion.jsx` | ✅ Cerrado (5 de julio, cierre de `S3`) — el `<style>{CSS}</style>` en sí bloqueaba `S3` igual que un `style` inline, así que se extrajo a `QRProyeccion.css` real; de paso se eliminó la copia duplicada/vieja, dejando solo la correcta |
+| **ARCH-7** | Bundle de producción sin dividir por ruta — el chunk principal pesa 514 KB minificado (165 KB comprimido), por encima del umbral que Vite recomienda y advierte en cada build. Hallazgo de la auditoría QA externa del 5 de julio | `vite.config.js`; vistas grandes sin `React.lazy` (`HistorialView`, `LogsView`, `AsistenciasModulo`) | 🟡 **Abierto** — ya existe code-splitting parcial en `vite.config.js` (`view-logs`, `view-qr`); falta aplicar `React.lazy` + `Suspense` al resto de vistas grandes |
+| **ARCH-8** | `HorariosLayout.jsx` (561 líneas) y `App.jsx` (353 líneas) concentran layout, navegación, estado de sesión (y hasta hace poco, estilos) en un solo archivo cada uno — cualquier cambio pequeño obliga a leer el archivo completo. Hallazgo de la auditoría QA externa del 5 de julio | `src/app/HorariosLayout.jsx`, `src/App.jsx` | 🟡 **Abierto** — extraer sidebar, header y lógica de colapso de `HorariosLayout.jsx` en componentes propios; hay precedente (`usuarios/` se dividió así en una sesión anterior). Tiene más sentido abordarlo ahora que `HorariosLayout.jsx` ya perdió sus estilos inline (ver `U-5`) |
+| **ARCH-9** | `ResponsiveStyles.jsx` es código muerto: no lo importa ni renderiza ningún otro archivo del repo, y encima su propio import (`responsiveCSS` desde `constants`) no existe en ningún lado — si alguna vez se llegara a usar, rompería en tiempo de ejecución. Encontrado de forma incidental durante el barrido de `<style>` tags para cerrar `S3` (5 de julio) | `src/components/ResponsiveStyles.jsx` | 🟡 **Abierto** — señalado, sin corregir; opción más simple es eliminar el archivo directamente |
 
 > **Nota sobre `ARCH-5` (detalle por archivo, actualizado 4 de julio):** no
 > todos los archivos listados prueban lo mismo — es importante no
@@ -164,9 +165,9 @@ vez de asumirlo.
 | **U-2** | Adaptabilidad móvil: `.qrp-col-left` con `flex: 0 0 320px` (sin encoger) desbordaba horizontalmente en viewports ≤ ~372px; grid fijo `1fr 1fr` en `ModalRol` quedaba inusable en pantallas pequeñas. Revisión real contra el HEAD (no solo conteo de `@media`) confirmó que el resto de pantallas de mayor uso móvil (`DocenteScan`, `TurnoGrid`, `ReporteRango`, `LoginScreen`, `HistorialView`) ya tenían mitigación adecuada y no necesitaron cambios | `AdminQRPanel.css`, `usuarios/ModalRol.jsx` | ✅ Cerrado |
 | **U-3** | Sin trampa de foco de teclado en modales (accesibilidad) | `src/hooks/useFocusTrap.js` | ✅ Cerrado |
 | **U-4** | `Campo.jsx` (input del formulario de `DocenteScan`) renderiza `<label>` e `<input>` como hermanos, sin `htmlFor`/`id` que los asocie — un lector de pantalla no anuncia la etiqueta al enfocar el campo. Encontrado de forma indirecta: un test que intentaba ubicar el input por su label (`getByLabelText`, el método recomendado de Testing Library, que imita cómo un lector de pantalla encuentra el campo) no pudo hacerlo y tuvo que usar el `placeholder` como alternativa | `src/components/asistencias/DocenteScan/Campo.jsx` | ✅ Cerrado (`useId()` genera un id estable que conecta `label`↔`input`; el mensaje de error/hint también se enlaza vía `aria-describedby`, y `aria-invalid` se activa cuando hay error. `DocenteScan.flow.test.jsx` se actualizó para usar `getByLabelText` en vez del workaround de `placeholder`, quedando como guardia contra que esto se rompa de nuevo) |
-| **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | Ver nota — el repo bajó de 54 a **2 ocurrencias reales, en 1 solo archivo** | 🟢 **Cerrado** — `Avatar.jsx` se cerró bucketizando el tono a 24 pasos de 15° (tamaño ya era fijo: solo 30/44/52 se usan); `TurnoGrid.jsx` se cerró de raíz reemplazando el cálculo de altura en JS por `flex: 1` (el `rowSpan` ya era 1-6, dominio fijo, gracias a que `BLOQUES_DIURNO`/`VESPERTINO` siempre tienen 6 bloques). Solo queda `ModalRol.jsx` (2, color de rol libre — decisión de producto ya tomada de mantenerlo) |
+| **A3** | Migración sistemática de estilos inline a CSS externo, requisito para poder cerrar S3 (CSP) | Ver nota — el repo bajó de 54 a **0 ocurrencias reales** | ✅ **Cerrado** — `Avatar.jsx` se cerró bucketizando el tono a 24 pasos de 15° (tamaño ya era fijo: solo 30/44/52 se usan); `TurnoGrid.jsx` se cerró de raíz reemplazando el cálculo de altura en JS por `flex: 1` (el `rowSpan` ya era 1-6, dominio fijo); `ModalRol.jsx` se cerró quitando el `<input type="color">` libre — decisión de producto revisada, ahora restringido a los 10 presets |
 | **U-5** | Los 7 archivos del shell principal (`src/app/`) — `HorariosLayout.jsx`, `UserMenu.jsx`, `AsistenciasModulo.jsx`, `App.jsx`, `AdminMenu.jsx`, `SinPerfilAsignado.jsx`, `CuentaDesactivada.jsx` — tenían cero reglas `@media` propias por ser estilos inline; `U-2` solo había verificado pantallas de *funcionalidad* (QR, horarios, login), nunca el *shell* que las contiene (sidebar, menú de usuario, layout de asistencias). Hallazgo de la auditoría QA externa del 5 de julio | mismos 7 archivos + `src/index.css` | ✅ Cerrado — verificado contra HEAD real el 5 de julio: los 7 archivos migrados a clases con prefijo (`hl-`, `um-`, `asm-`, `adm-`, `spa-`, `cd-`) consolidadas en `src/index.css`, con reglas `@media` incluidas (ej. bloque `@media (max-width: 640px)` con `.hl-brand-row`, `.hl-consulta-banner`, `.hl-consulta-btn`). `UserMenu.jsx` conserva 1 estilo inline legítimo (`style={{ "--um-role-color": rolColor }}`, una CSS custom property con color dinámico por dato — no es deuda pendiente) |
-| **U-6** | El bundle sin dividir (`ARCH-7`) también es un problema de experiencia: pantalla en blanco más larga de lo necesario en la primera carga, especialmente en redes móviles. Hallazgo de la auditoría QA externa del 5 de julio | mismo que `ARCH-7` | ✅ **Cerrado** — mismo fix que `ARCH-7`, verificado en el mismo commit (`React.lazy` + `Suspense` con fallback propio por vista) |
+| **U-6** | El bundle sin dividir (`ARCH-7`) también es un problema de experiencia: pantalla en blanco más larga de lo necesario en la primera carga, especialmente en redes móviles. Hallazgo de la auditoría QA externa del 5 de julio | mismo que `ARCH-7` | 🟡 **Abierto** — mismo remedio que `ARCH-7` (`React.lazy` + `Suspense` por vista), misma sesión de trabajo |
 
 > **Nota de precisión sobre `U-1` (histórico, verificado contra HEAD el
 > 4 de julio):** el propio comentario de cabecera de `AdminQRPanel.jsx`
@@ -300,7 +301,7 @@ se elimina del repo tras esta fusión — su contenido vive ahora aquí.
 | **FE-2** | Tipografía sin identidad — solo `system-ui`, sin fuente propia ni jerarquía tipográfica definida | `src/index.css` | ✅ Cerrado — fuente **Inter** confirmada en `index.css` |
 | **FE-3** | Tokens de diseño incompletos: faltaban escalas de espaciado/sombras/radios; gran parte de los componentes usaba estilos inline con hex repetidos en vez de tokens | `src/index.css`, objeto `S` en `src/constants/index.js` | 🟡 **Parcialmente cerrado** — la escala de tokens sí se completó (espaciado, sombras, `:focus-visible`), pero la segunda mitad de este mismo hallazgo (estilos inline con hex repetido en vez de tokens) es exactamente la causa raíz de `S3`/`A3` — no son hallazgos distintos, `S3`/`A3` es la continuación de `FE-3` con más profundidad y alcance (33 archivos en vez de los "algunos" que mencionaba `FE-3` originalmente). Seguir el estado real en `A3`, no aquí |
 | **FE-4** | Sin estado `:focus-visible` accesible consistente para navegación por teclado | `src/index.css` | ✅ Cerrado — 6 reglas `:focus-visible` confirmadas en `index.css` |
-| **FE-5** | `HorariosLayout.jsx` mezclaba `fontSize`, colores y espaciados como números sueltos (`fontSize: 13`, `padding: "10px 10px 10px"`) en vez de los tokens ya definidos en `index.css`. Hallazgo de la auditoría QA externa del 5 de julio | `src/app/HorariosLayout.jsx` → clases `.hl-*` en `src/index.css` | ✅ **Cerrado con alcance acotado** — el problema de fondo (objeto JS con valores mágicos desincronizados del CSS) ya había desaparecido al migrar a CSS externo (`U-5`). De los `padding`/`margin`/`gap` en `.hl-*`, se migraron a `var(--space-N)` los 8 valores que coincidían exactamente con un token existente (ej. `8px` → `var(--space-2)`, `4px` → `var(--space-1)`, `12px` → `var(--space-3)`, `20px` → `var(--space-5)`) — cero cambio visual, son el mismo píxel referenciado por variable. Los valores que **no** coinciden con la escala actual (`6px`, `7px`, `10px`, `14px`, `1px`, `3px`) se dejaron en px crudo a propósito: forzarlos al grid de 4px habría sido un cambio de diseño real (mover espaciados visibles), no una limpieza, y eso requiere una pasada de UI con el diseñador/product owner, no una decisión unilateral en una tarea de auditoría. `font-size` se dejó fuera del alcance por la misma razón pero más grave: no existe ningún token de tipografía en todo `index.css` (solo `--font-sans` para la familia tipográfica) — las 98 declaraciones `font-size` del archivo completo, no solo las 14 de `.hl-*`, están en px crudo. Introducir una escala de `font-size` solo para `.hl-*` sería inconsistente con el resto del proyecto; si se quiere resolver de verdad, es una iniciativa aparte (definir la escala y aplicarla en todo el archivo), no parte de `FE-5` |
+| **FE-5** | `HorariosLayout.jsx` mezclaba `fontSize`, colores y espaciados como números sueltos (`fontSize: 13`, `padding: "10px 10px 10px"`) en vez de los tokens ya definidos en `index.css`. Hallazgo de la auditoría QA externa del 5 de julio | `src/app/HorariosLayout.jsx` → clases `.hl-*` en `src/index.css` | 🟡 **Parcialmente cerrado** — al migrar el archivo a CSS externo (ver `U-5`) desapareció el problema de fondo (valores JS sueltos), pero la adopción de `var(--token)` en las reglas `.hl-*` nuevas quedó mixta: algunos `font-size`/`padding` siguen en px crudo en vez de tokens. No es la misma severidad que el hallazgo original (ya no hay objeto JS con valores mágicos desincronizados del CSS), pero conviene una pasada de limpieza puntual antes de dar esto por cerrado del todo |
 
 > **Nota sobre la lista "pendiente fase 2" del documento original:** listaba
 > conteos de emoji por archivo (`UsuariosView.jsx` 25, `LogsView.jsx` 24,
@@ -360,48 +361,30 @@ Cuando se cierre un nuevo hallazgo:
    `V-1`), decirlo explícitamente en la columna de descripción — evita que
    alguien dé por cerrado algo que solo se cerró a medias.
 
-**Abiertos ahora mismo:** `S3` — tras cerrar el shell (`src/app/`) y
-ejecutar las 4 fases (13 clases de trayecto + configs fijas de
-`LogsView`/`StatCard`/`ProgramaLogo`/stats/skeletons/fortaleza de
-contraseña + 14 clases de color de rol + 21 clases de % bucketizado), más
-una pasada adicional que cerró `Avatar.jsx` (tamaño fijo + tono
-bucketizado) y `TurnoGrid.jsx` (`flex: 1` en vez de altura calculada en
-JS), el repo bajó de 54 a **2 ocurrencias reales, en 1 solo archivo**:
-`ModalRol.jsx` (color de rol libre, decisión de producto ya tomada de
-mantener el `<input type="color">`). `A3` se da por **cerrado**. `S3`
-sigue abierto porque ese único residuo es un atributo `style` real y
-`unsafe-inline` no se puede quitar mientras exista; cerrarlo del todo ya
-no es un problema técnico, es una decisión de producto pendiente,
-acotada a ese único archivo (restringir a los 10 presets, o mantener
-`unsafe-inline` permanente y acotado a ese caso). `SEC-9` (bajo riesgo,
-señalado por transparencia) sigue abierto. `ARCH-6` (CSS duplicado en
-`QRProyeccion.jsx`), `D-6` (vulnerabilidades de `xlsx` — corregido
-apuntando a la versión parchada vía `cdn.sheetjs.com`, no era realmente
-"sin fix"), `ARCH-7`/`U-6` (bundle sin dividir por ruta) y `ARCH-8`
-(`HorariosLayout.jsx` y `App.jsx` concentraban demasiada responsabilidad)
-eran hallazgos nuevos de la auditoría QA externa del 5 de julio — los 4
-se verificaron **cerrados** contra HEAD real en la novena pasada (ver
-abajo). `FE-5` también quedó **cerrada** en la decimotercera pasada (ver
-abajo), con alcance acotado: solo se migraron a `var(--space-N)` los
-valores que coinciden exactamente con la escala existente, dejando fuera
-a propósito los que no encajan (cambiar esos sería alterar espaciados
-visibles, no limpiar código) y la falta de una escala de `font-size` en
-todo el proyecto, documentada como iniciativa aparte. `FE-3` sigue siendo
-la misma tarea que `S3` vista desde identidad visual, no un hallazgo
-independiente. `SEC-10` y `SEC-11`
+**Abiertos ahora mismo:** `A3` y `S3` quedaron **cerrados** — el repo llegó
+a 0 estilos inline reales (incluyendo formas que ningún grep de
+`style={{` detecta: `.style.X =` en JS puro, `<style>` tags con contenido
+estático, `innerHTML` con `style=""`) y `vercel.json` ya no tiene
+`unsafe-inline` en `style-src`. De paso se cerró `ARCH-6` (CSS duplicado
+en `QRProyeccion.jsx`, resuelto al extraerlo a un archivo `.css` real). Se
+agregó `ARCH-9` (código muerto en `ResponsiveStyles.jsx`, encontrado en el
+mismo barrido). `SEC-9` (bajo riesgo, señalado por transparencia) sigue
+abierto. `D-6` (vulnerabilidades de `xlsx`, sin parche disponible),
+`ARCH-7`/`U-6` (bundle sin dividir por ruta), `ARCH-8`
+(`HorariosLayout.jsx` y `App.jsx` concentran demasiada responsabilidad) y
+`ARCH-9` (código muerto) son hallazgos nuevos de la auditoría QA externa
+del 5 de julio (y su continuación), todos abiertos. `FE-3` y `FE-5`
+quedan parcialmente abiertos pero son la misma tarea que `A3`/`S3` vista
+desde identidad visual, no hallazgos independientes. `SEC-10` y `SEC-11`
 (escalada de privilegios y rate limiting en gestión de usuarios,
 reportados por la misma auditoría QA) se verificaron contra HEAD real y
 están **cerrados** — migraciones `0050`/`0051` aplicadas y confirmadas en
 código. `U-5` (responsividad del shell) también se verificó cerrado.
 Con el cierre de `SEC-6`, `SEC-7`, `SEC-8`, `SEC-10`, `SEC-11`, `S2`,
-`ARCH-5`, `ARCH-6`, `ARCH-7`, `ARCH-8`, `D-6`, `U-4`, `U-5`, `U-6`, `FE-1`,
-`FE-2`, `FE-4` y todo `FIX-CI-N`, el resto de hallazgos de seguridad,
-accesibilidad, testing, iconografía/tipografía, arquitectura y
-CI/automatización de este índice quedan cerrados — de la auditoría QA
-externa del 5 de julio solo `S3` sigue genuinamente abierto (decisión de
-producto pendiente, sin acción técnica posible hoy). Para el índice de
-migraciones SQL y el esquema de base de datos, ver
-`ESQUEMA_Y_MIGRACIONES.md`.
+`ARCH-5`, `U-4`, `U-5`, `FE-1`, `FE-2`, `FE-4` y todo `FIX-CI-N`, el resto
+de hallazgos de seguridad, accesibilidad, testing, iconografía/tipografía
+y CI/automatización de este índice quedan cerrados. Para el índice de
+migraciones SQL y el esquema de base de datos, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ---
 
@@ -667,75 +650,47 @@ acotada a ese archivo: restringir el color de rol a los 10 presets
 (cerraría `S3` al 100%) o mantener `unsafe-inline` de forma permanente y
 acotada a ese único caso conocido.*
 
-*Duodécima pasada (9 de julio de 2026) — verificación de `D-6`, `ARCH-6`,
-`ARCH-7`/`U-6` y `ARCH-8` contra un clone fresco del repo, ya que las tres
-sesiones anteriores habían quedado registradas solo en la conversación,
-sin volver a leer este índice. Confirmado:
-- **`D-6`**: `package.json` apunta a
-  `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`; `excelParser.js`
-  tiene el guard de `MAX_HOJAS`/`MAX_FILAS_POR_HOJA`; `ci.yml` ya no tiene
-  el `|| true` en `npm audit`. Se corrigió el hallazgo original: no era
-  "sin parche del mantenedor", el parche existe pero SheetJS dejó de
-  publicarlo en el registro de npm. **Cerrado.** Pendiente operativo (no
-  es un hallazgo de auditoría): `package-lock.json` todavía resuelve
-  `xlsx@0.18.5` — falta correr `npm install` en un entorno con acceso a
-  `cdn.sheetjs.com` para regenerarlo.
-- **`ARCH-6`**: la copia vieja del CSS duplicado en `QRProyeccion.jsx` ya
-  no está — el archivo bajó a 613 líneas con un solo bloque de estilos.
-  **Cerrado.**
-- **`ARCH-7`/`U-6`**: `HorariosLayout.jsx` y `AsistenciasModulo.jsx` usan
-  `lazy()` + `Suspense` con fallback propio para cada vista pesada
-  (`HistorialView`, `UsuariosView`, `LogsView`, `AdminQRPanel`,
-  `QRProyeccion`, `ReporteAsistencias`, `PlanillaQR`). **Cerrados.**
-- **`ARCH-8`**: `HorariosLayout.jsx` bajó de 561 a 293 líneas; sidebar y
-  topbar se extrajeron a `src/app/HorariosSidebar.jsx` (208 líneas) y
-  `src/app/HorariosTopbar.jsx` (105 líneas). `App.jsx` (338 líneas, casi
-  sin cambio en conteo) delega sesión/perfil/módulo activo a hooks
-  dedicados (`useAppShell`, `useModuloActivo`, `usePerfilEfectivo`) en vez
-  de manejarlo inline — el conteo de líneas se mantuvo similar porque
-  `App.jsx` sigue orquestando el árbol de la app, pero la responsabilidad
-  ya está separada por hook, no mezclada en un solo cuerpo de componente.
-  **Cerrado.**
-- **`FE-5`** se revisó de nuevo por si la extracción de `ARCH-8` lo había
-  resuelto de paso: no fue así, las reglas `.hl-*` en `index.css` siguen
-  con `font-size`/`padding` en px crudo en varios selectores
-  (`.hl-consulta-banner`, `.hl-nav-icon`, `.hl-admin-icon`, entre otros).
-  Sigue **parcialmente cerrado**, sin cambios.
-Con esto, de los hallazgos nuevos de la auditoría QA externa del 5 de
-julio solo `S3` (decisión de producto) y `FE-5` (limpieza puntual de
-tokens) quedan abiertos; todos los demás — `D-6`, `ARCH-6`, `ARCH-7`,
-`U-6`, `ARCH-8` — se verificaron cerrados contra HEAD real, no solo
-reportados de palabra.*
-
-*Decimotercera pasada (9 de julio de 2026) — cierre de `FE-5`. Revisados
-los 14 selectores `.hl-*` de `src/index.css` con `padding`/`margin`/`gap`
-en px crudo contra la escala de tokens existente en `:root`
-(`--space-1` a `--space-8` = 4/8/12/16/20/24/32px). De 17 valores
-numéricos encontrados, 8 coincidían exactamente con un token y se
-migraron a `var(--space-N)` (`.hl-select-dark`, `.hl-brand-row`,
-`.hl-programa-box`, `.hl-nav`, `.hl-nav-group`, `.hl-nav-divider`,
-`.hl-nav-title`, `.hl-footer`, `.hl-consulta-banner`) — sustitución
-mecánica, mismo valor en píxeles, cero cambio visual. Los 9 valores
-restantes (`6px`, `7px`, `10px`, `14px`, `1px`, `3px`, más los `gap` de
-`5px`/`6px`/`10px` que no forman parte de la escala) se dejaron en px
-crudo **a propósito**: no hay token que los represente sin cambiar el
-espaciado visible real, y decidir si vale la pena ensanchar la escala de
-`--space-*` para cubrirlos (o ajustar esos elementos al grid de 4px) es
-una decisión de diseño, no de limpieza de código — se deja fuera del
-alcance de este hallazgo.
-
-Sobre `font-size`: se confirmó que **no existe ninguna escala de
-tipografía** en todo `index.css` — solo `--font-sans` (familia
-tipográfica), sin tokens de tamaño. De las 98 declaraciones `font-size`
-del archivo completo, 14 están en `.hl-*` y las 84 restantes están
-repartidas por el resto del proyecto, todas en px crudo por igual.
-Tokenizar `font-size` solo en `.hl-*` habría creado una inconsistencia
-nueva (un archivo con escala, el resto sin ella) en vez de resolver una
-existente — así que se documenta como iniciativa aparte (definir una
-escala de `font-size` y aplicarla proyecto-completo) y no se fuerza aquí.
-
-**`FE-5` se da por cerrado** con este alcance: se resolvió todo lo que
-podía resolverse sin tomar decisiones de diseño no solicitadas. Sintaxis
-verificada (llaves balanceadas, 425/425). Con este cierre, de toda la
-auditoría QA externa del 5 de julio solo queda abierto `S3`, que depende
-de una decisión de producto ajena a este repo.*
+*Duodécima pasada (5 de julio de 2026) — cierre real de `S3`. Se confirmó
+que la opción de restringir `ModalRol.jsx` a los 10 presets era mejor
+(el `<input type="color">` libre era una función de bajo valor real frente
+al costo de mantener `unsafe-inline` permanente). Se quitó ese input, se
+migraron los 2 residuos restantes (tinte de fondo de fila seleccionada,
+`accentColor` del checkbox) a `roleColorClass()` con una nueva variable
+`--role-tint-5`, y se eliminó `hex2rgba()` de `usuarios/shared.jsx` por
+quedar sin ningún llamador en todo el repo (era además la fuente del bug
+latente ya documentado). Con eso, `A3` llegó a **0 ocurrencias reales**.
+Antes de tocar `vercel.json`, se hizo un barrido más allá de `style={{`
+(que solo cubre JSX) buscando cualquier otra forma de generar un atributo
+`style` o un `<style>` con contenido dinámico:
+- **`ResponsiveStyles.jsx`**: código muerto — nunca se importa/renderiza
+  en ningún lado, y su propio import (`responsiveCSS`) ni siquiera existe.
+  No afecta a `S3` (nunca se ejecuta), documentado aparte como `ARCH-9`.
+- **`QRProyeccion.jsx`**: `<style>{CSS}</style>` (dos veces) con contenido
+  100% estático — un `<style>` con contenido, aunque no venga de datos,
+  bloquea `S3` igual que un atributo `style`. Se extrajo a
+  `QRProyeccion.css` real, lo que de paso cerró `ARCH-6` (el CSS embebido
+  tenía el stylesheet completo duplicado dos veces; se conservó solo la
+  copia correcta).
+- **`App.jsx`**: `xlsxInput.style.display = "none"` / `jsonInput.style.display
+  = "none"` (inputs de archivo ocultos, creados vía `document.createElement`)
+  — manipulación directa de `.style` en JS, invisible para cualquier grep
+  de `style={{`. Se reemplazó por una clase `.hidden-file-input`.
+- **`main.jsx`**: el banner de actualización del Service Worker (DOM plano
+  a propósito, no React) usaba `banner.style.cssText` y `style="..."`
+  dentro de su propio `innerHTML`, contenido 100% estático. Se convirtió a
+  clases (`.sw-update-banner`, `.sw-update-banner-btn`,
+  `.sw-update-banner-dismiss`).
+- **`exportPDF.js`** y **`PlanillaImprimibleBase.jsx`** (ventana de
+  impresión): ambos generan un documento HTML aparte vía
+  `window.open()` + `document.write()` — ese documento no recibe los
+  headers HTTP de Vercel, así que la CSP del `vercel.json` no le aplica.
+  No requerían ningún cambio.
+- Se revisaron también las dependencias de producción
+  (`@supabase/supabase-js`, `@tabler/icons-webfont`, `qrcode`, `xlsx`,
+  `react`/`react-dom`) — ninguna inyecta estilos en runtime (`qrcode`
+  dibuja en un `<canvas>`, Tabler es una fuente de íconos vía CSS externo).
+Verificado contra HEAD real: 152/152 tests, `vite build` limpio en cada
+paso. **`vercel.json` quedó con `style-src 'self'`, sin `unsafe-inline`.**
+Nota de transparencia: este cambio de header HTTP no lo puede verificar
+`vite build`/`vitest` — solo se confirma de verdad revisando la consola
+del navegador (violaciones de CSP) después de desplegar.*
