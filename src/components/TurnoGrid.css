@@ -52,20 +52,33 @@
 .tg-row:nth-child(even) .tg-cell-hora,
 .tg-row:nth-child(even) .tg-cell-empty { background: #FAFAFA; }
 
-.tg-cell-data { padding: 4px; border-top: 1px solid var(--color-border-tertiary); border-left: 1px solid var(--color-border-tertiary); vertical-align: top; height: var(--cell-height); }
+.tg-cell-data {
+  padding: 4px; border-top: 1px solid var(--color-border-tertiary); border-left: 1px solid var(--color-border-tertiary);
+  vertical-align: top;
+}
+.tg-cell-inner { display: flex; flex-direction: column; height: 100%; }
+/* Fix A3/S3 Fase 5 (5/jul/2026): BLOQUES_DIURNO/VESPERTINO siempre tienen 6
+   bloques (constants/index.js) — el rowSpan de una celda combinada solo
+   puede ser 1-6, un dominio fijo. 6 clases en vez de --cell-height inline. */
+.tg-cell-data--span-1 { height: 52px; }
+.tg-cell-data--span-2 { height: 104px; }
+.tg-cell-data--span-3 { height: 156px; }
+.tg-cell-data--span-4 { height: 208px; }
+.tg-cell-data--span-5 { height: 260px; }
+.tg-cell-data--span-6 { height: 312px; }
 
 .tg-clase {
   background: var(--clase-bg, #f0f0f0); border-left: 3px solid var(--clase-color, #555);
   border-radius: 6px; padding: 5px 8px; cursor: pointer; transition: all 0.15s;
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  height: var(--clase-height); min-height: 38px;
+  flex: 1 1 0; min-height: 38px; min-width: 0;
   display: flex; flex-direction: column; justify-content: center; overflow: hidden;
 }
 .tg-clase:not(:last-child) { margin-bottom: 3px; }
 .tg-clase--expanded {
   padding: 6px 8px;
   box-shadow: 0 0 0 2px var(--clase-shadow, transparent), 0 2px 8px rgba(0,0,0,0.08);
-  height: auto;
+  flex: 0 0 auto; height: auto;
 }
 
 .tg-clase-materia { font-size: 13px; font-weight: 700; color: var(--clase-color); line-height: 1.3; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
