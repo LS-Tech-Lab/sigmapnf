@@ -40,12 +40,17 @@ jobs:
         run: npm test
 
       - name: Verificar dependencias vulnerables (npm audit)
-        # No bloqueante: xlsx tiene 2 vulnerabilidades high sin fix
-        # disponible del lado de la librería (Prototype Pollution y
-        # ReDoS). Bloquear el pipeline por algo sin solución dejaría
-        # trabado cualquier PR futuro que no tenga nada que ver con
-        # esto. Se deja como alerta visible en los logs del CI.
-        run: npm audit --audit-level=high || true
+        # Fix D-6 (auditoría 5 de julio, corregido): las 2 vulnerabilidades
+        # high de xlsx (Prototype Pollution CVE-2023-30533, ReDoS
+        # CVE-2024-22363) SÍ tienen fix — SheetJS dejó de publicar en el
+        # registro de npm y distribuye únicamente vía cdn.sheetjs.com, por
+        # lo que `npm audit` nunca lo iba a ver aunque existiera. Se apuntó
+        # `package.json` a la versión parchada (0.20.3) vía esa CDN, así
+        # que este paso vuelve a ser bloqueante como cualquier otra
+        # dependencia. Si npm audit vuelve a marcar `xlsx` en el futuro,
+        # revisar primero si hay una versión más nueva en cdn.sheetjs.com
+        # antes de asumir que sigue sin solución.
+        run: npm audit --audit-level=high
 
       - name: Verificar que el build de producción no se rompe
         run: npm run build
