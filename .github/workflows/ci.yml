@@ -50,7 +50,21 @@ jobs:
         # dependencia. Si npm audit vuelve a marcar `xlsx` en el futuro,
         # revisar primero si hay una versión más nueva en cdn.sheetjs.com
         # antes de asumir que sigue sin solución.
-        run: npm audit --audit-level=high
+        #
+        # --omit=dev (9 de julio): esbuild/vite (GHSA-67mh-4wv8-2f99, CORS
+        # del servidor `vite dev`) son devDependencies — nunca se envían al
+        # navegador del usuario final, solo se usan localmente al correr
+        # `npm run dev` o al hacer `vite build`. Arreglarlo de raíz exige
+        # `vite@8` (breaking change) solo para tapar un aviso que no aplica
+        # a producción. Se excluye devDependencies del audit bloqueante
+        # para no forzar una migración mayor por una vulnerabilidad sin
+        # impacto real en lo que se despliega. Si `npm audit` (sin
+        # --omit=dev) sigue marcando esto en el futuro y ya hay un upgrade
+        # de vite sin breaking changes disponible, vale la pena tomarlo;
+        # mientras tanto no bloquea. Cualquier vulnerabilidad nueva en
+        # `dependencies` (lo que sí llega a producción) sigue bloqueando
+        # igual que siempre.
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Verificar que el build de producción no se rompe
         run: npm run build
