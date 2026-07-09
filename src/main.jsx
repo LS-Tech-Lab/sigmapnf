@@ -22,25 +22,12 @@ function mostrarBannerActualizacion(updateSW) {
 
   const banner = document.createElement('div');
   banner.id = 'sw-update-banner';
+  banner.className = 'sw-update-banner';
   banner.setAttribute('role', 'status');
-  banner.style.cssText = `
-    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
-    z-index: 99999; background: #0F172A; color: #F1F5F9;
-    padding: 12px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    display: flex; align-items: center; gap: 12px; font-size: 14px;
-    font-family: system-ui, -apple-system, sans-serif; max-width: 90vw;
-  `;
   banner.innerHTML = `
     <span>Hay una nueva versión disponible.</span>
-    <button id="sw-update-btn" style="
-      background: #2563EB; color: #fff; border: none; border-radius: 6px;
-      padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
-      flex-shrink: 0;
-    ">Actualizar</button>
-    <button id="sw-update-dismiss" aria-label="Cerrar" style="
-      background: none; border: none; color: #94A3B8; cursor: pointer;
-      font-size: 16px; padding: 0 4px; flex-shrink: 0;
-    ">×</button>
+    <button id="sw-update-btn" class="sw-update-banner-btn">Actualizar</button>
+    <button id="sw-update-dismiss" class="sw-update-banner-dismiss" aria-label="Cerrar">×</button>
   `;
   document.body.appendChild(banner);
 
