@@ -69,6 +69,7 @@ function makeFromMock(cfg) {
       select: vi.fn(function () { return this; }),
       in:     vi.fn(function () { return this; }),
       eq:     vi.fn(function () { return this; }),
+      is:     vi.fn(function () { return this; }),
       upsert: vi.fn(() => Promise.resolve(respuestas.upsert ?? { data: null, error: null })),
       insert: vi.fn(() => Promise.resolve(respuestas.insert ?? { data: null, error: null })),
       then: (resolve, reject) =>
@@ -175,6 +176,75 @@ describe("useUpload — flujo de carga de horarios (fila nueva)", () => {
     expect(showToast).toHaveBeenCalledWith("1 clases cargadas.", "success");
     expect(fetchHorarios).toHaveBeenCalled();
     expect(result.current.previewData).toBe(null); // modal se cerró
+  });
+});
+
+describe("useUpload — evita duplicados de docentes sin cédula con nombre variante", () => {
+  it("remapea una variante con typo al nombre_raw ya existente antes del upsert, en vez de crear un docente nuevo", async () => {
+    // El Excel trae "Carlos Rodrigez" (falta una "u"); en BD ya existe
+    // "Carlos Rodriguez" sin cédula. Antes del fix, el upsert por
+    // nombre_raw exacto no encontraba coincidencia y creaba una fila
+    // nueva — reintroduciendo el duplicado que ya se había unificado.
+    const docenteVariante = {
+      nombre_raw: "Carlos Rodrigez", nombre_display: "Carlos Rodrigez",
+      cedula: null, telefono: null, email: null, observaciones: null,
+    };
+    parseHojaDocentes.mockReturnValue([docenteVariante]);
+    parseHojaMalla.mockReturnValue([materiaFixture]);
+    parseExcelFile.mockResolvedValue({
+      rows: [{ ...filaExcel, docente: "Carlos Rodrigez", clase: "Cálculo I Prof. Carlos Rodrigez" }],
+      advertencias: [],
+    });
+
+    const docentesUpsertSpy = vi.fn().mockResolvedValue({ error: null });
+
+    supabase.from = vi.fn((table) => {
+      if (table === "docentes") {
+        return {
+          select: vi.fn(function () { return this; }),
+          in:     vi.fn(function () { return this; }),
+          eq:     vi.fn(function () { return this; }),
+          is:     vi.fn(function () { return this; }),
+          upsert: docentesUpsertSpy,
+          then: (resolve) => resolve({ data: [{ id: 1, nombre_raw: "Carlos Rodriguez", cedula: null }] }),
+        };
+      }
+      if (table === "materias") {
+        return {
+          select: vi.fn(function () { return this; }),
+          in:     vi.fn(function () { return this; }),
+          eq:     vi.fn(function () { return this; }),
+          upsert: vi.fn().mockResolvedValue({ error: null }),
+          then: (resolve) => resolve({ data: [{ id: 2, nombre_raw: "Cálculo I" }] }),
+        };
+      }
+      // horarios
+      return {
+        select: vi.fn(function () { return this; }),
+        in:     vi.fn(function () { return this; }),
+        eq:     vi.fn(function () { return this; }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+        then: (resolve) => resolve({ data: [] }),
+      };
+    });
+    supabase.rpc = vi.fn().mockResolvedValue({ error: null });
+
+    const { result } = renderUseUpload();
+
+    await act(async () => {
+      await result.current.handleFileUpload(archivoExcelMinimo());
+    });
+    await waitFor(() => expect(result.current.previewData).not.toBe(null));
+
+    await act(async () => {
+      await result.current.confirmPreview();
+    });
+
+    expect(docentesUpsertSpy).toHaveBeenCalledTimes(1);
+    const [payload] = docentesUpsertSpy.mock.calls[0];
+    expect(payload).toHaveLength(1);
+    // Se remapeó al nombre_raw ya existente en BD, no se conservó la variante con typo.
+    expect(payload[0].nombre_raw).toBe("Carlos Rodriguez");
   });
 });
 
