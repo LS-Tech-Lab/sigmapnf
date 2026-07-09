@@ -37,9 +37,23 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
         return;
       }
 
+      // FIX (ausentes-duplicados-por-texto): antes esta vista ignoraba
+      // horarios.docente_id (el FK que useUpload.js ya resuelve con
+      // matching fuzzy contra el catálogo al importar) y volvía a derivar
+      // la identidad del docente parseando el texto de `clase` en cada
+      // carga. Si el Excel maestro traía una variante de nombre distinta
+      // (typo, nombre corto, tilde faltante) para un docente ya unificado
+      // en `docentes`, esa variante se agrupaba aparte y el docente
+      // reaparecía duplicado en Ausentes — incluso cuando docente_id ya
+      // apuntaba correctamente a un solo registro.
+      //
+      // Ahora se agrupa por docente_id cuando existe (identidad estable,
+      // uno por persona real). Solo se cae al parseo por texto + fuzzy
+      // matching como último recurso, para horarios legacy sin docente_id
+      // vinculado.
       let query = supabase
         .from("horarios")
-        .select("clase, programa, sheet, hora, trayecto")
+        .select("clase, programa, sheet, hora, trayecto, docente_id, docentes(nombre_raw, nombre_display, cedula)")
         .eq("dia", dia);
 
       if (programa) query = query.eq("programa", programa);
@@ -53,11 +67,8 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
         return;
       }
 
-      // Catálogo de nombres completos (nombre_raw) para resolución fuzzy en parseClase.
-      // Sin esto, parseClase no puede mapear nombres cortos/parciales de la celda
-      // (ej. "ANILETH CALDERA") al nombre_raw canónico de la tabla docentes
-      // (ej. "ANILETH CAROLINA CALDERA RODRIGUEZ"), y el docente queda marcado
-      // erróneamente como "sin vincular".
+      // Catálogo de nombres completos (nombre_raw), usado únicamente como
+      // fallback para resolver el nombre de horarios sin docente_id.
       const { data: docentesCatalogo } = await supabase
         .from("docentes")
         .select("nombre_raw, cedula");
@@ -68,14 +79,26 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
 
       const porDocente = {};
       clases.forEach(c => {
+        if (c.docente_id) {
+          const key = `id:${c.docente_id}`;
+          const nombre = c.docentes?.nombre_display || c.docentes?.nombre_raw || "(sin nombre)";
+          const cedula = c.docentes?.cedula || null;
+          if (!porDocente[key]) porDocente[key] = { nombre, clases: [], programa: c.programa, cedula };
+          porDocente[key].clases.push(c);
+          return;
+        }
+
+        // Fallback: registros sin docente_id vinculado (ej. importados
+        // antes de que existiera la resolución fuzzy en useUpload.js).
         const { docente } = parseClase(c.clase, catalogoDocentes);
         if (!docente) return;
-        if (!porDocente[docente]) porDocente[docente] = { nombre: docente, clases: [], programa: c.programa };
-        porDocente[docente].clases.push(c);
+        const key = `raw:${docente}`;
+        if (!porDocente[key]) porDocente[key] = { nombre: docente, clases: [], programa: c.programa, cedula: cedulaPorNombre[docente] || null };
+        porDocente[key].clases.push(c);
       });
 
-      const nombresDocentes = Object.keys(porDocente);
-      if (nombresDocentes.length === 0) {
+      const clavesDocente = Object.keys(porDocente);
+      if (clavesDocente.length === 0) {
         setAusentes([]);
         await guardarAusentesEnIDB(fecha, programa, []);
         setLoading(false);
@@ -83,13 +106,11 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
       }
 
       const resultado = Object.values(porDocente).filter(d => {
-        const cedula = cedulaPorNombre[d.nombre];
-        if (cedula && cedulasPresentes.has(cedula)) return false;
+        if (d.cedula && cedulasPresentes.has(d.cedula)) return false;
         return true;
       }).map(d => ({
         ...d,
-        cedula: cedulaPorNombre[d.nombre] || null,
-        sinVincular: !cedulaPorNombre[d.nombre],
+        sinVincular: !d.cedula,
       }));
 
       const sorted = resultado.sort((a, b) => a.nombre.localeCompare(b.nombre));
