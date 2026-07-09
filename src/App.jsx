@@ -36,7 +36,7 @@ function useFileInputs({ fileRef, backupRef, onFile, onBackup }) {
     const xlsxInput = document.createElement("input");
     xlsxInput.type   = "file";
     xlsxInput.accept = ".xlsx,.xls";
-    xlsxInput.style.display = "none";
+    xlsxInput.className = "hidden-file-input";
     xlsxInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       xlsxInput.value = "";
@@ -48,7 +48,7 @@ function useFileInputs({ fileRef, backupRef, onFile, onBackup }) {
     const jsonInput = document.createElement("input");
     jsonInput.type   = "file";
     jsonInput.accept = ".json";
-    jsonInput.style.display = "none";
+    jsonInput.className = "hidden-file-input";
     jsonInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       jsonInput.value = "";
