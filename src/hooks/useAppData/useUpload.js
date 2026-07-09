@@ -266,11 +266,45 @@ export default function useUpload({
               if (e1) logger.warn("upsert DOCENTES (por cédula):", e1.message);
             }
 
-            // Docentes sin cédula → upsert por nombre_raw (quedan pendientes de completar)
+            // FIX (docentes-duplicados-en-import): antes, un docente sin cédula
+            // se upserteaba por nombre_raw exacto. Si el Excel maestro traía una
+            // variante distinta (typo, nombre corto, tilde faltante) de un
+            // docente ya unificado manualmente en `docentes`, el onConflict no
+            // encontraba coincidencia exacta y se insertaba una fila NUEVA,
+            // deshaciendo la unificación anterior y reintroduciendo el duplicado
+            // en Ausentes (ver VistaAusentes.jsx). Ahora, antes del upsert,
+            // cada nombre sin cédula se compara por fuzzy matching (mismo
+            // criterio que ya se usa en el paso 3 más abajo) contra los
+            // docentes sin cédula ya existentes en BD; si hay coincidencia, el
+            // upsert se redirige a esa fila existente en vez de crear una nueva.
             if (sinCedulaArr.length > 0) {
+              const { data: existentesSinCedula } = await supabase
+                .from("docentes")
+                .select("nombre_raw, cedula")
+                .is("cedula", null);
+
+              const nombresExistentes = existentesSinCedula || [];
+
+              sinCedulaArr.forEach(entry => {
+                const yaExacto = nombresExistentes.some(d => d.nombre_raw === entry.nombre_raw);
+                if (yaExacto) return;
+                const match = nombresExistentes.find(d => tokensMatch(entry.nombre_raw, d.nombre_raw, 1));
+                if (match) {
+                  logger.warn(`Docente "${entry.nombre_raw}" coincide con "${match.nombre_raw}" ya existente — se evita duplicado.`);
+                  entry.nombre_raw = match.nombre_raw;
+                }
+              });
+
+              // Dedupe: dos variantes distintas pudieron remapearse al mismo
+              // nombre_raw canónico. Un upsert con el mismo conflict target
+              // repetido en el mismo batch falla en Postgres.
+              const sinCedulaMap = new Map();
+              sinCedulaArr.forEach(entry => sinCedulaMap.set(entry.nombre_raw, entry));
+              const sinCedulaDedup = [...sinCedulaMap.values()];
+
               const { error: e2 } = await supabase
                 .from("docentes")
-                .upsert(sinCedulaArr, { onConflict: "nombre_raw" });
+                .upsert(sinCedulaDedup, { onConflict: "nombre_raw" });
               if (e2) logger.warn("upsert DOCENTES (sin cédula, por nombre_raw):", e2.message);
             }
           }
