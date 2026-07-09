@@ -16,7 +16,6 @@ import {
   TODOS_LOS_PERMISOS,
   COLORES_PRESET,
   EMOJIS_PRESET,
-  hex2rgba,
   Badge,
   Spinner,
 } from "./shared";
@@ -174,13 +173,6 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
               {COLORES_PRESET.map(c => (
                 <button key={c} onClick={() => set("color")(c)} title={c} className={`mr-color-swatch ${roleColorClass(c)}${form.color === c ? ' mr-color-swatch--active' : ''}`} />
               ))}
-              <input
-                type="color"
-                value={form.color}
-                onChange={e => set("color")(e.target.value)}
-                className="mr-color-input"
-                title="Color personalizado"
-              />
             </div>
           </div>
         </div>
@@ -238,23 +230,19 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
                   </span>
                 </div>
                 <div className="mr-items-list">
-                  {/* Nota (fix A3/S3, 5/jul/2026): form.color puede ser CUALQUIER
-                      hex — hay un <input type="color"> nativo junto a los 10
-                      swatches del preset (ver arriba), así que este valor no es
-                      un dominio fijo/enumerable como el resto de A3. Se decidió
-                      mantener el selector libre (no restringir a los 10 presets),
-                      así que estos 2 estilos quedan inline de forma permanente,
-                      igual que Avatar.jsx (hash de nombre) — no son deuda
-                      pendiente, son la misma clase de excepción documentada. */}
+                  {/* Fix A3/S3 (5/jul/2026): se quitó el <input type="color">
+                      libre — form.color ahora solo puede ser uno de los 10
+                      COLORES_PRESET (ver arriba), así que este tinte y el
+                      accentColor del checkbox ya pueden resolverse con la
+                      misma clase fija roleColorClass() que el resto de A3,
+                      en vez de quedar como excepción permanente. */}
                   {g.items.map((item, idx) => (
-                    <label key={item.key} className={`mr-item${idx > 0 ? ' mr-item--divider' : ''}`}
-                      style={{ background: form.permisos[item.key] ? hex2rgba(form.color, 0.05) : "transparent" }}>
+                    <label key={item.key} className={`mr-item${idx > 0 ? ' mr-item--divider' : ''} ${roleColorClass(form.color)}${form.permisos[item.key] ? ' mr-item--checked' : ''}`}>
                       <input
                         type="checkbox"
                         checked={!!form.permisos[item.key]}
                         onChange={e => setPerm(item.key)(e.target.checked)}
                         className="mr-item-check"
-                        style={{ accentColor: form.color }}
                       />
                       <div>
                         <div className="mr-item-title">{item.label}</div>
