@@ -14,12 +14,19 @@
 // El estado de la app (setError, Toast, etc.) NO depende de estas
 // llamadas — son puramente diagnósticas — por lo que silenciarlas en
 // producción no cambia el comportamiento visible para el usuario.
+//
+// Fix FIX-CI-4: se agregó `info` (faltaba) para los 2 únicos usos de
+// console.info que quedaban fuera de este wrapper (src/main.jsx,
+// src/utils/cache.js) — mismo patrón que log/warn/error.
 
 const isDev = import.meta.env.DEV;
 
 export const logger = {
   log: (...args) => {
     if (isDev) console.log(...args);
+  },
+  info: (...args) => {
+    if (isDev) console.info(...args);
   },
   warn: (...args) => {
     if (isDev) console.warn(...args);
