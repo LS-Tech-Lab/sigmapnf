@@ -50,15 +50,26 @@ usado en `ARCH-8` (`HorariosSidebar.jsx`/`HorariosTopbar.jsx`) y en
 `usuarios/`. Sin urgencia de seguridad, sí de mantenibilidad a futuro.
 
 ### 3. `FE-3` — Sin escala tipográfica
-**Archivo:** `src/index.css`
-No existe una escala de tamaños de fuente (`--font-size-*`) — cada
-componente define su propio `font-size` suelto. Reverificado el 9 de julio:
-sigue sin existir.
-**Fix:** definir 5-6 variables basadas en los valores ya en uso hoy,
-adopción gradual sin migración masiva. Mejora de largo plazo, sin prisa.
-**Nota:** es la misma causa raíz que `A3`/`S3` (estilos sueltos vs. tokens),
-vista desde identidad visual — no es un hallazgo independiente, pero se
-sigue rastreando aquí porque `A3`/`S3` ya cerraron y este resto no.
+**Archivo:** `src/index.css` (definición) + 27 archivos `.css` de componentes (adopción pendiente)
+🟡 **Avanzado (9 de julio, tarde) — no cerrado del todo.** Se definió la
+escala `--font-size-9/10/11/12/13/14/15/16/18/20/48` en `:root`, tomando
+cada valor 1:1 de los que ya estaban en uso — sin redondear ni consolidar
+ningún tamaño, para no alterar el render de ningún componente (mismo
+criterio que `--space-N`). Se adoptó por completo dentro de `index.css`
+(90 de 101 valores literales migrados a `var(--font-size-N)`); quedan como
+literales solo los casos de una sola ocurrencia, los `clamp()` responsivos
+y los tamaños dinámicos de `Avatar` (11.4/16.7/19.8px, ya excepción
+legítima documentada en `A3`). Verificado contra HEAD real: `vite build`
+limpio, 153/153 tests, ningún valor de `font-size` cambió (solo se
+sustituyó el literal por la variable que resuelve al mismo número).
+**Pendiente para cerrar del todo:** los 27 archivos `.css` de componentes
+fuera de `index.css` (`HistorialView.css`, `LogsView.css`, `TurnoGrid.css`,
+etc.) todavía usan literales — la escala ya está disponible globalmente
+(`:root` es visible desde cualquier hoja de estilos del proyecto), solo
+falta adoptarla ahí. Candidato natural para la siguiente sesión, mismo
+patrón ya aplicado aquí.
+**Nota:** es la misma causa raíz que `A3`/`S3` (estilos sueltos vs.
+tokens), vista desde identidad visual — no es un hallazgo independiente.
 
 ---
 
@@ -240,6 +251,11 @@ repetir el detalle ya cubierto en las tablas de arriba.
   migración de origen versionada) — verificado contra la BD real tras
   aplicar. Quedan abiertos `ARCH-10`, `FE-3`, `FE-5` — ver § Hallazgos
   abiertos al inicio del documento.
+- **9 de julio, tarde — avance de `FE-3`:** escala `--font-size-9`…`-48`
+  definida en `:root` (valores 1:1 de los ya usados, sin redondear) y
+  adoptada por completo en `index.css`. `vite build` limpio, 153/153
+  tests, ningún tamaño visual cambió. Queda `🟡` porque los 27 `.css` de
+  componentes fuera de `index.css` todavía no adoptan la escala.
 
 ---
 
