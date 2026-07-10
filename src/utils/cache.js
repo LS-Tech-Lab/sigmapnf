@@ -25,7 +25,7 @@ export function validarVersionCache() {
   if (storedVersion !== CACHE_SCHEMA_VERSION) {
     limpiarCache();
     localStorage.setItem(VERSION_KEY, String(CACHE_SCHEMA_VERSION));
-    console.info(`[caché] Esquema actualizado a v${CACHE_SCHEMA_VERSION} — caché invalidado.`);
+    logger.info(`[caché] Esquema actualizado a v${CACHE_SCHEMA_VERSION} — caché invalidado.`);
   }
 }
 
