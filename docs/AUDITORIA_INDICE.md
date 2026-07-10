@@ -50,7 +50,7 @@ documento, ubicar qué es un ID específico requería grep sobre todo el repo.
 | **SEC-9** | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecen ejecutables por `anon` en la BD real y nunca tuvieron un `REVOKE` explícito en ninguna migración (mismo patrón que `SEC-8`, encontrado de paso al cerrarlo). Riesgo bajo: son de solo lectura y devuelven null/vacío para un caller anónimo, no delegan ninguna decisión de seguridad a su resultado | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` (sin migración de origen) | — | 🟡 **Pendiente** — señalado en `ESQUEMA_Y_MIGRACIONES.md` §4, sin migración de cierre todavía |
 | **SEC-10** 🔴 | `admin_caller_puede_gestionar_usuarios()` solo verificaba un permiso booleano (`puedeGestionarUsuarios`), sin comparar el rol de quien actúa contra el rol objetivo. Como los roles son dinámicos (`admin_upsert_role`), cualquier rol con ese único permiso activado podía crear, editar, activar/desactivar, resetear la contraseña o eliminar una cuenta con rol `admin` sin serlo — escalada de privilegios. Hallazgo de la auditoría QA externa del 5 de julio | RPCs `admin_create_auth_user`, `admin_upsert_user_profile`, `admin_toggle_user_activo`, `admin_delete_user`, `admin_reset_user_password`; `api/admin-users.js` | `0050` | ✅ Cerrado — verificado contra HEAD real el 5 de julio: helper `admin_caller_es_admin()` agregado y aplicado como guard en las 5 RPCs (regla fija: solo un `admin` puede tocar el rol `admin`, sin depender de la tabla `roles` dinámica). `api/admin-users.js` **no** llama a estas RPCs — reimplementa la operación directo contra la Auth Admin API con la Service Role Key — así que se confirmó el mismo guard replicado ahí por separado (líneas 90–124, 207–208, 257–258) |
 | **SEC-11** | `api/admin-users.js` (función serverless con la Service Role Key) no tenía límite de frecuencia propio — dependía solo de que el token del caller fuera válido y tuviera permiso; una cuenta comprometida podía ejecutar una ráfaga de creación de usuarios o reseteos de contraseña sin freno. Hallazgo de la auditoría QA externa del 5 de julio | `api/admin-users.js`, tabla `admin_actions_rate_limit`, RPC `registrar_admin_action_rate_limit` | `0051` | ✅ Cerrado — verificado contra HEAD real el 5 de julio: límite de 10 acciones/minuto por `actor_id` (`auth.uid()` del caller, no IP — Vercel no expone IP de cliente confiable y varias cuentas tras la misma IP/NAT se bloquearían entre sí). Mismo patrón que `scan_rate_limit`/`D-3` pero sin necesitar `pg_cron`, porque la tabla está acotada al número de cuentas con permiso de gestión de usuarios. Confirmado que `api/admin-users.js` invoca la RPC (línea 67) antes de ejecutar cualquier acción |
-| **D-6** | La librería `xlsx` (parseo de los Excel que suben los usuarios) tiene 2 vulnerabilidades de severidad **alta** sin parche disponible del mantenedor (contaminación de prototipo y ReDoS). Única vía de entrada de datos externos no controlados por RLS. Hallazgo de la auditoría QA externa del 5 de julio | `package.json`, parser de Excel | — | 🟡 **Abierto** — reverificado contra HEAD real el 9 de julio: `package.json` sigue apuntando al tarball de SheetJS (`xlsx-0.20.3.tgz`), sin parche disponible del mantenedor. Confirmado que el límite de tamaño de archivo (10 MB, `useUpload.js`) ya existe; sigue sin confirmarse un límite explícito de filas/hojas. **Prioridad #2** de la sesión del 9 de julio: evaluar migración a `exceljs` cuando el roadmap lo permita. No bloqueante: el parseo ocurre en el navegador de quien sube el archivo, no en un servidor compartido |
+| **D-6** | La librería `xlsx` (parseo de los Excel que suben los usuarios) tiene 2 vulnerabilidades de severidad **alta** sin parche disponible del mantenedor (contaminación de prototipo y ReDoS). Única vía de entrada de datos externos no controlados por RLS. Hallazgo de la auditoría QA externa del 5 de julio | `package.json`, parser de Excel | `0.20.3` | ✅ **Cerrado — falso positivo, mismo patrón que `S2`** (verificado el 9 de julio contra `cdn.sheetjs.com/advisories`, la fuente oficial, no contra `npm audit`/Snyk): las 2 únicas CVEs que existen en toda la historia de SheetJS ya están corregidas en versiones anteriores a la que el proyecto usa — CVE-2023-30533 (Prototype Pollution) corregido en `0.19.3`, CVE-2024-22363 (ReDoS) corregido en `0.20.2`. `package.json` apunta al tarball `xlsx-0.20.3.tgz` del CDN oficial de SheetJS, **no** al paquete `xlsx` del registro de npm (ese sí quedó abandonado en `0.18.5` sin parche — de ahí que `npm audit`/Snyk sigan marcándolo como vulnerable: comparan contra el paquete de npm, no contra el tarball real instalado). Se agregó un comentario de verificación en `src/hooks/useAppData/useUpload.js` para que una futura alerta automática no se tome como hallazgo nuevo sin antes cotejar la versión real. **No se migra a `exceljs`** — sería un cambio de API grande y arriesgado sin ninguna ganancia real de seguridad, dado que no hay vulnerabilidad vigente que mitigar. El límite de tamaño de archivo (10 MB, `useUpload.js`) se mantiene como buena práctica general, no como mitigación de una CVE activa |
 
 > **Nota sobre `SEC-6`:** cierra el hueco *entre* `SEC-5` (cliente) y el rate
 > limiting por IP de Supabase Auth (plataforma, no versionado en este repo).
@@ -763,3 +763,26 @@ completo). Verificado contra HEAD real antes de entregar: 153/153 tests,
 Vite por tamaño ya no aparece. `ARCH-7` y `U-6` quedan **cerrados**. La
 prioridad #2 (`D-6`, migración de `xlsx`) sigue siendo la siguiente en la
 lista.*
+
+---
+
+*Décima quinta pasada (9 de julio de 2026, misma tarde) — investigación de
+la Prioridad #2 (`D-6`) antes de implementar nada, siguiendo el mismo
+criterio de "verificar contra la fuente real antes de actuar" que ya se
+aplicó en `S2`. Se consultó `cdn.sheetjs.com/advisories` (la página oficial
+de SheetJS) en vez de confiar en lo que reportaría `npm audit`/Snyk: las
+únicas 2 CVEs que existen en la historia del proyecto (CVE-2023-30533 y
+CVE-2024-22363) ya están corregidas en versiones anteriores a la `0.20.3`
+que `package.json` ya usa. **`D-6` se cierra como falso positivo** — no
+como vulnerabilidad mitigada, sino como hallazgo que nunca aplicó a la
+versión real instalada, exactamente el mismo patrón que `S2`. No se migró
+a `exceljs` (habría sido un cambio de API innecesario y arriesgado sin
+ninguna vulnerabilidad real que resolver); en su lugar se documentó la
+verificación con un comentario en `src/hooks/useAppData/useUpload.js` para
+que una alerta automática futura no se tome como hallazgo nuevo sin antes
+cotejar la versión real contra la fuente oficial. Verificado: 153/153
+tests (cambio de solo comentarios, sin lógica modificada). Con esto,
+quedan pendientes de la lista de prioridad original: `FIX-CI-4`
+(`console.info` → `logger.info`), `FE-5` (limpieza de tokens `.hl-*`),
+`ARCH-10` (dividir `LoginScreen.jsx`/`HistorialView.jsx`/`LogsView.jsx`) y
+`FE-3` (escala tipográfica) — todas de bajo riesgo y sin apuro.*
