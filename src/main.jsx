@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
+import { logger } from './utils/logger'
 import './index.css'
 
 // Fix O-5 / ARCH-7: registrar el Service Worker explícitamente para habilitar
@@ -44,7 +45,7 @@ const updateSW = registerSW({
     mostrarBannerActualizacion(updateSW);
   },
   onOfflineReady() {
-    console.info('[SIGMA PWA] App lista para funcionar sin conexión.');
+    logger.info('[SIGMA PWA] App lista para funcionar sin conexión.');
   },
 })
 
