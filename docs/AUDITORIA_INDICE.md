@@ -147,7 +147,7 @@ vez de asumirlo.
 | **FIX-CI-1** *(no confirmado)* | Sin integración continua — nadie corría los tests ni el build antes de hacer merge | `.github/workflows/ci.yml` | ✅ Cerrado (pipeline corre `npm test` + `npm run build` en cada PR/push a `main`) |
 | **FIX-CI-2** | `console.log/warn/error` directos visibles en producción (mismo problema que `SEC-2`, pero para logs de diagnóstico en general, no solo el stack trace del `ErrorBoundary`) | `src/utils/logger.js` (14 archivos migrados a usarlo) | ✅ Cerrado |
 | **FIX-CI-3** | Sin `npm audit` en CI (dependencias vulnerables no detectadas antes de deploy) ni verificación automatizada de que RLS rechace lecturas/escrituras no autorizadas con la clave `anon` real | `.github/workflows/ci.yml`, `scripts/rls-smoke-test.mjs` | ✅ Cerrado (`npm audit --audit-level=high` no bloqueante — `xlsx` tiene 2 CVEs high sin fix de la librería, ver comentario en `ci.yml`; smoke test bloqueante una vez configurados los secrets `SUPABASE_URL`/`SUPABASE_ANON_KEY`) |
-| **FIX-CI-4** | 2 usos de `console.info` directo (`src/main.jsx`, `src/utils/cache.js`) rompen la consistencia del logger centralizado que motivó `FIX-CI-2` — no exponen información sensible (mensajes informativos de PWA/caché), pero son la única excepción a un patrón que el resto del repo (38 usos) sí sigue. Hallazgo de la auditoría QA senior del 9 de julio | `src/main.jsx`, `src/utils/cache.js` | 🟡 **Abierto** — **Prioridad #3**: reemplazar por `logger.info`, cambio de una línea cada uno, cero riesgo |
+| **FIX-CI-4** | 2 usos de `console.info` directo (`src/main.jsx`, `src/utils/cache.js`) rompen la consistencia del logger centralizado que motivó `FIX-CI-2` — no exponen información sensible (mensajes informativos de PWA/caché), pero son la única excepción a un patrón que el resto del repo (38 usos) sí sigue. Hallazgo de la auditoría QA senior del 9 de julio | `src/main.jsx`, `src/utils/cache.js` | ✅ **Cerrado** (9 de julio) — `logger.js` no tenía método `info` (solo `log`/`warn`/`error`), se agregó siguiendo el mismo patrón (`if (isDev) console.info(...)`). `cache.js` ya importaba `logger` para otros usos — solo faltaba esta línea. `main.jsx` no importaba `logger` — se agregó el import. Verificado: 153/153 tests, `vite build` limpio, cero `console.*` fuera de `logger.js` en todo `src/` (confirmado con grep) |
 
 > **Nota (corregida):** el comentario de `scripts/rls-smoke-test.mjs` decía
 > *"Nace del hallazgo S1 de la auditoría de julio 2026 (docentes/materias)"*
@@ -786,3 +786,19 @@ quedan pendientes de la lista de prioridad original: `FIX-CI-4`
 (`console.info` → `logger.info`), `FE-5` (limpieza de tokens `.hl-*`),
 `ARCH-10` (dividir `LoginScreen.jsx`/`HistorialView.jsx`/`LogsView.jsx`) y
 `FE-3` (escala tipográfica) — todas de bajo riesgo y sin apuro.*
+
+---
+
+*Décima sexta pasada (9 de julio de 2026, misma tarde) — implementación de
+la Prioridad #3 (`FIX-CI-4`). `logger.js` no tenía un método `info` —
+se agregó siguiendo exactamente el mismo patrón que `log`/`warn`/`error`
+(gateado por `import.meta.env.DEV`). Se reemplazaron los 2 usos directos
+de `console.info` por `logger.info` en `src/main.jsx` (que no importaba
+`logger`, se agregó el import) y `src/utils/cache.js` (que ya lo
+importaba para otros usos — era solo esa línea suelta). Verificado: grep
+de `console\.` sobre todo `src/` confirma cero resultados fuera de
+`logger.js`; 153/153 tests; `vite build` limpio, mismo tamaño de bundle
+(sin regresión, como se esperaba de un cambio de solo logging). `FIX-CI-4`
+queda **cerrado**. Pendientes de la lista original: `FE-5` (limpieza de
+tokens `.hl-*`), `ARCH-10` (dividir `LoginScreen.jsx`/`HistorialView.jsx`/
+`LogsView.jsx`) y `FE-3` (escala tipográfica).*
