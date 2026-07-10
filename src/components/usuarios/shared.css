@@ -13,7 +13,7 @@
 
 .shared-badge {
   background: var(--role-bg, var(--color-background-subtle)); color: var(--role-color, var(--color-text-mid)); border: 1px solid var(--role-border, var(--color-border));
-  border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600;
+  border-radius: 999px; padding: 2px 10px; font-size: var(--font-size-12); font-weight: 600;
   display: inline-flex; align-items: center; gap: 4px;
 }
 
@@ -33,13 +33,13 @@
   box-shadow: 0 20px 60px rgba(0,0,0,0.25);
 }
 
-.shared-confirm-title { margin: 0 0 8px; font-size: 16px; color: var(--color-text-primary); }
-.shared-confirm-msg { margin: 0 0 24px; font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
+.shared-confirm-title { margin: 0 0 8px; font-size: var(--font-size-16); color: var(--color-text-primary); }
+.shared-confirm-msg { margin: 0 0 24px; font-size: var(--font-size-13); color: var(--color-text-secondary); line-height: 1.6; }
 .shared-confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
 .shared-confirm-cancel { padding: 8px 18px; }
 
 .shared-confirm-btn {
   padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer;
-  font-size: 13px; font-weight: 600; background: var(--color-danger); color: #fff;
+  font-size: var(--font-size-13); font-weight: 600; background: var(--color-danger); color: #fff;
 }
 .shared-confirm-btn--safe { background: var(--brand-500); }

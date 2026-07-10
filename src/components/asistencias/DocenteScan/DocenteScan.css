@@ -74,7 +74,7 @@
 .scan-field__msg--error   { color: #DC2626; font-weight: 600; }
 .scan-field__msg--success { color: #15803D; font-weight: 600; }
 .scan-field__msg--hint    { color: #64748B; }
-.scan-field__msg-icon { font-size: 13px; }
+.scan-field__msg-icon { font-size: var(--font-size-13); }
 
 /* ── SelectorTipo.jsx — pantalla "elegir tipo de registro" ─────────────────── */
 .scan-selector-header { text-align: center; margin-bottom: clamp(20px,5vw,32px); width: 100%; }
@@ -126,29 +126,29 @@
   margin-top: 16px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;
   padding: 14px 18px; width: 100%; text-align: center;
 }
-.scan-horario-empty__label { font-size: 12px; color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
-.scan-horario-empty__text  { font-size: 13px; color: #64748B; }
+.scan-horario-empty__label { font-size: var(--font-size-12); color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.scan-horario-empty__text  { font-size: var(--font-size-13); color: #64748B; }
 
 .scan-horario-card {
   margin-top: 16px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px;
   padding: 14px 18px; width: 100%;
 }
-.scan-horario-card__label { font-size: 12px; color: #1D4ED8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; text-align: center; }
+.scan-horario-card__label { font-size: var(--font-size-12); color: #1D4ED8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; text-align: center; }
 .scan-horario-list { display: flex; flex-direction: column; gap: 8px; }
 .scan-horario-item { background: #fff; border-radius: 9px; padding: 10px 12px; border: 1px solid #DBEAFE; }
-.scan-horario-item__materia { font-size: 14px; font-weight: 700; color: #0F172A; }
+.scan-horario-item__materia { font-size: var(--font-size-14); font-weight: 700; color: #0F172A; }
 .scan-horario-item__row { display: flex; justify-content: space-between; margin-top: 3px; }
-.scan-horario-item__seccion { font-size: 12px; color: #64748B; }
-.scan-horario-item__hora    { font-size: 12px; color: #1D4ED8; font-weight: 700; }
+.scan-horario-item__seccion { font-size: var(--font-size-12); color: #64748B; }
+.scan-horario-item__hora    { font-size: var(--font-size-12); color: #1D4ED8; font-weight: 700; }
 
 /* ── index.jsx — "Enlace inválido" (sin token) ──────────────────────────── */
 .scan-invalid-title { margin: 16px 0 8px; font-size: clamp(19px,5vw,24px); text-align: center; }
-.scan-error-desc { margin: 0; font-size: 14px; color: #64748B; text-align: center; }
+.scan-error-desc { margin: 0; font-size: var(--font-size-14); color: #64748B; text-align: center; }
 
 /* ── index.jsx — "Cargando" ──────────────────────────────────────────────── */
-.scan-spinner-icon { font-size: 40px; color: #2563EB; margin-bottom: 12px; display: block; animation: scan-spin 1s linear infinite; }
+.scan-spinner-icon { font-size: var(--font-size-40); color: #2563EB; margin-bottom: 12px; display: block; animation: scan-spin 1s linear infinite; }
 @keyframes scan-spin { to { transform: rotate(360deg); } }
-.scan-loading-text { color: #64748B; font-size: 14px; }
+.scan-loading-text { color: #64748B; font-size: var(--font-size-14); }
 
 /* ── index.jsx — cabecera compartida por confirmar_nuevo/confirmar/formulario */
 .scan-icon-badge {
@@ -157,7 +157,7 @@
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 12px;
 }
-.scan-icon-badge__icon { font-size: 26px; color: #fff; }
+.scan-icon-badge__icon { font-size: var(--font-size-26); color: #fff; }
 .scan-step-header { text-align: center; }
 .scan-step-header--mb20 { margin-bottom: 20px; }
 .scan-step-header--mb24 { margin-bottom: 24px; }
@@ -168,31 +168,31 @@
 /* ── index.jsx — resultado / requiere-reescaneo ──────────────────────────── */
 .scan-result-title { margin: 16px 0 6px; font-size: clamp(20px,5vw,26px); font-weight: 800; text-align: center; }
 .scan-result-desc  { margin: 0; font-size: clamp(15px,3.5vw,18px); color: #334155; text-align: center; line-height: 1.55; }
-.scan-result-hint  { margin: 10px 0 0; font-size: 13px; color: #64748B; text-align: center; }
+.scan-result-hint  { margin: 10px 0 0; font-size: var(--font-size-13); color: #64748B; text-align: center; }
 
 .scan-requiere-rescan-card {
   margin-top: 20px; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px;
   padding: 16px 18px; width: 100%; text-align: center;
 }
-.scan-requiere-rescan-card__label { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.scan-requiere-rescan-card__label { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
 .scan-requiere-rescan-card__name  { font-size: clamp(16px,4vw,19px); font-weight: 700; color: #0F172A; }
-.scan-requiere-rescan-card__cedula { font-size: 13px; color: #64748B; font-family: monospace; margin-top: 2px; }
+.scan-requiere-rescan-card__cedula { font-size: var(--font-size-13); color: #64748B; font-family: monospace; margin-top: 2px; }
 
 .scan-success-card {
   margin-top: 20px; background: #F0FDF4; border: 1px solid #86EFAC; border-radius: 12px;
   padding: 14px 18px; width: 100%; text-align: center;
 }
-.scan-success-card__label  { font-size: 12px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-.scan-success-card__name   { font-size: 15px; font-weight: 700; color: #15803D; }
-.scan-success-card__cedula { font-size: 13px; color: #166534; font-family: monospace; margin-top: 2px; }
+.scan-success-card__label  { font-size: var(--font-size-12); color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.scan-success-card__name   { font-size: var(--font-size-15); font-weight: 700; color: #15803D; }
+.scan-success-card__cedula { font-size: var(--font-size-13); color: #166534; font-family: monospace; margin-top: 2px; }
 
 /* Botón "Cambiar tipo de registro" / "Registrar otra marca" (link azul, con icono) */
 .scan-link-btn {
   margin-top: 18px; background: none; border: none; color: #2563EB;
-  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-size: var(--font-size-13); font-weight: 600; cursor: pointer;
   display: flex; align-items: center; gap: 4px;
 }
-.scan-link-btn__icon { font-size: 13px; }
+.scan-link-btn__icon { font-size: var(--font-size-13); }
 
 /* ── index.jsx — confirmar_nuevo / confirmar (datos guardados) ──────────── */
 .scan-warn-banner {
@@ -201,20 +201,20 @@
 }
 .scan-warn-banner--mb14 { margin-bottom: 14px; }
 .scan-warn-banner--mb16 { margin-bottom: 16px; }
-.scan-warn-banner__icon { font-size: 18px; color: #D97706; flex-shrink: 0; margin-top: 1px; }
-.scan-warn-banner__text { margin: 0; font-size: 12px; color: #92400E; line-height: 1.5; }
+.scan-warn-banner__icon { font-size: var(--font-size-18); color: #D97706; flex-shrink: 0; margin-top: 1px; }
+.scan-warn-banner__text { margin: 0; font-size: var(--font-size-12); color: #92400E; line-height: 1.5; }
 
 .scan-cedula-card { width: 100%; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 18px; margin-bottom: 20px; text-align: center; }
-.scan-cedula-card__label--mb8 { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-.scan-cedula-card__label--mb6 { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.scan-cedula-card__label--mb8 { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.scan-cedula-card__label--mb6 { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
 .scan-cedula-card__value  { font-size: clamp(28px,7vw,36px); font-weight: 800; color: #0F172A; font-family: monospace; letter-spacing: 0.04em; }
 .scan-cedula-card__divider { height: 1px; background: #E2E8F0; margin: 14px 0; }
 .scan-cedula-card__name   { font-size: clamp(17px,4vw,20px); font-weight: 700; color: #0F172A; }
 
 .scan-saved-card { width: 100%; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
-.scan-saved-card__label  { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.scan-saved-card__label  { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
 .scan-saved-card__name   { font-size: clamp(17px,4vw,21px); font-weight: 700; color: #0F172A; margin-bottom: 4px; }
-.scan-saved-card__cedula { font-size: 13px; color: #64748B; font-family: monospace; font-weight: 600; }
+.scan-saved-card__cedula { font-size: var(--font-size-13); color: #64748B; font-family: monospace; font-weight: 600; }
 
 /* Botón principal "Confirmar…" — disabled ligado 1:1 al atributo disabled */
 .scan-btn-confirm {
@@ -225,23 +225,23 @@
   display: flex; align-items: center; justify-content: center; gap: 6px;
 }
 .scan-btn-confirm:disabled { background: #93C5FD; cursor: not-allowed; }
-.scan-btn-confirm__icon { font-size: 18px; }
+.scan-btn-confirm__icon { font-size: var(--font-size-18); }
 
 .scan-corregir-btn {
-  background: none; border: none; color: #64748B; font-size: 13px; cursor: pointer;
+  background: none; border: none; color: #64748B; font-size: var(--font-size-13); cursor: pointer;
   text-decoration: underline; margin-bottom: 6px;
   display: flex; align-items: center; gap: 4px;
 }
 .scan-cambiar-datos-btn {
-  background: none; border: none; color: #64748B; font-size: 13px; cursor: pointer;
+  background: none; border: none; color: #64748B; font-size: var(--font-size-13); cursor: pointer;
   text-decoration: underline; margin-bottom: 6px;
 }
 .scan-tipo-link-sm {
-  background: none; border: none; color: #94A3B8; font-size: 12px; cursor: pointer;
+  background: none; border: none; color: #94A3B8; font-size: var(--font-size-12); cursor: pointer;
   display: flex; align-items: center; gap: 4px;
 }
 .scan-tipo-link-sm--mt14 { margin-top: 14px; }
-.scan-tipo-link-sm__icon { font-size: 12px; }
+.scan-tipo-link-sm__icon { font-size: var(--font-size-12); }
 
 /* ── index.jsx — formulario (primera vez) ────────────────────────────────── */
 .scan-form-full { width: 100%; }
@@ -252,4 +252,4 @@
   font-size: clamp(17px,4.5vw,20px); font-weight: 800; cursor: pointer;
 }
 .scan-btn-submit:disabled { background: #93C5FD; cursor: not-allowed; }
-.scan-footer-note { margin-top: 10px; font-size: 11px; color: #64748B; text-align: center; line-height: 1.5; }
+.scan-footer-note { margin-top: 10px; font-size: var(--font-size-11); color: #64748B; text-align: center; line-height: 1.5; }

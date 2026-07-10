@@ -26,11 +26,11 @@
   filter: drop-shadow(0 4px 16px rgba(37,99,235,0.35));
 }
 
-.module-title { margin: 0; font-size: 22px; font-weight: 700; color: var(--color-background-tertiary); letter-spacing: -0.3px; }
-.module-subtitle { margin: 4px 0 0; font-size: 12px; color: var(--color-text-tertiary); letter-spacing: 0.02em; }
-.module-welcome { margin: 10px 0 0; font-size: 14px; color: var(--color-text-tertiary); }
+.module-title { margin: 0; font-size: var(--font-size-22); font-weight: 700; color: var(--color-background-tertiary); letter-spacing: -0.3px; }
+.module-subtitle { margin: 4px 0 0; font-size: var(--font-size-12); color: var(--color-text-tertiary); letter-spacing: 0.02em; }
+.module-welcome { margin: 10px 0 0; font-size: var(--font-size-14); color: var(--color-text-tertiary); }
 .module-welcome-name { color: var(--color-border-info); font-weight: 600; }
-.module-hint { margin: 10px 0 0; font-size: 13px; color: var(--color-text-tertiary); }
+.module-hint { margin: 10px 0 0; font-size: var(--font-size-13); color: var(--color-text-tertiary); }
 
 .module-grid { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; max-width: 680px; width: 100%; }
 
@@ -49,26 +49,26 @@
   border: 1.5px solid #1E3A5F; display: flex; align-items: center; justify-content: center;
   margin-bottom: 16px; transition: all 0.18s;
 }
-.module-icon i { font-size: 24px; }
+.module-icon i { font-size: var(--font-size-24); }
 
 .module-card--horarios:hover .module-icon { background: rgba(37,99,235,0.094); border-color: var(--brand-200); }
 .module-card--asistencias:hover .module-icon { background: rgba(5,150,105,0.094); border-color: #A7F3D0; }
 
-.module-title-card { font-size: 16px; font-weight: 700; color: var(--color-border-tertiary); margin-bottom: 8px; transition: color 0.18s; }
+.module-title-card { font-size: var(--font-size-16); font-weight: 700; color: var(--color-border-tertiary); margin-bottom: 8px; transition: color 0.18s; }
 .module-card--horarios:hover .module-title-card { color: var(--brand-500); }
 .module-card--asistencias:hover .module-title-card { color: var(--color-success); }
 
-.module-desc { font-size: 13px; color: var(--color-text-tertiary); line-height: 1.55; transition: color 0.18s; }
+.module-desc { font-size: var(--font-size-13); color: var(--color-text-tertiary); line-height: 1.55; transition: color 0.18s; }
 .module-card:hover .module-desc { color: var(--navy-700); }
 
-.module-arrow { margin-top: 18px; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); display: flex; align-items: center; gap: 4px; transition: color 0.18s; }
-.module-arrow i { font-size: 14px; }
+.module-arrow { margin-top: 18px; font-size: var(--font-size-13); font-weight: 600; color: var(--color-text-secondary); display: flex; align-items: center; gap: 4px; transition: color 0.18s; }
+.module-arrow i { font-size: var(--font-size-14); }
 .module-card--horarios:hover .module-arrow { color: var(--brand-500); }
 .module-card--asistencias:hover .module-arrow { color: var(--color-success); }
 
 .module-logout {
   margin-top: 40px; background: none; border: none; color: var(--color-text-secondary);
-  font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  font-size: var(--font-size-13); cursor: pointer; display: flex; align-items: center; gap: 6px;
   padding: 6px 12px; border-radius: 8px; transition: color 0.15s;
 }
 .module-logout:hover { color: var(--color-text-tertiary); }

@@ -23,57 +23,57 @@
 
 .rv-root { padding: 20px; }
 
-.rv-syncing-banner { background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 9px; font-size: 13px; color: #0369A1; font-weight: 500; }
-.rv-syncing-icon { font-size: 15px; animation: spin 1s linear infinite; }
+.rv-syncing-banner { background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 9px; font-size: var(--font-size-13); color: #0369A1; font-weight: 500; }
+.rv-syncing-icon { font-size: var(--font-size-15); animation: spin 1s linear infinite; }
 
 .rv-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-.rv-title { margin: 0; font-size: 20px; font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 9px; }
-.rv-title-icon { font-size: 19px; color: #2563EB; }
+.rv-title { margin: 0; font-size: var(--font-size-20); font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 9px; }
+.rv-title-icon { font-size: var(--font-size-19); color: #2563EB; }
 
 .rv-tabs-wrap { display: flex; gap: 4px; background: #F1F5F9; border-radius: 10px; padding: 4px; }
-.rv-tab-btn { padding: 7px 16px; border-radius: 7px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; display: flex; align-items: center; gap: 6px; background: transparent; color: #64748B; box-shadow: none; }
+.rv-tab-btn { padding: 7px 16px; border-radius: 7px; border: none; cursor: pointer; font-size: var(--font-size-13); font-weight: 600; transition: all 0.15s; display: flex; align-items: center; gap: 6px; background: transparent; color: #64748B; box-shadow: none; }
 .rv-tab-btn--active { background: #fff; color: #0F172A; box-shadow: 0 1px 4px rgba(15,23,42,0.10); }
 
 .stats-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
 .stats-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .rv-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 
-.rv-alert-title { font-size: 15px; font-weight: 700; color: #991B1B; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
-.rv-alert-text { font-size: 13px; color: #B91C1C; margin-bottom: 10px; font-weight: 500; }
-.rv-alert-btn { padding: 6px 14px; background: #DC2626; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.rv-alert-title { font-size: var(--font-size-15); font-weight: 700; color: #991B1B; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+.rv-alert-text { font-size: var(--font-size-13); color: #B91C1C; margin-bottom: 10px; font-weight: 500; }
+.rv-alert-btn { padding: 6px 14px; background: #DC2626; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: var(--font-size-12); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
 
-.rv-section-title { font-size: 14px; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+.rv-section-title { font-size: var(--font-size-14); font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
 .rv-section-title--turno { margin-bottom: 12px; }
-.rv-analysis-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+.rv-analysis-title { font-size: var(--font-size-14); font-weight: 700; margin-bottom: 14px; }
 
 .rv-turno-boxes { display: flex; gap: 16px; }
 .rv-turno-box { flex: 1; text-align: center; padding: 14px; border-radius: 8px; }
 .rv-turno-box--diurno { background: #EFF6FF; }
 .rv-turno-box--vespertino { background: #FDF2F8; }
-.rv-turno-box-icon { font-size: 26px; }
+.rv-turno-box-icon { font-size: var(--font-size-26); }
 .rv-turno-box-icon--diurno { color: #2563EB; }
 .rv-turno-box-icon--vespertino { color: #BE185D; }
-.rv-turno-box-value { font-size: 22px; font-weight: 700; }
+.rv-turno-box-value { font-size: var(--font-size-22); font-weight: 700; }
 .rv-turno-box-value--diurno { color: #1D4ED8; }
 .rv-turno-box-value--vespertino { color: #BE185D; }
-.rv-turno-box-label { font-size: 12px; color: #64748B; font-weight: 500; }
+.rv-turno-box-label { font-size: var(--font-size-12); color: #64748B; font-weight: 500; }
 
 .rv-top-row { display: flex; align-items: center; gap: 10px; }
-.rv-top-name { font-size: 16px; font-weight: 700; color: #0F172A; }
-.rv-top-sub { font-size: 13px; color: #64748B; font-weight: 500; }
+.rv-top-name { font-size: var(--font-size-16); font-weight: 700; color: #0F172A; }
+.rv-top-sub { font-size: var(--font-size-13); color: #64748B; font-weight: 500; }
 
 .rv-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .rv-bar-row--turno { margin-bottom: 12px; }
-.rv-trayecto-badge { background: var(--trayecto-bg, #f3f4f6); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.rv-trayecto-badge { background: var(--trayecto-bg, #f3f4f6); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: var(--font-size-12); font-weight: 600; }
 .rv-bar-track { flex: 1; background: #F1F5F9; border-radius: 4px; height: 12px; overflow: hidden; }
 .rv-bar-track--h14 { height: 14px; }
 .rv-bar-track--w100 { flex: none; width: 100px; height: 10px; }
 .rv-bar-fill { height: 100%; border-radius: 4px; background: var(--fill-color, #888); }
-.rv-rank { font-size: 12px; font-weight: 700; color: #CBD5E1; width: 16px; }
-.rv-bar-label { font-size: 13px; flex: 1; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
-.rv-day-label { font-size: 13px; width: 80px; color: #64748B; font-weight: 500; }
-.rv-turno-label { font-size: 13px; width: 90px; color: #64748B; font-weight: 500; }
-.rv-count-label { font-size: 13px; text-align: right; color: #64748B; font-weight: 600; }
+.rv-rank { font-size: var(--font-size-12); font-weight: 700; color: #CBD5E1; width: 16px; }
+.rv-bar-label { font-size: var(--font-size-13); flex: 1; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.rv-day-label { font-size: var(--font-size-13); width: 80px; color: #64748B; font-weight: 500; }
+.rv-turno-label { font-size: var(--font-size-13); width: 90px; color: #64748B; font-weight: 500; }
+.rv-count-label { font-size: var(--font-size-13); text-align: right; color: #64748B; font-weight: 600; }
 .rv-count-label--24 { width: 24px; }
 .rv-count-label--32 { width: 32px; }
 .rv-count-label--60 { width: 60px; }

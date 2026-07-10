@@ -24,13 +24,15 @@
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   /* ── Escala tipográfica (FE-3) ──────────────────────────────────────────
-     Valores tomados 1:1 de los que ya estaban en uso en este archivo — no
-     se redondeó ni consolidó ningún tamaño, para no alterar el render
-     actual de ningún componente (mismo criterio que --space-N). Cubre los
-     que se repetían 2+ veces en index.css; los que aparecían una sola vez
-     (17px, 19px, 22px, 24px, 44px, 52px, 72px), los `clamp()` responsivos
-     y los tamaños dinámicos de Avatar (11.4/16.7/19.8px, ya documentados
-     como excepción legítima en A3) se dejan como literales. ──────────── */
+     Valores tomados 1:1 de los que ya estaban en uso — no se redondeó ni
+     consolidó ningún tamaño, para no alterar el render actual de ningún
+     componente (mismo criterio que --space-N). Ampliada el 9 de julio al
+     adoptarla en los 27 .css de componentes fuera de este archivo: se
+     sumaron 17/19/22/24/26/28/32/36/40/44px, repetidos varias veces entre
+     esos componentes aunque no dentro de index.css. Los que aparecen una
+     sola vez en todo el proyecto (72px, 52px) y los tamaños dinámicos de
+     Avatar (11.4/16.7/19.8px, excepción legítima ya documentada en A3) se
+     dejan como literales. ────────────────────────────────────────────── */
   --font-size-9:  9px;
   --font-size-10: 10px;
   --font-size-11: 11px;
@@ -39,8 +41,18 @@
   --font-size-14: 14px;
   --font-size-15: 15px;
   --font-size-16: 16px;
+  --font-size-17: 17px;
   --font-size-18: 18px;
+  --font-size-19: 19px;
   --font-size-20: 20px;
+  --font-size-22: 22px;
+  --font-size-24: 24px;
+  --font-size-26: 26px;
+  --font-size-28: 28px;
+  --font-size-32: 32px;
+  --font-size-36: 36px;
+  --font-size-40: 40px;
+  --font-size-44: 44px;
   --font-size-48: 48px;
 
   /* ── Marca institucional ─────────────────────────────────────────────── */
@@ -103,6 +115,19 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
+
+  /* ── Espaciado con valor exacto (FE-5) ───────────────────────────────────
+     La escala de arriba es un múltiplo de 4px por índice (--space-N =
+     N × 4px), así que no cubre valores que ya estaban en uso en las reglas
+     `.hl-*` y no son múltiplo de 4 (6px, 7px, 10px, 14px). Se nombran con
+     el valor en px directo (mismo criterio que --font-size-N) para no
+     confundirlos con el índice de la escala de arriba — y sobre todo para
+     no forzarlos al --space-N más cercano, que habría alterado el tamaño
+     real de esos espacios. ────────────────────────────────────────────── */
+  --space-6px: 6px;
+  --space-7px: 7px;
+  --space-10px: 10px;
+  --space-14px: 14px;
 
   /* ── Radios y sombras ────────────────────────────────────────────────── */
   --border-radius-sm: 6px;
@@ -389,7 +414,7 @@ textarea:focus-visible,
 .qrp-topbar-meta-prog { display: inline; }
 .qrp-instr-titulo { font-size: clamp(20px,3.5vw,34px); text-align: left; margin-bottom: 24px; }
 .qrp-paso-row { gap: 16px; padding: 14px 18px; }
-.qrp-paso-icono { font-size: 22px; }
+.qrp-paso-icono { font-size: var(--font-size-22); }
 .qrp-paso-texto { font-size: clamp(15px,2.5vw,22px); }
 .qrp-waiting-emoji { font-size: 72px; }
 .qrp-topbar-meta-label-full { display: inline; }
@@ -492,7 +517,7 @@ textarea:focus-visible,
 .sc-root { padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
 .sc-icon-wrap { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .sc-icon { font-size: var(--font-size-20); }
-.sc-value { font-size: 24px; font-weight: 700; color: #0F172A; line-height: 1.1; }
+.sc-value { font-size: var(--font-size-24); font-weight: 700; color: #0F172A; line-height: 1.1; }
 .sc-label { font-size: var(--font-size-12); color: #64748B; margin-top: 2px; font-weight: 500; }
 /* Fix A3/S3 Fase 2: 7 variantes fijas (antes `color` arbitrario + style
    inline). Corrige de paso un bug latente: con var(--brand-500) como
@@ -693,7 +718,7 @@ textarea:focus-visible,
   height: 100vh; background: var(--color-text-primary); color: var(--color-border-tertiary);
   gap: 16px; padding: 32px; text-align: center; font-family: var(--font-sans);
 }
-.app-error-icon { font-size: 44px; }
+.app-error-icon { font-size: var(--font-size-44); }
 .app-error-icon--danger { color: #F87171; }
 .app-error-icon--warning { color: #FBBF24; }
 .app-error-title { margin: 0; font-size: var(--font-size-20); font-weight: 600; color: var(--color-background-tertiary); }
@@ -750,7 +775,7 @@ textarea:focus-visible,
 .asm-main--proyeccion { padding-top: 0; }
 
 /* HorariosLayout.jsx — shell completo del módulo Horarios (A3, auditoría 2026-07-05) */
-.hl-select-dark { width: 100%; background: var(--navy-800); color: var(--color-border-secondary); border-color: var(--navy-700); font-size: var(--font-size-12); padding: 6px 8px; }
+.hl-select-dark { width: 100%; background: var(--navy-800); color: var(--color-border-secondary); border-color: var(--navy-700); font-size: var(--font-size-12); padding: var(--space-6px) var(--space-2); }
 .hl-select-dark:disabled { opacity: 0.6; cursor: not-allowed; }
 .hl-select-dark:not(:disabled) { cursor: pointer; opacity: 1; }
 
@@ -764,19 +789,19 @@ textarea:focus-visible,
 .sb { background: var(--color-text-primary); display: flex; flex-direction: column; flex-shrink: 0; border-right: 1px solid var(--navy-800); position: relative; }
 .sb-flow-spacer { flex-shrink: 0; transition: width .22s; }
 
-.hl-brand-row { display: flex; align-items: center; gap: var(--space-2); padding: 14px 10px 12px; border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
+.hl-brand-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-14px) var(--space-10px) var(--space-3); border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
 .hl-brand-text-wrap { flex: 1; overflow: hidden; }
 .hl-brand-title { font-size: var(--font-size-13); font-weight: 700; color: var(--color-background-tertiary); white-space: nowrap; }
 .hl-brand-subtitle { font-size: var(--font-size-10); color: var(--color-text-secondary); margin-top: 1px; white-space: nowrap; }
 
-.hl-lapso-box { padding: 10px; border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
+.hl-lapso-box { padding: var(--space-10px); border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
 .hl-lapso-icon {
   width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0;
   background: #0C1A3A; display: flex; align-items: center; justify-content: center; font-size: var(--font-size-14);
 }
 .hl-lapso-icon--consulta { background: #451A03; cursor: pointer; }
 .hl-lapso-label { font-size: var(--font-size-9); font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
-.hl-lapso-row { display: flex; align-items: center; gap: 6px; }
+.hl-lapso-row { display: flex; align-items: center; gap: var(--space-6px); }
 .hl-lapso-value { font-size: var(--font-size-13); font-weight: 700; color: var(--color-accent-light); flex: 1; white-space: nowrap; }
 .hl-lapso-value--consulta { color: #FBBF24; }
 .hl-lapso-reset-btn {
@@ -787,18 +812,18 @@ textarea:focus-visible,
 }
 .hl-icon-sm { font-size: var(--font-size-12); }
 
-.hl-programa-box { padding: 8px 10px; border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
+.hl-programa-box { padding: var(--space-2) var(--space-10px); border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
 
-.hl-nav { flex: 1; padding: 8px 8px 6px; overflow-y: auto; overflow-x: hidden; }
+.hl-nav { flex: 1; padding: var(--space-2) var(--space-2) var(--space-6px); overflow-y: auto; overflow-x: hidden; }
 .hl-nav-group { margin-bottom: var(--space-1); }
 .hl-nav-group--last { margin-bottom: 0; }
-.hl-nav-divider { height: 1px; background: var(--navy-800); margin: 6px 4px 8px; }
+.hl-nav-divider { height: 1px; background: var(--navy-800); margin: var(--space-6px) var(--space-1) var(--space-2); }
 .hl-nav-title { font-size: var(--font-size-9); font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.1em; padding: 0 var(--space-2); margin-bottom: var(--space-1); transition: opacity 0.15s; }
 .hl-nav-icon { font-size: var(--font-size-16); flex-shrink: 0; width: 20px; text-align: center; }
 .hl-nav-label { flex: 1; }
 
 .hl-footer { border-top: 1px solid var(--navy-800); padding: var(--space-2); flex-shrink: 0; }
-.hl-admin-btn { margin-bottom: 6px; color: var(--color-text-tertiary); background: transparent; }
+.hl-admin-btn { margin-bottom: var(--space-6px); color: var(--color-text-tertiary); background: transparent; }
 .hl-admin-btn--open { color: var(--color-border-info); background: var(--navy-800); }
 .hl-admin-icon { font-size: var(--font-size-15); flex-shrink: 0; width: 20px; text-align: center; }
 .hl-uploading-dot {
@@ -808,7 +833,7 @@ textarea:focus-visible,
 
 .hamburger {
   display: none; background: none; border: 1px solid var(--color-border-tertiary);
-  border-radius: 6px; padding: 5px 9px; cursor: pointer; font-size: 17px;
+  border-radius: 6px; padding: 5px 9px; cursor: pointer; font-size: var(--font-size-17);
   color: var(--navy-700); flex-shrink: 0; align-items: center;
 }
 .hl-content-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
@@ -823,8 +848,8 @@ textarea:focus-visible,
   white-space: nowrap;
 }
 
-.hl-consulta-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: 7px 20px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.hl-consulta-text { font-size: var(--font-size-13); color: var(--color-warning-text); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.hl-consulta-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: var(--space-7px) var(--space-5); display: flex; align-items: center; gap: var(--space-10px); flex-shrink: 0; }
+.hl-consulta-text { font-size: var(--font-size-13); color: var(--color-warning-text); font-weight: 600; display: flex; align-items: center; gap: var(--space-6px); }
 .hl-consulta-btn {
   margin-left: auto; font-size: var(--font-size-12); padding: var(--space-1) var(--space-3); border-radius: 6px;
   border: 1px solid var(--color-warning-border); background: #fff;
@@ -835,8 +860,8 @@ textarea:focus-visible,
 .hl-main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
 
 @media (max-width: 640px) {
-  .hl-brand-row { padding: 10px 8px 10px; }
-  .hl-consulta-banner { padding: 7px 12px; flex-wrap: wrap; }
+  .hl-brand-row { padding: var(--space-10px) var(--space-2) var(--space-10px); }
+  .hl-consulta-banner { padding: var(--space-7px) var(--space-3); flex-wrap: wrap; }
   .hl-consulta-btn { margin-left: 0; }
 }
 

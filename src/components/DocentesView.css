@@ -21,14 +21,14 @@
 }
 
 .dv-modo-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: 7px 20px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.dv-modo-icon { color: var(--color-warning-text); font-size: 14px; }
-.dv-modo-text { font-size: 13px; color: var(--color-warning-text); font-weight: 600; }
+.dv-modo-icon { color: var(--color-warning-text); font-size: var(--font-size-14); }
+.dv-modo-text { font-size: var(--font-size-13); color: var(--color-warning-text); font-weight: 600; }
 
 .dv-body { padding: 20px; display: flex; gap: 16px; flex: 1; height: 0; overflow: hidden; }
 .dv-left-panel { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
 
-.dv-cedula-banner { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; gap: 7px; font-size: 12px; color: #92400E; font-weight: 600; }
-.dv-cedula-banner-icon { font-size: 14px; color: #D97706; }
+.dv-cedula-banner { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; gap: 7px; font-size: var(--font-size-12); color: #92400E; font-weight: 600; }
+.dv-cedula-banner-icon { font-size: var(--font-size-14); color: #D97706; }
 
 .dv-search-input { width: 100%; box-sizing: border-box; }
 
@@ -47,69 +47,69 @@
 @media (max-width: 640px) {
   .dv-list-card { max-height: 220px; }
 }
-.dv-list-header { padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
+.dv-list-header { padding: 10px 14px; font-size: var(--font-size-12); font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
 
-.dv-list-item { padding: 10px 14px; cursor: pointer; font-size: 14px; font-weight: 400; background: transparent; color: var(--navy-700); border-bottom: 1px solid var(--color-background-tertiary); display: flex; justify-content: space-between; align-items: center; }
+.dv-list-item { padding: 10px 14px; cursor: pointer; font-size: var(--font-size-14); font-weight: 400; background: transparent; color: var(--navy-700); border-bottom: 1px solid var(--color-background-tertiary); display: flex; justify-content: space-between; align-items: center; }
 .dv-list-item--active { font-weight: 600; background: var(--color-background-info); color: var(--brand-600); }
 .dv-list-item-name { display: flex; align-items: center; gap: 6px; }
-.dv-list-item-conflict-icon { font-size: 13px; color: var(--color-danger); }
+.dv-list-item-conflict-icon { font-size: var(--font-size-13); color: var(--color-danger); }
 .dv-list-item-right { display: flex; gap: 4px; align-items: center; }
-.dv-list-item-cedula-icon { font-size: 13px; color: #D97706; }
-.dv-list-item-count { font-size: 12px; background: var(--color-background-tertiary); border-radius: 10px; padding: 2px 8px; color: var(--color-text-tertiary); font-weight: 600; }
+.dv-list-item-cedula-icon { font-size: var(--font-size-13); color: #D97706; }
+.dv-list-item-count { font-size: var(--font-size-12); background: var(--color-background-tertiary); border-radius: 10px; padding: 2px 8px; color: var(--color-text-tertiary); font-weight: 600; }
 
 .dv-detail-panel { flex: 1; overflow-y: auto; }
-.dv-detail-empty { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--color-text-tertiary); font-size: 15px; font-weight: 500; }
+.dv-detail-empty { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--color-text-tertiary); font-size: var(--font-size-15); font-weight: 500; }
 
 .dv-header-card { padding: 18px 22px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; }
 .dv-header-main { flex: 1; }
 
 .dv-name-edit-row { display: flex; align-items: center; gap: 8px; }
-.dv-name-edit-input { font-size: 16px; font-weight: 600; flex: 1; }
+.dv-name-edit-input { font-size: var(--font-size-16); font-weight: 600; flex: 1; }
 
-.dv-btn-save { padding: 6px 14px; background: var(--brand-500); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.dv-btn-save { padding: 6px 14px; background: var(--brand-500); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: var(--font-size-13); font-weight: 600; }
 .dv-btn-save:disabled { cursor: not-allowed; opacity: 0.6; }
-.dv-btn-save--sm { padding: 5px 12px; font-size: 12px; }
-.dv-btn-cancel { padding: 6px 12px; background: var(--color-background-tertiary); color: var(--color-text-tertiary); border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
-.dv-btn-cancel--sm { padding: 5px 10px; font-size: 12px; }
+.dv-btn-save--sm { padding: 5px 12px; font-size: var(--font-size-12); }
+.dv-btn-cancel { padding: 6px 12px; background: var(--color-background-tertiary); color: var(--color-text-tertiary); border: none; border-radius: 6px; cursor: pointer; font-size: var(--font-size-13); }
+.dv-btn-cancel--sm { padding: 5px 10px; font-size: var(--font-size-12); }
 
 .dv-name-row { display: flex; align-items: center; gap: 8px; }
-.dv-name-text { font-size: 19px; font-weight: 700; color: var(--color-text-primary); }
-.dv-edit-btn { background: none; border: 1px solid var(--color-border-tertiary); border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 12px; color: var(--color-text-tertiary); font-weight: 500; display: inline-flex; align-items: center; gap: 5px; }
-.dv-edit-btn--sm { padding: 2px 8px; font-size: 11px; }
+.dv-name-text { font-size: var(--font-size-19); font-weight: 700; color: var(--color-text-primary); }
+.dv-edit-btn { background: none; border: 1px solid var(--color-border-tertiary); border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: var(--font-size-12); color: var(--color-text-tertiary); font-weight: 500; display: inline-flex; align-items: center; gap: 5px; }
+.dv-edit-btn--sm { padding: 2px 8px; font-size: var(--font-size-11); }
 
-.dv-meta-row { font-size: 13px; color: var(--color-text-tertiary); margin-top: 4px; font-weight: 500; }
-.dv-conflicto-badge { margin-left: 10px; background: var(--color-danger-bg); color: var(--color-danger); border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.dv-meta-row { font-size: var(--font-size-13); color: var(--color-text-tertiary); margin-top: 4px; font-weight: 500; }
+.dv-conflicto-badge { margin-left: 10px; background: var(--color-danger-bg); color: var(--color-danger); border-radius: 6px; padding: 3px 10px; font-size: var(--font-size-12); font-weight: 600; }
 
 .dv-cedula-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.dv-cedula-input { font-size: 13px; font-weight: 600; width: 160px; font-family: monospace; }
-.dv-cedula-label { font-size: 12px; color: var(--color-text-tertiary); font-weight: 500; display: inline-flex; align-items: center; gap: 5px; }
-.dv-cedula-value { font-size: 12px; font-family: monospace; font-weight: 700; }
+.dv-cedula-input { font-size: var(--font-size-13); font-weight: 600; width: 160px; font-family: monospace; }
+.dv-cedula-label { font-size: var(--font-size-12); color: var(--color-text-tertiary); font-weight: 500; display: inline-flex; align-items: center; gap: 5px; }
+.dv-cedula-value { font-size: var(--font-size-12); font-family: monospace; font-weight: 700; }
 .dv-cedula-value--set { color: var(--color-text-primary); }
 .dv-cedula-value--unset { color: var(--color-border-secondary); }
 
 .dv-trayecto-badges { display: flex; gap: 8px; flex-wrap: wrap; }
-.dv-trayecto-badge { background: var(--trayecto-bg, #f3f4f6); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.dv-trayecto-badge { background: var(--trayecto-bg, #f3f4f6); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: var(--font-size-12); font-weight: 600; }
 
 .dv-conflict-card { background: var(--color-danger-bg); border: 1px solid #FECACA; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; display: flex; gap: 10px; align-items: flex-start; }
-.dv-conflict-icon { font-size: 17px; color: var(--color-danger); margin-top: 1px; }
-.dv-conflict-title { font-size: 13px; font-weight: 600; color: #991B1B; }
-.dv-conflict-detail { font-size: 12px; color: var(--color-danger-dark); margin-top: 4px; font-weight: 500; }
+.dv-conflict-icon { font-size: var(--font-size-17); color: var(--color-danger); margin-top: 1px; }
+.dv-conflict-title { font-size: var(--font-size-13); font-weight: 600; color: #991B1B; }
+.dv-conflict-detail { font-size: var(--font-size-12); color: var(--color-danger-dark); margin-top: 4px; font-weight: 500; }
 
 .dv-stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
 
 .dv-day-card { padding: 14px 18px; margin-bottom: 16px; }
-.dv-day-title { font-size: 13px; font-weight: 600; color: var(--navy-700); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.dv-day-title { font-size: var(--font-size-13); font-weight: 600; color: var(--navy-700); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
 .dv-day-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .dv-day-cell { flex: 1; min-width: 80px; text-align: center; padding: 10px 6px; border-radius: 8px; background: var(--color-background-tertiary); border: 1px solid var(--color-border-tertiary); }
 .dv-day-cell--active { background: var(--color-background-secondary); }
 .dv-day-cell--max { background: var(--color-background-info); border-color: var(--brand-500); }
-.dv-day-cell-label { font-size: 10px; color: var(--color-text-tertiary); font-weight: 600; margin-bottom: 4px; text-transform: uppercase; }
-.dv-day-cell-count { font-size: 18px; font-weight: 700; color: var(--color-border-secondary); }
+.dv-day-cell-label { font-size: var(--font-size-10); color: var(--color-text-tertiary); font-weight: 600; margin-bottom: 4px; text-transform: uppercase; }
+.dv-day-cell-count { font-size: var(--font-size-18); font-weight: 700; color: var(--color-border-secondary); }
 .dv-day-cell--active .dv-day-cell-count { color: var(--navy-700); }
 .dv-day-cell--max .dv-day-cell-count { color: var(--brand-600); }
-.dv-day-cell-sub { font-size: 9px; color: var(--color-text-tertiary); margin-top: 2px; }
+.dv-day-cell-sub { font-size: var(--font-size-9); color: var(--color-text-tertiary); margin-top: 2px; }
 
-.dv-table-header { padding: 14px 18px; border-bottom: 2px solid var(--color-border-tertiary); font-size: 14px; font-weight: 700; color: var(--navy-700); display: flex; align-items: center; gap: 7px; }
+.dv-table-header { padding: 14px 18px; border-bottom: 2px solid var(--color-border-tertiary); font-size: var(--font-size-14); font-weight: 700; color: var(--navy-700); display: flex; align-items: center; gap: 7px; }
 .dv-table-wrap { overflow-x: auto; }
 .dv-table { width: 100%; border-collapse: collapse; }
 .dv-table th:nth-child(1) { width: 100px; }
@@ -124,6 +124,6 @@
    mismo día), ahora modificador de clase fijo. */
 .dv-td-dia--nuevo-dia { border-top: 2px solid var(--color-border-tertiary); }
 .dv-td-dia--mismo-dia { border-top: 1px solid var(--color-background-tertiary); }
-.dv-td-hora { color: var(--color-text-tertiary); white-space: nowrap; font-size: 12px; font-weight: 500; }
-.dv-td-materia { font-weight: 600; font-size: 13px; }
-.dv-td-seccion { color: var(--color-text-tertiary); font-weight: 500; font-size: 12px; }
+.dv-td-hora { color: var(--color-text-tertiary); white-space: nowrap; font-size: var(--font-size-12); font-weight: 500; }
+.dv-td-materia { font-weight: 600; font-size: var(--font-size-13); }
+.dv-td-seccion { color: var(--color-text-tertiary); font-weight: 500; font-size: var(--font-size-12); }

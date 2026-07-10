@@ -26,11 +26,11 @@
 .toast-bar { width: 4px; background: var(--toast-bar); flex-shrink: 0; }
 
 .toast-text {
-  flex: 1; padding: 13px 14px; font-size: 13px; font-weight: 500;
+  flex: 1; padding: 13px 14px; font-size: var(--font-size-13); font-weight: 500;
   color: var(--toast-text); line-height: 1.5; word-break: break-word;
 }
 
 .toast-close {
   background: none; border: none; color: var(--toast-text); opacity: 0.5;
-  cursor: pointer; font-size: 18px; padding: 0 12px; flex-shrink: 0; line-height: 1;
+  cursor: pointer; font-size: var(--font-size-18); padding: 0 12px; flex-shrink: 0; line-height: 1;
 }
