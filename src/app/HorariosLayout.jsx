@@ -6,13 +6,22 @@ import HorariosTopbar from "./HorariosTopbar";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import ModalCambiarPassword from "../components/ModalCambiarPassword";
+// Fix ARCH-7/U-6 (auditoría 9 de julio): ResumenView se mantiene con import
+// estático a propósito — es la vista por defecto (`useState("resumen")` en
+// App.jsx), la que ve todo el mundo justo después de iniciar sesión.
+// Volverla lazy no reduce el tiempo de carga real (el chunk se pediría casi
+// al instante de todos modos) y sí añadiría un salto de red + un parpadeo de
+// "Cargando…" a la pantalla que más se visita. Las demás vistas de este
+// archivo sí se benefician de lazy porque de verdad hay usuarios que nunca
+// las abren en una sesión (secciones, materias, asistencias, etc.).
 import ResumenView from "../components/ResumenView";
-import UploadPreviewModal from "../components/UploadPreviewModal";
-import HorariosView from "../components/HorariosView";
-import SeccionesView from "../components/SeccionesView";
-import DocentesView from "../components/DocentesView";
-import MateriasView from "../components/MateriasView";
-import AsistenciasView from "../components/AsistenciasView";
+
+const UploadPreviewModal = lazy(() => import("../components/UploadPreviewModal"));
+const HorariosView       = lazy(() => import("../components/HorariosView"));
+const SeccionesView      = lazy(() => import("../components/SeccionesView"));
+const DocentesView       = lazy(() => import("../components/DocentesView"));
+const MateriasView       = lazy(() => import("../components/MateriasView"));
+const AsistenciasView    = lazy(() => import("../components/AsistenciasView"));
 
 const HistorialView = lazy(() => import("../components/HistorialView"));
 const UsuariosView  = lazy(() => import("../components/usuarios"));
@@ -115,12 +124,17 @@ export default function HorariosLayout({
         />
       )}
 
-      <UploadPreviewModal
-        open={!!appData.previewData}
-        data={appData.previewData}
-        onConfirm={appData.confirmPreview}
-        onCancel={appData.cancelPreview}
-      />
+      {/* Fix ARCH-7/U-6: fallback=null a propósito — el componente ya
+          retorna null cuando `open` es false, así que mientras carga su
+          chunk no debe verse ningún spinner donde normalmente no hay nada */}
+      <Suspense fallback={null}>
+        <UploadPreviewModal
+          open={!!appData.previewData}
+          data={appData.previewData}
+          onConfirm={appData.confirmPreview}
+          onCancel={appData.cancelPreview}
+        />
+      </Suspense>
 
       {appData.toast && (
         <Toast message={appData.toast.message} type={appData.toast.type} onClose={appData.hideToast} />
@@ -195,67 +209,77 @@ export default function HorariosLayout({
             />
           )}
           {view === "horarios" && (
-            <HorariosView
-              filtered={appData.data.filter(d =>
-                (horariosFilters.selectedTrayecto === "all" || d.trayecto === horariosFilters.selectedTrayecto) &&
-                (horariosFilters.selectedSeccion  === "all" || d.sheet.trim() === horariosFilters.selectedSeccion) &&
-                (horariosFilters.activeDay        === "all" || d.dia === horariosFilters.activeDay)
-              )}
-              selectedTrayecto={horariosFilters.selectedTrayecto}
-              setSelectedTrayecto={horariosFilters.setSelectedTrayecto}
-              selectedSeccion={horariosFilters.selectedSeccion}
-              setSelectedSeccion={horariosFilters.setSelectedSeccion}
-              activeDay={horariosFilters.activeDay}
-              setActiveDay={horariosFilters.setActiveDay}
-              seccionesByTrayecto={horariosFilters.seccionesByTrayecto}
-              expandedCell={horariosFilters.expandedCell}
-              setExpandedCell={horariosFilters.setExpandedCell}
-              getDocName={appData.getDocName}
-              getMateriaName={appData.getMateriaName}
-              allTrayectos={appData.allTrayectos}
-              conflicts={appData.conflicts}
-              onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }}
-              initialTab={horariosTab}
-              onConsumeInitialTab={() => setHorariosTab(null)}
-              modoConsulta={modoConsulta || !permisos.puedeEditarHorarios}
-            />
+            <Suspense fallback={<LazyFallback label="Cargando horarios…" />}>
+              <HorariosView
+                filtered={appData.data.filter(d =>
+                  (horariosFilters.selectedTrayecto === "all" || d.trayecto === horariosFilters.selectedTrayecto) &&
+                  (horariosFilters.selectedSeccion  === "all" || d.sheet.trim() === horariosFilters.selectedSeccion) &&
+                  (horariosFilters.activeDay        === "all" || d.dia === horariosFilters.activeDay)
+                )}
+                selectedTrayecto={horariosFilters.selectedTrayecto}
+                setSelectedTrayecto={horariosFilters.setSelectedTrayecto}
+                selectedSeccion={horariosFilters.selectedSeccion}
+                setSelectedSeccion={horariosFilters.setSelectedSeccion}
+                activeDay={horariosFilters.activeDay}
+                setActiveDay={horariosFilters.setActiveDay}
+                seccionesByTrayecto={horariosFilters.seccionesByTrayecto}
+                expandedCell={horariosFilters.expandedCell}
+                setExpandedCell={horariosFilters.setExpandedCell}
+                getDocName={appData.getDocName}
+                getMateriaName={appData.getMateriaName}
+                allTrayectos={appData.allTrayectos}
+                conflicts={appData.conflicts}
+                onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }}
+                initialTab={horariosTab}
+                onConsumeInitialTab={() => setHorariosTab(null)}
+                modoConsulta={modoConsulta || !permisos.puedeEditarHorarios}
+              />
+            </Suspense>
           )}
           {view === "secciones" && (
-            <SeccionesView
-              data={appData.data}
-              getDocName={appData.getDocName}
-              getMateriaName={appData.getMateriaName}
-            />
+            <Suspense fallback={<LazyFallback label="Cargando secciones…" />}>
+              <SeccionesView
+                data={appData.data}
+                getDocName={appData.getDocName}
+                getMateriaName={appData.getMateriaName}
+              />
+            </Suspense>
           )}
           {view === "docentes" && (
-            <DocentesView
-              byDocente={appData.byDocente} conflicts={appData.conflicts}
-              initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)}
-              getDocName={appData.getDocName}
-              onSaveDocenteName={permisos.puedeEditarDocentes ? appData.saveDocenteName : null}
-              getDocCedula={appData.getDocCedula}
-              getDocCedulaFuente={appData.getDocCedulaFuente}
-              onSaveDocenteCedula={permisos.puedeEditarDocentes ? appData.saveDocenteCedula : null}
-              modoConsulta={modoConsulta}
-              lapso={lapso}
-            />
+            <Suspense fallback={<LazyFallback label="Cargando docentes…" />}>
+              <DocentesView
+                byDocente={appData.byDocente} conflicts={appData.conflicts}
+                initialSel={docenteNav} onConsumeNav={() => setDocenteNav(null)}
+                getDocName={appData.getDocName}
+                onSaveDocenteName={permisos.puedeEditarDocentes ? appData.saveDocenteName : null}
+                getDocCedula={appData.getDocCedula}
+                getDocCedulaFuente={appData.getDocCedulaFuente}
+                onSaveDocenteCedula={permisos.puedeEditarDocentes ? appData.saveDocenteCedula : null}
+                modoConsulta={modoConsulta}
+                lapso={lapso}
+              />
+            </Suspense>
           )}
           {view === "materias" && (
-            <MateriasView
-              byMateria={appData.byMateria} initialSel={materiaNav}
-              onConsumeNav={() => setMateriaNav(null)}
-              getMateriaName={appData.getMateriaName}
-              onSaveMateriaName={permisos.puedeEditarMaterias ? appData.saveMateriaName : null}
-              data={appData.data} getDocName={appData.getDocName}
-              modoConsulta={modoConsulta}
-              lapso={lapso}
-            />
+            <Suspense fallback={<LazyFallback label="Cargando materias…" />}>
+              <MateriasView
+                byMateria={appData.byMateria} initialSel={materiaNav}
+                onConsumeNav={() => setMateriaNav(null)}
+                getMateriaName={appData.getMateriaName}
+                onSaveMateriaName={permisos.puedeEditarMaterias ? appData.saveMateriaName : null}
+                data={appData.data} getDocName={appData.getDocName}
+                modoConsulta={modoConsulta}
+                lapso={lapso}
+              />
+            </Suspense>
           )}
           {view === "asistencias" && (
-            <AsistenciasView
-              data={appData.data} getDocName={appData.getDocName}
-              getMateriaName={appData.getMateriaName} lapso={lapso}
-            />
+            <Suspense fallback={<LazyFallback label="Cargando asistencias…" />}>
+              <AsistenciasView
+                data={appData.data} getDocName={appData.getDocName}
+                getMateriaName={appData.getMateriaName} lapso={lapso}
+              />
+            </Suspense>
           )}
           {view === "historial" && (
             <Suspense fallback={<LazyFallback label="Cargando historial…" />}>
