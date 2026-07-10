@@ -28,7 +28,8 @@ autenticación/sesión. El proyecto usó además dos nomenclaturas anteriores
 ## 🟡 Hallazgos abiertos (detalle completo)
 
 Todo lo necesario para retomar cada uno sin releer el historial completo.
-Orden de prioridad recomendado (mayor a menor impacto/urgencia):
+Orden de prioridad recomendado (mayor a menor impacto/urgencia). `ARCH-9` y
+`SEC-9` ya se cerraron — quedan solo estos tres:
 
 ### 1. `FE-5` — Tokens sueltos en `.hl-*`
 **Archivo:** `src/index.css` (reglas `.hl-*`, migradas desde `HorariosLayout.jsx` por `U-5`)
@@ -59,27 +60,6 @@ adopción gradual sin migración masiva. Mejora de largo plazo, sin prisa.
 vista desde identidad visual — no es un hallazgo independiente, pero se
 sigue rastreando aquí porque `A3`/`S3` ya cerraron y este resto no.
 
-### `ARCH-9` — Código muerto en `ResponsiveStyles.jsx`
-**Archivo:** `src/components/ResponsiveStyles.jsx`
-Ningún otro archivo del repo lo importa ni renderiza, y su propio import
-(`responsiveCSS` desde `constants`) no existe en ningún lado — si alguna vez
-se llegara a usar, rompería en tiempo de ejecución. Encontrado de forma
-incidental durante el barrido de `<style>` tags que cerró `S3`.
-**Fix:** eliminar el archivo directamente. Trivial, sin prioridad asignada
-todavía por ser de esfuerzo mínimo.
-
-### `SEC-9` — Funciones RPC ejecutables por `anon` sin `REVOKE` explícito
-**Archivos:** RPCs `get_auth_role`, `get_my_role`, `get_auth_programa`,
-`get_my_programa` (sin migración de origen registrada)
-Aparecen ejecutables por `anon` en la BD real y nunca tuvieron un `REVOKE`
-explícito en ninguna migración — mismo patrón que `SEC-8`, encontrado de
-paso al cerrar ese hallazgo. **Riesgo bajo:** son de solo lectura y
-devuelven `null`/vacío para un caller anónimo; ninguna decisión de
-seguridad delega en su resultado.
-**Fix:** agregar `REVOKE ALL FROM PUBLIC` explícito en una migración nueva,
-mismo patrón que `0049` (`SEC-8`). Señalado por transparencia, sin
-migración de cierre todavía.
-
 ---
 
 ## 🔐 Seguridad y RLS
@@ -102,7 +82,7 @@ migración de cierre todavía.
 | **D-6** | 2 CVEs "alta severidad" reportadas para `xlsx` (prototype pollution, ReDoS) | `package.json` | `0.20.3` | ✅ **Cerrado — falso positivo** (verificado 9 de julio contra `cdn.sheetjs.com/advisories`, no `npm audit`): ambas CVEs ya corregidas antes de `0.20.3`; `package.json` apunta al tarball oficial de SheetJS, no al paquete de npm abandonado en `0.18.5` (de ahí que `npm audit`/Snyk sigan marcándolo). No se migra a `exceljs` — sin vulnerabilidad real que mitigar |
 | **SEC-10** 🔴 | `admin_caller_puede_gestionar_usuarios()` solo verificaba un permiso booleano, sin comparar rol actor vs. rol objetivo — cualquier rol con ese permiso podía crear/editar/eliminar cuentas `admin` sin serlo (escalada de privilegios) | 5 RPCs `admin_*`, `api/admin-users.js` | `0050` | ✅ Cerrado — helper `admin_caller_es_admin()` como guard en las 5 RPCs y replicado en `admin-users.js` (que no llama a las RPCs, usa la Auth Admin API directo) |
 | **SEC-11** | `api/admin-users.js` (Service Role Key) sin límite de frecuencia propio | `api/admin-users.js`, `admin_actions_rate_limit` | `0051` | ✅ Cerrado — 10 acciones/minuto por `actor_id` (no IP, por NAT compartido en Vercel) |
-| **SEC-9** | Ver § Hallazgos abiertos | — | — | 🟡 Abierto |
+| **SEC-9** | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecían ejecutables por `anon` sin ningún `REVOKE` explícito en ninguna migración — mismo patrón que `SEC-8`. Riesgo bajo (solo lectura, devuelven `null`/vacío para `anon`) | 4 RPCs de sesión (sin migración de origen) | `0052` | ✅ Cerrado — ninguna de las 4 fue creada por una migración de este repo, así que `0052` resuelve la firma real vía `pg_proc` en vez de asumirla, y aplica `REVOKE`/`GRANT` a la función que efectivamente exista. Verificado contra la BD real tras aplicar: `anon` ya no aparece en `EXECUTE` de ninguna |
 
 ## 🔎 Filtrado de datos por permiso/programa
 
@@ -146,7 +126,7 @@ migración de cierre todavía.
 | **ARCH-6** | CSS embebido de `QRProyeccion.jsx` tenía el stylesheet completo duplicado dentro del mismo template literal | `asistencias/QRProyeccion.jsx` | ✅ Cerrado (5 de julio, junto con `S3`) — extraído a `QRProyeccion.css`, eliminada la copia vieja |
 | **ARCH-7** | Bundle de producción sin dividir por ruta — chunk principal de 514 KB, por encima del umbral de Vite | `vite.config.js`, vistas grandes de `HorariosLayout.jsx` | ✅ Cerrado (9 de julio) — `lazy()` + `Suspense` en `HorariosView`, `SeccionesView`, `DocentesView`, `MateriasView`, `AsistenciasView`, `UploadPreviewModal`. `ResumenView` se dejó estática a propósito (vista por defecto). Chunk principal: 503 KB → 468.49 KB |
 | **ARCH-8** | `HorariosLayout.jsx` (561 líneas) y `App.jsx` (353 líneas) concentraban layout, navegación y estado de sesión en un solo archivo | `src/app/HorariosLayout.jsx`, `src/App.jsx` | ✅ Cerrado — `HorariosSidebar.jsx`/`HorariosTopbar.jsx` extraídos; `HorariosLayout.jsx` 561→293 líneas, `App.jsx` 353→338 |
-| **ARCH-9** | Ver § Hallazgos abiertos | `ResponsiveStyles.jsx` | 🟡 Abierto |
+| **ARCH-9** | Código muerto: ningún archivo del repo lo importaba ni renderizaba, y su propio import (`responsiveCSS`) no existía en ningún lado. Encontrado de forma incidental durante el barrido que cerró `S3` | `src/components/ResponsiveStyles.jsx` | ✅ Cerrado — archivo eliminado |
 | **ARCH-10** | Ver § Hallazgos abiertos | `HistorialView.jsx`, `LogsView.jsx`, `LoginScreen.jsx` | 🟡 Abierto |
 
 ## 🔧 CI/CD y automatización
@@ -250,9 +230,16 @@ repetir el detalle ya cubierto en las tablas de arriba.
   (verificado contra `cdn.sheetjs.com/advisories`). `FIX-CI-4` cerrado
   (`logger.info()` agregado).
 - **9 de julio, re-verificación completa de este índice:** confirmado que
-  `ARCH-8` seguía correctamente cerrado; quedan abiertos `SEC-9`, `ARCH-9`,
-  `ARCH-10`, `FE-3`, `FE-5` — ver § Hallazgos abiertos al inicio del
-  documento para el detalle completo de cada uno.
+  `ARCH-8` seguía correctamente cerrado; quedaban abiertos `SEC-9`,
+  `ARCH-9`, `ARCH-10`, `FE-3`, `FE-5`.
+- **9 de julio, reorganización de este documento:** se separaron los
+  hallazgos abiertos del historial de cierre (sin cambiar ningún estado).
+- **9 de julio, cierre de `ARCH-9` y `SEC-9`:** `ResponsiveStyles.jsx`
+  eliminado del repo. Migración `0052` revoca `EXECUTE` de `anon` en las 4
+  RPCs de sesión, resolviendo su firma real vía `pg_proc` (ninguna tenía
+  migración de origen versionada) — verificado contra la BD real tras
+  aplicar. Quedan abiertos `ARCH-10`, `FE-3`, `FE-5` — ver § Hallazgos
+  abiertos al inicio del documento.
 
 ---
 
