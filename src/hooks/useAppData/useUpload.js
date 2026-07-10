@@ -11,6 +11,18 @@
 //      El usuario cancela → limpiar estado, nada se guarda
 
 import { useState, useCallback } from "react";
+// Fix D-6 (auditoría 9 de julio, verificación): "xlsx" en package.json apunta
+// al tarball https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz — NO al
+// paquete "xlsx" del registro de npm (ese sí quedó abandonado en 0.18.5, sin
+// parche). Las 2 únicas CVEs que existen en la historia de SheetJS ya están
+// corregidas en 0.20.3: CVE-2023-30533 (Prototype Pollution, corregido en
+// 0.19.3) y CVE-2024-22363 (ReDoS, corregido en 0.20.2) — confirmado contra
+// cdn.sheetjs.com/advisories el 9 de julio de 2026. Si `npm audit`/Snyk
+// vuelven a marcar "xlsx" como vulnerable, es el mismo falso positivo que ya
+// documentó esta auditoría en `S2`: la herramienta compara contra el paquete
+// de npm, no contra la versión real instalada aquí. Antes de actuar sobre esa
+// alerta, verificar la versión real en package.json y cotejarla contra
+// cdn.sheetjs.com/advisories — no basta con confiar en el reporte automático.
 import * as XLSX from "xlsx";
 import { parseExcelFile, parseHojaDocentes, parseHojaMalla } from "../../utils/excelParser";
 import { tokensMatch } from "../../utils/parsing";
