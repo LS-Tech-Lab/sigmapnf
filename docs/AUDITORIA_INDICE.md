@@ -25,20 +25,12 @@ autenticación/sesión. El proyecto usó además dos nomenclaturas anteriores
 
 ---
 
-## 🟡 Hallazgos abiertos (detalle completo)
+## 🟢 Hallazgos abiertos
 
-Todo lo necesario para retomar cada uno sin releer el historial completo.
-`ARCH-9`, `SEC-9`, `FE-3` y `FE-5` ya se cerraron — queda solo este:
-
-### `ARCH-10` — Archivos grandes sin dividir
-**Archivos:** `src/components/HistorialView.jsx` (637 líneas), `LogsView.jsx`
-(517 líneas), `LoginScreen.jsx` (508 líneas — formulario normal, flujo de
-PIN offline y modal de activación mezclados en un solo archivo).
-Hallazgo de la auditoría QA senior del 9 de julio. Mismo problema de fondo
-que `ARCH-8` (ya cerrado), en archivos distintos.
-**Fix:** extraer subcomponentes de responsabilidad única, mismo patrón ya
-usado en `ARCH-8` (`HorariosSidebar.jsx`/`HorariosTopbar.jsx`) y en
-`usuarios/`. Sin urgencia de seguridad, sí de mantenibilidad a futuro.
+Ninguno — el último (`ARCH-10`) se cerró el 9 de julio (noche). Todos los
+hallazgos registrados en este índice están cerrados. Ver § Historial de
+auditorías al final para el detalle cronológico completo, y las tablas de
+categoría abajo para el detalle de cada uno.
 
 ---
 
@@ -107,7 +99,7 @@ usado en `ARCH-8` (`HorariosSidebar.jsx`/`HorariosTopbar.jsx`) y en
 | **ARCH-7** | Bundle de producción sin dividir por ruta — chunk principal de 514 KB, por encima del umbral de Vite | `vite.config.js`, vistas grandes de `HorariosLayout.jsx` | ✅ Cerrado (9 de julio) — `lazy()` + `Suspense` en `HorariosView`, `SeccionesView`, `DocentesView`, `MateriasView`, `AsistenciasView`, `UploadPreviewModal`. `ResumenView` se dejó estática a propósito (vista por defecto). Chunk principal: 503 KB → 468.49 KB |
 | **ARCH-8** | `HorariosLayout.jsx` (561 líneas) y `App.jsx` (353 líneas) concentraban layout, navegación y estado de sesión en un solo archivo | `src/app/HorariosLayout.jsx`, `src/App.jsx` | ✅ Cerrado — `HorariosSidebar.jsx`/`HorariosTopbar.jsx` extraídos; `HorariosLayout.jsx` 561→293 líneas, `App.jsx` 353→338 |
 | **ARCH-9** | Código muerto: ningún archivo del repo lo importaba ni renderizaba, y su propio import (`responsiveCSS`) no existía en ningún lado. Encontrado de forma incidental durante el barrido que cerró `S3` | `src/components/ResponsiveStyles.jsx` | ✅ Cerrado — archivo eliminado |
-| **ARCH-10** | Ver § Hallazgos abiertos | `HistorialView.jsx`, `LogsView.jsx`, `LoginScreen.jsx` | 🟡 Abierto |
+| **ARCH-10** | `HistorialView.jsx` (637 líneas), `LogsView.jsx` (517), `LoginScreen.jsx` (508) concentraban layout, estado y lógica de responsabilidades distintas en un solo archivo cada uno. Mismo problema de fondo que `ARCH-8`, en archivos distintos | `src/components/{HistorialView,LogsView,LoginScreen}.jsx` | ✅ **Cerrado (9 de julio, noche)** — mismo patrón que `ARCH-8`: cada archivo se dividió en un orquestador (estado/efectos/handlers) + subcomponentes presentacionales puros que reciben todo por props. `HistorialView.jsx` 637→286 líneas (`historial/`: `ModalTrimestre.jsx`, `ComparadorPanel.jsx`, `HistorialLista.jsx`, `historialUtils.jsx`). `LoginScreen.jsx` 508→336 líneas (`login/`: `ModalActivarPIN.jsx`, `LoginOfflinePinPanel.jsx`, `LoginFormNormal.jsx`). `LogsView.jsx` 517→76 líneas (`logs/`: `TabSesiones.jsx`, `TabAuditoria.jsx`, `logsUtils.jsx` — ya eran subcomponentes autocontenidos, solo se movieron). Extracción 1:1 verificada línea por línea contra el original antes de reemplazar, sin cambios de lógica. `vite build` limpio (mismo tamaño de bundle `view-logs`/`view-historial`, confirma que no se duplicó código), 153/153 tests |
 
 ## 🔧 CI/CD y automatización
 
@@ -242,6 +234,13 @@ repetir el detalle ya cubierto en las tablas de arriba.
   la escala múltiplo-de-4. `vite build` limpio, 153/153 tests con ambos
   fixes juntos. Queda abierto solo `ARCH-10` — ver § Hallazgos abiertos al
   inicio del documento.
+- **9 de julio, noche — cierre de `ARCH-10` (último hallazgo abierto):**
+  `HistorialView.jsx`, `LogsView.jsx` y `LoginScreen.jsx` divididos en
+  orquestador + subcomponentes, mismo patrón que `ARCH-8`. Cada extracción
+  se verificó línea por línea contra el original antes de reemplazar.
+  `vite build` limpio (tamaño de bundle idéntico en los chunks lazy
+  `view-historial`/`view-logs`, confirma que no se duplicó código),
+  153/153 tests. **No queda ningún hallazgo abierto en este índice.**
 
 ---
 
