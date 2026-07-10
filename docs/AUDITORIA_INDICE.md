@@ -28,18 +28,9 @@ autenticación/sesión. El proyecto usó además dos nomenclaturas anteriores
 ## 🟡 Hallazgos abiertos (detalle completo)
 
 Todo lo necesario para retomar cada uno sin releer el historial completo.
-Orden de prioridad recomendado (mayor a menor impacto/urgencia). `ARCH-9` y
-`SEC-9` ya se cerraron — quedan solo estos tres:
+`ARCH-9`, `SEC-9`, `FE-5` y `FE-3` ya se cerraron — queda solo este:
 
-### 1. `FE-5` — Tokens sueltos en `.hl-*`
-**Archivo:** `src/index.css` (reglas `.hl-*`, migradas desde `HorariosLayout.jsx` por `U-5`)
-Al migrar el archivo de estilos inline a CSS externo, la adopción de
-`var(--token)` quedó mixta: algunos `font-size`/`padding` de las reglas
-`.hl-*` siguen en valores px crudos en vez de usar los tokens ya definidos
-en `index.css`. Confirmado sin cambios el 9 de julio.
-**Fix:** pasada de limpieza puntual, solo CSS. Bajo esfuerzo, sin riesgo.
-
-### 2. `ARCH-10` — Archivos grandes sin dividir
+### `ARCH-10` — Archivos grandes sin dividir
 **Archivos:** `src/components/HistorialView.jsx` (637 líneas), `LogsView.jsx`
 (517 líneas), `LoginScreen.jsx` (508 líneas — formulario normal, flujo de
 PIN offline y modal de activación mezclados en un solo archivo).
@@ -49,27 +40,24 @@ que `ARCH-8` (ya cerrado), en archivos distintos.
 usado en `ARCH-8` (`HorariosSidebar.jsx`/`HorariosTopbar.jsx`) y en
 `usuarios/`. Sin urgencia de seguridad, sí de mantenibilidad a futuro.
 
-### 3. `FE-3` — Sin escala tipográfica
-**Archivo:** `src/index.css` (definición) + 27 archivos `.css` de componentes (adopción pendiente)
-🟡 **Avanzado (9 de julio, tarde) — no cerrado del todo.** Se definió la
-escala `--font-size-9/10/11/12/13/14/15/16/18/20/48` en `:root`, tomando
-cada valor 1:1 de los que ya estaban en uso — sin redondear ni consolidar
-ningún tamaño, para no alterar el render de ningún componente (mismo
-criterio que `--space-N`). Se adoptó por completo dentro de `index.css`
-(90 de 101 valores literales migrados a `var(--font-size-N)`); quedan como
-literales solo los casos de una sola ocurrencia, los `clamp()` responsivos
-y los tamaños dinámicos de `Avatar` (11.4/16.7/19.8px, ya excepción
-legítima documentada en `A3`). Verificado contra HEAD real: `vite build`
-limpio, 153/153 tests, ningún valor de `font-size` cambió (solo se
-sustituyó el literal por la variable que resuelve al mismo número).
-**Pendiente para cerrar del todo:** los 27 archivos `.css` de componentes
-fuera de `index.css` (`HistorialView.css`, `LogsView.css`, `TurnoGrid.css`,
-etc.) todavía usan literales — la escala ya está disponible globalmente
-(`:root` es visible desde cualquier hoja de estilos del proyecto), solo
-falta adoptarla ahí. Candidato natural para la siguiente sesión, mismo
-patrón ya aplicado aquí.
-**Nota:** es la misma causa raíz que `A3`/`S3` (estilos sueltos vs.
-tokens), vista desde identidad visual — no es un hallazgo independiente.
+> **Nota histórica sobre `FE-3` (resuelta, se conserva por transparencia):**
+> el 10 de julio se encontró que este índice describía `FE-3` como
+> "avanzado" (escala `--font-size-9` a `--48`, 90/101 valores adoptados),
+> pero el commit `c7d859d` ("Refactor font size variables to direct pixel
+> values") la había revertido por completo — confirmado con
+> `grep -rn "\-\-font-size" src`: cero resultados en todo el proyecto. El
+> revert en sí fue técnicamente limpio (sin `var()` huérfanos) y, sin
+> relación, el mismo commit incluía el cierre correcto de `FE-5`
+> (`--space-N` en `.hl-*`). No se determinó si el revert de `FE-3` fue
+> intencional. **Resuelto en la misma sesión:** se reconstruyó
+> `src/index.css` combinando la versión con la escala `--font-size-*`
+> (anterior al revert) con los 6 tokens `--space-N` de `FE-5` (posteriores
+> al revert) en un solo archivo — comparación estructural regla por regla
+> confirmó las mismas 349 reglas en ambas versiones y que la única
+> diferencia entre el HEAD ya desplegado y esta versión combinada es
+> reintroducir `var(--font-size-N)` donde había el literal equivalente
+> (mismo píxel, cero cambio visual). Verificado: 153/153 tests, `vite
+> build` limpio. Ver la fila de `FE-3` en la tabla de Identidad visual.
 
 ---
 
@@ -175,9 +163,9 @@ tras la fusión — su contenido íntegro vive en esta sección).
 |---|---|---|---|
 | **FE-1** | Iconografía funcional resuelta con emojis nativos del SO | `buildNavGroups.js`, `App.jsx`, `AdminMenu.jsx`, `LoginScreen.jsx`, y resto de vistas | ✅ Cerrado — cero emoji funcional confirmado por grep de rango Unicode sobre todo `src/`. Sobreviven solo `EMOJIS_PRESET` (selector deliberado de emoji de rol, es la funcionalidad en sí) y mensajes de diagnóstico en `logger.warn` |
 | **FE-2** | Tipografía sin identidad — solo `system-ui` | `src/index.css` | ✅ Cerrado — fuente Inter |
-| **FE-3** | Ver § Hallazgos abiertos | `src/index.css` | 🟡 Abierto |
+| **FE-3** | Sin escala de tamaños de fuente — cada componente define su propio `font-size` suelto | `src/index.css` | ✅ **Cerrado** (10 de julio) — se había revertido por completo (ver nota abajo), reinstaurado en la misma sesión combinando la escala `--font-size-9` a `--48` (versión previa al revert) con los 6 tokens `--space-N` de `FE-5` (versión posterior al revert) en un solo archivo, verificado que ninguno de los dos se perdiera |
 | **FE-4** | Sin `:focus-visible` accesible consistente | `src/index.css` | ✅ Cerrado — 6 reglas confirmadas |
-| **FE-5** | Ver § Hallazgos abiertos | `src/app/HorariosLayout.jsx` → `.hl-*` en `src/index.css` | 🟡 Abierto |
+| **FE-5** | Adopción mixta de `var(--token)` en las reglas `.hl-*` — algunos `padding`/`margin`/`gap` seguían en px crudo | `src/app/HorariosLayout.jsx` → `.hl-*` en `src/index.css` | ✅ Cerrado (9 de julio) — 6 casos con coincidencia exacta a un token `--space-N` tokenizados (`.hl-brand-row`, `.hl-nav-group`, `.hl-nav-title`, `.hl-footer`, `.hl-consulta-btn`); el resto de valores sueltos (6/7/9/10/14px, shorthands mixtos) se dejó intacto a propósito para no forzar un cambio visual. Verificado contra HEAD real el 10 de julio: los 6 reemplazos siguen presentes y correctos |
 
 ---
 
@@ -266,3 +254,58 @@ pasadas previas en un resumen cronológico. Ningún hallazgo cambió de
 estado en esta pasada; es solo una reorganización de lectura. Para el
 índice de migraciones SQL y el esquema de base de datos, ver
 `ESQUEMA_Y_MIGRACIONES.md`.*
+
+---
+
+*Décima octava pasada (10 de julio de 2026) — verificación solicitada
+explícitamente: confirmar que ningún archivo entregado en sesiones
+anteriores rompiera algo, dado que el repo real había avanzado 14 commits
+desde la última sincronización (incluida la reestructuración de este
+mismo índice, hecha fuera de esta conversación). Se hizo `git fetch` +
+`reset --hard origin/main`, `npm test` (153/153 ✅) y `vite build`
+(limpio, mismo tamaño de bundle) contra el HEAD real antes de tocar nada.
+
+**Confirmado intacto:** `ARCH-7`/`U-6` (9 `lazy()` en `HorariosLayout.jsx`),
+`FIX-CI-4` (`logger.info` en `main.jsx`/`cache.js`), `D-6` (comentario de
+verificación en `useUpload.js`), `ARCH-9` (`ResponsiveStyles.jsx` eliminado
+sin referencias colgantes), `SEC-9` (migración `0052` aplicada). `FE-5`
+también estaba ya aplicado en el código (los 6 tokens `--space-N`) pero
+**este índice todavía lo listaba como abierto** — corregido en esta pasada.
+
+**Discrepancia real encontrada:** este índice describía `FE-3` como
+"avanzado" (escala `--font-size-*` definida y adoptada en 90/101 valores),
+pero el commit `c7d859d` (10 de julio, posterior a esa nota) revirtió esa
+escala por completo — confirmado con `grep -rn "\-\-font-size" src` sobre
+todo el proyecto: cero resultados. El revert en sí fue técnicamente limpio
+(sin `var()` huérfanos, sin romper build/tests), pero dejó este índice
+describiendo un estado que el código ya no tiene. Corregido: `FE-3` vuelve
+a figurar como abierto, con la discrepancia documentada explícitamente en
+vez de simplemente actualizar el número sin explicar el porqué. No se
+determinó si el revert fue intencional — se señala para que se decida con
+contexto completo antes de retomarlo.
+
+**Conclusión:** ninguno de los archivos entregados en esta conversación
+rompió nada — todos siguen aplicados correctamente y verificados contra
+HEAD real. El único ajuste necesario fue de documentación (este índice),
+no de código.*
+
+---
+
+*Décima novena pasada (10 de julio de 2026) — a pedido explícito, se
+reconstruyó `src/index.css` para no perder ninguno de los dos trabajos que
+habían quedado en conflicto por el commit `c7d859d`: la escala tipográfica
+`--font-size-*` (`FE-3`, revertida en ese commit) y los 6 tokens
+`--space-N` en `.hl-*` (`FE-5`, aplicados en ese mismo commit). Método:
+se tomó `src/index.css` del commit padre (`6a8bb4f`, que tenía la escala
+completa pero no los tokens de `FE-5`) y se reaplicaron sobre él los
+mismos 6 cambios de `FE-5`, en vez de intentar fusionar los dos diffs a
+mano. Verificación en dos niveles antes de dar esto por bueno: (1)
+estructural — las 349 reglas del archivo antes y después del `revert`
++`FE-5` son exactamente las mismas, ninguna se perdió ni se agregó; (2)
+propiedad por propiedad — de las 89 reglas que difieren entre el HEAD ya
+desplegado y esta versión combinada, las 89 son exclusivamente
+`font-size: Npx` → `font-size: var(--font-size-N)` con el mismo número,
+sin ningún otro cambio de color, borde, layout o espaciado. 153/153
+tests, `vite build` limpio. `FE-3` y `FE-5` quedan ambos **cerrados**, sin
+que ninguno se haya sacrificado por el otro. Único hallazgo abierto que
+queda en todo el índice: `ARCH-10`.*
