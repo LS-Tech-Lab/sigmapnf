@@ -30,10 +30,21 @@ ver § Histórico al final.
 
 ## 🟢 Hallazgos abiertos
 
-Ninguno — el último (`SEC-12`) se abrió y cerró el 10 de julio. Todos los
-hallazgos registrados en este índice están cerrados. Ver § Historial de
-auditorías al final para el detalle cronológico completo, y las tablas de
-categoría abajo para el detalle de cada uno.
+Dos, ambos de severidad baja y ninguno bloqueante para producción:
+
+- **D-7** 🟡 — 2 vulnerabilidades de `npm audit` en `vite`/`esbuild`,
+  confinadas al servidor de desarrollo (no afectan el build de producción
+  de Vercel). Sin urgencia, diferido a la próxima ventana de
+  mantenimiento. Ver tabla en 🔐 Seguridad y RLS.
+- **U-7** — Regresión de accesibilidad (`<label>` sin `htmlFor`/`id`) en
+  los 3 componentes de login extraídos al cerrar `ARCH-10`. En progreso en
+  otra sesión de trabajo — no confirmar como cerrado hasta verificarlo
+  contra el HEAD real. Ver tabla en 🎨 UI y estilos.
+
+`ARCH-11` (mismo lote de la auditoría del 11 de julio) ya se cerró el
+mismo día — ver § Historial de auditorías al final para el detalle
+cronológico completo, y las tablas de categoría abajo para el detalle de
+cada hallazgo.
 
 ---
 
@@ -58,6 +69,7 @@ categoría abajo para el detalle de cada uno.
 | **SEC-10** 🔴 | `admin_caller_puede_gestionar_usuarios()` solo verificaba un permiso booleano, sin comparar rol actor vs. rol objetivo — cualquier rol con ese permiso podía crear/editar/eliminar cuentas `admin` sin serlo (escalada de privilegios) | 5 RPCs `admin_*`, `api/admin-users.js` | `0050` | ✅ Cerrado — helper `admin_caller_es_admin()` como guard en las 5 RPCs y replicado en `admin-users.js` (que no llama a las RPCs, usa la Auth Admin API directo) |
 | **SEC-11** | `api/admin-users.js` (Service Role Key) sin límite de frecuencia propio | `api/admin-users.js`, `admin_actions_rate_limit` | `0051` | ✅ Cerrado — 10 acciones/minuto por `actor_id` (no IP, por NAT compartido en Vercel) |
 | **SEC-9** | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecían ejecutables por `anon` sin ningún `REVOKE` explícito en ninguna migración — mismo patrón que `SEC-8`. Riesgo bajo (solo lectura, devuelven `null`/vacío para `anon`) | 4 RPCs de sesión (sin migración de origen) | `0052` | ✅ Cerrado — ninguna de las 4 fue creada por una migración de este repo, así que `0052` resuelve la firma real vía `pg_proc` en vez de asumirla, y aplica `REVOKE`/`GRANT` a la función que efectivamente exista. Verificado contra la BD real tras aplicar: `anon` ya no aparece en `EXECUTE` de ninguna |
+| **D-7** 🟡 | `npm audit` marca 2 vulnerabilidades en `vite`/`esbuild` (una "alta", una "moderada"). Ambas viven en el servidor de desarrollo (`npm run dev`) — permiten que una web maliciosa le pida datos a ese servidor mientras corre localmente. No afectan el build de producción que sirve Vercel (ahí no hay servidor de desarrollo corriendo, solo archivos estáticos) | `package.json` (`devDependencies.vite`) | — | 🟡 Abierto — sin urgencia. Cuando haya ventana de mantenimiento: `npm audit fix --force`, confirmar que `vite-plugin-pwa` sigue siendo compatible con la versión mayor que instala (salto a Vite 6.x/8.x) y correr la suite completa después. Mientras tanto, evitar exponer el puerto del dev server a redes no confiables |
 | **SEC-12** 🔴 | Reportado por LS: una sesión iniciada nunca se cerraba sola aunque pasaran días. Causa: `persistSession`/`autoRefreshToken` por defecto (sin límite de sesión) + el timeout de inactividad de `useAuth.js` (30/60 min) vivía solo en memoria del componente — cerrar la pestaña y reabrirla reiniciaba el conteo a cero sin importar el tiempo real transcurrido. Riesgo: acceso físico no autorizado al equipo con la cuenta ya logueada | `src/hooks/useAuth.js`, `auth.sessions` | `0053_limpieza_sesiones_expiradas`, `0055_fix_email_session_logs_cron` | ✅ Cerrado (10 de julio) — dos capas. Client: última actividad e inicio de sesión persistidos en `localStorage`; al montar, si ya venció el plazo se cierra sesión de inmediato, si no, el timer arranca con el tiempo *restante*. Se agrega además un time-box absoluto de 10h (jornada laboral) que no existía. Server (capa real, no evadible editando `localStorage`): `pg_cron` cada 15 min borra de `auth.sessions` lo que exceda el time-box (10h) o 2h sin renovar token — replica el "Time-boxed sessions" de Supabase Pro sin tener ese plan, usando acceso directo a `auth.sessions` (mismo patrón ya establecido en `0014`/`0015`/`0021`/`0050` con `auth.users`). Cada cierre forzado queda registrado en `session_logs` (`evento='logout'`, `detalles->>'forzado'='true'` — ver nota `0055`). `0055` corrige dos constraints de `session_logs` en producción no documentados en ningún esquema versionado (mismo tipo de drift que ya detectó `0033`): `NOT NULL` en `email` (resuelto poblando `email`/`nombre`/`rol`/`programa` vía el mismo JOIN que ya usa `get_session_logs()`) y un `CHECK` en `evento` que solo permite `'login'`/`'logout'` — verificado contra la BD real (302/49 filas) — por lo que el cierre forzado por servidor reusa `evento='logout'` y marca la distinción en `detalles` (`forzado`, `origen`, `motivo`) en vez de ampliar el constraint. Pendiente en el dashboard de Supabase (no se puede hacer por migración): confirmar `pg_cron` habilitado y considerar bajar el JWT expiry limit para acotar la ventana entre el borrado del server y el vencimiento natural del access token ya emitido |
 
 ## 🔎 Filtrado de datos por permiso/programa
@@ -104,6 +116,7 @@ categoría abajo para el detalle de cada uno.
 | **ARCH-8** | `HorariosLayout.jsx` (561 líneas) y `App.jsx` (353 líneas) concentraban layout, navegación y estado de sesión en un solo archivo | `src/app/HorariosLayout.jsx`, `src/App.jsx` | ✅ Cerrado — `HorariosSidebar.jsx`/`HorariosTopbar.jsx` extraídos; `HorariosLayout.jsx` 561→293 líneas, `App.jsx` 353→338 |
 | **ARCH-9** | Código muerto: ningún archivo del repo lo importaba ni renderizaba, y su propio import (`responsiveCSS`) no existía en ningún lado. Encontrado de forma incidental durante el barrido que cerró `S3` | `src/components/ResponsiveStyles.jsx` | ✅ Cerrado — archivo eliminado |
 | **ARCH-10** | `HistorialView.jsx` (637 líneas), `LogsView.jsx` (517), `LoginScreen.jsx` (508) concentraban layout, estado y lógica de responsabilidades distintas en un solo archivo cada uno. Mismo problema de fondo que `ARCH-8`, en archivos distintos | `src/components/{HistorialView,LogsView,LoginScreen}.jsx` | ✅ **Cerrado (9 de julio, noche)** — mismo patrón que `ARCH-8`: cada archivo se dividió en un orquestador (estado/efectos/handlers) + subcomponentes presentacionales puros que reciben todo por props. `HistorialView.jsx` 637→286 líneas (`historial/`: `ModalTrimestre.jsx`, `ComparadorPanel.jsx`, `HistorialLista.jsx`, `historialUtils.jsx`). `LoginScreen.jsx` 508→336 líneas (`login/`: `ModalActivarPIN.jsx`, `LoginOfflinePinPanel.jsx`, `LoginFormNormal.jsx`). `LogsView.jsx` 517→76 líneas (`logs/`: `TabSesiones.jsx`, `TabAuditoria.jsx`, `logsUtils.jsx` — ya eran subcomponentes autocontenidos, solo se movieron). Extracción 1:1 verificada línea por línea contra el original antes de reemplazar, sin cambios de lógica. `vite build` limpio (mismo tamaño de bundle `view-logs`/`view-historial`, confirma que no se duplicó código), 153/153 tests |
+| **ARCH-11** | `api/admin-users.js` repetía el mismo bloque (armar headers, llamar `fetch`, parsear JSON, revisar `.ok`) 13 veces para hablar con Supabase (Auth Admin API + REST) | `api/admin-users.js` | ✅ **Cerrado (11 de julio)** — extraído `supabaseAdminFetch(path, options)`: centraliza `Authorization`/`apikey`/`Content-Type` condicional (solo si hay body) y el prefijo `${SUPABASE_URL}`; `options.headers` se aplica después de los defaults, así que puede sobreescribirlos — lo usa la verificación de sesión inicial, que necesita `Authorization: Bearer <token del usuario>` en vez del service role. Las 13 llamadas (verificación de sesión/permiso/rate-limit + `create`/`reset_password`/`delete`/`delete_orphan`) migradas 1:1 al helper, sin tocar lógica de permisos. Verificado contra el HEAD real antes de reemplazar: diff de todos los mensajes de error idéntico byte a byte, cero `fetch(` directo fuera del helper, 121/121 tests (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox de verificación, mismo caso ya documentado en `D-6`) |
 
 ## 🔧 CI/CD y automatización
 
@@ -130,6 +143,7 @@ asumirlo.
 | **A3** | Migración sistemática de estilos inline a CSS externo (requisito de `S3`) | Todo `src/` — bajó de 54 a 0 ocurrencias reales | ✅ Cerrado — `Avatar.jsx` (tono bucketizado a 24 pasos de 15°), `TurnoGrid.jsx` (resuelto con `flex: 1` en vez de cálculo en JS), `ModalRol.jsx` (restringido a 10 presets) |
 | **U-5** | Los 7 archivos del shell principal (`src/app/`) nunca se auditaron para responsividad — solo se había cubierto funcionalidad (QR, horarios, login) | `HorariosLayout.jsx`, `UserMenu.jsx`, `AsistenciasModulo.jsx`, `App.jsx`, `AdminMenu.jsx`, `SinPerfilAsignado.jsx`, `CuentaDesactivada.jsx` | ✅ Cerrado — migrados a clases con prefijo (`hl-`, `um-`, `asm-`, `adm-`, `spa-`, `cd-`) con reglas `@media` incluidas |
 | **U-6** | El bundle sin dividir (`ARCH-7`) alargaba la pantalla en blanco en la primera carga | mismo que `ARCH-7` | ✅ Cerrado (9 de julio, mismo fix que `ARCH-7`) |
+| **U-7** | `LoginFormNormal.jsx`, `LoginOfflinePinPanel.jsx`, `ModalActivarPIN.jsx` (extraídos de `LoginScreen.jsx` al cerrar `ARCH-10`, la noche del 9 de julio): el `<label>` de cada campo quedó como hermano del `<input>`, sin `htmlFor`/`id` — misma regresión que `U-4` ya había resuelto en `Campo.jsx`, reintroducida en archivos nuevos que no pasaron por ese fix | `src/components/login/{LoginFormNormal,LoginOfflinePinPanel,ModalActivarPIN}.jsx` | 🟡 En progreso (otra sesión de trabajo) — mismo patrón que `Campo.jsx`: `useId()` + `htmlFor`/`id`, o anidar el `<input>` dentro del `<label>` como ya hace `ReporteAsistencias` |
 
 ## 🎨 Identidad visual y sistema de diseño
 
@@ -308,6 +322,23 @@ repetir el detalle ya cubierto en las tablas de arriba.
   dashboard de Supabase (fuera del alcance de una migración): confirmar
   `pg_cron` habilitado y evaluar bajar el JWT expiry limit. **No queda
   ningún hallazgo abierto en este índice.**
+- **11 de julio, auditoría QA senior externa (Arquitectura 91/100,
+  Seguridad 93/100, UX 88/100):** clonado fresco de `main`, sin asumir el
+  estado reportado en este índice. Confirmó que el índice previo era
+  preciso — ningún hallazgo cerrado resultó estar en realidad abierto.
+  Agregó 3 hallazgos nuevos, ninguno crítico: `ARCH-11` (código
+  duplicado en `api/admin-users.js`), `D-7` (2 CVEs de `npm audit` en
+  `vite`/`esbuild`, solo dev-server) y `U-7` (regresión de accesibilidad
+  en los formularios de login extraídos por `ARCH-10`).
+- **11 de julio, cierre de `ARCH-11`:** extraído `supabaseAdminFetch()`
+  en `api/admin-users.js`, centralizando las 13 llamadas a Supabase que
+  antes repetían headers/parseo a mano. Verificado contra el HEAD real
+  clonado desde GitHub antes de escribir el reemplazo: mensajes de error
+  idénticos, cero `fetch(` directo fuera del helper, 121/121 tests (2
+  suites de `xlsx` bloqueadas solo por el firewall del sandbox, mismo
+  caso de `D-6`). Quedan abiertos `D-7` (diferido, sin urgencia) y `U-7`
+  (en progreso en otra sesión) — ver § Hallazgos abiertos al inicio del
+  documento.
 - **11 de julio — `0055`, fix sobre `SEC-12` (drift de esquema, no
   hallazgo nuevo, 2 rondas):** al ejecutar `limpiar_sesiones_expiradas()`
   por primera vez contra la BD real, falló con `23502: null value in
