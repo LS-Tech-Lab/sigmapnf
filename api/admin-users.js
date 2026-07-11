@@ -7,6 +7,35 @@ import { validarPassword } from "../src/utils/password.js";
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// ── ARCH-11: helper central para llamadas a Supabase con service_role ─
+// Antes, cada una de las 13 llamadas a Supabase repetía a mano el
+// armado de headers (Authorization + apikey + Content-Type condicional)
+// y el `${SUPABASE_URL}${path}`. Este helper centraliza ese bloque para
+// que un cambio futuro (timeout, header nuevo, logging de errores) se
+// haga en un solo lugar. No cambia ninguna lógica de permisos ni de
+// negocio: cada call site sigue parseando la respuesta y decidiendo qué
+// hacer con `.ok` / status exactamente igual que antes.
+//
+// `options.headers` se aplica DESPUÉS de los headers por defecto, así
+// que puede sobreescribirlos — lo usa la verificación de sesión inicial,
+// que necesita `Authorization: Bearer <token del usuario>` en vez del
+// service role.
+async function supabaseAdminFetch(path, options = {}) {
+  const { method = "GET", headers = {}, body } = options;
+  const hasBody = body !== undefined;
+
+  return fetch(`${SUPABASE_URL}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      apikey: SERVICE_ROLE_KEY,
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
+      ...headers,
+    },
+    ...(hasBody ? { body: JSON.stringify(body) } : {}),
+  });
+}
+
 export default async function handler(req, res) {
   try {
     return await handleRequest(req, res);
@@ -29,11 +58,8 @@ async function handleRequest(req, res) {
   }
 
   // Obtener el usuario actual con su token
-  const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      Authorization: `Bearer ${userToken}`,
-      apikey: SERVICE_ROLE_KEY,
-    },
+  const userRes = await supabaseAdminFetch("/auth/v1/user", {
+    headers: { Authorization: `Bearer ${userToken}` },
   });
   const userData = await userRes.json();
   if (!userRes.ok || !userData.id) {
@@ -41,17 +67,9 @@ async function handleRequest(req, res) {
   }
 
   // Verificar permiso via RPC (usa service_role para bypassear RLS)
-  const permRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/rpc/admin_caller_puede_gestionar_usuarios`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        apikey: SERVICE_ROLE_KEY,
-      },
-      body: JSON.stringify({ p_user_id: userData.id }),
-    }
+  const permRes = await supabaseAdminFetch(
+    "/rest/v1/rpc/admin_caller_puede_gestionar_usuarios",
+    { method: "POST", body: { p_user_id: userData.id } }
   );
   const puedeGestionar = await permRes.json();
   if (!puedeGestionar) {
@@ -63,17 +81,9 @@ async function handleRequest(req, res) {
   // (create/reset_password/delete/delete_orphan comparten el mismo
   // límite: es por endpoint, no por acción). Mismo patrón que
   // scan_rate_limit (D-3) — ver migración 0051.
-  const rateLimitRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/rpc/registrar_admin_action_rate_limit`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        apikey: SERVICE_ROLE_KEY,
-      },
-      body: JSON.stringify({ p_actor_id: userData.id }),
-    }
+  const rateLimitRes = await supabaseAdminFetch(
+    "/rest/v1/rpc/registrar_admin_action_rate_limit",
+    { method: "POST", body: { p_actor_id: userData.id } }
   );
   const rateLimitData = await rateLimitRes.json();
   if (!rateLimitRes.ok) {
@@ -97,14 +107,8 @@ async function handleRequest(req, res) {
   // eso necesita su propio guard, no basta con corregir la BD.
   let callerEsAdmin = false;
   {
-    const callerProfileRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${userData.id}&select=rol`,
-      {
-        headers: {
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-          apikey: SERVICE_ROLE_KEY,
-        },
-      }
+    const callerProfileRes = await supabaseAdminFetch(
+      `/rest/v1/user_profiles?id=eq.${userData.id}&select=rol`
     );
     const callerProfileArr = await callerProfileRes.json();
     callerEsAdmin = callerProfileArr?.[0]?.rol === "admin";
@@ -129,19 +133,14 @@ async function handleRequest(req, res) {
     }
 
     // Crear usuario en Supabase Auth con service_role
-    const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+    const createRes = await supabaseAdminFetch("/auth/v1/admin/users", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        apikey: SERVICE_ROLE_KEY,
-      },
-      body: JSON.stringify({
+      body: {
         email,
         password,
         email_confirm: true,
         user_metadata: { nombre },
-      }),
+      },
     });
     const created = await createRes.json();
     if (!createRes.ok) {
@@ -151,15 +150,10 @@ async function handleRequest(req, res) {
     const userId = created.id;
 
     // Crear perfil en user_profiles
-    const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles`, {
+    const profileRes = await supabaseAdminFetch("/rest/v1/user_profiles", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        apikey: SERVICE_ROLE_KEY,
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({
+      headers: { Prefer: "return=minimal" },
+      body: {
         id:        userId,
         email,
         nombre,
@@ -167,19 +161,13 @@ async function handleRequest(req, res) {
         programa:  programa || null,
         activo:    true,
         creado_por: userData.email,
-      }),
+      },
     });
 
     if (!profileRes.ok) {
       const profileErr = await profileRes.json();
       // Revertir: borrar el usuario de Auth si el perfil falló
-      await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-          apikey: SERVICE_ROLE_KEY,
-        },
-      });
+      await supabaseAdminFetch(`/auth/v1/admin/users/${userId}`, { method: "DELETE" });
       return res.status(400).json({ error: profileErr.message || "Error al crear el perfil del usuario." });
     }
 
@@ -194,14 +182,8 @@ async function handleRequest(req, res) {
       return res.status(400).json({ error: "Faltan campos obligatorios." });
     }
     if (!callerEsAdmin) {
-      const targetProfileRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${user_id}&select=rol`,
-        {
-          headers: {
-            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-            apikey: SERVICE_ROLE_KEY,
-          },
-        }
+      const targetProfileRes = await supabaseAdminFetch(
+        `/rest/v1/user_profiles?id=eq.${user_id}&select=rol`
       );
       const targetProfileArr = await targetProfileRes.json();
       if (targetProfileArr?.[0]?.rol === "admin") {
@@ -213,14 +195,9 @@ async function handleRequest(req, res) {
       return res.status(400).json({ error: errorPwdReset });
     }
 
-    const resetRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${user_id}`, {
+    const resetRes = await supabaseAdminFetch(`/auth/v1/admin/users/${user_id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        apikey: SERVICE_ROLE_KEY,
-      },
-      body: JSON.stringify({ password }),
+      body: { password },
     });
     const resetData = await resetRes.json();
     if (!resetRes.ok) {
@@ -244,14 +221,8 @@ async function handleRequest(req, res) {
     }
 
     if (!callerEsAdmin) {
-      const targetProfileRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${user_id}&select=rol`,
-        {
-          headers: {
-            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-            apikey: SERVICE_ROLE_KEY,
-          },
-        }
+      const targetProfileRes = await supabaseAdminFetch(
+        `/rest/v1/user_profiles?id=eq.${user_id}&select=rol`
       );
       const targetProfileArr = await targetProfileRes.json();
       if (targetProfileArr?.[0]?.rol === "admin") {
@@ -260,28 +231,14 @@ async function handleRequest(req, res) {
     }
 
     // Borrar perfil primero
-    const delProfileRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${user_id}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-          apikey: SERVICE_ROLE_KEY,
-        },
-      }
-    );
+    await supabaseAdminFetch(`/rest/v1/user_profiles?id=eq.${user_id}`, {
+      method: "DELETE",
+    });
 
     // Borrar de auth.users
-    const delAuthRes = await fetch(
-      `${SUPABASE_URL}/auth/v1/admin/users/${user_id}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-          apikey: SERVICE_ROLE_KEY,
-        },
-      }
-    );
+    const delAuthRes = await supabaseAdminFetch(`/auth/v1/admin/users/${user_id}`, {
+      method: "DELETE",
+    });
 
     if (!delAuthRes.ok && delAuthRes.status !== 404) {
       const delAuthErr = await delAuthRes.json().catch(() => ({}));
@@ -306,16 +263,9 @@ async function handleRequest(req, res) {
       return res.status(400).json({ error: "No puedes eliminar tu propia cuenta." });
     }
 
-    const delAuthRes = await fetch(
-      `${SUPABASE_URL}/auth/v1/admin/users/${user_id}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-          apikey: SERVICE_ROLE_KEY,
-        },
-      }
-    );
+    const delAuthRes = await supabaseAdminFetch(`/auth/v1/admin/users/${user_id}`, {
+      method: "DELETE",
+    });
 
     if (!delAuthRes.ok && delAuthRes.status !== 404) {
       const delAuthErr = await delAuthRes.json().catch(() => ({}));
