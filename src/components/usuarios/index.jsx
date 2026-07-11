@@ -7,6 +7,9 @@
  *
  * Props:
  *   permisos  — objeto de permisos del usuario actual
+ *   profile   — perfil del usuario actual (se usa solo para saber si
+ *               rol === "admin" — jerarquía fija de SEC-10, ver
+ *               PestanaUsuarios/ModalUsuario)
  *   programas — lista de programas disponibles
  *   logAudit  — función de auditoría
  *   showToast — función de toast global
@@ -19,10 +22,17 @@ import PestanaUsuarios from "./PestanaUsuarios";
 import PestanaRoles    from "./PestanaRoles";
 import "./index.css";
 
-export default function UsuariosView({ permisos, programas, logAudit, showToast }) {
+export default function UsuariosView({ permisos, profile, programas, logAudit, showToast }) {
   const programasDisponibles = programas?.length ? programas : DEFAULT_PROGRAMAS;
   const puedeUsuarios = permisos.puedeGestionarUsuarios;
   const puedeRoles    = permisos.puedeGestionarRoles;
+  // SEC-10 (jerarquía fija del rol admin, migración 0050): el backend ya
+  // rechaza que alguien sin rol admin cree/edite/elimine una cuenta admin.
+  // esActorAdmin es solo para reflejar esa misma regla en la UI (ocultar
+  // la opción "admin" del selector, bloquear las acciones sobre filas
+  // admin) y evitar que alguien llegue a un error del servidor que ya
+  // sabíamos que iba a pasar.
+  const esActorAdmin = profile?.rol === "admin";
 
   const defaultTab = puedeUsuarios ? "usuarios" : "roles";
   const [tab,   setTab]   = useState(defaultTab);
@@ -82,6 +92,7 @@ export default function UsuariosView({ permisos, programas, logAudit, showToast 
       {tab === "usuarios" && puedeUsuarios && (
         <PestanaUsuarios
           permisos={permisos}
+          esActorAdmin={esActorAdmin}
           roles={roles}
           programas={programasDisponibles}
           showToast={showToast}

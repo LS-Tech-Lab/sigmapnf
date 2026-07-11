@@ -138,6 +138,7 @@ export default function AdminModulo({
             {tab === "usuarios" && (permisos.puedeGestionarUsuarios || permisos.puedeGestionarRoles) && (
               <UsuariosView
                 permisos={permisos}
+                profile={profile}
                 programas={appData.data?.programas || []}
                 logAudit={appData.logAudit}
                 showToast={appData.showToast}

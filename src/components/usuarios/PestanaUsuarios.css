@@ -83,6 +83,7 @@
 .pu-action-btn--activar { color: var(--color-success); }
 .pu-action-btn--desactivar { color: var(--color-danger); }
 .pu-action-btn--eliminar { border-color: var(--color-danger-light); color: var(--color-danger); }
+.pu-action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .pu-toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);

@@ -159,6 +159,7 @@ y porque toca los mismos archivos que varios hallazgos de arriba
 | **ADMIN-1** | El borrado de registros de sesión (login y QR) y de reportes de asistencia no existía como funcionalidad — se pidió que solo el rol admin pudiera hacerlo | `roles` (permisos `puedeBorrarSesiones`/`puedeBorrarReportes`), RPCs `admin_borrar_session_logs`/`admin_borrar_qr_sesiones`/`admin_borrar_asistencias_rango` | `0053` | ✅ Cerrado (10 de julio) — permiso dinámico en el JSONB de roles (no hardcodeado por nombre de rol), asignado solo a admin; cada RPC revalida el permiso en el servidor y registra en `audit_logs` |
 | **ADMIN-2** | UI de borrado para lo habilitado en `ADMIN-1`: selección múltiple en registros de sesión, borrado por fila en sesiones QR cerradas, borrado por rango de fechas en el reporte de asistencia | `src/components/logs/TabSesiones.jsx`, `src/components/asistencias/AdminQRPanel.jsx` (`HistorialSesiones`), `src/components/asistencias/ReporteAsistencias/ReporteRango.jsx` | `0053` | ✅ Cerrado (10 de julio) — todos los botones gateados por los permisos de `ADMIN-1`; borrar una sesión QR no borra las asistencias ya registradas (`qr_session_id` queda en `NULL`, sin pérdida de datos) |
 | **ADMIN-3** | "Usuarios y Roles" y "Registros" vivían dentro del módulo de Horarios filtrados por permiso; "Historial" vivía ahí sin ningún filtro de permiso — se pidió sacar los tres a un módulo propio, visible solo a quien tenga algún permiso admin | `src/app/AdminModulo.jsx` (nuevo), `src/hooks/useModuloActivo.js`, `src/components/ModuleSelector.jsx`, `src/app/buildNavGroups.js`, `src/app/HorariosLayout.jsx` | — | ✅ Cerrado (10 de julio) — decisión de producto confirmada con el usuario: Historial pasa a ser exclusivo de este módulo (antes lo veía cualquiera con acceso a Horarios, ahora requiere permiso admin). El nombre visible para el usuario quedó como **"Sistema"**, no "Administración", para no chocar con el dropdown que ya existía en el pie del sidebar de Horarios (`AdminMenu.jsx`: Importar Excel, Backup, Restaurar, Borrar Horarios) — el id interno (`moduloActivo === "admin"`, `tieneAdmin`) no cambió, solo la etiqueta |
+| **ADMIN-4** | La jerarquía fija del rol admin (`SEC-10`, migración `0050`) ya bloqueaba en el servidor que un rol no-admin creara/editara/eliminara una cuenta admin, pero la UI no reflejaba esa regla: el selector de rol mostraba "admin" como opción a cualquiera con `puedeGestionarUsuarios`, y las filas admin de la tabla no bloqueaban editar/desactivar/eliminar — el error solo aparecía al guardar | `src/components/usuarios/{index,PestanaUsuarios,ModalUsuario}.jsx` | — | ✅ Cerrado (10 de julio) — no es un hallazgo de seguridad nuevo (`SEC-10` ya cerraba el hueco real, en el servidor); es la UI reflejando la misma regla para evitar que alguien llegue a un error que ya sabíamos que iba a pasar. Se propaga `profile.rol === "admin"` (`esActorAdmin`) desde `AdminModulo.jsx` hasta `ModalUsuario.jsx`: oculta "admin" del selector de rol si el actor no lo es, y bloquea (con tooltip) editar/desactivar/eliminar sobre una fila admin en la tabla |
 
 ---
 
@@ -276,6 +277,17 @@ repetir el detalle ya cubierto en las tablas de arriba.
   Horarios). Ver § Funcionalidad nueva para el detalle. `vite build`
   limpio (bloqueado solo por `xlsx` en el sandbox de verificación, ajeno
   al cambio), 121/121 tests ejecutables.
+- **10 de julio — `ADMIN-4` (funcionalidad nueva, refuerzo de UI sobre
+  `SEC-10`):** a pedido del usuario, se verificó que la jerarquía fija de
+  rol admin (`SEC-10`) ya bloqueaba en el servidor (RPCs + `api/admin-
+  users.js`) que un no-admin creara/editara una cuenta admin — no hacía
+  falta ningún cambio de seguridad. Lo que faltaba era reflejar esa regla
+  en la UI: se propagó `profile.rol === "admin"` desde `AdminModulo.jsx`
+  hasta `ModalUsuario.jsx` (`esActorAdmin`) para ocultar "admin" del
+  selector de rol y bloquear las acciones de fila sobre cuentas admin
+  cuando el actor no lo es. 121/121 tests (incluye
+  `PestanaUsuarios.integration.test.jsx`, que sigue pasando sin cambios
+  porque su fixture no usa rol admin), `vite build` limpio.
 
 ---
 

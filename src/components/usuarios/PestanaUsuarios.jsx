@@ -5,11 +5,17 @@
  * (activar/desactivar, editar, eliminar) y gestión de huérfanos.
  *
  * Props:
- *   permisos    — objeto de permisos del usuario actual
- *   roles       — lista de roles (para filtro y modal)
- *   programas   — lista de programas disponibles
- *   showToast   — función de toast global (opcional; usa toast local si no se pasa)
- *   logAudit    — función de auditoría
+ *   permisos     — objeto de permisos del usuario actual
+ *   esActorAdmin — true si el usuario actual tiene rol === "admin"
+ *                  (jerarquía fija de SEC-10/migración 0050). Se usa
+ *                  para reflejar en la UI la misma regla que el backend
+ *                  ya aplica: bloquear editar/desactivar/eliminar sobre
+ *                  una fila admin, y ocultar "admin" del selector de rol
+ *                  del modal — ver ModalUsuario.jsx.
+ *   roles        — lista de roles (para filtro y modal)
+ *   programas    — lista de programas disponibles
+ *   showToast    — función de toast global (opcional; usa toast local si no se pasa)
+ *   logAudit     — función de auditoría
  */
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -18,7 +24,7 @@ import { Badge, Spinner, ModalConfirm } from "./shared";
 import "./PestanaUsuarios.css";
 import ModalUsuario from "./ModalUsuario";
 
-export default function PestanaUsuarios({ permisos, roles, programas, showToast: showToastProp, logAudit }) {
+export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles, programas, showToast: showToastProp, logAudit }) {
   const [usuarios,    setUsuarios]    = useState([]);
   const [huerfanos,   setHuerfanos]   = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -239,25 +245,35 @@ export default function PestanaUsuarios({ permisos, roles, programas, showToast:
                       </span>
                     </td>
                     <td className="s-td pu-td-right">
-                      {permisos.puedeGestionarUsuarios && (
-                        <div className="pu-actions">
-                          <button
-                            onClick={() => setModalEditar(u)}
-                            title="Editar"
-                            className="pu-action-btn"
-                          ><i className="ti ti-pencil" /></button>
-                          <button
-                            onClick={() => setConfirm({ usuario: u, nuevoActivo: !u.activo })}
-                            title={u.activo ? "Desactivar" : "Activar"}
-                            className={`pu-action-btn ${u.activo ? "pu-action-btn--desactivar" : "pu-action-btn--activar"}`}
-                          ><i className={u.activo ? "ti ti-user-off" : "ti ti-user-check"} /></button>
-                          <button
-                            onClick={() => setConfirm({ usuario: u, accion: "delete" })}
-                            title="Eliminar permanentemente"
-                            className="pu-action-btn pu-action-btn--eliminar"
-                          ><i className="ti ti-trash" /></button>
-                        </div>
-                      )}
+                      {permisos.puedeGestionarUsuarios && (() => {
+                        // SEC-10 en la UI: el backend ya rechaza estas acciones
+                        // sobre una cuenta admin si quien las pide no lo es —
+                        // aquí solo evitamos que alguien llegue a ese error.
+                        const bloqueado = u.rol === "admin" && !esActorAdmin;
+                        const title = bloqueado ? "Solo una cuenta admin puede gestionar otra cuenta admin." : undefined;
+                        return (
+                          <div className="pu-actions">
+                            <button
+                              onClick={() => !bloqueado && setModalEditar(u)}
+                              disabled={bloqueado}
+                              title={title || "Editar"}
+                              className="pu-action-btn"
+                            ><i className="ti ti-pencil" /></button>
+                            <button
+                              onClick={() => !bloqueado && setConfirm({ usuario: u, nuevoActivo: !u.activo })}
+                              disabled={bloqueado}
+                              title={title || (u.activo ? "Desactivar" : "Activar")}
+                              className={`pu-action-btn ${u.activo ? "pu-action-btn--desactivar" : "pu-action-btn--activar"}`}
+                            ><i className={u.activo ? "ti ti-user-off" : "ti ti-user-check"} /></button>
+                            <button
+                              onClick={() => !bloqueado && setConfirm({ usuario: u, accion: "delete" })}
+                              disabled={bloqueado}
+                              title={title || "Eliminar permanentemente"}
+                              className="pu-action-btn pu-action-btn--eliminar"
+                            ><i className="ti ti-trash" /></button>
+                          </div>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );
@@ -271,6 +287,7 @@ export default function PestanaUsuarios({ permisos, roles, programas, showToast:
       {(modalNuevo || modalEditar) && (
         <ModalUsuario
           usuario={modalEditar || null}
+          esActorAdmin={esActorAdmin}
           roles={roles}
           programas={programas}
           showToast={toast}

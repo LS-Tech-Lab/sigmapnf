@@ -3,13 +3,22 @@
  *
  * Modal de creación y edición de usuarios.
  * Props:
- *   usuario   — objeto usuario existente (null/undefined = modo "nuevo")
- *   roles     — lista de roles disponibles
- *   programas — lista de programas disponibles
- *   onSave    — callback tras guardar con éxito
- *   onClose   — callback para cerrar sin guardar
- *   showToast — función de toast global
- *   logAudit  — función de auditoría
+ *   usuario      — objeto usuario existente (null/undefined = modo "nuevo")
+ *   esActorAdmin — true si quien usa el modal tiene rol === "admin"
+ *                  (SEC-10/migración 0050). Con false, "admin" se oculta
+ *                  del selector de rol — el backend ya lo rechazaría,
+ *                  esto solo evita que alguien llegue a ese error. Por
+ *                  diseño, PestanaUsuarios ya bloquea el botón "Editar"
+ *                  sobre una fila admin cuando esActorAdmin es false, así
+ *                  que en la práctica `usuario` nunca llega aquí con
+ *                  rol === "admin" en ese caso — el filtro de abajo es
+ *                  además una segunda barrera, no la única.
+ *   roles        — lista de roles disponibles
+ *   programas    — lista de programas disponibles
+ *   onSave       — callback tras guardar con éxito
+ *   onClose      — callback para cerrar sin guardar
+ *   showToast    — función de toast global
+ *   logAudit     — función de auditoría
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -19,12 +28,13 @@ import { validarPassword } from "../../utils/password";
 import useFocusTrap from "../../hooks/useFocusTrap";
 import "./ModalUsuario.css";
 
-export default function ModalUsuario({ usuario, roles, programas, onSave, onClose, showToast, logAudit }) {
+export default function ModalUsuario({ usuario, esActorAdmin = false, roles, programas, onSave, onClose, showToast, logAudit }) {
   const esNuevo = !usuario?.id;
+  const rolesVisibles = esActorAdmin ? roles : roles.filter(r => r.nombre !== "admin");
   const [form, setForm] = useState({
     email:    usuario?.email    || "",
     nombre:   usuario?.nombre   || "",
-    rol:      usuario?.rol      || (roles[0]?.nombre || ""),
+    rol:      usuario?.rol      || (rolesVisibles[0]?.nombre || ""),
     programa: usuario?.programa || "",
     password: "",
   });
@@ -207,7 +217,7 @@ export default function ModalUsuario({ usuario, roles, programas, onSave, onClos
           <div>
             <label htmlFor="usr-field-rol" className="mu-field-label">Rol</label>
             <select id="usr-field-rol" className="s-select s-select--full" value={form.rol} onChange={set("rol")}>
-              {roles.map(r => (
+              {rolesVisibles.map(r => (
                 <option key={r.nombre} value={r.nombre}>{r.emoji} {r.label}</option>
               ))}
             </select>
