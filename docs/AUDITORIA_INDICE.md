@@ -27,7 +27,7 @@ autenticación/sesión. El proyecto usó además dos nomenclaturas anteriores
 
 ## 🟢 Hallazgos abiertos
 
-Ninguno — el último (`ARCH-10`) se cerró el 9 de julio (noche). Todos los
+Ninguno — el último (`SEC-12`) se abrió y cerró el 10 de julio. Todos los
 hallazgos registrados en este índice están cerrados. Ver § Historial de
 auditorías al final para el detalle cronológico completo, y las tablas de
 categoría abajo para el detalle de cada uno.
@@ -55,6 +55,7 @@ categoría abajo para el detalle de cada uno.
 | **SEC-10** 🔴 | `admin_caller_puede_gestionar_usuarios()` solo verificaba un permiso booleano, sin comparar rol actor vs. rol objetivo — cualquier rol con ese permiso podía crear/editar/eliminar cuentas `admin` sin serlo (escalada de privilegios) | 5 RPCs `admin_*`, `api/admin-users.js` | `0050` | ✅ Cerrado — helper `admin_caller_es_admin()` como guard en las 5 RPCs y replicado en `admin-users.js` (que no llama a las RPCs, usa la Auth Admin API directo) |
 | **SEC-11** | `api/admin-users.js` (Service Role Key) sin límite de frecuencia propio | `api/admin-users.js`, `admin_actions_rate_limit` | `0051` | ✅ Cerrado — 10 acciones/minuto por `actor_id` (no IP, por NAT compartido en Vercel) |
 | **SEC-9** | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecían ejecutables por `anon` sin ningún `REVOKE` explícito en ninguna migración — mismo patrón que `SEC-8`. Riesgo bajo (solo lectura, devuelven `null`/vacío para `anon`) | 4 RPCs de sesión (sin migración de origen) | `0052` | ✅ Cerrado — ninguna de las 4 fue creada por una migración de este repo, así que `0052` resuelve la firma real vía `pg_proc` en vez de asumirla, y aplica `REVOKE`/`GRANT` a la función que efectivamente exista. Verificado contra la BD real tras aplicar: `anon` ya no aparece en `EXECUTE` de ninguna |
+| **SEC-12** 🔴 | Reportado por LS: una sesión iniciada nunca se cerraba sola aunque pasaran días. Causa: `persistSession`/`autoRefreshToken` por defecto (sin límite de sesión) + el timeout de inactividad de `useAuth.js` (30/60 min) vivía solo en memoria del componente — cerrar la pestaña y reabrirla reiniciaba el conteo a cero sin importar el tiempo real transcurrido. Riesgo: acceso físico no autorizado al equipo con la cuenta ya logueada | `src/hooks/useAuth.js`, `auth.sessions` | `0053` | ✅ Cerrado (10 de julio) — dos capas. Client: última actividad e inicio de sesión persistidos en `localStorage`; al montar, si ya venció el plazo se cierra sesión de inmediato, si no, el timer arranca con el tiempo *restante*. Se agrega además un time-box absoluto de 10h (jornada laboral) que no existía. Server (capa real, no evadible editando `localStorage`): `pg_cron` cada 15 min borra de `auth.sessions` lo que exceda el time-box (10h) o 2h sin renovar token — replica el "Time-boxed sessions" de Supabase Pro sin tener ese plan, usando acceso directo a `auth.sessions` (mismo patrón ya establecido en `0014`/`0015`/`0021`/`0050` con `auth.users`). Cada cierre forzado queda registrado en `session_logs` (`logout_forzado_servidor`). Pendiente en el dashboard de Supabase (no se puede hacer por migración): confirmar `pg_cron` habilitado y considerar bajar el JWT expiry limit para acotar la ventana entre el borrado del server y el vencimiento natural del access token ya emitido |
 
 ## 🔎 Filtrado de datos por permiso/programa
 
@@ -241,6 +242,20 @@ repetir el detalle ya cubierto en las tablas de arriba.
   `vite build` limpio (tamaño de bundle idéntico en los chunks lazy
   `view-historial`/`view-logs`, confirma que no se duplicó código),
   153/153 tests. **No queda ningún hallazgo abierto en este índice.**
+- **10 de julio — apertura y cierre de `SEC-12`:** LS reportó que las
+  sesiones nunca se cerraban solas así pasaran días. Plan free de
+  Supabase, sin acceso a "Time-boxed sessions" (Pro). Se replicó esa
+  feature con `pg_cron` sobre `auth.sessions` directamente (`0053`) más
+  persistencia en `localStorage` del lado cliente para que el timeout de
+  inactividad ya existente sobreviva a cerrar la pestaña. `vite build`
+  limpio, 16/16 tests de `useAuth` (127/153 del resto de la suite sin
+  tocar; las 26 fallas restantes son de un stub temporal de `xlsx`
+  usado solo para poder compilar en esta sesión sin acceso a
+  `cdn.sheetjs.com`, no relacionadas con el fix — confirmado
+  reproduciendo la misma falla con el fix revertido). Pendiente en el
+  dashboard de Supabase (fuera del alcance de una migración): confirmar
+  `pg_cron` habilitado y evaluar bajar el JWT expiry limit. **No queda
+  ningún hallazgo abierto en este índice.**
 
 ---
 
