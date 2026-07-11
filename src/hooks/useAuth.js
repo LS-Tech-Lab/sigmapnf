@@ -68,23 +68,73 @@ export function calcularPermisos(profile) {
 // Cierra sesión automáticamente tras N ms sin actividad del usuario.
 // Se cancela y reinicia con cada evento de mouse, teclado o touch.
 // onTimeout debe ser estable (useCallback) para evitar re-registros.
+//
+// Fix (reportado por LS 10-jul-2026): el timer anterior vivía solo en
+// memoria del componente. Cerrar la pestaña/navegador y reabrirla —
+// aunque hubieran pasado días — reiniciaba el conteo desde cero, así
+// que una sesión nunca se veía cerrar sola en ese escenario (alguien
+// con acceso físico al equipo podía retomarla intacta). Ahora la
+// última actividad se persiste en localStorage: al montar, si ya se
+// venció el plazo mientras la pestaña estaba cerrada, se cierra
+// sesión de inmediato; si no, el timer arranca con el tiempo
+// *restante*, no con el plazo completo de nuevo.
+//
+// Esto es la capa client-side. Existe una segunda capa server-side
+// (pg_cron, migración 0053_limpieza_sesiones_expiradas.sql) que cierra
+// la sesión en auth.sessions aunque el cliente tenga JS deshabilitado
+// o el localStorage haya sido manipulado — ver esa migración para el
+// detalle de por qué hace falta esa capa además de esta.
 const IDLE_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
+const ACTIVIDAD_KEY = "sigma_ultima_actividad";
 
 function useIdleTimeout(timeoutMs, onTimeout, enabled) {
   const timerRef = useRef(null);
   const onTimeoutRef = useRef(onTimeout);
   onTimeoutRef.current = onTimeout; // siempre la versión más reciente sin re-registrar
+  const ultimaEscrituraRef = useRef(0);
 
   useEffect(() => {
     if (!enabled) return;
 
+    // Throttle de la escritura a localStorage: no hace falta persistir
+    // en cada mousemove, cada 5s alcanza para el propósito (sobrevivir
+    // a un cierre de pestaña, no medir actividad al milisegundo).
+    const marcarActividad = () => {
+      const ahora = Date.now();
+      if (ahora - ultimaEscrituraRef.current > 5000) {
+        ultimaEscrituraRef.current = ahora;
+        try { localStorage.setItem(ACTIVIDAD_KEY, String(ahora)); } catch { /* no-op: localStorage no disponible */ }
+      }
+    };
+
     const reset = () => {
       clearTimeout(timerRef.current);
+      marcarActividad();
       timerRef.current = setTimeout(() => onTimeoutRef.current(), timeoutMs);
     };
 
     IDLE_EVENTS.forEach(e => window.addEventListener(e, reset, { passive: true }));
-    reset(); // arrancar el timer inmediatamente al montar
+
+    // Al montar (incluye reabrir la pestaña/navegador): comparar contra
+    // la última actividad persistida en vez de arrancar el timer a ciegas.
+    let ultimaActividad = null;
+    try {
+      const raw = localStorage.getItem(ACTIVIDAD_KEY);
+      ultimaActividad = raw ? Number(raw) : null;
+    } catch { /* no-op */ }
+
+    const transcurrido = ultimaActividad ? Date.now() - ultimaActividad : 0;
+
+    if (ultimaActividad && transcurrido >= timeoutMs) {
+      // Ya se venció el plazo mientras la pestaña estaba cerrada o en
+      // background: cerrar sesión ya, sin esperar otro ciclo completo.
+      onTimeoutRef.current();
+    } else {
+      ultimaEscrituraRef.current = Date.now();
+      try { localStorage.setItem(ACTIVIDAD_KEY, String(Date.now())); } catch { /* no-op */ }
+      const restante = ultimaActividad ? Math.max(timeoutMs - transcurrido, 0) : timeoutMs;
+      timerRef.current = setTimeout(() => onTimeoutRef.current(), restante);
+    }
 
     return () => {
       clearTimeout(timerRef.current);
@@ -97,6 +147,49 @@ function useIdleTimeout(timeoutMs, onTimeout, enabled) {
 const IDLE_ADMIN_MS   = 30 * 60 * 1000; // 30 min — roles administrativos
 const IDLE_DEFAULT_MS = 60 * 60 * 1000; // 60 min — docentes y otros
 const ROLES_ADMIN = ["admin", "coordinador", "coord"]; // ajustar según tabla roles
+
+// ── Time-box absoluto de sesión (Fix 10-jul-2026) ─────────────────────
+// Cierra la sesión a las TIME_BOX_MS desde el login, sin importar
+// actividad. Mantener sincronizado con v_time_box en
+// 0053_limpieza_sesiones_expiradas.sql (10h — jornada laboral de SIGMA).
+// Esta es la capa client-side (UX inmediata); la capa que no se puede
+// burlar editando localStorage es la del cron server-side, en esa
+// misma migración.
+const TIME_BOX_MS = 10 * 60 * 60 * 1000; // 10 horas
+const SESSION_START_KEY = "sigma_inicio_sesion";
+
+function useTimeBox(timeBoxMs, onTimeout, enabled) {
+  const onTimeoutRef = useRef(onTimeout);
+  onTimeoutRef.current = onTimeout;
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    let inicio = null;
+    try {
+      const raw = localStorage.getItem(SESSION_START_KEY);
+      inicio = raw ? Number(raw) : null;
+    } catch { /* no-op */ }
+
+    // Sin marca de inicio persistida (login nuevo en este navegador):
+    // se establece ahora.
+    if (!inicio) {
+      inicio = Date.now();
+      try { localStorage.setItem(SESSION_START_KEY, String(inicio)); } catch { /* no-op */ }
+    }
+
+    const transcurrido = Date.now() - inicio;
+
+    if (transcurrido >= timeBoxMs) {
+      onTimeoutRef.current();
+      return;
+    }
+
+    timerRef.current = setTimeout(() => onTimeoutRef.current(), timeBoxMs - transcurrido);
+    return () => clearTimeout(timerRef.current);
+  }, [timeBoxMs, enabled]);
+}
 
 // ── Hook principal ──────────────────────────────────────────────────
 export default function useAuth() {
@@ -250,6 +343,13 @@ export default function useAuth() {
     // ya fue borrado y el próximo usuario no verá datos de este.
     limpiarCache(user?.id);
     setSessionStart(null);
+    // Limpiar las marcas de tiempo persistidas para que el próximo login
+    // (mismo usuario u otro, en el mismo navegador) arranque el timeout
+    // de inactividad y el time-box desde cero, no desde valores viejos.
+    try {
+      localStorage.removeItem(ACTIVIDAD_KEY);
+      localStorage.removeItem(SESSION_START_KEY);
+    } catch { /* no-op */ }
     try {
       await supabase.rpc("log_session_event", { p_evento: "logout", p_detalles: {} });
     } catch { /* no-op */ }
@@ -320,6 +420,7 @@ export default function useAuth() {
     ? IDLE_ADMIN_MS
     : IDLE_DEFAULT_MS;
   useIdleTimeout(idleMs, handleLogout, !!user && !loadingProfile);
+  useTimeBox(TIME_BOX_MS, handleLogout, !!user && !loadingProfile);
 
   return {
     user,
