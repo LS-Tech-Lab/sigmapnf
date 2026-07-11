@@ -20,14 +20,17 @@ de llegar a `main`. Si alguno reaparece, agregarlo aquí con su estado real.
 
 **Esquemas cubiertos:** `S`/`SEC`/`V`/`D`/`O`/`A`/`ARCH`/`U`/`P`/`FE` (por
 área) y `FIX-CI-N` (CI/CD). `SEC-N` es una serie paralela enfocada en
-autenticación/sesión. El proyecto usó además dos nomenclaturas anteriores
-(`Fix #N`, `Gap #N`) — ver § Histórico al final.
+autenticación/sesión. `ADMIN-N` (§ Funcionalidad nueva) documenta trabajo
+de producto pedido directamente por el usuario, no hallazgos de auditoría
+— se incluye aquí porque el código ya usa ese formato de comentario. El
+proyecto usó además dos nomenclaturas anteriores (`Fix #N`, `Gap #N`) —
+ver § Histórico al final.
 
 ---
 
 ## 🟢 Hallazgos abiertos
 
-Ninguno — el último (`SEC-12`) se abrió y cerró el 10 de julio. Todos los
+Ninguno — el último (`ARCH-10`) se cerró el 9 de julio (noche). Todos los
 hallazgos registrados en este índice están cerrados. Ver § Historial de
 auditorías al final para el detalle cronológico completo, y las tablas de
 categoría abajo para el detalle de cada uno.
@@ -55,7 +58,6 @@ categoría abajo para el detalle de cada uno.
 | **SEC-10** 🔴 | `admin_caller_puede_gestionar_usuarios()` solo verificaba un permiso booleano, sin comparar rol actor vs. rol objetivo — cualquier rol con ese permiso podía crear/editar/eliminar cuentas `admin` sin serlo (escalada de privilegios) | 5 RPCs `admin_*`, `api/admin-users.js` | `0050` | ✅ Cerrado — helper `admin_caller_es_admin()` como guard en las 5 RPCs y replicado en `admin-users.js` (que no llama a las RPCs, usa la Auth Admin API directo) |
 | **SEC-11** | `api/admin-users.js` (Service Role Key) sin límite de frecuencia propio | `api/admin-users.js`, `admin_actions_rate_limit` | `0051` | ✅ Cerrado — 10 acciones/minuto por `actor_id` (no IP, por NAT compartido en Vercel) |
 | **SEC-9** | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecían ejecutables por `anon` sin ningún `REVOKE` explícito en ninguna migración — mismo patrón que `SEC-8`. Riesgo bajo (solo lectura, devuelven `null`/vacío para `anon`) | 4 RPCs de sesión (sin migración de origen) | `0052` | ✅ Cerrado — ninguna de las 4 fue creada por una migración de este repo, así que `0052` resuelve la firma real vía `pg_proc` en vez de asumirla, y aplica `REVOKE`/`GRANT` a la función que efectivamente exista. Verificado contra la BD real tras aplicar: `anon` ya no aparece en `EXECUTE` de ninguna |
-| **SEC-12** 🔴 | Reportado por LS: una sesión iniciada nunca se cerraba sola aunque pasaran días. Causa: `persistSession`/`autoRefreshToken` por defecto (sin límite de sesión) + el timeout de inactividad de `useAuth.js` (30/60 min) vivía solo en memoria del componente — cerrar la pestaña y reabrirla reiniciaba el conteo a cero sin importar el tiempo real transcurrido. Riesgo: acceso físico no autorizado al equipo con la cuenta ya logueada | `src/hooks/useAuth.js`, `auth.sessions` | `0053` | ✅ Cerrado (10 de julio) — dos capas. Client: última actividad e inicio de sesión persistidos en `localStorage`; al montar, si ya venció el plazo se cierra sesión de inmediato, si no, el timer arranca con el tiempo *restante*. Se agrega además un time-box absoluto de 10h (jornada laboral) que no existía. Server (capa real, no evadible editando `localStorage`): `pg_cron` cada 15 min borra de `auth.sessions` lo que exceda el time-box (10h) o 2h sin renovar token — replica el "Time-boxed sessions" de Supabase Pro sin tener ese plan, usando acceso directo a `auth.sessions` (mismo patrón ya establecido en `0014`/`0015`/`0021`/`0050` con `auth.users`). Cada cierre forzado queda registrado en `session_logs` (`logout_forzado_servidor`). Pendiente en el dashboard de Supabase (no se puede hacer por migración): confirmar `pg_cron` habilitado y considerar bajar el JWT expiry limit para acotar la ventana entre el borrado del server y el vencimiento natural del access token ya emitido |
 
 ## 🔎 Filtrado de datos por permiso/programa
 
@@ -143,7 +145,24 @@ tras la fusión — su contenido íntegro vive en esta sección).
 
 ---
 
-## 🗄️ Histórico: nomenclaturas anteriores (no vigentes)
+## 🆕 Funcionalidad nueva
+
+Esquema `ADMIN-N`. A diferencia del resto de este índice (hallazgos
+encontrados en auditoría externa o interna), esta serie documenta
+funcionalidad nueva pedida directamente por el usuario — se incluye aquí
+porque el código ya usa el mismo formato de comentario (`// ADMIN-N:...`)
+y porque toca los mismos archivos que varios hallazgos de arriba
+(`buildNavGroups.js`, `HorariosLayout.jsx`, `ModuleSelector.jsx`).
+
+| ID | Descripción | Archivo(s) clave | Migración | Estado |
+|---|---|---|---|---|
+| **ADMIN-1** | El borrado de registros de sesión (login y QR) y de reportes de asistencia no existía como funcionalidad — se pidió que solo el rol admin pudiera hacerlo | `roles` (permisos `puedeBorrarSesiones`/`puedeBorrarReportes`), RPCs `admin_borrar_session_logs`/`admin_borrar_qr_sesiones`/`admin_borrar_asistencias_rango` | `0053` | ✅ Cerrado (10 de julio) — permiso dinámico en el JSONB de roles (no hardcodeado por nombre de rol), asignado solo a admin; cada RPC revalida el permiso en el servidor y registra en `audit_logs` |
+| **ADMIN-2** | UI de borrado para lo habilitado en `ADMIN-1`: selección múltiple en registros de sesión, borrado por fila en sesiones QR cerradas, borrado por rango de fechas en el reporte de asistencia | `src/components/logs/TabSesiones.jsx`, `src/components/asistencias/AdminQRPanel.jsx` (`HistorialSesiones`), `src/components/asistencias/ReporteAsistencias/ReporteRango.jsx` | `0053` | ✅ Cerrado (10 de julio) — todos los botones gateados por los permisos de `ADMIN-1`; borrar una sesión QR no borra las asistencias ya registradas (`qr_session_id` queda en `NULL`, sin pérdida de datos) |
+| **ADMIN-3** | "Usuarios y Roles" y "Registros" vivían dentro del módulo de Horarios filtrados por permiso; "Historial" vivía ahí sin ningún filtro de permiso — se pidió sacar los tres a un módulo propio, visible solo a quien tenga algún permiso admin | `src/app/AdminModulo.jsx` (nuevo), `src/hooks/useModuloActivo.js`, `src/components/ModuleSelector.jsx`, `src/app/buildNavGroups.js`, `src/app/HorariosLayout.jsx` | — | ✅ Cerrado (10 de julio) — decisión de producto confirmada con el usuario: Historial pasa a ser exclusivo de este módulo (antes lo veía cualquiera con acceso a Horarios, ahora requiere permiso admin). El nombre visible para el usuario quedó como **"Sistema"**, no "Administración", para no chocar con el dropdown que ya existía en el pie del sidebar de Horarios (`AdminMenu.jsx`: Importar Excel, Backup, Restaurar, Borrar Horarios) — el id interno (`moduloActivo === "admin"`, `tieneAdmin`) no cambió, solo la etiqueta |
+
+---
+
+
 
 Encontradas al construir `ESQUEMA_Y_MIGRACIONES.md`. Ya no se usan, pero los
 archivos con estos comentarios siguen en el repo — útil si alguien pregunta
@@ -242,20 +261,21 @@ repetir el detalle ya cubierto en las tablas de arriba.
   `vite build` limpio (tamaño de bundle idéntico en los chunks lazy
   `view-historial`/`view-logs`, confirma que no se duplicó código),
   153/153 tests. **No queda ningún hallazgo abierto en este índice.**
-- **10 de julio — apertura y cierre de `SEC-12`:** LS reportó que las
-  sesiones nunca se cerraban solas así pasaran días. Plan free de
-  Supabase, sin acceso a "Time-boxed sessions" (Pro). Se replicó esa
-  feature con `pg_cron` sobre `auth.sessions` directamente (`0053`) más
-  persistencia en `localStorage` del lado cliente para que el timeout de
-  inactividad ya existente sobreviva a cerrar la pestaña. `vite build`
-  limpio, 16/16 tests de `useAuth` (127/153 del resto de la suite sin
-  tocar; las 26 fallas restantes son de un stub temporal de `xlsx`
-  usado solo para poder compilar en esta sesión sin acceso a
-  `cdn.sheetjs.com`, no relacionadas con el fix — confirmado
-  reproduciendo la misma falla con el fix revertido). Pendiente en el
-  dashboard de Supabase (fuera del alcance de una migración): confirmar
-  `pg_cron` habilitado y evaluar bajar el JWT expiry limit. **No queda
-  ningún hallazgo abierto en este índice.**
+- **10 de julio — `ADMIN-1`/`ADMIN-2`/`ADMIN-3` (funcionalidad nueva, no
+  hallazgo de auditoría):** a pedido del usuario, (1) se restringió el
+  borrado de sesiones (login y QR) y reportes de asistencia al rol admin
+  vía permiso dinámico + RPCs que revalidan en el servidor (`0053`); (2)
+  se agregó la UI de borrado correspondiente en `TabSesiones.jsx`,
+  `AdminQRPanel.jsx` y `ReporteRango.jsx`; (3) se sacaron "Usuarios y
+  Roles", "Registros" e "Historial" del módulo de Horarios a un módulo
+  propio (`AdminModulo.jsx`, mostrado como **"Sistema"** en la UI para no
+  chocar con el dropdown "Administración" ya existente en
+  `AdminMenu.jsx`), con `useModuloActivo`/`ModuleSelector` generalizados
+  de 2 a 3 módulos. Decisión de producto explícita: Historial pasa a ser
+  exclusivo de este módulo (antes visible a cualquiera con acceso a
+  Horarios). Ver § Funcionalidad nueva para el detalle. `vite build`
+  limpio (bloqueado solo por `xlsx` en el sandbox de verificación, ajeno
+  al cambio), 121/121 tests ejecutables.
 
 ---
 
