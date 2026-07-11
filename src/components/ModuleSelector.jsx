@@ -1,12 +1,10 @@
 /**
  * ModuleSelector.jsx
  *
- * Pantalla post-login que aparece solo para el rol Admin.
- * Permite elegir entre el módulo de Horarios y el módulo de
- * Control de Asistencias Diarias con QR.
- *
- * Para el resto de roles se omite esta pantalla y se entra
- * directamente al módulo de Horarios (comportamiento original).
+ * Pantalla post-login que aparece cuando el usuario tiene acceso a 2 o
+ * más módulos: Horarios, Control de Asistencias y/o Administración
+ * (ADMIN-3). Si solo tiene acceso a uno, useModuloActivo lo selecciona
+ * automáticamente y esta pantalla nunca se muestra.
  */
 
 import React from "react";
@@ -25,9 +23,18 @@ const MODULES = [
     title: "Control de Asistencias",
     description: "Registro diario de presencia docente mediante código QR rotativo. Reportes y exportación por turno y programa.",
   },
+  {
+    id: "admin",
+    icon: "ti-shield-cog",
+    title: "Sistema",
+    description: "Usuarios y roles, registros de sesión y auditoría, historial de trimestres cerrados.",
+  },
 ];
 
-export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
+export default function ModuleSelector({ profile, tieneHorarios, tieneQR, tieneAdmin, onSelectModule, onLogout }) {
+  const acceso = { horarios: tieneHorarios, asistencias: tieneQR, admin: tieneAdmin };
+  const modulosVisibles = MODULES.filter((mod) => acceso[mod.id]);
+
   return (
     <div className="module-page">
       {/* Logo / cabecera */}
@@ -46,7 +53,7 @@ export default function ModuleSelector({ profile, onSelectModule, onLogout }) {
 
       {/* Tarjetas de módulos */}
       <div className="module-grid">
-        {MODULES.map((mod) => (
+        {modulosVisibles.map((mod) => (
           <button
             key={mod.id}
             onClick={() => onSelectModule(mod.id)}

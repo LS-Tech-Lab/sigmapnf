@@ -23,9 +23,8 @@ const DocentesView       = lazy(() => import("../components/DocentesView"));
 const MateriasView       = lazy(() => import("../components/MateriasView"));
 const AsistenciasView    = lazy(() => import("../components/AsistenciasView"));
 
-const HistorialView = lazy(() => import("../components/HistorialView"));
-const UsuariosView  = lazy(() => import("../components/usuarios"));
-const LogsView      = lazy(() => import("../components/LogsView"));
+// ADMIN-3 (auditoría 10 de julio): HistorialView, UsuariosView y LogsView
+// se movieron a src/app/AdminModulo.jsx — ya no se renderizan desde aquí.
 
 const LazyFallback = ({ label }) => (
   <div className="lazy-fallback">
@@ -278,35 +277,6 @@ export default function HorariosLayout({
               <AsistenciasView
                 data={appData.data} getDocName={appData.getDocName}
                 getMateriaName={appData.getMateriaName} lapso={lapso}
-              />
-            </Suspense>
-          )}
-          {view === "historial" && (
-            <Suspense fallback={<LazyFallback label="Cargando historial…" />}>
-              <HistorialView
-                lapsoActivo={lapso}
-                onCambiarLapso={handleCambiarLapso}
-                showToast={appData.showToast}
-                openConfirm={appData.openConfirm}
-                closeConfirm={appData.closeConfirm}
-                user={user}
-                modoConsulta={!permisos.puedeGestionarTrimestres}
-                programaRestringido={permisos.puedeVerSoloSuPrograma ? permisos.programaRestringido : null}
-              />
-            </Suspense>
-          )}
-          {view === "logs" && permisos.puedeVerLogs && (
-            <Suspense fallback={<LazyFallback label="Cargando registros…" />}>
-              <LogsView permisos={permisos} />
-            </Suspense>
-          )}
-          {view === "usuarios" && (permisos.puedeGestionarUsuarios || permisos.puedeGestionarRoles) && (
-            <Suspense fallback={<LazyFallback label="Cargando usuarios…" />}>
-              <UsuariosView
-                permisos={permisos}
-                programas={appData.data?.programas || []}
-                logAudit={appData.logAudit}
-                showToast={appData.showToast}
               />
             </Suspense>
           )}

@@ -57,6 +57,8 @@
 .ra-btn-pdf { background: #DC2626; }
 .ra-btn-csv { padding: 8px 16px; background: #059669; }
 .ra-btn-pdf--disabled, .ra-btn-csv--disabled { background: #F1F5F9; color: #64748B; cursor: not-allowed; }
+.ra-btn-borrar-rango { background: #FEF2F2; color: #B91C1C; border: 1.5px solid #FECACA; }
+.ra-btn-borrar-rango--disabled { background: #F1F5F9; color: #94A3B8; border-color: #E2E8F0; cursor: not-allowed; }
 
 .ra-filtros { background: #fff; border-radius: 10px; border: 1px solid #E2E8F0; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 .ra-filtro-label { display: flex; flex-direction: column; gap: 5px; }

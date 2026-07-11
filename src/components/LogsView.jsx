@@ -18,7 +18,7 @@ import "./LogsView.css";
 // archivo queda solo como orquestador de pestañas.
 
 // ── Componente principal ──────────────────────────────────────────────
-export default function LogsView({ permisos }) {
+export default function LogsView({ permisos, showToast }) {
   // D-1 fix: las pestañas se construyen según permisos individuales.
   // puedeVerLogs → "Registros de sesión"
   // puedeVerAuditoria → "Auditoría de cambios"
@@ -69,7 +69,7 @@ export default function LogsView({ permisos }) {
         </div>
       )}
 
-      {tab === "sesiones"  && permisos.puedeVerLogs      && <TabSesiones  permisos={permisos} />}
+      {tab === "sesiones"  && permisos.puedeVerLogs      && <TabSesiones  permisos={permisos} showToast={showToast} />}
       {tab === "auditoria" && permisos.puedeVerAuditoria  && <TabAuditoria permisos={permisos} />}
     </div>
   );

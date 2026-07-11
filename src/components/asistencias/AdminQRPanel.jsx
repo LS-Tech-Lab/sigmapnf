@@ -289,11 +289,16 @@ function ColaOfflinePanel() {
 }
 
 // ── Historial de sesiones del día ────────────────────────────────────────────
-function HistorialSesiones({ fecha, sessionIdActiva }) {
+function HistorialSesiones({ fecha, sessionIdActiva, permisos = {}, showToast }) {
   const [sesiones,     setSesiones]     = useState([]);
   const [loading,      setLoading]      = useState(false);
   const [expandido,    setExpandido]    = useState(false);
   const [conteosPorId, setConteosPorId] = useState({});
+  // ADMIN-2: borrado de sesiones QR ya cerradas (solo admin, permiso
+  // puedeBorrarSesiones). No borra asistencias_diarias — ver RPC
+  // admin_borrar_qr_sesiones (0053): qr_session_id queda en NULL.
+  const [confirmBorrar, setConfirmBorrar] = useState(null); // sesión a borrar, o null
+  const [borrando,      setBorrando]      = useState(false);
 
   useEffect(() => {
     if (!expandido) return;
@@ -325,6 +330,22 @@ function HistorialSesiones({ fecha, sessionIdActiva }) {
     };
     fetchHistorial();
   }, [fecha, expandido, sessionIdActiva]);
+
+  const handleBorrar = async () => {
+    if (!confirmBorrar) return;
+    setBorrando(true);
+    const { error } = await supabase.rpc("admin_borrar_qr_sesiones", {
+      p_ids: [confirmBorrar.id],
+    });
+    setBorrando(false);
+    if (error) {
+      showToast?.(error.message || "No se pudo borrar la sesión.", "error");
+    } else {
+      setSesiones(prev => prev.filter(s => s.id !== confirmBorrar.id));
+      showToast?.("Sesión QR borrada.", "success");
+    }
+    setConfirmBorrar(null);
+  };
 
   const sesionesAnteriores = sesiones.filter(s => s.id !== sessionIdActiva);
 
@@ -370,9 +391,47 @@ function HistorialSesiones({ fecha, sessionIdActiva }) {
                   <div className={`qrp-hist-count-n ${total > 0 ? "qrp-hist-count-n--pos" : "qrp-hist-count-n--zero"}`}>{total}</div>
                   <div className="qrp-hist-count-sub">{c.entradas}E · {c.salidas}S</div>
                 </div>
+                {/* ADMIN-2: solo admin (puedeBorrarSesiones), y solo sesiones
+                    ya cerradas — una activa se cierra primero desde el panel. */}
+                {permisos.puedeBorrarSesiones && !s.activa && (
+                  <button
+                    onClick={() => setConfirmBorrar(s)}
+                    className="qrp-hist-borrar-btn"
+                    title="Borrar esta sesión"
+                    aria-label="Borrar esta sesión"
+                  >
+                    <i className="ti ti-trash qrp-ic-14" aria-hidden="true" />
+                  </button>
+                )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {confirmBorrar && (
+        <div className="qrp-modal-overlay" role="alertdialog" aria-modal="true" aria-labelledby="modal-borrar-sesion-title">
+          <div className="qrp-modal">
+            <div className="qrp-modal-header">
+              <div className="qrp-modal-icon">
+                <i className="ti ti-trash-x qrp-ic-danger-22" aria-hidden="true" />
+              </div>
+              <div>
+                <div id="modal-borrar-sesion-title" className="qrp-modal-title">¿Borrar esta sesión QR?</div>
+                <div className="qrp-modal-subtitle">Esta acción no se puede deshacer</div>
+              </div>
+            </div>
+            <p className="qrp-modal-body">
+              Se borrará el registro de la sesión ({TURNOS_CONFIG.find(t => t.id === confirmBorrar.turno)?.label || confirmBorrar.turno}).
+              Las asistencias ya registradas <strong>no se pierden</strong>: solo dejan de estar vinculadas a esta sesión.
+            </p>
+            <div className="qrp-modal-actions">
+              <button onClick={() => setConfirmBorrar(null)} className="qrp-btn-cancel" disabled={borrando}>Cancelar</button>
+              <button onClick={handleBorrar} className="qrp-btn-danger" disabled={borrando}>
+                {borrando ? "Borrando…" : "Sí, borrar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -385,6 +444,7 @@ export default function AdminQRPanel({
   activa, loading, error, sessionId,
   crearSesion, renovarManual, cerrarSesion,
   isOffline = false,
+  permisos = {}, showToast,
 }) {
   const hoy    = fechaHoyVE();
   const minHoy = horaActualVE();
@@ -617,7 +677,7 @@ export default function AdminQRPanel({
           {activa && <ContadorSesion sessionId={sessionId} />}
           {activa && <FeedActividad registros={feedRegistros} flash={feedFlash} />}
           <ColaOfflinePanel />
-          <HistorialSesiones fecha={fecha} sessionIdActiva={sessionId} />
+          <HistorialSesiones fecha={fecha} sessionIdActiva={sessionId} permisos={permisos} showToast={showToast} />
         </div>
 
         {/* ── Columna derecha: estado de la sesión ── */}

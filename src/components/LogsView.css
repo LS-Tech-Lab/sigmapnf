@@ -40,6 +40,8 @@
 .lv-select--180 { min-width: 180px; }
 .lv-select--160 { min-width: 160px; }
 .lv-btn-icon { flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+.lv-btn-borrar { color: var(--color-error, #DC2626); border-color: #FECACA; background: var(--color-error-bg, #FEF2F2); }
+.lv-th-checkbox { width: 32px; text-align: center; }
 .lv-btn-shrink { flex-shrink: 0; }
 .lv-fecha-field { display: flex; align-items: center; gap: 6px; }
 .lv-fecha-label { font-size: var(--font-size-12); color: var(--color-text-tertiary); white-space: nowrap; }

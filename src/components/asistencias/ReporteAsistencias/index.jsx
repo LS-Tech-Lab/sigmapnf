@@ -18,7 +18,7 @@ import ReporteRango from "./ReporteRango";
 import { guardarReporteEnIDB, cargarReporteDeIDB } from "../../../utils/reporteCache";
 import "./index.css";
 
-export default function ReporteAsistencias({ onVolverPanel }) {
+export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showToast }) {
   const hoy = fechaHoyVE();
   const [vistaRango, setVistaRango] = useState(false);
   const [fecha,    setFecha]    = useState(hoy);
@@ -134,7 +134,13 @@ export default function ReporteAsistencias({ onVolverPanel }) {
   const primerRegistro = rows.length > 0 ? rows[0].hora_registro : null;
   const ultimoRegistro = rows.length > 0 ? rows[rows.length - 1].hora_registro : null;
 
-  if (vistaRango) return <ReporteRango onVolverDiario={() => setVistaRango(false)} />;
+  if (vistaRango) return (
+    <ReporteRango
+      onVolverDiario={() => setVistaRango(false)}
+      permisos={permisos}
+      showToast={showToast}
+    />
+  );
 
   return (
     <div className="ra-root">

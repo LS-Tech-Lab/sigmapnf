@@ -19,6 +19,7 @@ import { AppDataProvider } from "./context/AppDataContext";
 // Layouts extraídos (P4)
 import HorariosLayout from "./app/HorariosLayout";
 import AsistenciasModulo from "./app/AsistenciasModulo";
+import AdminModulo from "./app/AdminModulo";
 import CuentaDesactivada from "./app/CuentaDesactivada";
 import SinPerfilAsignado from "./app/SinPerfilAsignado";
 
@@ -115,7 +116,7 @@ export default function App() {
   // ── Módulo activo + auto-selección por permisos ───────────────────────────
   const {
     moduloActivo, setModuloActivo,
-    tieneHorarios, tieneQR,
+    tieneHorarios, tieneQR, tieneAdmin,
   } = useModuloActivo({ efectiveProfile, efectivePermisos });
 
   // ── Sincronización offline — vacía cola IndexedDB al recuperar red ────────
@@ -265,13 +266,18 @@ export default function App() {
 
   // ── Selector de módulo ────────────────────────────────────────────────────
   if (!moduloActivo) {
-    // Spinner mientras el useEffect de useModuloActivo procesa la redirección
-    if (!(tieneHorarios && tieneQR)) {
+    // Spinner mientras el useEffect de useModuloActivo procesa la
+    // auto-selección (caso de un solo módulo disponible).
+    const modulosCount = [tieneHorarios, tieneQR, tieneAdmin].filter(Boolean).length;
+    if (modulosCount < 2) {
       return <FullScreenSpinner label="Cargando…" />;
     }
     return (
       <ModuleSelector
         profile={efectiveProfile}
+        tieneHorarios={tieneHorarios}
+        tieneQR={tieneQR}
+        tieneAdmin={tieneAdmin}
         onSelectModule={(mod) => setModuloActivo(mod)}
         onLogout={handleLogout}
       />
@@ -291,6 +297,25 @@ export default function App() {
         onLogout={handleLogout}
         pendientesCount={pendientesCount}
       />
+    );
+  }
+
+  // ── Módulo Sistema (ADMIN-3, id interno "admin") ──────────────────────────
+  if (moduloActivo === "admin") {
+    return (
+      <AppDataProvider value={appDataAuditada}>
+        <AdminModulo
+          profile={efectiveProfile}
+          permisos={efectivePermisos}
+          user={user}
+          lapso={lapso}
+          onCambiarLapso={handleCambiarLapso}
+          tieneHorarios={tieneHorarios}
+          tieneQR={tieneQR}
+          onVolverSelector={() => setModuloActivo(null)}
+          onLogout={handleLogout}
+        />
+      </AppDataProvider>
     );
   }
 

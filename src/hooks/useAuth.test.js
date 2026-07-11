@@ -47,6 +47,8 @@ function makeProfile(overrides = {}) {
         puedeVerAuditoria:         false,
         puedeGestionarQR:          false,
         puedeVerReporteAsistencias: false,
+        puedeBorrarSesiones:       false,
+        puedeBorrarReportes:       false,
       },
     },
     ...overrides,
@@ -216,6 +218,8 @@ describe("PERMISOS_BASE", () => {
       "puedeVerAuditoria",
       "puedeGestionarQR",
       "puedeVerReporteAsistencias",
+      "puedeBorrarSesiones",
+      "puedeBorrarReportes",
     ];
     expect(Object.keys(PERMISOS_BASE).sort()).toEqual(clavesEsperadas.sort());
   });

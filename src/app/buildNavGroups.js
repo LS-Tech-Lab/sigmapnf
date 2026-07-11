@@ -1,5 +1,9 @@
 // ── Grupos de navegación ──────────────────────────────────────────────────────
 // Se recalculan según permisos en el componente App
+//
+// ADMIN-3 (auditoría 10 de julio): el grupo "Sistema" (Historial, Registros,
+// Usuarios y Roles) se movió fuera de Horarios, al nuevo módulo de
+// Administración (src/app/AdminModulo.jsx). Ver docs/AUDITORIA_INDICE.md.
 function buildNavGroups(permisos) {
   const grupos = [
     {
@@ -18,16 +22,6 @@ function buildNavGroups(permisos) {
       ],
     },
   ];
-
-  const sistema = { label: "Sistema", items: [] };
-  sistema.items.push({ id: "historial", icon: "ti-archive", label: "Historial" });
-  if (permisos.puedeVerLogs) {
-    sistema.items.push({ id: "logs", icon: "ti-shield-lock", label: "Registros" });
-  }
-  if (permisos.puedeGestionarUsuarios || permisos.puedeGestionarRoles) {
-    sistema.items.push({ id: "usuarios", icon: "ti-crown", label: "Usuarios y Roles" });
-  }
-  grupos.push(sistema);
 
   return grupos;
 }

@@ -184,6 +184,8 @@
 .qrp-hist-count-n--pos { color: var(--brand-500, #1D4ED8); }
 .qrp-hist-count-n--zero { color: var(--color-text-tertiary); }
 .qrp-hist-count-sub  { font-size: var(--font-size-10); color: var(--color-text-tertiary); }
+.qrp-hist-borrar-btn { flex-shrink: 0; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-tertiary); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+.qrp-hist-borrar-btn:hover { background: var(--color-error-bg, #FEF2F2); border-color: #FECACA; color: var(--color-error, #DC2626); }
 
 /* ── Modales inline (ColaOfflinePanel / confirmCierre) ───────────────────── */
 .qrp-modal-overlay   { position: fixed; inset: 0; z-index: 500; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }

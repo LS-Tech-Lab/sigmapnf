@@ -43,6 +43,7 @@
 
 .module-card--horarios:hover { background: var(--color-background-info); border-color: var(--brand-500); box-shadow: 0 12px 32px rgba(37,99,235,0.133); }
 .module-card--asistencias:hover { background: var(--color-success-bg); border-color: var(--color-success); box-shadow: 0 12px 32px rgba(5,150,105,0.133); }
+.module-card--admin:hover { background: #F5F3FF; border-color: #7C3AED; box-shadow: 0 12px 32px rgba(124,58,237,0.133); }
 
 .module-icon {
   width: 52px; height: 52px; border-radius: 14px; background: var(--color-text-primary);
@@ -53,10 +54,12 @@
 
 .module-card--horarios:hover .module-icon { background: rgba(37,99,235,0.094); border-color: var(--brand-200); }
 .module-card--asistencias:hover .module-icon { background: rgba(5,150,105,0.094); border-color: #A7F3D0; }
+.module-card--admin:hover .module-icon { background: rgba(124,58,237,0.094); border-color: #DDD6FE; }
 
 .module-title-card { font-size: var(--font-size-16); font-weight: 700; color: var(--color-border-tertiary); margin-bottom: 8px; transition: color 0.18s; }
 .module-card--horarios:hover .module-title-card { color: var(--brand-500); }
 .module-card--asistencias:hover .module-title-card { color: var(--color-success); }
+.module-card--admin:hover .module-title-card { color: #7C3AED; }
 
 .module-desc { font-size: var(--font-size-13); color: var(--color-text-tertiary); line-height: 1.55; transition: color 0.18s; }
 .module-card:hover .module-desc { color: var(--navy-700); }
@@ -65,6 +68,7 @@
 .module-arrow i { font-size: var(--font-size-14); }
 .module-card--horarios:hover .module-arrow { color: var(--brand-500); }
 .module-card--asistencias:hover .module-arrow { color: var(--color-success); }
+.module-card--admin:hover .module-arrow { color: #7C3AED; }
 
 .module-logout {
   margin-top: 40px; background: none; border: none; color: var(--color-text-secondary);

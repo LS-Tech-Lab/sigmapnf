@@ -6,9 +6,10 @@ import { logger } from "../../../utils/logger";
 import { rangoFechas } from "./helpers";
 import { exportarPDFRango } from "./exportPDF";
 import { exportarCSVRango } from "./exportCSV";
+import { ModalConfirm } from "../../usuarios/shared";
 import "./index.css";
 
-function ReporteRango({ onVolverDiario }) {
+function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
   const hoy   = fechaHoyVE();
   const lunes = (() => {
     const d = new Date(); const day = d.getDay();
@@ -25,6 +26,15 @@ function ReporteRango({ onVolverDiario }) {
   const [busqueda, setBusqueda] = useState("");
   const [isOffline, setIsOffline] = useState(false);
   const [truncado, setTruncado] = useState(false);
+
+  // ADMIN-2: borrado de reportes de asistencia por rango (solo admin,
+  // permiso puedeBorrarReportes). Usa exactamente los mismos filtros que
+  // ya están aplicados en pantalla (inicio/fin/turno/programa) — ver RPC
+  // admin_borrar_asistencias_rango (0053). Es la operación más destructiva
+  // de las tres de este audit item: borra datos reales de asistencia, no
+  // solo metadatos de sesión.
+  const [confirmBorrar, setConfirmBorrar] = useState(false);
+  const [borrando,      setBorrando]      = useState(false);
 
   // A-4: ref al AbortController del fetch en curso. fetchRango se dispara
   // de nuevo cada vez que cambian inicio/fin/turno/programa; si el usuario
@@ -114,6 +124,24 @@ function ReporteRango({ onVolverDiario }) {
 
   useEffect(() => { fetchRango(); }, [fetchRango]);
 
+  const handleBorrarRango = async () => {
+    setBorrando(true);
+    const { data: cantidad, error } = await supabase.rpc("admin_borrar_asistencias_rango", {
+      p_fecha_desde: inicio,
+      p_fecha_hasta: fin,
+      p_turno:       turno || null,
+      p_programa:    programa || null,
+    });
+    setBorrando(false);
+    setConfirmBorrar(false);
+    if (error) {
+      showToast?.(error.message || "No se pudieron borrar los registros.", "error");
+    } else {
+      showToast?.(`Se borraron ${cantidad ?? 0} registro(s) de asistencia.`, "success");
+      fetchRango();
+    }
+  };
+
   // A-4: abortar el fetch en curso al desmontar el componente.
   useEffect(() => () => { if (abortControllerRef.current) abortControllerRef.current.abort(); }, []);
 
@@ -171,6 +199,16 @@ function ReporteRango({ onVolverDiario }) {
             <i className="ti ti-printer ra-btn-icon" aria-hidden="true" />
             PDF
           </button>
+          {permisos.puedeBorrarReportes && (
+            <button
+              onClick={() => setConfirmBorrar(true)}
+              disabled={rows.length === 0}
+              className={`ra-btn ra-btn--sm ra-btn-borrar-rango${rows.length === 0 ? ' ra-btn-borrar-rango--disabled' : ''}`}
+            >
+              <i className="ti ti-trash ra-btn-icon" aria-hidden="true" />
+              Borrar rango
+            </button>
+          )}
         </div>
       </div>
 
@@ -282,6 +320,16 @@ function ReporteRango({ onVolverDiario }) {
           </div>
         )}
       </div>
+
+      {confirmBorrar && (
+        <ModalConfirm
+          titulo="¿Borrar reporte de asistencia?"
+          mensaje={`Se borrarán ${rows.length} registro${rows.length !== 1 ? "s" : ""} de asistencia entre ${inicio} y ${fin}${turno ? ` (turno ${turno})` : ""}${programa ? `, programa ${programa.replace("PNF ", "")}` : ""}. Esta acción no se puede deshacer.`}
+          onConfirm={borrando ? undefined : handleBorrarRango}
+          onCancel={borrando ? undefined : () => setConfirmBorrar(false)}
+          peligro
+        />
+      )}
     </div>
   );
 }

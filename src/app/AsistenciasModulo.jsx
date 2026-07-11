@@ -177,6 +177,8 @@ export default function AsistenciasModulo({
             {subView === "panel" && (
               <AdminQRPanel
                 profile={profile}
+                permisos={permisos}
+                showToast={showToast}
                 onVerReporte={() => setSubView("reporte")}
                 onVerProyeccion={() => setSubView("proyeccion")}
                 {...qrSession}
@@ -196,6 +198,8 @@ export default function AsistenciasModulo({
             {subView === "reporte" && (
               <ReporteAsistencias
                 onVolverPanel={() => setSubView("panel")}
+                permisos={permisos}
+                showToast={showToast}
               />
             )}
             {subView === "planilla" && (
