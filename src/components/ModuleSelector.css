@@ -10,19 +10,56 @@
    se reemplazan por :hover puro en CSS.
    Los alfa-hex "18"/"22" agregados a mod.color se convierten a rgba()
    equivalentes (9.4% y 13.3%) para no depender de var(--token) + sufijo hex.
+
+   Pasada de optimización visual (12 de julio, misma sesión que el fix del
+   grid de 3 columnas): este archivo se migró el 5 de julio, ANTES de que
+   el 1 de julio se consolidara el bloque :root de design tokens
+   (--space-N, --border-radius-*, --color-role-coord, etc. — ver
+   index.css). Quedó con valores de spacing/radio en px sueltos que ya
+   tenían token equivalente. Cambios en esta pasada:
+   1. Spacing/radio con valor EXACTO a algún token → reemplazado por el
+      token (20px→--space-5, 16px→--space-4, 24px→--space-6, etc.). Los
+      que no calzan con ningún token (28px, 18px, 40px) se dejan
+      literales a propósito — mismo criterio que --space-6px/7px/10px/14px
+      en index.css: no forzar al más cercano y alterar el tamaño real.
+   2. El púrpura de "Sistema" (#7C3AED) es exactamente
+      --color-role-coord, el token semántico de color de rol
+      "coordinación/admin" usado en el resto de la app (LogsView,
+      ReporteAsistencias, etc.) — antes estaba repetido como hex literal.
+   3. Fix mobile: :hover envuelto en `@media (hover: hover) and
+      (pointer: fine)` — sin esto, tocar una tarjeta en móvil puede dejarla
+      "pegada" en su color de hover hasta tocar en otro lado (comportamiento
+      real y conocido de :hover en navegadores táctiles), en vez de que el
+      estado visual dependa solo del :active/tap real.
+   4. `@media (max-width: 640px)` (mismo valor que --bp-mobile en
+      index.css — no se referencia con var() porque los media queries de
+      CSS estándar no aceptan custom properties sin un plugin de PostCSS
+      que este proyecto no tiene configurado) para achicar el espacio
+      vertical de cabecera/logo en teléfonos: con 2 módulos no se nota,
+      pero si se agrega un 3ro o 4to en el futuro, cada uno apilado suma
+      alto y el usuario de móvil termina haciendo más scroll del
+      necesario solo para ver todas las tarjetas.
+   5. `prefers-reduced-motion` deshabilita el translateY de hover y la
+      entrada fadeUp para quien lo tenga activado en su sistema.
+   6. Entrada sutil con `fadeUp` (definida en index.css, sin usar en
+      ningún componente todavía) al montar la pantalla — antes aparecía
+      de golpe.
    ────────────────────────────────────────────────────────────────────────────── */
 
 .module-page {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  min-height: 100vh; padding: 24px;
+  min-height: 100vh; padding: var(--space-6);
   background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--navy-800) 100%);
   font-family: system-ui, -apple-system, sans-serif;
 }
 
-.module-header { text-align: center; margin-bottom: 40px; }
+.module-header {
+  text-align: center; margin-bottom: 40px;
+  animation: fadeUp 0.4s cubic-bezier(.4,0,.2,1);
+}
 
 .module-logo {
-  width: 80px; height: 80px; object-fit: contain; margin-bottom: 16px;
+  width: 80px; height: 80px; object-fit: contain; margin-bottom: var(--space-4);
   filter: drop-shadow(0 4px 16px rgba(37,99,235,0.35));
 }
 
@@ -50,51 +87,82 @@
 .module-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
-  gap: 20px;
+  gap: var(--space-5);
   justify-content: center;
   width: 100%;
   max-width: 1160px; /* alcanza para ~4 tarjetas de 300px + gaps en una fila */
+  animation: fadeUp 0.4s cubic-bezier(.4,0,.2,1) 0.08s backwards;
 }
 
 .module-card {
   background: var(--navy-800); border: 2px solid var(--navy-700);
-  border-radius: 16px; padding: 28px 24px; cursor: pointer; text-align: left;
+  border-radius: var(--border-radius-xl); padding: 28px var(--space-6); cursor: pointer; text-align: left;
   transition: all 0.18s cubic-bezier(.4,0,.2,1); box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
-.module-card:hover { transform: translateY(-3px); }
 
-.module-card--horarios:hover { background: var(--color-background-info); border-color: var(--brand-500); box-shadow: 0 12px 32px rgba(37,99,235,0.133); }
-.module-card--asistencias:hover { background: var(--color-success-bg); border-color: var(--color-success); box-shadow: 0 12px 32px rgba(5,150,105,0.133); }
-.module-card--admin:hover { background: #F5F3FF; border-color: #7C3AED; box-shadow: 0 12px 32px rgba(124,58,237,0.133); }
+/* `hover: hover` + `pointer: fine` = el dispositivo tiene un puntero de
+   precisión que puede "flotar" sin tocar (mouse/trackpad). En touch puro
+   esta condición es falsa, así que estas reglas nunca se activan ahí —
+   evita el hover "pegado" tras un tap en tablet/celular. */
+@media (hover: hover) and (pointer: fine) {
+  .module-card:hover { transform: translateY(-3px); }
+
+  .module-card--horarios:hover { background: var(--color-background-info); border-color: var(--brand-500); box-shadow: 0 12px 32px rgba(37,99,235,0.133); }
+  .module-card--asistencias:hover { background: var(--color-success-bg); border-color: var(--color-success); box-shadow: 0 12px 32px rgba(5,150,105,0.133); }
+  .module-card--admin:hover { background: #F5F3FF; border-color: var(--color-role-coord); box-shadow: 0 12px 32px rgba(124,58,237,0.133); }
+
+  .module-card--horarios:hover .module-icon { background: rgba(37,99,235,0.094); border-color: var(--brand-200); }
+  .module-card--asistencias:hover .module-icon { background: rgba(5,150,105,0.094); border-color: #A7F3D0; }
+  .module-card--admin:hover .module-icon { background: rgba(124,58,237,0.094); border-color: #DDD6FE; }
+
+  .module-card--horarios:hover .module-title-card { color: var(--brand-500); }
+  .module-card--asistencias:hover .module-title-card { color: var(--color-success); }
+  .module-card--admin:hover .module-title-card { color: var(--color-role-coord); }
+
+  .module-card:hover .module-desc { color: var(--navy-700); }
+
+  .module-card--horarios:hover .module-arrow { color: var(--brand-500); }
+  .module-card--asistencias:hover .module-arrow { color: var(--color-success); }
+  .module-card--admin:hover .module-arrow { color: var(--color-role-coord); }
+
+  .module-logout:hover { color: var(--color-text-tertiary); }
+}
 
 .module-icon {
   width: 52px; height: 52px; border-radius: 14px; background: var(--color-text-primary);
   border: 1.5px solid #1E3A5F; display: flex; align-items: center; justify-content: center;
-  margin-bottom: 16px; transition: all 0.18s;
+  margin-bottom: var(--space-4); transition: all 0.18s;
 }
 .module-icon i { font-size: var(--font-size-24); }
 
-.module-card--horarios:hover .module-icon { background: rgba(37,99,235,0.094); border-color: var(--brand-200); }
-.module-card--asistencias:hover .module-icon { background: rgba(5,150,105,0.094); border-color: #A7F3D0; }
-.module-card--admin:hover .module-icon { background: rgba(124,58,237,0.094); border-color: #DDD6FE; }
-
-.module-title-card { font-size: var(--font-size-16); font-weight: 700; color: var(--color-border-tertiary); margin-bottom: 8px; transition: color 0.18s; }
-.module-card--horarios:hover .module-title-card { color: var(--brand-500); }
-.module-card--asistencias:hover .module-title-card { color: var(--color-success); }
-.module-card--admin:hover .module-title-card { color: #7C3AED; }
+.module-title-card { font-size: var(--font-size-16); font-weight: 700; color: var(--color-border-tertiary); margin-bottom: var(--space-2); transition: color 0.18s; }
 
 .module-desc { font-size: var(--font-size-13); color: var(--color-text-tertiary); line-height: 1.55; transition: color 0.18s; }
-.module-card:hover .module-desc { color: var(--navy-700); }
 
-.module-arrow { margin-top: 18px; font-size: var(--font-size-13); font-weight: 600; color: var(--color-text-secondary); display: flex; align-items: center; gap: 4px; transition: color 0.18s; }
+.module-arrow { margin-top: 18px; font-size: var(--font-size-13); font-weight: 600; color: var(--color-text-secondary); display: flex; align-items: center; gap: var(--space-1); transition: color 0.18s; }
 .module-arrow i { font-size: var(--font-size-14); }
-.module-card--horarios:hover .module-arrow { color: var(--brand-500); }
-.module-card--asistencias:hover .module-arrow { color: var(--color-success); }
-.module-card--admin:hover .module-arrow { color: #7C3AED; }
 
 .module-logout {
   margin-top: 40px; background: none; border: none; color: var(--color-text-secondary);
-  font-size: var(--font-size-13); cursor: pointer; display: flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border-radius: 8px; transition: color 0.15s;
+  font-size: var(--font-size-13); cursor: pointer; display: flex; align-items: center; gap: var(--space-6px);
+  padding: var(--space-6px) var(--space-3); border-radius: var(--border-radius-md); transition: color 0.15s;
 }
-.module-logout:hover { color: var(--color-text-tertiary); }
+
+/* Mismo valor que --bp-mobile (index.css) — ver nota arriba sobre por qué
+   no se referencia con var() dentro del media query. */
+@media (max-width: 640px) {
+  .module-page { padding: var(--space-5); }
+  .module-header { margin-bottom: var(--space-6); }
+  .module-logo { width: 64px; height: 64px; margin-bottom: var(--space-3); }
+  .module-logout { margin-top: var(--space-6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .module-header, .module-grid { animation: none; }
+  .module-card, .module-icon, .module-title-card, .module-desc, .module-arrow, .module-logout {
+    transition: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
+  .module-card:hover { transform: none; }
+}
