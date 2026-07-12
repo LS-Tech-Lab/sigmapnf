@@ -5,6 +5,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",
     "@tabler/icons-webfont": "^3.30.0",
+    "prop-types": "^15.8.1",
     "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
