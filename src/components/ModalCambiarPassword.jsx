@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { supabase } from "../lib/supabase";
 import { validarPassword } from "../utils/password";
 import "./ModalCambiarPassword.css";
@@ -327,3 +328,10 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
     </div>
   );
 }
+
+// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// props — no cambia comportamiento.
+ModalCambiarPassword.propTypes = {
+  onCerrar: PropTypes.func.isRequired,
+  showToast: PropTypes.func,
+};
