@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { roleColorClass } from "../constants";
 
 /**
@@ -115,3 +116,28 @@ export default function UserMenu({
     </div>
   );
 }
+
+// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// props — no cambia comportamiento. `profile` refleja los campos que este
+// archivo lee (`nombre`, `email`, `programa`); `sessionStart` puede ser
+// `null` (ver comentario de prop original: "Date | null — expuesto por
+// useAuth").
+UserMenu.propTypes = {
+  profile: PropTypes.shape({
+    nombre: PropTypes.string,
+    email: PropTypes.string,
+    programa: PropTypes.string,
+  }).isRequired,
+  rolLabel: PropTypes.string.isRequired,
+  rolColor: PropTypes.string,
+  open: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onCambiarPassword: PropTypes.func.isRequired,
+  onLogout: PropTypes.func.isRequired,
+  sessionStart: PropTypes.instanceOf(Date),
+  tieneHorarios: PropTypes.bool,
+  tieneQR: PropTypes.bool,
+  onCambiarModulo: PropTypes.func,
+  variant: PropTypes.oneOf(["horarios", "asistencias"]),
+};
