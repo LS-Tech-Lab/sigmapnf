@@ -28,23 +28,19 @@ ver § Histórico al final.
 
 ---
 
-## 🟢 Hallazgos abiertos
+## 🟡 Hallazgos abiertos
 
-Dos, ambos de severidad baja y ninguno bloqueante para producción:
+Uno solo, de severidad baja y no bloqueante para producción:
 
 - **D-7** 🟡 — 2 vulnerabilidades de `npm audit` en `vite`/`esbuild`,
   confinadas al servidor de desarrollo (no afectan el build de producción
   de Vercel). Sin urgencia, diferido a la próxima ventana de
   mantenimiento. Ver tabla en 🔐 Seguridad y RLS.
-- **U-7** — Regresión de accesibilidad (`<label>` sin `htmlFor`/`id`) en
-  los 3 componentes de login extraídos al cerrar `ARCH-10`. En progreso en
-  otra sesión de trabajo — no confirmar como cerrado hasta verificarlo
-  contra el HEAD real. Ver tabla en 🎨 UI y estilos.
 
-`ARCH-11` (mismo lote de la auditoría del 11 de julio) ya se cerró el
-mismo día — ver § Historial de auditorías al final para el detalle
-cronológico completo, y las tablas de categoría abajo para el detalle de
-cada hallazgo.
+`ARCH-11` y `U-7` (mismo lote de la auditoría del 11 de julio) ya se
+cerraron el mismo día — ver § Historial de auditorías al final para el
+detalle cronológico completo, y las tablas de categoría abajo para el
+detalle de cada hallazgo.
 
 ---
 
@@ -143,7 +139,7 @@ asumirlo.
 | **A3** | Migración sistemática de estilos inline a CSS externo (requisito de `S3`) | Todo `src/` — bajó de 54 a 0 ocurrencias reales | ✅ Cerrado — `Avatar.jsx` (tono bucketizado a 24 pasos de 15°), `TurnoGrid.jsx` (resuelto con `flex: 1` en vez de cálculo en JS), `ModalRol.jsx` (restringido a 10 presets) |
 | **U-5** | Los 7 archivos del shell principal (`src/app/`) nunca se auditaron para responsividad — solo se había cubierto funcionalidad (QR, horarios, login) | `HorariosLayout.jsx`, `UserMenu.jsx`, `AsistenciasModulo.jsx`, `App.jsx`, `AdminMenu.jsx`, `SinPerfilAsignado.jsx`, `CuentaDesactivada.jsx` | ✅ Cerrado — migrados a clases con prefijo (`hl-`, `um-`, `asm-`, `adm-`, `spa-`, `cd-`) con reglas `@media` incluidas |
 | **U-6** | El bundle sin dividir (`ARCH-7`) alargaba la pantalla en blanco en la primera carga | mismo que `ARCH-7` | ✅ Cerrado (9 de julio, mismo fix que `ARCH-7`) |
-| **U-7** | `LoginFormNormal.jsx`, `LoginOfflinePinPanel.jsx`, `ModalActivarPIN.jsx` (extraídos de `LoginScreen.jsx` al cerrar `ARCH-10`, la noche del 9 de julio): el `<label>` de cada campo quedó como hermano del `<input>`, sin `htmlFor`/`id` — misma regresión que `U-4` ya había resuelto en `Campo.jsx`, reintroducida en archivos nuevos que no pasaron por ese fix | `src/components/login/{LoginFormNormal,LoginOfflinePinPanel,ModalActivarPIN}.jsx` | 🟡 En progreso (otra sesión de trabajo) — mismo patrón que `Campo.jsx`: `useId()` + `htmlFor`/`id`, o anidar el `<input>` dentro del `<label>` como ya hace `ReporteAsistencias` |
+| **U-7** | `LoginFormNormal.jsx`, `LoginOfflinePinPanel.jsx`, `ModalActivarPIN.jsx` (extraídos de `LoginScreen.jsx` al cerrar `ARCH-10`, la noche del 9 de julio): el `<label>` de cada campo quedó como hermano del `<input>`, sin `htmlFor`/`id` — misma regresión que `U-4` ya había resuelto en `Campo.jsx`, reintroducida en archivos nuevos que no pasaron por ese fix | `src/components/login/{LoginFormNormal,LoginOfflinePinPanel,ModalActivarPIN}.jsx` | ✅ **Cerrado (11 de julio)** — mismo patrón que `Campo.jsx`/`U-4`: `useId()` por instancia de componente, enlazando cada `<label htmlFor>` con su `<input id>`/`<select id>` (2 campos en cada uno de los 3 componentes). Cambio puramente estructural, sin tocar `.form-label`/`.form-input` ni los handlers. Verificado contra el HEAD real (`9477be2`, ya con `ARCH-11` y `SEC-12` incluidos) antes de reemplazar: 121/121 tests (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`) |
 
 ## 🎨 Identidad visual y sistema de diseño
 
@@ -339,6 +335,18 @@ repetir el detalle ya cubierto en las tablas de arriba.
   caso de `D-6`). Quedan abiertos `D-7` (diferido, sin urgencia) y `U-7`
   (en progreso en otra sesión) — ver § Hallazgos abiertos al inicio del
   documento.
+- **11 de julio, cierre de `U-7`:** mismo patrón que `Campo.jsx`/`U-4`
+  — `useId()` en `LoginFormNormal.jsx`, `LoginOfflinePinPanel.jsx` y
+  `ModalActivarPIN.jsx`, enlazando cada `<label htmlFor>` con su
+  `<input id>`/`<select id>`. Cambio estructural puro, sin tocar CSS ni
+  handlers. Antes de reemplazar se hizo `git fetch` y se confirmó que
+  `origin/main` había avanzado 7 commits desde el clonado inicial de esta
+  sesión (cierre de `ARCH-11`, `SEC-12`/gestión de sesiones, migración
+  `0055`) — se rebaseó sobre ese HEAD real (`9477be2`) antes de aplicar el
+  fix, para no pisar ese trabajo. `vite build` bloqueado solo por `xlsx`
+  en el sandbox (mismo caso de `D-6`), 121/121 tests. **No queda ningún
+  hallazgo abierto de la auditoría del 11 de julio salvo `D-7`
+  (diferido).**
 - **11 de julio — `0055`, fix sobre `SEC-12` (drift de esquema, no
   hallazgo nuevo, 2 rondas):** al ejecutar `limpiar_sesiones_expiradas()`
   por primera vez contra la BD real, falló con `23502: null value in

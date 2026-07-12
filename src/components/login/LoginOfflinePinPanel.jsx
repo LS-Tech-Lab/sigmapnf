@@ -1,9 +1,15 @@
-import React from "react";
+import React, { useId } from "react";
 
 // Fix ARCH-10 (auditoría 9 de julio): extraído de LoginScreen.jsx sin
 // cambios de lógica — es puramente presentacional, todo el estado y los
 // handlers (handlePinLogin, lockout, carga de usuarios offline) siguen
 // viviendo en LoginScreen.jsx, que es quien los pasa por props.
+//
+// Fix U-7 (auditoría 11 de julio): los <label> quedaron como hermanos del
+// <input>/<select> tras la extracción de ARCH-10, sin htmlFor/id, por lo
+// que un lector de pantalla no anunciaba el campo al enfocarlo. Se usa
+// useId() (mismo patrón de Campo.jsx / U-4) para generar ids estables por
+// instancia y enlazar cada label con su campo.
 export default function LoginOfflinePinPanel({
   usuariosOffline,
   usuarioSelec, setUsuarioSelec,
@@ -13,12 +19,17 @@ export default function LoginOfflinePinPanel({
   pinLoading,
   handlePinLogin,
 }) {
+  const uid = useId();
+  const usuarioId = `${uid}-usuario`;
+  const pinId = `${uid}-pin`;
+
   return (
     <>
       {usuariosOffline.length > 1 && (
         <div className="mb-16">
-          <label className="form-label">Usuario</label>
+          <label htmlFor={usuarioId} className="form-label">Usuario</label>
           <select
+            id={usuarioId}
             value={usuarioSelec?.userId || ""}
             onChange={e => {
               const u = usuariosOffline.find(x => x.userId === e.target.value);
@@ -48,8 +59,9 @@ export default function LoginOfflinePinPanel({
       )}
 
       <div className="mb-22">
-        <label className="form-label">PIN offline</label>
+        <label htmlFor={pinId} className="form-label">PIN offline</label>
         <input
+          id={pinId}
           type="password"
           inputMode="numeric"
           maxLength={6}

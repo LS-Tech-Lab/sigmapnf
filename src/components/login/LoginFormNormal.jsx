@@ -1,9 +1,15 @@
-import React from "react";
+import React, { useId } from "react";
 
 // Fix ARCH-10 (auditoría 9 de julio): extraído de LoginScreen.jsx sin
 // cambios de lógica — es puramente presentacional, todo el estado y los
 // handlers (handleLogin, lockout) siguen viviendo en LoginScreen.jsx, que
 // es quien los pasa por props.
+//
+// Fix U-7 (auditoría 11 de julio): los <label> quedaron como hermanos del
+// <input> tras la extracción de ARCH-10, sin htmlFor/id, por lo que un
+// lector de pantalla no anunciaba el campo al enfocarlo. Se usa useId()
+// (mismo patrón de Campo.jsx / U-4) para generar ids estables por
+// instancia y enlazar cada label con su input.
 export default function LoginFormNormal({
   email, setEmail,
   password, setPassword,
@@ -14,11 +20,16 @@ export default function LoginFormNormal({
   loading,
   handleLogin,
 }) {
+  const uid = useId();
+  const emailId = `${uid}-email`;
+  const passwordId = `${uid}-password`;
+
   return (
     <form onSubmit={handleLogin}>
       <div className="mb-16">
-        <label className="form-label">Correo electrónico</label>
+        <label htmlFor={emailId} className="form-label">Correo electrónico</label>
         <input
+          id={emailId}
           type="email" value={email} onChange={e => setEmail(e.target.value)}
           required disabled={isLocked} placeholder="tucorreo@dominio.com"
           autoComplete="email"
@@ -27,8 +38,9 @@ export default function LoginFormNormal({
       </div>
 
       <div className="mb-22">
-        <label className="form-label">Contraseña</label>
+        <label htmlFor={passwordId} className="form-label">Contraseña</label>
         <input
+          id={passwordId}
           type="password" value={password} onChange={e => setPassword(e.target.value)}
           required disabled={isLocked} placeholder="••••••••"
           autoComplete="current-password"

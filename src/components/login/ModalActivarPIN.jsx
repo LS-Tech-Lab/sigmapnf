@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useId } from "react";
 import { guardarPinOffline } from "../../utils/pinOffline";
 import "../LoginScreen.css";
 
@@ -6,11 +6,20 @@ import "../LoginScreen.css";
 // cambios de lógica — ya era una función separada dentro del archivo,
 // solo se movió a su propio módulo. Modal para activar PIN offline tras
 // un login exitoso.
+//
+// Fix U-7 (auditoría 11 de julio): los <label> quedaron como hermanos del
+// <input> tras la extracción de ARCH-10, sin htmlFor/id, por lo que un
+// lector de pantalla no anunciaba el campo al enfocarlo. Se usa useId()
+// (mismo patrón de Campo.jsx / U-4) para generar ids estables por
+// instancia y enlazar cada label con su input.
 export default function ModalActivarPIN({ user, profile, onDone }) {
   const [pin,    setPin]    = useState("");
   const [pin2,   setPin2]   = useState("");
   const [saving, setSaving] = useState(false);
   const [err,    setErr]    = useState(null);
+  const uid = useId();
+  const pinId = `${uid}-pin`;
+  const pin2Id = `${uid}-pin2`;
 
   const handleGuardar = async () => {
     setErr(null);
@@ -38,17 +47,17 @@ export default function ModalActivarPIN({ user, profile, onDone }) {
         </div>
 
         <div className="mb-14">
-          <label className="form-label">
+          <label htmlFor={pinId} className="form-label">
             PIN (4–6 dígitos)
           </label>
-          <input type="password" inputMode="numeric" maxLength={6} value={pin}
+          <input id={pinId} type="password" inputMode="numeric" maxLength={6} value={pin}
             onChange={e => setPin(e.target.value.replace(/\D/g, ""))} className="pin-input" placeholder="••••" />
         </div>
         <div className="mb-20">
-          <label className="form-label">
+          <label htmlFor={pin2Id} className="form-label">
             Confirmar PIN
           </label>
-          <input type="password" inputMode="numeric" maxLength={6} value={pin2}
+          <input id={pin2Id} type="password" inputMode="numeric" maxLength={6} value={pin2}
             onChange={e => setPin2(e.target.value.replace(/\D/g, ""))} className="pin-input" placeholder="••••" />
         </div>
 
