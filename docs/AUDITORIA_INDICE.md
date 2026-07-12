@@ -36,20 +36,21 @@ auditorías al final para el detalle completo). Orden de prioridad
 actualizado:
 
 1. ~~**`U-8`**~~ — ✅ Cerrado el 12 de julio (ver tabla "UI y estilos")
-2. **`ARCH-14`** 🔴 — **el más grave de todos**: módulos centrales de toda
-   la app (Supabase, logger, `parseClase`) viven físicamente dentro del
-   chunk `view-qr` (320 KB) — toda visita a la app, incluso solo para ver
-   el login, ya descarga ese chunk completo hoy en producción
+2. ~~**`ARCH-14`**~~ — ✅ Cerrado el 12 de julio (ver tabla "Testing y
+   arquitectura") — `manualChunks` de forma objeto → forma función
 3. ~~**`SEC-13`**~~ — ✅ Cerrado el 12 de julio (ver tabla "Seguridad y RLS")
 4. ~~**`U-9`**~~ — ✅ Cerrado el 12 de julio (ver tabla "UI y estilos") —
    reportado por el usuario con capturas: Panel QR se veía con tema oscuro
    y título invisible por colisión de nombres de clase con `QRProyeccion.css`
-5. **`ARCH-12`** 🟡 — chunk `view-qr` sin separar por vista — **bloqueado
-   por `ARCH-14`**, no intentar hasta resolver ese primero
+5. **`ARCH-12`** 🟡 — chunk `view-qr` sin separar por vista — **ya no
+   bloqueado** ahora que `ARCH-14` cerró (ver nota en su fila), pero no se
+   intentó en esta misma sesión — queda para una pasada dedicada
 6. ~~**`ARCH-13`**~~ — ✅ Cerrado el 12 de julio (ver tabla "Testing y
    arquitectura") — `xlsx` vendorizado en `vendor/xlsx-0.20.3.tgz`
 
-Ver las tablas de categoría abajo para el detalle de cada uno.
+**No queda ningún hallazgo crítico o bloqueante abierto.** `ARCH-12` sigue
+abierto pero de baja prioridad (mejora de tamaño de chunk, no bug). Ver las
+tablas de categoría abajo para el detalle de cada uno.
 
 ---
 
@@ -123,8 +124,8 @@ Ver las tablas de categoría abajo para el detalle de cada uno.
 | **ARCH-9** | Código muerto: ningún archivo del repo lo importaba ni renderizaba, y su propio import (`responsiveCSS`) no existía en ningún lado. Encontrado de forma incidental durante el barrido que cerró `S3` | `src/components/ResponsiveStyles.jsx` | ✅ Cerrado — archivo eliminado |
 | **ARCH-10** | `HistorialView.jsx` (637 líneas), `LogsView.jsx` (517), `LoginScreen.jsx` (508) concentraban layout, estado y lógica de responsabilidades distintas en un solo archivo cada uno. Mismo problema de fondo que `ARCH-8`, en archivos distintos | `src/components/{HistorialView,LogsView,LoginScreen}.jsx` | ✅ **Cerrado (9 de julio, noche)** — mismo patrón que `ARCH-8`: cada archivo se dividió en un orquestador (estado/efectos/handlers) + subcomponentes presentacionales puros que reciben todo por props. `HistorialView.jsx` 637→286 líneas (`historial/`: `ModalTrimestre.jsx`, `ComparadorPanel.jsx`, `HistorialLista.jsx`, `historialUtils.jsx`). `LoginScreen.jsx` 508→336 líneas (`login/`: `ModalActivarPIN.jsx`, `LoginOfflinePinPanel.jsx`, `LoginFormNormal.jsx`). `LogsView.jsx` 517→76 líneas (`logs/`: `TabSesiones.jsx`, `TabAuditoria.jsx`, `logsUtils.jsx` — ya eran subcomponentes autocontenidos, solo se movieron). Extracción 1:1 verificada línea por línea contra el original antes de reemplazar, sin cambios de lógica. `vite build` limpio (mismo tamaño de bundle `view-logs`/`view-historial`, confirma que no se duplicó código), 153/153 tests |
 | **ARCH-11** | `api/admin-users.js` repetía el mismo bloque (armar headers, llamar `fetch`, parsear JSON, revisar `.ok`) 13 veces para hablar con Supabase (Auth Admin API + REST) | `api/admin-users.js` | ✅ **Cerrado (11 de julio)** — extraído `supabaseAdminFetch(path, options)`: centraliza `Authorization`/`apikey`/`Content-Type` condicional (solo si hay body) y el prefijo `${SUPABASE_URL}`; `options.headers` se aplica después de los defaults, así que puede sobreescribirlos — lo usa la verificación de sesión inicial, que necesita `Authorization: Bearer <token del usuario>` en vez del service role. Las 13 llamadas (verificación de sesión/permiso/rate-limit + `create`/`reset_password`/`delete`/`delete_orphan`) migradas 1:1 al helper, sin tocar lógica de permisos. Verificado contra el HEAD real antes de reemplazar: diff de todos los mensajes de error idéntico byte a byte, cero `fetch(` directo fuera del helper, 121/121 tests (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox de verificación, mismo caso ya documentado en `D-6`) |
-| **ARCH-12** 🟡 | El chunk `view-qr` pesa 320 KB (88 KB comprimido) — casi el triple que el segundo chunk más grande (`vendor-react`, 134 KB). Diagnóstico original (12 de julio) decía que era por falta de sub-lazy-loading interno en `QRProyeccion.jsx`; investigación más profunda (intento de fix, 12 de julio, sesión posterior) corrigió esto: `AdminQRPanel`, `QRProyeccion` y `ReporteAsistencias` YA tienen cada uno su propio `React.lazy()` en `AsistenciasModulo.jsx` — el problema real es que `vite.config.js` los fuerza a los tres dentro de un único `manualChunks: { 'view-qr': [...] }`, anulando esa separación. Bloqueado por `ARCH-14` (ver abajo): separar el chunk sin resolver primero `ARCH-14` puede empeorar las cosas, no mejorarlas | `vite.config.js`, `src/components/asistencias/{AdminQRPanel,QRProyeccion}.jsx` | 🟡 Abierto, **bloqueado por `ARCH-14`** — no intentar de nuevo hasta cerrar ese hallazgo primero |
-| **ARCH-14** 🔴 | **Hallazgo nuevo, más grave que `ARCH-12`** (descubierto intentando arreglarlo, 12 de julio): al separar `view-qr` en chunks individuales para medir el impacto real, se confirmó — comparando contra el `vite.config.js` original sin tocar nada — que este problema **ya existe hoy en producción**, no lo causó el intento de fix. Rollup, al decidir automáticamente dónde poner los módulos que no están en `manualChunks`, metió el cliente de Supabase (`lib/supabase.js`, `createClient`), el logger centralizado, `parseClase` y otras utilidades usadas por **toda la app desde el arranque** físicamente dentro del chunk `view-qr` — confirmado con `grep` del bundle real: el chunk principal (`index-*.js`, el que se descarga en cada visita, antes del login) importa `supabase`/`logger`/etc. directamente desde `view-qr-*.js`. Esto significa que **cualquier persona que abre la app, incluso solo para ver la pantalla de login, ya está descargando los 320 KB completos del módulo QR** | `vite.config.js` (`manualChunks`, forma objeto) | 🔴 Abierto (detectado 12 de julio, durante el intento de cierre de `ARCH-12`) — requiere convertir `manualChunks` de forma objeto a forma función para controlar explícitamente qué módulo va en qué chunk, y verificar chunk por chunk que el bundle principal (`index-*.js`) no termine dependiendo de ningún chunk lazy. Es un cambio de configuración de build con riesgo real de romper el arranque de toda la app si se hace apurado — necesita su propia sesión dedicada con verificación exhaustiva, no un fix rápido |
+| **ARCH-12** 🟡 | El chunk `view-qr` pesa 320 KB (88 KB comprimido) — casi el triple que el segundo chunk más grande (`vendor-react`, 134 KB). Diagnóstico original (12 de julio) decía que era por falta de sub-lazy-loading interno en `QRProyeccion.jsx`; investigación más profunda (intento de fix, 12 de julio, sesión posterior) corrigió esto: `AdminQRPanel`, `QRProyeccion` y `ReporteAsistencias` YA tienen cada uno su propio `React.lazy()` en `AsistenciasModulo.jsx` — el problema real es que `vite.config.js` los fuerza a los tres dentro de un único `manualChunks: { 'view-qr': [...] }`, anulando esa separación | `vite.config.js`, `src/components/asistencias/{AdminQRPanel,QRProyeccion}.jsx` | 🟡 Abierto — **ya no bloqueado por `ARCH-14`** (cerrado el 12 de julio, ver su fila abajo): con `manualChunks` en forma función y los módulos compartidos ya extraídos a `vendor-supabase`/`vendor-core`, `view-qr` bajó de 320 KB a 90.36 KB (solo código específico de las 3 vistas QR + `qrcode`/`dijkstrajs`) — separar `AdminQRPanel`/`QRProyeccion`/`ReporteAsistencias` en 3 chunks propios ahora es seguro de intentar, pero no se hizo en esta sesión (alcance era solo `ARCH-14`) — queda para una pasada dedicada |
+| **ARCH-14** 🔴 | **Hallazgo nuevo, más grave que `ARCH-12`** (descubierto intentando arreglarlo, 12 de julio): al separar `view-qr` en chunks individuales para medir el impacto real, se confirmó — comparando contra el `vite.config.js` original sin tocar nada — que este problema **ya existe hoy en producción**, no lo causó el intento de fix. Rollup, al decidir automáticamente dónde poner los módulos que no están en `manualChunks`, metió el cliente de Supabase (`lib/supabase.js`, `createClient`), el logger centralizado, `parseClase` y otras utilidades usadas por **toda la app desde el arranque** físicamente dentro del chunk `view-qr` — confirmado con `grep` del bundle real: el chunk principal (`index-*.js`, el que se descarga en cada visita, antes del login) importa `supabase`/`logger`/etc. directamente desde `view-qr-*.js`. Esto significa que **cualquier persona que abre la app, incluso solo para ver la pantalla de login, ya está descargando los 320 KB completos del módulo QR** | `vite.config.js` (`manualChunks`, forma objeto) | ✅ **Cerrado (12 de julio)** — `manualChunks` convertido de forma objeto a forma función, que decide chunk por módulo individual en vez de por grafo de dependencias de un grupo completo. Confirmado con `<link rel="modulepreload">` real en `index.html`: el build original precargaba `view-qr-*.js` (320 KB) **y también** `view-historial-*.js` en cada visita, ambos sin que el hallazgo original mencionara el segundo caso — se corrigieron los dos, mismo patrón de fondo. Metodología: en vez de listar módulos compartidos "a ojo", se usó el grafo real de módulos de Rollup (`this.getModuleInfo()`/`importedIds` vía un plugin de análisis, no manualChunks en sí) para calcular la intersección exacta entre lo alcanzable desde `main.jsx` y desde cada grupo de vistas lazy (`view-historial`/`usuarios`/`logs`/`qr`) — encontrando así los 8 módulos que de verdad hacía falta extraer (`src/lib/supabase.js`, `logger.js`, `parsing.js`, `time.js`, `idb.js`, `offlineQueue.js`, `lapso.js`, `password.js`, `useFocusTrap.js`, `constants/index.js`, más el SDK completo de `@supabase/*` e `iceberg-js` en `node_modules`) en vez de confiar en que "devolver `undefined`" bastara — se probó primero solo con la forma función sin extraer nada más y el problema persistió idéntico, lo cual confirmó que hacía falta el paso adicional. Resultado: `vendor-supabase` (214 KB, el SDK de Supabase — se carga igual de inmediato porque ya se necesitaba desde `App.jsx` para sesión/login, pero ahora en su propio chunk en vez de mezclado con código específico de QR) y `vendor-core` (9 KB, utilidades transversales). `view-qr` bajó de 320.15 KB a 90.36 KB (código real y exclusivo de las 3 vistas QR + `qrcode`/`dijkstrajs`); `view-historial` de tener un import cruzado no documentado a 16.84 KB limpio. Verificado exhaustivamente: `index.html` generado ya no tiene ningún `<link rel="modulepreload">` a `view-*` (antes tenía `view-qr` y `view-historial`); búsqueda de `import{...}from"./view-*-*.js"` dentro del chunk principal da vacío para los 4 grupos lazy; tamaño del chunk principal (`index-*.js`) sin cambios (445.96→445.89 KB, la diferencia es solo redondeo de hashes); `vite build` limpio, 153/153 tests reales, `npm audit --package-lock-only`: 0 vulnerabilidades. Cambio de un solo archivo (`vite.config.js`), sin tocar ningún componente ni lógica de negocio |
 | **ARCH-13** 🟢 | La suite de tests depende de un tarball externo (`cdn.sheetjs.com`) para `xlsx`, sin fallback local — en una red restringida (ej. CI con firewall estricto) el `npm install` completo falla y bloquea 2 suites de tests sin que sea un error del código (mismo síntoma ya visto en `D-6`) | `package.json` (`dependencies.xlsx`), `vendor/xlsx-0.20.3.tgz` | ✅ **Cerrado (12 de julio)** — se vendorizó el tarball oficial de `xlsx@0.20.3` (misma versión exacta que ya usaba producción, descargado del propio CDN de SheetJS y commiteado en `vendor/xlsx-0.20.3.tgz`, con hash SHA-256 documentado en `vendor/README.md` junto con el procedimiento para actualizarlo a futuro). `package.json` pasa de apuntar a la URL del CDN a `file:./vendor/xlsx-0.20.3.tgz`. Verificado con instalación limpia (`rm -rf node_modules && npm install`) sin acceso al CDN: instala sin salir a internet para esta dependencia, `vite build` limpio (mismo tamaño de bundle, `view-qr` sigue en 320 KB — `xlsx` no vive ahí), 153/153 tests reales, incluidas las 2 suites de `xlsx` que antes quedaban bloqueadas en redes restringidas (`excelParser.test.js`, 29 tests) |
 
 ## 🔧 CI/CD y automatización
@@ -459,6 +460,34 @@ repetir el detalle ya cubierto en las tablas de arriba.
   de ningún chunk lazy, un cambio de config con riesgo real de romper el
   arranque de toda la app si se apura. `ARCH-12` queda bloqueado por
   `ARCH-14` — no reintentar hasta resolver ese primero.
+
+- **12 de julio, cierre de `ARCH-14` (único hallazgo abierto de esta
+  sesión):** clonado fresco de `main` (`038148c`) antes de tocar nada;
+  confirmado contra el índice que `ARCH-14` era el único hallazgo abierto.
+  Reproducido el problema primero (`vite build` + inspección de
+  `index.html` generado): confirmó que `view-qr-*.js` (320 KB) y también
+  `view-historial-*.js` (no mencionado en el hallazgo original) estaban
+  como `<link rel="modulepreload">` en el HTML, es decir, se descargaban
+  en cada visita sin importar la vista. Primer intento (`manualChunks`
+  función, solo enrutando por nombre de archivo) no fue suficiente — se
+  verificó con el build real que el problema persistía idéntico, lo cual
+  llevó a instrumentar un plugin de Rollup (`this.getModuleInfo()`) para
+  calcular el grafo de módulos real y encontrar, por intersección exacta
+  entre lo alcanzable desde `main.jsx` y desde cada grupo de vistas lazy,
+  los módulos compartidos que de verdad hacía falta extraer a chunks
+  propios (`vendor-supabase`, el SDK completo de Supabase; `vendor-core`,
+  utilidades transversales como logger/parseClase/lapso/password/
+  useFocusTrap/constants). Confirmado repetidas veces contra el build
+  real (no solo contra el análisis teórico del grafo) hasta que
+  `index.html` dejó de listar cualquier chunk `view-*` como
+  modulepreload y la búsqueda de imports estáticos cruzados desde el
+  chunk principal hacia los 4 grupos lazy dio vacío. `vite build` limpio
+  (tamaño del chunk principal sin cambios reales), 153/153 tests reales,
+  `npm audit --package-lock-only`: 0 vulnerabilidades. Cambio aislado a
+  `vite.config.js`. **No queda ningún hallazgo abierto crítico o
+  bloqueante en este índice** — `ARCH-12` sigue abierto pero ya
+  desbloqueado y de baja prioridad (no se intentó en esta sesión, fuera
+  de alcance).
 
 - **12 de julio, cierre de `SEC-13`:** validación de origen agregada al
   inicio de `handleRequest()` en `api/admin-users.js` — si `Origin` llega
