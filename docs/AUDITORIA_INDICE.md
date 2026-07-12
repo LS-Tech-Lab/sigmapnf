@@ -28,17 +28,22 @@ ver § Histórico al final.
 
 ---
 
-## 🟡 Hallazgos abiertos
+## 🔴 Hallazgos abiertos
 
-De la auditoría QA senior externa del 12 de julio (ver § Historial de
-auditorías al final para el detalle completo). Ninguno crítico ni
-bloqueante — orden de prioridad sugerido:
+De la auditoría QA senior externa del 12 de julio + hallazgo adicional
+descubierto ese mismo día intentando cerrar `ARCH-12` (ver § Historial de
+auditorías al final para el detalle completo). Orden de prioridad
+actualizado:
 
 1. ~~**`U-8`**~~ — ✅ Cerrado el 12 de julio (ver tabla "UI y estilos")
-2. **`ARCH-12`** 🟡 — chunk `view-qr` (320 KB) sin sub-lazy-loading interno
-3. **`SEC-13`** 🟡 — `api/admin-users.js` sin allowlist de origen (CORS,
-   defensa en profundidad, sin explotación conocida hoy)
-4. **`ARCH-13`** 🟢 — `xlsx` sin fallback local para CI en red restringida
+2. **`ARCH-14`** 🔴 — **el más grave de todos**: módulos centrales de toda
+   la app (Supabase, logger, `parseClase`) viven físicamente dentro del
+   chunk `view-qr` (320 KB) — toda visita a la app, incluso solo para ver
+   el login, ya descarga ese chunk completo hoy en producción
+3. ~~**`SEC-13`**~~ — ✅ Cerrado el 12 de julio (ver tabla "Seguridad y RLS")
+4. **`ARCH-12`** 🟡 — chunk `view-qr` sin separar por vista — **bloqueado
+   por `ARCH-14`**, no intentar hasta resolver ese primero
+5. **`ARCH-13`** 🟢 — `xlsx` sin fallback local para CI en red restringida
 
 Ver las tablas de categoría abajo para el detalle de cada uno.
 
@@ -66,7 +71,7 @@ Ver las tablas de categoría abajo para el detalle de cada uno.
 | **SEC-11** | `api/admin-users.js` (Service Role Key) sin límite de frecuencia propio | `api/admin-users.js`, `admin_actions_rate_limit` | `0051` | ✅ Cerrado — 10 acciones/minuto por `actor_id` (no IP, por NAT compartido en Vercel) |
 | **SEC-9** | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecían ejecutables por `anon` sin ningún `REVOKE` explícito en ninguna migración — mismo patrón que `SEC-8`. Riesgo bajo (solo lectura, devuelven `null`/vacío para `anon`) | 4 RPCs de sesión (sin migración de origen) | `0052` | ✅ Cerrado — ninguna de las 4 fue creada por una migración de este repo, así que `0052` resuelve la firma real vía `pg_proc` en vez de asumirla, y aplica `REVOKE`/`GRANT` a la función que efectivamente exista. Verificado contra la BD real tras aplicar: `anon` ya no aparece en `EXECUTE` de ninguna |
 | **D-7** 🟡 | `npm audit` marcaba 2 vulnerabilidades en `vite`/`esbuild` (una "alta", una "moderada"). Ambas vivían en el servidor de desarrollo (`npm run dev`) — permitían que una web maliciosa le pidiera datos a ese servidor mientras corría localmente. No afectaban el build de producción que sirve Vercel | `package.json` (`devDependencies.vite`) | — | ✅ **Cerrado (11 de julio)** — la sugerencia automática de `npm audit fix --force` saltaba a `vite@8.1.4`, pero `vite-plugin-pwa@0.21.1` (instalado) y `@vitejs/plugin-react@4.7.0` (instalado) solo declaran soporte hasta `vite ^6.0.0`/`^7.0.0` en sus `peerDependencies` — ese salto habría roto el build. Se aplicó en cambio `vite@^6.4.3` (dentro del mismo rango mayor que ya soportan ambos plugins), que trae `esbuild@^0.25.0` — ambas CVEs afectan únicamente versiones `<=6.4.2`/`<=0.24.2`, así que `6.4.3` ya las resuelve sin saltar de mayor. `npm audit --package-lock-only`: 0 vulnerabilidades. `vite-plugin-pwa` resolvió a `0.21.2` sin cambiar de rango en `package.json`. `npx vitest run`: 121/121 tests (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`). `vite build` verificado completo con un stub temporal de `xlsx` (necesario solo por el firewall del sandbox de verificación, no se toca el repo): 253 módulos, chunking lazy idéntico (`view-historial`/`view-logs`/`view-qr`/`view-usuarios`), PWA generado correctamente (52 entradas de precache) |
-| **SEC-13** 🟡 | `api/admin-users.js` no define cabeceras CORS propias (`Access-Control-Allow-Origin`, etc.). Hoy no es explotable porque Vercel sirve frontend y función del mismo origen, pero si en el futuro se llama desde otro dominio quedaría abierto a cualquier origen por defecto en vez de a una allowlist explícita | `api/admin-users.js` | — | 🟡 Abierto (detectado 12 de julio, auditoría QA senior externa) — solución: allowlist explícito del dominio de producción al inicio de `handler()`, rechazando con 403 cualquier origen fuera de la lista |
+| **SEC-13** 🟡 | `api/admin-users.js` no define cabeceras CORS propias (`Access-Control-Allow-Origin`, etc.). Hoy no es explotable porque Vercel sirve frontend y función del mismo origen, pero si en el futuro se llama desde otro dominio quedaría abierto a cualquier origen por defecto en vez de a una allowlist explícita | `api/admin-users.js` | — | ✅ **Cerrado (12 de julio)** — se agregó una validación de origen al inicio de `handleRequest()`: si llega la cabecera `Origin` y su host no coincide con `req.headers.host` (el dominio real que Vercel resolvió para esa request), se rechaza con 403 antes de cualquier otro procesamiento. Se compara solo el host, ignorando protocolo http/https a propósito, para que funcione igual en producción, previews de Vercel y desarrollo local (`vercel dev` sirve por `http://`) sin necesitar una lista de dominios hardcodeada ni variables de entorno nuevas. Si `Origin` no viene (llamada sin ese header) no se rechaza, para no romper clientes legítimos — los navegadores modernos siempre lo envían en `POST`, así que su ausencia no es indicio de ataque. Verificado con 5 casos manuales (mismo origen prod, dev local http, sin header, origen malicioso, preview de Vercel) antes de integrar. Cambio de 20 líneas, aditivo, no toca ninguna lógica de auth/permisos existente. `vite build` limpio, 130/130 tests reales (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`) |
 | **SEC-12** 🔴 | Reportado por LS: una sesión iniciada nunca se cerraba sola aunque pasaran días. Causa: `persistSession`/`autoRefreshToken` por defecto (sin límite de sesión) + el timeout de inactividad de `useAuth.js` (30/60 min) vivía solo en memoria del componente — cerrar la pestaña y reabrirla reiniciaba el conteo a cero sin importar el tiempo real transcurrido. Riesgo: acceso físico no autorizado al equipo con la cuenta ya logueada | `src/hooks/useAuth.js`, `auth.sessions` | `0053_limpieza_sesiones_expiradas`, `0055_fix_email_session_logs_cron` | ✅ Cerrado (10 de julio) — dos capas. Client: última actividad e inicio de sesión persistidos en `localStorage`; al montar, si ya venció el plazo se cierra sesión de inmediato, si no, el timer arranca con el tiempo *restante*. Se agrega además un time-box absoluto de 10h (jornada laboral) que no existía. Server (capa real, no evadible editando `localStorage`): `pg_cron` cada 15 min borra de `auth.sessions` lo que exceda el time-box (10h) o 2h sin renovar token — replica el "Time-boxed sessions" de Supabase Pro sin tener ese plan, usando acceso directo a `auth.sessions` (mismo patrón ya establecido en `0014`/`0015`/`0021`/`0050` con `auth.users`). Cada cierre forzado queda registrado en `session_logs` (`evento='logout'`, `detalles->>'forzado'='true'` — ver nota `0055`). `0055` corrige dos constraints de `session_logs` en producción no documentados en ningún esquema versionado (mismo tipo de drift que ya detectó `0033`): `NOT NULL` en `email` (resuelto poblando `email`/`nombre`/`rol`/`programa` vía el mismo JOIN que ya usa `get_session_logs()`) y un `CHECK` en `evento` que solo permite `'login'`/`'logout'` — verificado contra la BD real (302/49 filas) — por lo que el cierre forzado por servidor reusa `evento='logout'` y marca la distinción en `detalles` (`forzado`, `origen`, `motivo`) en vez de ampliar el constraint. Pendiente en el dashboard de Supabase (no se puede hacer por migración): confirmar `pg_cron` habilitado y considerar bajar el JWT expiry limit para acotar la ventana entre el borrado del server y el vencimiento natural del access token ya emitido |
 
 ## 🔎 Filtrado de datos por permiso/programa
@@ -114,7 +119,8 @@ Ver las tablas de categoría abajo para el detalle de cada uno.
 | **ARCH-9** | Código muerto: ningún archivo del repo lo importaba ni renderizaba, y su propio import (`responsiveCSS`) no existía en ningún lado. Encontrado de forma incidental durante el barrido que cerró `S3` | `src/components/ResponsiveStyles.jsx` | ✅ Cerrado — archivo eliminado |
 | **ARCH-10** | `HistorialView.jsx` (637 líneas), `LogsView.jsx` (517), `LoginScreen.jsx` (508) concentraban layout, estado y lógica de responsabilidades distintas en un solo archivo cada uno. Mismo problema de fondo que `ARCH-8`, en archivos distintos | `src/components/{HistorialView,LogsView,LoginScreen}.jsx` | ✅ **Cerrado (9 de julio, noche)** — mismo patrón que `ARCH-8`: cada archivo se dividió en un orquestador (estado/efectos/handlers) + subcomponentes presentacionales puros que reciben todo por props. `HistorialView.jsx` 637→286 líneas (`historial/`: `ModalTrimestre.jsx`, `ComparadorPanel.jsx`, `HistorialLista.jsx`, `historialUtils.jsx`). `LoginScreen.jsx` 508→336 líneas (`login/`: `ModalActivarPIN.jsx`, `LoginOfflinePinPanel.jsx`, `LoginFormNormal.jsx`). `LogsView.jsx` 517→76 líneas (`logs/`: `TabSesiones.jsx`, `TabAuditoria.jsx`, `logsUtils.jsx` — ya eran subcomponentes autocontenidos, solo se movieron). Extracción 1:1 verificada línea por línea contra el original antes de reemplazar, sin cambios de lógica. `vite build` limpio (mismo tamaño de bundle `view-logs`/`view-historial`, confirma que no se duplicó código), 153/153 tests |
 | **ARCH-11** | `api/admin-users.js` repetía el mismo bloque (armar headers, llamar `fetch`, parsear JSON, revisar `.ok`) 13 veces para hablar con Supabase (Auth Admin API + REST) | `api/admin-users.js` | ✅ **Cerrado (11 de julio)** — extraído `supabaseAdminFetch(path, options)`: centraliza `Authorization`/`apikey`/`Content-Type` condicional (solo si hay body) y el prefijo `${SUPABASE_URL}`; `options.headers` se aplica después de los defaults, así que puede sobreescribirlos — lo usa la verificación de sesión inicial, que necesita `Authorization: Bearer <token del usuario>` en vez del service role. Las 13 llamadas (verificación de sesión/permiso/rate-limit + `create`/`reset_password`/`delete`/`delete_orphan`) migradas 1:1 al helper, sin tocar lógica de permisos. Verificado contra el HEAD real antes de reemplazar: diff de todos los mensajes de error idéntico byte a byte, cero `fetch(` directo fuera del helper, 121/121 tests (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox de verificación, mismo caso ya documentado en `D-6`) |
-| **ARCH-12** 🟡 | El chunk `view-qr` pesa 320 KB (88 KB comprimido) — casi el triple que el segundo chunk más grande (`vendor-react`, 134 KB) — porque carga de una sola vez todo lo que puede aparecer en la pantalla de proyección QR (countdown, cola offline, historial de sesión, panel admin), se use o no en ese momento | `src/components/asistencias/QRProyeccion.jsx` y componentes relacionados | 🟡 Abierto (detectado 12 de julio, auditoría QA senior externa) — solución: dividir con `React.lazy` los subcomponentes que solo se muestran bajo demanda (`ColaOfflinePanel`, `HistorialSesiones`), mismo patrón ya usado en `ARCH-7` |
+| **ARCH-12** 🟡 | El chunk `view-qr` pesa 320 KB (88 KB comprimido) — casi el triple que el segundo chunk más grande (`vendor-react`, 134 KB). Diagnóstico original (12 de julio) decía que era por falta de sub-lazy-loading interno en `QRProyeccion.jsx`; investigación más profunda (intento de fix, 12 de julio, sesión posterior) corrigió esto: `AdminQRPanel`, `QRProyeccion` y `ReporteAsistencias` YA tienen cada uno su propio `React.lazy()` en `AsistenciasModulo.jsx` — el problema real es que `vite.config.js` los fuerza a los tres dentro de un único `manualChunks: { 'view-qr': [...] }`, anulando esa separación. Bloqueado por `ARCH-14` (ver abajo): separar el chunk sin resolver primero `ARCH-14` puede empeorar las cosas, no mejorarlas | `vite.config.js`, `src/components/asistencias/{AdminQRPanel,QRProyeccion}.jsx` | 🟡 Abierto, **bloqueado por `ARCH-14`** — no intentar de nuevo hasta cerrar ese hallazgo primero |
+| **ARCH-14** 🔴 | **Hallazgo nuevo, más grave que `ARCH-12`** (descubierto intentando arreglarlo, 12 de julio): al separar `view-qr` en chunks individuales para medir el impacto real, se confirmó — comparando contra el `vite.config.js` original sin tocar nada — que este problema **ya existe hoy en producción**, no lo causó el intento de fix. Rollup, al decidir automáticamente dónde poner los módulos que no están en `manualChunks`, metió el cliente de Supabase (`lib/supabase.js`, `createClient`), el logger centralizado, `parseClase` y otras utilidades usadas por **toda la app desde el arranque** físicamente dentro del chunk `view-qr` — confirmado con `grep` del bundle real: el chunk principal (`index-*.js`, el que se descarga en cada visita, antes del login) importa `supabase`/`logger`/etc. directamente desde `view-qr-*.js`. Esto significa que **cualquier persona que abre la app, incluso solo para ver la pantalla de login, ya está descargando los 320 KB completos del módulo QR** | `vite.config.js` (`manualChunks`, forma objeto) | 🔴 Abierto (detectado 12 de julio, durante el intento de cierre de `ARCH-12`) — requiere convertir `manualChunks` de forma objeto a forma función para controlar explícitamente qué módulo va en qué chunk, y verificar chunk por chunk que el bundle principal (`index-*.js`) no termine dependiendo de ningún chunk lazy. Es un cambio de configuración de build con riesgo real de romper el arranque de toda la app si se hace apurado — necesita su propia sesión dedicada con verificación exhaustiva, no un fix rápido |
 | **ARCH-13** 🟢 | La suite de tests depende de un tarball externo (`cdn.sheetjs.com`) para `xlsx`, sin fallback local — en una red restringida (ej. CI con firewall estricto) el `npm install` completo falla y bloquea 2 suites de tests sin que sea un error del código (mismo síntoma ya visto en `D-6`) | `package.json` (`dependencies.xlsx`) | 🟢 Abierto (detectado 12 de julio, auditoría QA senior externa) — solución: vendorizar el `.tgz` de `xlsx` (commitearlo en el repo o cachearlo como artifact de CI) y apuntar `package.json` a esa ruta local en vez de a la URL del CDN |
 
 ## 🔧 CI/CD y automatización
@@ -425,6 +431,44 @@ repetir el detalle ya cubierto en las tablas de arriba.
   sin tocar ninguna regla existente. Verificado: `vite build` limpio
   (mismo tamaño de bundle), 130/130 tests reales (2 suites de `xlsx`
   bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`).
+
+- **12 de julio, intento de `ARCH-12` → descubrimiento de `ARCH-14`:**
+  antes de tocar código se separó `view-qr` en 3 chunks manuales
+  (`AdminQRPanel`/`QRProyeccion`/`ReporteAsistencias`, cada uno ya tenía
+  su propio `React.lazy()`) para medir el impacto real. Se extrajo además
+  `QRDisplay`/`formatFechaVE`/`TURNOS_VISIBLES` de `AdminQRPanel.jsx` a un
+  archivo nuevo y autocontenido (`QRProyeccion.jsx` los importaba
+  directamente de ahí, un import estático que arrastraba todo el panel
+  admin). En el camino se detectó que el chunk de proyección seguía
+  importando cosas del chunk admin — investigando por qué, se descubrió
+  que Rollup ya coloca módulos centrales de toda la app (cliente de
+  Supabase, logger, `parseClase`) físicamente dentro de `view-qr`.
+  Verificado contra el `vite.config.js` **original sin ningún cambio**
+  (revirtiendo todo con `git stash`) que esto **ya pasa en producción
+  hoy**, no lo causó el intento de fix: el chunk principal `index-*.js`
+  importa `supabase`/`logger` directamente desde `view-qr-*.js`. Se
+  revirtieron todos los cambios experimentales (repo quedó limpio, cero
+  diff) y se documentó `ARCH-14` como hallazgo nuevo y más crítico que
+  `ARCH-12` — requiere convertir `manualChunks` de forma objeto a forma
+  función y verificar exhaustivamente que el bundle principal no dependa
+  de ningún chunk lazy, un cambio de config con riesgo real de romper el
+  arranque de toda la app si se apura. `ARCH-12` queda bloqueado por
+  `ARCH-14` — no reintentar hasta resolver ese primero.
+
+- **12 de julio, cierre de `SEC-13`:** validación de origen agregada al
+  inicio de `handleRequest()` en `api/admin-users.js` — si `Origin` llega
+  y su host no coincide con `req.headers.host`, se rechaza con 403 antes
+  de cualquier otro procesamiento (auth, permisos, rate limit). Se
+  compara solo el host, ignorando protocolo a propósito, para no romper
+  desarrollo local (`vercel dev` sirve por `http://`) sin necesitar
+  hardcodear el dominio de producción ni agregar variables de entorno.
+  Ausencia de `Origin` no se rechaza (no rompe clientes legítimos sin
+  ese header). Verificado con 5 casos manuales antes de integrar: mismo
+  origen en producción, dev local por http, sin header, origen
+  malicioso, preview de Vercel — los 5 se comportaron como se esperaba.
+  Cambio de 20 líneas, aditivo, sin tocar lógica de auth/permisos
+  existente. `vite build` limpio, 130/130 tests reales (2 suites de
+  `xlsx` bloqueadas solo por el firewall del sandbox, mismo caso `D-6`).
 
 ---
 
