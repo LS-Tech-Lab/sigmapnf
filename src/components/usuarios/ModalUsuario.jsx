@@ -22,6 +22,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { supabase } from "../../lib/supabase";
 import { Spinner } from "./shared";
 import { validarPassword } from "../../utils/password";
@@ -264,3 +265,31 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
     </div>
   );
 }
+
+// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// props — no cambia comportamiento. El shape de `usuario`/`roles` refleja
+// exactamente los campos que este archivo lee (ver uso de `usuario?.email`,
+// `r.nombre`/`r.label`/`r.emoji`/`r.restringe_programa` arriba); `programas`
+// es un array de strings (nombres de PNF), confirmado contra el único
+// caller real (`PestanaUsuarios.jsx`).
+ModalUsuario.propTypes = {
+  usuario: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    email: PropTypes.string,
+    nombre: PropTypes.string,
+    rol: PropTypes.string,
+    programa: PropTypes.string,
+  }),
+  esActorAdmin: PropTypes.bool,
+  roles: PropTypes.arrayOf(PropTypes.shape({
+    nombre: PropTypes.string.isRequired,
+    label: PropTypes.string,
+    emoji: PropTypes.string,
+    restringe_programa: PropTypes.bool,
+  })).isRequired,
+  programas: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onSave: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  showToast: PropTypes.func,
+  logAudit: PropTypes.func,
+};
