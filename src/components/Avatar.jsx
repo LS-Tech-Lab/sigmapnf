@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 // Fix A3/S3 (auditoría QA 5/jul/2026, Fase 5): los 4 usos reales en todo el
 // repo solo pasan size={30|44|52} — tamaño fijo, ya no --av-size/--av-font-size
@@ -26,3 +27,13 @@ export default function Avatar({ name, size = 36 }) {
     </div>
   );
 }
+
+// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// props — no cambia comportamiento. `size` acepta cualquier número por
+// diseño (ver comentario arriba: valores fuera de [30,44,52] caen al más
+// cercano en vez de romper), así que se documenta como number, no como
+// oneOf, para no contradecir esa tolerancia intencional.
+Avatar.propTypes = {
+  name: PropTypes.string,
+  size: PropTypes.number,
+};
