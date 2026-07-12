@@ -28,19 +28,12 @@ ver § Histórico al final.
 
 ---
 
-## 🟡 Hallazgos abiertos
+## 🟢 Hallazgos abiertos
 
-Uno solo, de severidad baja y no bloqueante para producción:
-
-- **D-7** 🟡 — 2 vulnerabilidades de `npm audit` en `vite`/`esbuild`,
-  confinadas al servidor de desarrollo (no afectan el build de producción
-  de Vercel). Sin urgencia, diferido a la próxima ventana de
-  mantenimiento. Ver tabla en 🔐 Seguridad y RLS.
-
-`ARCH-11` y `U-7` (mismo lote de la auditoría del 11 de julio) ya se
-cerraron el mismo día — ver § Historial de auditorías al final para el
-detalle cronológico completo, y las tablas de categoría abajo para el
-detalle de cada hallazgo.
+Ninguno — el último (`D-7`) se cerró el 11 de julio. Todos los hallazgos
+registrados en este índice están cerrados. Ver § Historial de auditorías
+al final para el detalle cronológico completo, y las tablas de categoría
+abajo para el detalle de cada uno.
 
 ---
 
@@ -65,7 +58,7 @@ detalle de cada hallazgo.
 | **SEC-10** 🔴 | `admin_caller_puede_gestionar_usuarios()` solo verificaba un permiso booleano, sin comparar rol actor vs. rol objetivo — cualquier rol con ese permiso podía crear/editar/eliminar cuentas `admin` sin serlo (escalada de privilegios) | 5 RPCs `admin_*`, `api/admin-users.js` | `0050` | ✅ Cerrado — helper `admin_caller_es_admin()` como guard en las 5 RPCs y replicado en `admin-users.js` (que no llama a las RPCs, usa la Auth Admin API directo) |
 | **SEC-11** | `api/admin-users.js` (Service Role Key) sin límite de frecuencia propio | `api/admin-users.js`, `admin_actions_rate_limit` | `0051` | ✅ Cerrado — 10 acciones/minuto por `actor_id` (no IP, por NAT compartido en Vercel) |
 | **SEC-9** | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecían ejecutables por `anon` sin ningún `REVOKE` explícito en ninguna migración — mismo patrón que `SEC-8`. Riesgo bajo (solo lectura, devuelven `null`/vacío para `anon`) | 4 RPCs de sesión (sin migración de origen) | `0052` | ✅ Cerrado — ninguna de las 4 fue creada por una migración de este repo, así que `0052` resuelve la firma real vía `pg_proc` en vez de asumirla, y aplica `REVOKE`/`GRANT` a la función que efectivamente exista. Verificado contra la BD real tras aplicar: `anon` ya no aparece en `EXECUTE` de ninguna |
-| **D-7** 🟡 | `npm audit` marca 2 vulnerabilidades en `vite`/`esbuild` (una "alta", una "moderada"). Ambas viven en el servidor de desarrollo (`npm run dev`) — permiten que una web maliciosa le pida datos a ese servidor mientras corre localmente. No afectan el build de producción que sirve Vercel (ahí no hay servidor de desarrollo corriendo, solo archivos estáticos) | `package.json` (`devDependencies.vite`) | — | 🟡 Abierto — sin urgencia. Cuando haya ventana de mantenimiento: `npm audit fix --force`, confirmar que `vite-plugin-pwa` sigue siendo compatible con la versión mayor que instala (salto a Vite 6.x/8.x) y correr la suite completa después. Mientras tanto, evitar exponer el puerto del dev server a redes no confiables |
+| **D-7** 🟡 | `npm audit` marcaba 2 vulnerabilidades en `vite`/`esbuild` (una "alta", una "moderada"). Ambas vivían en el servidor de desarrollo (`npm run dev`) — permitían que una web maliciosa le pidiera datos a ese servidor mientras corría localmente. No afectaban el build de producción que sirve Vercel | `package.json` (`devDependencies.vite`) | — | ✅ **Cerrado (11 de julio)** — la sugerencia automática de `npm audit fix --force` saltaba a `vite@8.1.4`, pero `vite-plugin-pwa@0.21.1` (instalado) y `@vitejs/plugin-react@4.7.0` (instalado) solo declaran soporte hasta `vite ^6.0.0`/`^7.0.0` en sus `peerDependencies` — ese salto habría roto el build. Se aplicó en cambio `vite@^6.4.3` (dentro del mismo rango mayor que ya soportan ambos plugins), que trae `esbuild@^0.25.0` — ambas CVEs afectan únicamente versiones `<=6.4.2`/`<=0.24.2`, así que `6.4.3` ya las resuelve sin saltar de mayor. `npm audit --package-lock-only`: 0 vulnerabilidades. `vite-plugin-pwa` resolvió a `0.21.2` sin cambiar de rango en `package.json`. `npx vitest run`: 121/121 tests (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`). `vite build` verificado completo con un stub temporal de `xlsx` (necesario solo por el firewall del sandbox de verificación, no se toca el repo): 253 módulos, chunking lazy idéntico (`view-historial`/`view-logs`/`view-qr`/`view-usuarios`), PWA generado correctamente (52 entradas de precache) |
 | **SEC-12** 🔴 | Reportado por LS: una sesión iniciada nunca se cerraba sola aunque pasaran días. Causa: `persistSession`/`autoRefreshToken` por defecto (sin límite de sesión) + el timeout de inactividad de `useAuth.js` (30/60 min) vivía solo en memoria del componente — cerrar la pestaña y reabrirla reiniciaba el conteo a cero sin importar el tiempo real transcurrido. Riesgo: acceso físico no autorizado al equipo con la cuenta ya logueada | `src/hooks/useAuth.js`, `auth.sessions` | `0053_limpieza_sesiones_expiradas`, `0055_fix_email_session_logs_cron` | ✅ Cerrado (10 de julio) — dos capas. Client: última actividad e inicio de sesión persistidos en `localStorage`; al montar, si ya venció el plazo se cierra sesión de inmediato, si no, el timer arranca con el tiempo *restante*. Se agrega además un time-box absoluto de 10h (jornada laboral) que no existía. Server (capa real, no evadible editando `localStorage`): `pg_cron` cada 15 min borra de `auth.sessions` lo que exceda el time-box (10h) o 2h sin renovar token — replica el "Time-boxed sessions" de Supabase Pro sin tener ese plan, usando acceso directo a `auth.sessions` (mismo patrón ya establecido en `0014`/`0015`/`0021`/`0050` con `auth.users`). Cada cierre forzado queda registrado en `session_logs` (`evento='logout'`, `detalles->>'forzado'='true'` — ver nota `0055`). `0055` corrige dos constraints de `session_logs` en producción no documentados en ningún esquema versionado (mismo tipo de drift que ya detectó `0033`): `NOT NULL` en `email` (resuelto poblando `email`/`nombre`/`rol`/`programa` vía el mismo JOIN que ya usa `get_session_logs()`) y un `CHECK` en `evento` que solo permite `'login'`/`'logout'` — verificado contra la BD real (302/49 filas) — por lo que el cierre forzado por servidor reusa `evento='logout'` y marca la distinción en `detalles` (`forzado`, `origen`, `motivo`) en vez de ampliar el constraint. Pendiente en el dashboard de Supabase (no se puede hacer por migración): confirmar `pg_cron` habilitado y considerar bajar el JWT expiry limit para acotar la ventana entre el borrado del server y el vencimiento natural del access token ya emitido |
 
 ## 🔎 Filtrado de datos por permiso/programa
@@ -347,6 +340,21 @@ repetir el detalle ya cubierto en las tablas de arriba.
   en el sandbox (mismo caso de `D-6`), 121/121 tests. **No queda ningún
   hallazgo abierto de la auditoría del 11 de julio salvo `D-7`
   (diferido).**
+- **11 de julio, cierre de `D-7`:** la sugerencia automática de `npm
+  audit fix --force` saltaba a `vite@8.1.4`, pero eso rompía los
+  `peerDependencies` de `vite-plugin-pwa@0.21.1` y
+  `@vitejs/plugin-react@4.7.0` (ambos instalados), que solo declaran
+  soporte hasta `vite ^6.0.0`/`^7.0.0`. Investigado el rango real de las
+  3 CVEs (todas `<=6.4.2`/`<=0.24.2`): `vite@^6.4.3` ya las resuelve sin
+  el salto de mayor que rompía los plugins. `npm audit
+  --package-lock-only`: 0 vulnerabilidades. 121/121 tests, `vite build`
+  completo verificado con un stub temporal de `xlsx` (solo por el
+  firewall del sandbox de verificación) — mismo chunking lazy y PWA que
+  antes del bump. Verificado antes de aplicar contra el `main` real
+  (`276b0b4`, ya con `ARCH-11` y `U-7` fusionados por otras sesiones):
+  `package.json`/`package-lock.json` seguían byte-idénticos a los usados
+  para preparar este fix, sin choque posible. **No queda ningún hallazgo
+  abierto en este índice.**
 - **11 de julio — `0055`, fix sobre `SEC-12` (drift de esquema, no
   hallazgo nuevo, 2 rondas):** al ejecutar `limpiar_sesiones_expiradas()`
   por primera vez contra la BD real, falló con `23502: null value in
