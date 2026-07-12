@@ -54,16 +54,90 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react':   ['react', 'react-dom'],
-            'view-historial': ['./src/components/HistorialView'],
-            'view-usuarios':  ['./src/components/usuarios/index'],
-            'view-logs':      ['./src/components/LogsView'],
-            'view-qr': [
-              './src/components/asistencias/AdminQRPanel',
-              './src/components/asistencias/QRProyeccion',
-              './src/components/asistencias/ReporteAsistencias',
-            ],
+          // Fix ARCH-14: la forma objeto de `manualChunks` asignaba a los
+          // 4 grupos (view-historial/usuarios/logs/qr) no solo los archivos
+          // listados, sino también módulos compartidos por toda la app
+          // (cliente de Supabase, logger, parseClase) que Rollup terminaba
+          // colocando físicamente dentro de esos chunks — en particular
+          // dentro de `view-qr` (320 KB), que el chunk principal
+          // (`index-*.js`) necesitaba importar en cada visita (confirmado
+          // con `<link rel="modulepreload">` a `view-qr-*` en `index.html`
+          // generado, incluso antes de tocar la pantalla de login). La
+          // forma función decide chunk por módulo individual en vez de por
+          // grafo de dependencias de un grupo, así que un módulo compartido
+          // (ej. `src/lib/supabase.js`, importado también por `App.jsx`)
+          // nunca puede quedar arrastrado dentro de `view-qr` solo por
+          // usarse también ahí: si no calza con ningún patrón de abajo,
+          // se devuelve `undefined` y Rollup aplica su algoritmo por
+          // defecto (que sí separa correctamente lo compartido).
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (
+                id.includes('/node_modules/react/') ||
+                id.includes('/node_modules/react-dom/')
+              ) {
+                return 'vendor-react'
+              }
+              // El SDK de Supabase (auth-js/postgrest-js/realtime-js/etc.)
+              // es el grueso de lo que terminaba físicamente dentro de
+              // `view-qr`: se usa desde `App.jsx` (login, sesión) desde el
+              // arranque, así que de cualquier forma se necesita cargar de
+              // inmediato — pero debe vivir en su propio chunk, no
+              // mezclado con el código específico de las vistas QR, para
+              // que el chunk `view-qr` real (código de esas vistas) siga
+              // siendo lazy de verdad.
+              if (
+                id.includes('/node_modules/@supabase/') ||
+                id.includes('/node_modules/iceberg-js/')
+              ) {
+                return 'vendor-supabase'
+              }
+              return undefined
+            }
+            // Mismo caso que el SDK de Supabase: utilidades transversales
+            // usadas desde el arranque síncrono de la app (`main.jsx`/
+            // `App.jsx` — logger, cliente Supabase, `parseClase`; PIN
+            // offline y sync de horarios en `useAppData` — IndexedDB, cola
+            // offline, formateo de fecha/hora; `constants/index.js`, usado
+            // por decenas de componentes incluido `ErrorBoundary.jsx`, que
+            // vive en la raíz del árbol). Verificado por análisis estático
+            // del grafo de módulos real (`this.getModuleInfo` de Rollup),
+            // no por inspección manual: son exactamente los módulos
+            // alcanzables tanto desde `main.jsx` como desde las 3 entradas
+            // de `view-qr`. Se extraen a su propio chunk para que no
+            // queden arrastrados dentro de `view-qr` solo por usarse
+            // también ahí.
+            if (
+              id.includes('/src/lib/supabase.js') ||
+              id.includes('/src/utils/logger.js') ||
+              id.includes('/src/utils/parsing.js') ||
+              id.includes('/src/utils/time.js') ||
+              id.includes('/src/utils/idb.js') ||
+              id.includes('/src/utils/offlineQueue.js') ||
+              id.includes('/src/utils/lapso.js') ||
+              id.includes('/src/utils/password.js') ||
+              id.includes('/src/hooks/useFocusTrap.js') ||
+              id.includes('/src/constants/index.js')
+            ) {
+              return 'vendor-core'
+            }
+            if (id.includes('/src/components/HistorialView')) {
+              return 'view-historial'
+            }
+            if (id.includes('/src/components/usuarios/index')) {
+              return 'view-usuarios'
+            }
+            if (id.includes('/src/components/LogsView')) {
+              return 'view-logs'
+            }
+            if (
+              id.includes('/src/components/asistencias/AdminQRPanel') ||
+              id.includes('/src/components/asistencias/QRProyeccion') ||
+              id.includes('/src/components/asistencias/ReporteAsistencias')
+            ) {
+              return 'view-qr'
+            }
+            return undefined
           },
         },
       },
