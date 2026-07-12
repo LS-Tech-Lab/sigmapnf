@@ -35,28 +35,23 @@ clonado fresco contra `870242e`, sin reabrir ningún hallazgo previamente
 cerrado — 153/153 tests reales, build limpio, `npm audit`: 0
 vulnerabilidades). Orden de prioridad sugerido por la auditoría:
 
-1. **`ARCH-15`** 🟡 — `AdminQRPanel.jsx` (685 líneas) — fix implementado y
-   verificado (tests/build/lint local), 🔄 **en proceso de integrarse a
-   `main`** (pendiente de subir vía `github.dev`)
-2. **`ARCH-16`** 🟡 — Sin ESLint/Prettier configurados en el proyecto
+1. **`ARCH-16`** 🟡 — Sin ESLint/Prettier configurados en el proyecto
    (en progreso, otra sesión)
-3. **`SEC-14`** 🟢 — Sin SAST/CodeQL sobre código propio en CI (depende de
+2. **`SEC-14`** 🟢 — Sin SAST/CodeQL sobre código propio en CI (depende de
    `ARCH-16`)
-4. **`U-10`** 🟡 — 24/30 archivos CSS sin `@media`; falta captura de
+3. **`U-10`** 🟡 — 24/30 archivos CSS sin `@media`; falta captura de
    regresión visual automatizada en CI
-5. **`ARCH-17`** 🟢 — Sin `PropTypes`/TypeScript en los ~8 componentes más
-   reutilizados — fix implementado y verificado (tests/build local), 🔄
-   **en proceso de integrarse a `main`** (pendiente de subir vía
-   `github.dev`)
-6. **`SEC-15`** 🟢 — Sin política documentada de rotación de
+4. **`SEC-15`** 🟢 — Sin política documentada de rotación de
    `SUPABASE_SERVICE_ROLE_KEY`
-7. **`U-11`** 🟢 — Reglas responsive de `.qrp-*` viven en `index.css` en
+5. **`U-11`** 🟢 — Reglas responsive de `.qrp-*` viven en `index.css` en
    vez de `QRProyeccion.css` (deuda cosmética, ya documentada en `U-8`)
-8. **`U-12`** 🟢 — Sin soporte de `prefers-color-scheme` (modo oscuro) —
+6. **`U-12`** 🟢 — Sin soporte de `prefers-color-scheme` (modo oscuro) —
    mejora de producto, no defecto
-9. **`ARCH-18`** 🟢 — Chunk principal (446 KB / 149 KB gzip) sigue siendo
+7. **`ARCH-18`** 🟢 — Chunk principal (446 KB / 149 KB gzip) sigue siendo
    el más pesado; pendiente confirmar con `vite-bundle-visualizer` qué
    módulo pesa más antes de invertir tiempo ahí
+
+`ARCH-15` y `ARCH-17` ✅ cerrados — ver tabla de Arquitectura abajo.
 
 Ver las tablas de categoría abajo para el detalle de cada uno.
 
@@ -137,9 +132,9 @@ Ver las tablas de categoría abajo para el detalle de cada uno.
 | **ARCH-12** 🟡 | El chunk `view-qr` pesa 320 KB (88 KB comprimido) — casi el triple que el segundo chunk más grande (`vendor-react`, 134 KB). Diagnóstico original (12 de julio) decía que era por falta de sub-lazy-loading interno en `QRProyeccion.jsx`; investigación más profunda (intento de fix, 12 de julio, sesión posterior) corrigió esto: `AdminQRPanel`, `QRProyeccion` y `ReporteAsistencias` YA tienen cada uno su propio `React.lazy()` en `AsistenciasModulo.jsx` — el problema real es que `vite.config.js` los fuerza a los tres dentro de un único `manualChunks: { 'view-qr': [...] }`, anulando esa separación | `vite.config.js`, `src/components/asistencias/{AdminQRPanel,QRProyeccion}.jsx` | ✅ **Cerrado (12 de julio, sesión posterior al cierre de `ARCH-14`)** — `view-qr` (90 KB tras `ARCH-14`) separado en 3 chunks reales: `view-qr-admin` (19 KB), `view-qr-proyeccion` (6.5 KB, la vista de proyección en pantalla/TV es ahora la más liviana de las 3, como debía ser) y `view-qr-reporte` (37.8 KB). No fue solo cambiar `manualChunks`: `QRProyeccion.jsx` importaba `QRDisplay`/`formatFechaVE`/`TURNOS_VISIBLES` **directamente de `AdminQRPanel.jsx`** — un import estático real que habría arrastrado el panel admin completo al chunk de proyección sin importar cómo se configurara el chunking. Se extrajo `QRDisplay`/`formatFechaVE`/`TURNOS_VISIBLES`/`CountdownBar` a un archivo nuevo y autocontenido (`QRDisplay.jsx` + `QRDisplay.css`, con su CSS movido 1:1 sin cambiar valores), y `AdminQRPanel.jsx`/`QRProyeccion.jsx` ahora importan ambos desde ahí. Mismo análisis de grafo de módulos usado en `ARCH-14` (intersección de lo alcanzable desde cada una de las 3 entradas QR) para encontrar el resto de lo compartido: `useRegistroSound.js` (mismos 2 consumidores que `QRDisplay`) necesitó el mismo tratamiento — un chunk propio explícito (`view-qr-display`, 27.3 KB), no dejarlo en `undefined`, porque se probó así primero y Rollup lo terminó metiendo físicamente dentro de `view-qr-admin` de todos modos (mismo patrón de fondo que `ARCH-14`, esta vez entre dos chunks lazy en vez de lazy-vs-eager). Verificado: `view-qr-admin` y `view-qr-proyeccion` ahora comparten *solo* `view-qr-display` (código legítimamente común, ambos ya lazy); `view-qr-reporte` no cruza con ninguno de los otros dos; `index.html` sigue sin precargar ningún chunk `view-*`; grep exhaustivo de imports estáticos del chunk principal hacia los 7 chunks lazy (incluyendo los 4 nuevos) da vacío; 153/153 tests reales; `npm audit --package-lock-only`: 0 vulnerabilidades |
 | **ARCH-14** 🔴 | **Hallazgo nuevo, más grave que `ARCH-12`** (descubierto intentando arreglarlo, 12 de julio): al separar `view-qr` en chunks individuales para medir el impacto real, se confirmó — comparando contra el `vite.config.js` original sin tocar nada — que este problema **ya existe hoy en producción**, no lo causó el intento de fix. Rollup, al decidir automáticamente dónde poner los módulos que no están en `manualChunks`, metió el cliente de Supabase (`lib/supabase.js`, `createClient`), el logger centralizado, `parseClase` y otras utilidades usadas por **toda la app desde el arranque** físicamente dentro del chunk `view-qr` — confirmado con `grep` del bundle real: el chunk principal (`index-*.js`, el que se descarga en cada visita, antes del login) importa `supabase`/`logger`/etc. directamente desde `view-qr-*.js`. Esto significa que **cualquier persona que abre la app, incluso solo para ver la pantalla de login, ya está descargando los 320 KB completos del módulo QR** | `vite.config.js` (`manualChunks`, forma objeto) | ✅ **Cerrado (12 de julio)** — `manualChunks` convertido de forma objeto a forma función, que decide chunk por módulo individual en vez de por grafo de dependencias de un grupo completo. Confirmado con `<link rel="modulepreload">` real en `index.html`: el build original precargaba `view-qr-*.js` (320 KB) **y también** `view-historial-*.js` en cada visita, ambos sin que el hallazgo original mencionara el segundo caso — se corrigieron los dos, mismo patrón de fondo. Metodología: en vez de listar módulos compartidos "a ojo", se usó el grafo real de módulos de Rollup (`this.getModuleInfo()`/`importedIds` vía un plugin de análisis, no manualChunks en sí) para calcular la intersección exacta entre lo alcanzable desde `main.jsx` y desde cada grupo de vistas lazy (`view-historial`/`usuarios`/`logs`/`qr`) — encontrando así los 8 módulos que de verdad hacía falta extraer (`src/lib/supabase.js`, `logger.js`, `parsing.js`, `time.js`, `idb.js`, `offlineQueue.js`, `lapso.js`, `password.js`, `useFocusTrap.js`, `constants/index.js`, más el SDK completo de `@supabase/*` e `iceberg-js` en `node_modules`) en vez de confiar en que "devolver `undefined`" bastara — se probó primero solo con la forma función sin extraer nada más y el problema persistió idéntico, lo cual confirmó que hacía falta el paso adicional. Resultado: `vendor-supabase` (214 KB, el SDK de Supabase — se carga igual de inmediato porque ya se necesitaba desde `App.jsx` para sesión/login, pero ahora en su propio chunk en vez de mezclado con código específico de QR) y `vendor-core` (9 KB, utilidades transversales). `view-qr` bajó de 320.15 KB a 90.36 KB (código real y exclusivo de las 3 vistas QR + `qrcode`/`dijkstrajs`); `view-historial` de tener un import cruzado no documentado a 16.84 KB limpio. Verificado exhaustivamente: `index.html` generado ya no tiene ningún `<link rel="modulepreload">` a `view-*` (antes tenía `view-qr` y `view-historial`); búsqueda de `import{...}from"./view-*-*.js"` dentro del chunk principal da vacío para los 4 grupos lazy; tamaño del chunk principal (`index-*.js`) sin cambios (445.96→445.89 KB, la diferencia es solo redondeo de hashes); `vite build` limpio, 153/153 tests reales, `npm audit --package-lock-only`: 0 vulnerabilidades. Cambio de un solo archivo (`vite.config.js`), sin tocar ningún componente ni lógica de negocio |
 | **ARCH-13** 🟢 | La suite de tests depende de un tarball externo (`cdn.sheetjs.com`) para `xlsx`, sin fallback local — en una red restringida (ej. CI con firewall estricto) el `npm install` completo falla y bloquea 2 suites de tests sin que sea un error del código (mismo síntoma ya visto en `D-6`) | `package.json` (`dependencies.xlsx`), `vendor/xlsx-0.20.3.tgz` | ✅ **Cerrado (12 de julio)** — se vendorizó el tarball oficial de `xlsx@0.20.3` (misma versión exacta que ya usaba producción, descargado del propio CDN de SheetJS y commiteado en `vendor/xlsx-0.20.3.tgz`, con hash SHA-256 documentado en `vendor/README.md` junto con el procedimiento para actualizarlo a futuro). `package.json` pasa de apuntar a la URL del CDN a `file:./vendor/xlsx-0.20.3.tgz`. Verificado con instalación limpia (`rm -rf node_modules && npm install`) sin acceso al CDN: instala sin salir a internet para esta dependencia, `vite build` limpio (mismo tamaño de bundle, `view-qr` sigue en 320 KB — `xlsx` no vive ahí), 153/153 tests reales, incluidas las 2 suites de `xlsx` que antes quedaban bloqueadas en redes restringidas (`excelParser.test.js`, 29 tests) |
-| **ARCH-15** 🟡 | `AdminQRPanel.jsx` volvió a crecer a 685 líneas (auditoría QA del 12 de julio, segunda pasada) — el archivo más grande del proyecto, por encima de los ya divididos en `ARCH-8`/`ARCH-10`. Mezclaba panel admin, historial de sesiones y borrado en un solo archivo | `src/components/asistencias/AdminQRPanel.jsx` | 🔄 **En proceso de integrarse a `main`** (12 de julio) — mismo patrón ya probado en `ARCH-8`/`ARCH-10`: `HistorialSesiones` (fetch de historial + su estado) extraído a `asistencias/adminQR/HistorialSesiones.jsx`, y su modal de confirmación de borrado a un componente presentacional propio (`adminQR/ConfirmBorrarSesionModal.jsx`, recibe `sesion`/`borrando`/`onConfirm`/`onCancel` por props). `AdminQRPanel.jsx` queda como orquestador: 685→543 líneas. `FeedActividad`/`ContadorSesion`/`ColaOfflinePanel` se dejaron en el archivo principal a propósito — son pequeños y no formaban parte del hallazgo, evitando scope creep. Extracción 1:1 verificada contra el original antes de reemplazar (mismo bloque de código, solo mueve archivo + ajusta imports relativos), sin cambios de lógica ni de estilos. Verificado en el entorno de trabajo: `vite build` limpio (257 módulos, +2 por los archivos nuevos, sin duplicar código), 153/153 tests reales, `npm audit --package-lock-only`: 0 vulnerabilidades. **Pendiente:** subir los archivos a `main` vía `github.dev` y marcar como cerrado recién entonces |
+| **ARCH-15** | `AdminQRPanel.jsx` volvió a crecer a 685 líneas (auditoría QA del 12 de julio, segunda pasada) — el archivo más grande del proyecto, por encima de los ya divididos en `ARCH-8`/`ARCH-10`. Mezclaba panel admin, historial de sesiones y borrado en un solo archivo | `src/components/asistencias/AdminQRPanel.jsx`, `adminQR/HistorialSesiones.jsx`, `adminQR/ConfirmBorrarSesionModal.jsx` | ✅ **Cerrado** — mismo patrón ya probado en `ARCH-8`/`ARCH-10`: `HistorialSesiones` (fetch de historial + su estado) extraído a `asistencias/adminQR/HistorialSesiones.jsx`, y su modal de confirmación de borrado a un componente presentacional propio (`adminQR/ConfirmBorrarSesionModal.jsx`, recibe `sesion`/`borrando`/`onConfirm`/`onCancel` por props). `AdminQRPanel.jsx` queda como orquestador: 685→543 líneas. `FeedActividad`/`ContadorSesion`/`ColaOfflinePanel` se dejaron en el archivo principal a propósito — son pequeños y no formaban parte del hallazgo, evitando scope creep. Confirmado ya integrado en `main` (HEAD `3a6b565`): `AdminQRPanel.jsx` en 543 líneas, ambos componentes nuevos presentes con el comentario `// Fix ARCH-15`. Re-verificado en clon fresco: `vite build` limpio, 153/153 tests reales, `npm audit --package-lock-only`: 0 vulnerabilidades |
 | **ARCH-16** 🟡 | El proyecto no tiene ESLint ni Prettier configurados — no hay ningún archivo de lint en la raíz, ni paso de lint en `ci.yml` (auditoría QA del 12 de julio, segunda pasada) | raíz del repo, `.github/workflows/ci.yml` | 🔴 Abierto — en progreso en otra sesión al momento de escribir esta fila |
-| **ARCH-17** 🟢 | Cero uso de `PropTypes` o TypeScript — los "contratos" entre componentes no están declarados en ningún lado (auditoría QA del 12 de julio, segunda pasada) | componentes más reutilizados (`QRDisplay`, `Avatar`, `ModalUsuario`, etc.) | 🔄 **En proceso de integrarse a `main`** (12 de julio) — se agregó `prop-types` como dependencia y `propTypes` a los 8 componentes más reutilizados/compartidos del repo (confirmado por conteo real de importadores, no a ojo): `Avatar.jsx`, `QRDisplay.jsx` (+`CountdownBar` interno), `usuarios/ModalUsuario.jsx`, `app/UserMenu.jsx`, `ModalCambiarPassword.jsx`, `ErrorBoundary.jsx`, `StatCard.jsx`, `ConfirmModal.jsx`. Los `shape`/`oneOf` de cada uno se verificaron contra los call sites reales antes de escribirlos (ej. `StatCard.variant` se corrigió de una primera lista adivinada a los 7 valores reales confirmados por grep de `sc-root--*` en `index.css` + los dos componentes que lo usan). Cambio puramente aditivo, sin tocar lógica ni JSX existente. Verificado: `vite build` limpio (chunk principal +1.47 KB, esperado por el peso de `prop-types`), 153/153 tests reales (incluida la suite de integración que renderiza `ModalUsuario` de verdad, sin warnings de PropTypes en consola), `npm audit --package-lock-only`: 0 vulnerabilidades. **Pendiente:** subir a `main` vía `github.dev` y marcar como cerrado recién entonces |
+| **ARCH-17** | Cero uso de `PropTypes` o TypeScript — los "contratos" entre componentes no están declarados en ningún lado (auditoría QA del 12 de julio, segunda pasada) | componentes más reutilizados (`QRDisplay`, `Avatar`, `ModalUsuario`, etc.) | ✅ **Cerrado** — se agregó `prop-types` como dependencia y `propTypes` a los 8 componentes más reutilizados/compartidos del repo (confirmado por conteo real de importadores, no a ojo): `Avatar.jsx`, `QRDisplay.jsx` (+`CountdownBar` interno), `usuarios/ModalUsuario.jsx`, `app/UserMenu.jsx`, `ModalCambiarPassword.jsx`, `ErrorBoundary.jsx`, `StatCard.jsx`, `ConfirmModal.jsx`. Los `shape`/`oneOf` de cada uno se verificaron contra los call sites reales antes de escribirlos (ej. `StatCard.variant` se corrigió de una primera lista adivinada a los 7 valores reales confirmados por grep de `sc-root--*` en `index.css` + los dos componentes que lo usan). Cambio puramente aditivo, sin tocar lógica ni JSX existente. Confirmado ya integrado en `main` (HEAD `3a6b565`): `prop-types` en `package.json`, `propTypes` presentes en los 8 componentes con el comentario `// Fix ARCH-17`. Re-verificado en clon fresco: `vite build` limpio (chunk principal 447.61 KB, coincide con lo esperado), 153/153 tests reales, `npm audit --package-lock-only`: 0 vulnerabilidades |
 | **ARCH-18** 🟢 | El chunk principal (`index-*.js`) sigue siendo el más pesado del bundle (446 KB / 149 KB gzip) incluso después de `ARCH-7`/`ARCH-12`/`ARCH-14` — no hay warning de Vite, no es urgente, pero es el techo actual de optimización de carga inicial (auditoría QA del 12 de julio, segunda pasada) | `vite.config.js`, chunk principal | 🔴 Abierto — pendiente correr `vite-bundle-visualizer` antes de invertir tiempo, candidato probable: `@tabler/icons-webfont` importado global en vez de por ícono |
 
 ## 🔧 CI/CD y automatización
@@ -170,7 +165,7 @@ asumirlo.
 | **U-7** | `LoginFormNormal.jsx`, `LoginOfflinePinPanel.jsx`, `ModalActivarPIN.jsx` (extraídos de `LoginScreen.jsx` al cerrar `ARCH-10`, la noche del 9 de julio): el `<label>` de cada campo quedó como hermano del `<input>`, sin `htmlFor`/`id` — misma regresión que `U-4` ya había resuelto en `Campo.jsx`, reintroducida en archivos nuevos que no pasaron por ese fix | `src/components/login/{LoginFormNormal,LoginOfflinePinPanel,ModalActivarPIN}.jsx` | ✅ **Cerrado (11 de julio)** — mismo patrón que `Campo.jsx`/`U-4`: `useId()` por instancia de componente, enlazando cada `<label htmlFor>` con su `<input id>`/`<select id>` (2 campos en cada uno de los 3 componentes). Cambio puramente estructural, sin tocar `.form-label`/`.form-input` ni los handlers. Verificado contra el HEAD real (`9477be2`, ya con `ARCH-11` y `SEC-12` incluidos) antes de reemplazar: 121/121 tests (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`) |
 | **U-8** 🟡 | Solo 4 de los 29 archivos CSS del proyecto tienen media queries; `HorariosView.css` (la grilla de horarios) y `QRProyeccion.css` (pantalla de proyección en el aula) no tienen ninguna — en una tablet o un proyector con resolución distinta a un monitor de escritorio, la grilla o el QR proyectado pueden verse cortados o requerir scroll horizontal incómodo | `src/components/HorariosView.css`, `src/components/asistencias/QRProyeccion.css` | ✅ **Cerrado (12 de julio)** — verificado contra el HEAD real antes de tocar nada, con dos hallazgos distintos: (1) **falso positivo parcial en la mitad de `QRProyeccion.css`** — el archivo en sí no tiene `@media`, pero las clases `.qrp-*` que usa `QRProyeccion.jsx` (confirmado 1:1 contra el JSX) sí tienen tratamiento responsive real, ya implementado en `src/index.css` líneas ~424-439 (reflow a 1 columna en <900px, achique de fuente en <640px) — quedó ahí porque cuando `ARCH-6` extrajo el CSS del template literal, esas reglas ya vivían en `index.css` desde antes y no se movieron. No requiere fix de comportamiento, mismo tipo de corrección que `S2`/`D-6`; queda pendiente como mejora cosmética de organización (mover esas reglas a `QRProyeccion.css` por cohesión), no como bug. (2) **`HorariosView.css` sí carecía de adaptación real** — pero el archivo es solo la barra de filtros/pestañas (`.hv-filters`, `.hv-tabs`, `.hv-days`), no la grilla en sí (esa es `TurnoGrid.css`, fuera del alcance original de este hallazgo, ya se degrada con `overflow-x: auto` — patrón válido, no roto). `.hv-filters-row`/`.hv-days` ya tenían `flex-wrap: wrap`, así que no se rompían, pero en <640px el título y el padding quedaban sobredimensionados. Se agregó un único `@media (max-width: 640px)` que reduce `.hv-filters` padding y `.hv-title` font-size — mismo breakpoint que `AdminQRPanel.css`. Cambio de 9 líneas, solo aditivo, sin tocar ninguna regla existente. Verificado: `vite build` limpio (mismo tamaño de bundle, es solo CSS), 130/130 tests reales (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`) |
 | **U-9** 🔴 | Reportado por el usuario con capturas de pantalla: "Panel QR" (sin sesión activa) aparecía con fondo azul oscuro (#0F172A) en vez del fondo claro esperado, y el título "Control de Asistencias QR" se volvía invisible (texto oscuro sobre fondo oscuro) — visualmente parecía una regresión de un fix reciente | `AdminQRPanel.jsx`/`.css`, `QRProyeccion.jsx`/`.css` | ✅ **Cerrado (12 de julio)** — no era una regresión de ningún fix de auditoría anterior, sino una colisión de nombres de clase preexistente entre dos archivos CSS distintos que comparten el prefijo `qrp-`: `AdminQRPanel.css` y `QRProyeccion.css` definen por separado `.qrp-root`, `.qrp-qr-wrap` y `.qrp-offline-banner`, cada uno con estilos incompatibles (panel admin = tema claro; proyección = tema oscuro para el aula, por diseño). Confirmado con `comm` sobre los selectores reales de ambos archivos que son las únicas 3 clases duplicadas (de +140 clases `qrp-*` en total). Como Vite agrupa el CSS de ambos componentes en un chunk compartido (`view-qr-*.css`, confirmado en el output de `vite build`) que se carga en cualquier visita al módulo de Asistencias — no solo tras visitar "Proyección" — ambas reglas quedan activas simultáneamente y gana la de mayor especificidad/orden de carga (mismo selector, misma especificidad → última en cascada). Fix: se renombraron las 3 clases del lado de `AdminQRPanel` a prefijo `qap-` ("QR Admin Panel"), sin tocar `QRProyeccion.css` (donde el tema oscuro es intencional) ni ninguna de las +140 clases `qrp-*` restantes que no colisionan. Cambio de 2 archivos, 3 clases renombradas (2 ocurrencias JSX + 3 selectores CSS). Verificado: `vite build` limpio, `view-qr-*.css` ya no comparte selectores entre ambos componentes (`comm -12` vacío tras el fix), 153/153 tests reales (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`) |
-| **U-10** 🟡 | 24 de los 30 archivos CSS del proyecto no tienen ningún `@media` — la mayoría se apoya en `flex-wrap`/`overflow-x: auto`, lo cual hoy funciona (verificado en `U-8`), pero no hay forma automática de detectar si un cambio futuro rompe eso en pantallas chicas (auditoría QA del 12 de julio, segunda pasada) | 24 archivos `.css` de `src/`, `.github/workflows/ci.yml` | 🔴 Abierto — no se recomienda agregar `@media` a los 24 de una vez; propuesta: captura de pantalla automática en CI a 375px/768px/1280px de login, escaneo QR y selector de módulos, para detectar regresiones visuales sin depender de revisión manual |
+| **U-10** 🟡 | 24 de los 30 archivos CSS del proyecto no tienen ningún `@media` — la mayoría se apoya en `flex-wrap`/`overflow-x: auto`, lo cual hoy funciona (verificado en `U-8`), pero no hay forma automática de detectar si un cambio futuro rompe eso en pantallas chicas (auditoría QA del 12 de julio, segunda pasada) | 24 archivos `.css` de `src/`, `.github/workflows/ci.yml`, `playwright.config.js`, `tests/visual/` | 🟡 **Parcialmente implementado (12 de julio)** — infraestructura de Playwright + regresión visual de la pantalla de **login** en los 3 breakpoints (375/768/1280px), como job separado y no-bloqueante en CI (`continue-on-error: true`) hasta tener imágenes base. **QR scan y selector de módulos quedan sin cubrir a propósito**: ambos requieren sesión autenticada, y decidir cómo simular esa sesión en tests (usuario de prueba real contra un proyecto Supabase de staging vs. mock del cliente de Supabase) es una decisión de alcance/seguridad que no correspondía tomar unilateralmente. Ver nota completa al final de este documento y comentarios en `playwright.config.js`. **No verificado end-to-end**: el entorno de trabajo no tiene salida de red hacia `cdn.playwright.dev`, así que no se pudo descargar Chromium para correr los tests ni generar las imágenes base localmente — sí se verificó que `vite build`/`vitest`/`npm audit` siguen limpios con la nueva dependencia, y que el servidor de preview sirve la app real (`curl` HTTP 200, título correcto) |
 | **U-11** 🟢 | Deuda cosmética ya documentada en `U-8`: las reglas responsive de `.qrp-*` (pantalla de proyección QR) viven en `index.css` en vez de `QRProyeccion.css`, por herencia de cuando `ARCH-6` extrajo el CSS del componente. No es un bug, es organización (auditoría QA del 12 de julio, segunda pasada) | `src/index.css`, `src/components/asistencias/QRProyeccion.css` | 🔴 Abierto — mover ~15 líneas en el próximo PR que ya toque ese archivo, no amerita un PR propio |
 | **U-12** 🟢 | Sin soporte de `prefers-color-scheme` (modo oscuro) — preferencia de producto, no defecto (auditoría QA del 12 de julio, segunda pasada) | tokens `--color-*` en `src/index.css` | 🔴 Abierto — no prioritario; los tokens ya centralizados hacen la migración relativamente barata si se decide abordar |
 
@@ -629,6 +624,89 @@ repetir el detalle ya cubierto en las tablas de arriba.
   subió a `main` para cuando esto se integre, hacer `git pull` antes de
   aplicar este diff en vez de sobrescribir `package.json` a ciegas. **No
   se marca como cerrado todavía** — pendiente de subir vía `github.dev`.
+
+- **12 de julio, confirmación de cierre de `ARCH-15` y `ARCH-17`:**
+  clonado fresco del repo remoto (no del entorno de trabajo local) contra
+  el HEAD real de `main` (`3a6b565`), para verificar contra lo que de
+  verdad está publicado y no contra lo que se entregó en las sesiones
+  anteriores. Ambos hallazgos ya están integrados: `AdminQRPanel.jsx` en
+  543 líneas con `adminQR/HistorialSesiones.jsx` y
+  `adminQR/ConfirmBorrarSesionModal.jsx` presentes (`ARCH-15`); `prop-types`
+  en `package.json` y `propTypes` en los 8 componentes listados, todos con
+  el comentario `// Fix ARCH-17` (`ARCH-17`). Re-verificado desde cero en
+  el clon remoto: `vite build` limpio (chunk principal 447.61 KB, mismo
+  valor documentado en la sesión de `ARCH-17`), 153/153 tests reales,
+  `npm audit --package-lock-only`: 0 vulnerabilidades. Ambos se marcan
+  ✅ Cerrado.
+
+- **12 de julio, `U-10` implementado parcialmente (pendiente de integrar a
+  `main`, decisión pendiente sobre alcance):** clonado fresco contra
+  `3a6b565` (HEAD real con `ARCH-15`/`ARCH-17` ya confirmados). Se agregó
+  `@playwright/test` como devDependency, `playwright.config.js` con 3
+  proyectos (`mobile-375`, `tablet-768`, `desktop-1280`, viewports
+  375×812/768×1024/1280×800) corriendo contra `vite preview` (build de
+  producción real, no el dev server), tolerancia deliberada de
+  `maxDiffPixelRatio: 0.02` (cero produce falsos positivos por
+  antialiasing entre corridas de CI y entrena a ignorar el check), y un
+  test (`tests/visual/login.spec.js`) para la pantalla de login en los 3
+  breakpoints — la única de las 3 pantallas pedidas por la auditoría
+  (login, QR scan, selector de módulos) que no requiere sesión
+  autenticada. Verificado que el selector usado (`getByLabel(/correo|email/i)`)
+  matchea de verdad contra el label real de `LoginFormNormal.jsx`
+  ("Correo electrónico", enlazado por `htmlFor`/`id` desde el fix `U-7`),
+  no contra un texto adivinado.
+
+  **QR scan y selector de módulos quedan fuera de esta entrega a
+  propósito** — ambos solo se llegan a ver con sesión iniciada, y elegir
+  cómo simular esa sesión en tests automatizados (¿credenciales de un
+  usuario de prueba contra un proyecto Supabase real de staging?
+  ¿interceptar/mockear las llamadas del cliente de Supabase en el
+  browser?) tiene implicaciones de seguridad y de mantenimiento que le
+  corresponden a LS decidir, no algo para asumir en esta sesión.
+
+  **Bug propio encontrado y corregido antes de entregar:** el primer
+  intento del spec de Playwright rompió la suite de Vitest — Vitest
+  recoge archivos por el glob por defecto `*.spec.js` y encontró
+  `tests/visual/login.spec.js`, intentando correrlo con su propio runner
+  (`test.describe()` de `@playwright/test` no es compatible con el de
+  Vitest). Confirmado con `npx vitest run`: pasó de 13/13 archivos a
+  "1 failed, 13 passed". Se corrigió agregando
+  `tests/visual/**` al `exclude` de **`vitest.config.js`** — no de
+  `vite.config.js`, que también tiene una clave `test` pero queda
+  ignorada porque `vitest.config.js`, al existir como archivo separado en
+  este repo, tiene prioridad (se agregó y luego revirtió un exclude ahí
+  antes de encontrar la causa real). El exclude extiende
+  `configDefaults.exclude` de Vitest en vez de reemplazarlo, para no
+  perder los excludes por defecto (`dist/`, `.git/`, etc.) — un primer
+  intento sí los había reemplazado por accidente. Reverificado tras el
+  fix: `vitest run` vuelve a 13/13 archivos, 153/153 tests.
+
+  **No verificado end-to-end:** el entorno de trabajo usado para esta
+  sesión no tiene salida de red hacia `cdn.playwright.dev` (confirmado:
+  `npx playwright install chromium` falla con "Host not in allowlist"),
+  así que no se pudo descargar Chromium para correr los tests de verdad
+  ni generar las imágenes base (`tests/visual/__screenshots__/*.png`) —
+  eso solo se puede hacer en un entorno con salida a internet (GitHub
+  Actions, o la laptop de LS). El job de CI (`visual-regression` en
+  `ci.yml`) se agregó **separado** del job principal y con
+  `continue-on-error: true` a propósito: sin imágenes base todavía,
+  fallaría en todos los PRs y entrenaría a ignorar el check — exactamente
+  el problema que `U-10` buscaba evitar. Instrucciones para generar las
+  imágenes base quedaron documentadas al final de `playwright.config.js`.
+  Lo que sí se verificó en el entorno de trabajo: `vite build` limpio,
+  `vitest run` 153/153, `npm audit --package-lock-only` y
+  `--omit=dev --audit-level=high` ambos en 0 vulnerabilidades tras
+  agregar la dependencia nueva, y un sanity check HTTP (`vite preview` +
+  `curl`) confirmando que el servidor sirve la app real (200, `<title>SIGMA
+  · UNERMB</title>`) — sin verificar el renderizado visual en sí, que
+  requiere el browser que este entorno no puede descargar.
+
+  **Pendiente antes de cerrar `U-10`:** (1) decisión de LS sobre
+  autenticación en tests para QR scan/selector de módulos; (2) generar
+  las imágenes base en un entorno con salida a internet y confirmarlas
+  visualmente correctas antes de commitearlas; (3) correr el job varias
+  veces en CI para confirmar que `maxDiffPixelRatio: 0.02` no da falsos
+  positivos/negativos antes de quitar `continue-on-error`.
 
 ---
 

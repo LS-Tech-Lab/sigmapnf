@@ -6,7 +6,7 @@
 //   de módulo, pero los tests de calcularPermisos() solo ejercitan la
 //   función pura — las llamadas a Supabase nunca se ejecutan.
 
-import { defineConfig } from "vitest/config";
+import { defineConfig, configDefaults } from "vitest/config";
 
 export default defineConfig({
   // F3: el primer test de integración que renderiza un componente
@@ -28,5 +28,14 @@ export default defineConfig({
       VITE_SUPABASE_URL:      "https://placeholder.supabase.co",
       VITE_SUPABASE_ANON_KEY: "placeholder-anon-key",
     },
+    // Fix U-10: tests/visual/ son specs de Playwright (@playwright/test),
+    // no de Vitest — usan un `test`/`expect` propio y un runner que
+    // levanta un browser real. Sin este exclude, Vitest los recoge igual
+    // por el glob por defecto (*.spec.js) y falla con "Playwright Test
+    // did not expect test.describe() to be called here" (no es un fallo
+    // real de test, es el runner equivocado). Se extiende
+    // configDefaults.exclude en vez de reemplazarlo, para no perder los
+    // excludes por defecto de Vitest (dist/, .git/, etc.).
+    exclude: [...configDefaults.exclude, "tests/visual/**"],
   },
 });
