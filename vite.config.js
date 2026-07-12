@@ -130,12 +130,50 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/src/components/LogsView')) {
               return 'view-logs'
             }
+            // Fix ARCH-12: antes los 3 componentes iban forzados a un
+            // único chunk `view-qr` (320 KB con ARCH-14 sin cerrar, 90 KB
+            // ya con `vendor-supabase`/`vendor-core` separados) aunque
+            // cada uno ya tenía su propio `React.lazy()` en
+            // `AsistenciasModulo.jsx` — nadie visita los 3 a la vez, así
+            // que forzarlos juntos no tenía beneficio. Requería primero
+            // extraer `QRDisplay`/`formatFechaVE`/`TURNOS_VISIBLES` de
+            // `AdminQRPanel.jsx` a su propio archivo (`QRDisplay.jsx`):
+            // `QRProyeccion.jsx` los importaba directo de `AdminQRPanel`,
+            // un import estático que habría arrastrado el panel admin
+            // completo al chunk de proyección de todos modos.
+            //
+            // OJO: `QRDisplay.jsx` en sí NO se asigna a ninguno de los dos
+            // chunks de abajo — lo usan tanto `AdminQRPanel` como
+            // `QRProyeccion`. Se le da su PROPIO chunk explícito en vez de
+            // dejarlo en `undefined`: se probó primero con `undefined` y
+            // Rollup lo terminó colocando físicamente dentro de
+            // `view-qr-admin` de todos modos (mismo patrón de fondo que
+            // `ARCH-14` — un módulo compartido queda arrastrado dentro de
+            // uno de los chunks que lo usan en vez de separarse), lo cual
+            // forzaba a `view-qr-proyeccion` a importar cruzado
+            // `view-qr-admin` — exactamente lo que se quería evitar
+            // (alguien viendo solo la proyección en un televisor no
+            // debería descargar también el panel admin completo).
+            // `useRegistroSound.js` tiene exactamente los mismos 2
+            // consumidores que `QRDisplay.jsx` (`AdminQRPanel` y
+            // `QRProyeccion`) — encontrado con el mismo análisis de grafo
+            // (intersección de módulos alcanzables desde cada una de las
+            // 3 entradas QR) usado para `ARCH-14`. Mismo chunk, mismo
+            // motivo.
             if (
-              id.includes('/src/components/asistencias/AdminQRPanel') ||
-              id.includes('/src/components/asistencias/QRProyeccion') ||
-              id.includes('/src/components/asistencias/ReporteAsistencias')
+              id.includes('/src/components/asistencias/QRDisplay') ||
+              id.includes('/src/components/asistencias/useRegistroSound')
             ) {
-              return 'view-qr'
+              return 'view-qr-display'
+            }
+            if (id.includes('/src/components/asistencias/AdminQRPanel')) {
+              return 'view-qr-admin'
+            }
+            if (id.includes('/src/components/asistencias/QRProyeccion')) {
+              return 'view-qr-proyeccion'
+            }
+            if (id.includes('/src/components/asistencias/ReporteAsistencias')) {
+              return 'view-qr-reporte'
             }
             return undefined
           },

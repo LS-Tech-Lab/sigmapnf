@@ -6,7 +6,9 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { QRDisplay, formatFechaVE, TURNOS_VISIBLES } from "./AdminQRPanel";
+// Fix ARCH-12: antes se importaba de "./AdminQRPanel", lo que arrastraba
+// todo ese módulo (y sus dependencias) al chunk de QRProyeccion.
+import { QRDisplay, formatFechaVE, TURNOS_VISIBLES } from "./QRDisplay";
 import { supabase } from "../../lib/supabase";
 import "./QRProyeccion.css";
 import { playRegistroSound } from "./useRegistroSound";

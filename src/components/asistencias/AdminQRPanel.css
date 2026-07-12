@@ -102,26 +102,10 @@
 .qrp-btn-proyeccion  { padding: 10px 18px; background: var(--brand-500, #2563EB); color: #fff; border: none; border-radius: 9px; font-size: var(--font-size-13); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .qrp-btn-nueva-ventana { padding: 10px 18px; background: var(--color-surface); color: var(--color-text-secondary); border: 1px solid var(--color-border); border-radius: 9px; font-size: var(--font-size-13); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 
-/* ── CountdownBar ─────────────────────────────────────────────────────────── */
-.qrp-cdb-root        { margin-top: 12px; }
-.qrp-cdb-header      { display: flex; justify-content: space-between; font-size: var(--font-size-12); color: var(--color-text-tertiary); margin-bottom: 5px; font-weight: 500; }
-.qrp-cdb-track       { height: 6px; border-radius: 3px; background: var(--color-border); overflow: hidden; }
-.qrp-cdb-fill        { height: 100%; border-radius: 3px; transition: width 0.9s linear, background 0.4s; }
-.qrp-cdb-note        { margin-top: 6px; font-size: var(--font-size-11); color: var(--color-text-tertiary); text-align: center; }
-/* Fix A3/S3 Fase 2: umbral fijo de 3 estados (pct>40/>15/resto) — antes
-   inyectado vía style inline. Solo el ANCHO (pct real) sigue inline,
-   pendiente de bucketizar en Fase 4. */
-.qrp-cdb-time.qrp-cdb--ok       { color: #22C55E; }
-.qrp-cdb-time.qrp-cdb--warn     { color: #F59E0B; }
-.qrp-cdb-time.qrp-cdb--critical { color: #EF4444; }
-.qrp-cdb-fill.qrp-cdb--ok       { background: #22C55E; }
-.qrp-cdb-fill.qrp-cdb--warn     { background: #F59E0B; }
-.qrp-cdb-fill.qrp-cdb--critical { background: #EF4444; }
+/* Fix ARCH-12: reglas de CountdownBar/QRDisplay movidas a QRDisplay.css
+   (ver ese archivo), junto con el componente que las usa. */
 
-/* ── QRDisplay ────────────────────────────────────────────────────────────── */
-.qap-qr-wrap         { display: flex; flex-direction: column; align-items: center; }
 
-/* ── FeedActividad ────────────────────────────────────────────────────────── */
 .qrp-feed            { margin-top: 16px; background: var(--color-background-subtle, #F8FAFC); border-radius: 10px; overflow: hidden; transition: border-color 0.3s; }
 .qrp-feed--flash     { border: 1px solid #86EFAC; animation: feedFlash 0.8s ease-out; }
 .qrp-feed--idle      { border: 1px solid var(--color-border); animation: none; }
@@ -226,9 +210,6 @@
    dependen de datos reales (progreso de countdown, tipo ENTRADA/SALIDA) se
    mantienen inline por diseño.
    ────────────────────────────────────────────────────────────────────────────── */
-
-.qrp-cdb-time { font-weight: 700; }
-.qrp-qr-canvas { display: block; border-radius: 6px; }
 
 .qrp-feed-icon { font-size: var(--font-size-18); flex-shrink: 0; }
 .qrp-feed-icon--salida { color: #DC2626; }

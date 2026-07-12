@@ -18,12 +18,15 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
-import QRCode from "qrcode";
-import { DEFAULT_PROGRAMAS, TURNOS_CONFIG, pctClass } from "../../constants";
+import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../constants";
 import { playRegistroSound, useFlashFeed } from "./useRegistroSound";
 import { supabase } from "../../lib/supabase";
 import { fechaHoyVE } from "../../utils/time";
 import { contarPendientes, obtenerPendientes, eliminarPendiente, purgarExpirados } from "../../utils/offlineQueue";
+// Fix ARCH-12: QRDisplay/formatFechaVE/TURNOS_VISIBLES ya no se definen
+// acá — viven en su propio archivo (QRDisplay.jsx) para que QRProyeccion.jsx
+// no tenga que importar este módulo completo solo para usar esos 3.
+import { QRDisplay, formatFechaVE, TURNOS_VISIBLES } from "./QRDisplay";
 import "./AdminQRPanel.css";
 
 function horaActualVE() {
@@ -31,57 +34,7 @@ function horaActualVE() {
   return ve.getHours() * 60 + ve.getMinutes();
 }
 
-export const TURNOS_VISIBLES = TURNOS_CONFIG.filter(t => t.habilitado);
-
-export function formatFechaVE(isoStr) {
-  if (!isoStr) return "";
-  const [y, m, d] = isoStr.split("-");
-  return `${d}-${m}-${y}`;
-}
-
 const POLL_FALLBACK_MS = 5000;
-
-// ── Barra de cuenta regresiva ────────────────────────────────────────────────
-function CountdownBar({ segundos, total }) {
-  const pct   = Math.max(0, (segundos / total) * 100);
-  const variant = pct > 40 ? "ok" : pct > 15 ? "warn" : "critical";
-  return (
-    <div className="qrp-cdb-root">
-      <div className="qrp-cdb-header">
-        <span>Próxima rotación</span>
-        <span className={`qrp-cdb-time qrp-cdb--${variant}`}>
-          {Math.floor(segundos / 60)}:{String(segundos % 60).padStart(2, "0")}
-        </span>
-      </div>
-      <div className="qrp-cdb-track">
-        <div className={`qrp-cdb-fill qrp-cdb--${variant} ${pctClass(pct)}`} />
-      </div>
-    </div>
-  );
-}
-
-// ── QR canvas ───────────────────────────────────────────────────────────────
-export function QRDisplay({ qrUrl, segundos, ttlMinutes, size = 280 }) {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    if (!qrUrl || !canvasRef.current) return;
-    QRCode.toCanvas(canvasRef.current, qrUrl, {
-      width: size, margin: 2,
-      color: { dark: "#0F172A", light: "#FFFFFF" },
-    });
-  }, [qrUrl, size]);
-
-  return (
-    <div className="qap-qr-wrap">
-      <canvas ref={canvasRef} className="qrp-qr-canvas" />
-      <CountdownBar segundos={segundos} total={ttlMinutes * 60} />
-      <p className="qrp-cdb-note">
-        Se regenera automáticamente tras cada escaneo. Las fotos compartidas no son válidas.
-      </p>
-    </div>
-  );
-}
 
 // ── Feed de actividad reciente ───────────────────────────────────────────────
 function FeedActividad({ registros, flash }) {

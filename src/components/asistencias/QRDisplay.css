@@ -1,0 +1,27 @@
+/* QRDisplay.css
+ *
+ * Fix ARCH-12 (auditoría 12 de julio): reglas movidas 1:1 desde
+ * AdminQRPanel.css — son las que usan CountdownBar y QRDisplay, ahora
+ * extraídos a QRDisplay.jsx. Ningún valor cambiado, solo reubicadas.
+ */
+
+/* ── CountdownBar ─────────────────────────────────────────────────────────── */
+.qrp-cdb-root        { margin-top: 12px; }
+.qrp-cdb-header      { display: flex; justify-content: space-between; font-size: var(--font-size-12); color: var(--color-text-tertiary); margin-bottom: 5px; font-weight: 500; }
+.qrp-cdb-track       { height: 6px; border-radius: 3px; background: var(--color-border); overflow: hidden; }
+.qrp-cdb-fill        { height: 100%; border-radius: 3px; transition: width 0.9s linear, background 0.4s; }
+.qrp-cdb-note        { margin-top: 6px; font-size: var(--font-size-11); color: var(--color-text-tertiary); text-align: center; }
+/* Fix A3/S3 Fase 2: umbral fijo de 3 estados (pct>40/>15/resto) — antes
+   inyectado vía style inline. Solo el ANCHO (pct real) sigue inline,
+   pendiente de bucketizar en Fase 4. */
+.qrp-cdb-time.qrp-cdb--ok       { color: #22C55E; }
+.qrp-cdb-time.qrp-cdb--warn     { color: #F59E0B; }
+.qrp-cdb-time.qrp-cdb--critical { color: #EF4444; }
+.qrp-cdb-fill.qrp-cdb--ok       { background: #22C55E; }
+.qrp-cdb-fill.qrp-cdb--warn     { background: #F59E0B; }
+.qrp-cdb-fill.qrp-cdb--critical { background: #EF4444; }
+.qrp-cdb-time { font-weight: 700; }
+
+/* ── QRDisplay ────────────────────────────────────────────────────────────── */
+.qap-qr-wrap         { display: flex; flex-direction: column; align-items: center; }
+.qrp-qr-canvas { display: block; border-radius: 6px; }
