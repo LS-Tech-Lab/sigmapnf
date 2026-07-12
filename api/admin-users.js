@@ -50,6 +50,29 @@ async function handleRequest(req, res) {
     return res.status(405).json({ error: "Método no permitido." });
   }
 
+  // ── SEC-13: allowlist explícito de origen (defensa en profundidad) ──
+  // Este endpoint solo debe llamarse desde el propio frontend de
+  // sigmapnf (mismo origen que sirve la SPA en Vercel). Hoy no era
+  // explotable porque Vercel sirve frontend y función del mismo origen
+  // y el navegador ya bloquea la lectura de la respuesta cross-origin
+  // sin cabeceras CORS explícitas — pero nada rechazaba la petición en
+  // sí del lado del servidor si viniera de otro origen. Se compara el
+  // *host* de `Origin` contra `req.headers.host` (el dominio real que
+  // Vercel resolvió para esta request), ignorando el protocolo a
+  // propósito — en desarrollo local (`vercel dev`) el frontend puede
+  // servirse por `http://` mientras producción usa `https://`, y no es
+  // el protocolo lo que hay que validar sino la identidad del origen.
+  // Así funciona igual en producción, previews de Vercel y desarrollo
+  // local sin configuración adicional. Los navegadores modernos siempre
+  // envían `Origin` en peticiones POST (spec fetch), así que un origen
+  // ausente no es indicio de ataque — solo se rechaza cuando el origen
+  // SÍ vino y no coincide, para no romper clientes legítimos sin ese
+  // header.
+  const origin = req.headers.origin;
+  if (origin && origin.replace(/^https?:\/\//, "") !== req.headers.host) {
+    return res.status(403).json({ error: "Origen no autorizado." });
+  }
+
   // ── Verificar que el caller tiene sesión válida ──────────────────
   const authHeader = req.headers.authorization || "";
   const userToken = authHeader.replace("Bearer ", "");
