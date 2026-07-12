@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import useFocusTrap from "../hooks/useFocusTrap";
 import "./ConfirmModal.css";
 
@@ -77,3 +78,16 @@ export default function ConfirmModal({
     </div>
   );
 }
+
+// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// props — no cambia comportamiento. Refleja 1:1 el JSDoc de props ya
+// existente arriba en este archivo.
+ConfirmModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  title: PropTypes.string,
+  message: PropTypes.string,
+  confirmLabel: PropTypes.string,
+  danger: PropTypes.bool,
+  onConfirm: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+};
