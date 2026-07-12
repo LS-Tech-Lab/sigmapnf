@@ -88,3 +88,49 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+  visual-regression:
+    name: Regresión visual (Playwright)
+    runs-on: ubuntu-latest
+    # Fix U-10 (auditoría 12 de julio): job separado del job principal a
+    # propósito — un diff visual (o una imagen base todavía inexistente)
+    # nunca debe bloquear un build/test/deploy que sí está bien. Ver
+    # docs/AUDITORIA_INDICE.md § U-10 para el motivo original del hallazgo.
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependencias (versión exacta del lockfile)
+        run: npm ci
+
+      - name: Instalar navegador de Playwright (solo Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Build de producción
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-key
+
+      - name: Correr tests visuales
+        run: npm run test:visual
+
+      - name: Subir reporte HTML (si hubo diffs)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+    # TEMPORAL: quitar esta línea una vez que las imágenes base de
+    # tests/visual/__screenshots__/ estén commiteadas y confirmadas
+    # estables en al menos 2-3 corridas de CI seguidas sin diffs falsos.
+    # Sin esto, el job falla en TODOS los PRs (no hay baseline todavía) y
+    # entrena a ignorar el check — justo el problema que U-10 quería evitar.
+    continue-on-error: true
