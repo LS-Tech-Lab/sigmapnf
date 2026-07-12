@@ -73,7 +73,7 @@ export function QRDisplay({ qrUrl, segundos, ttlMinutes, size = 280 }) {
   }, [qrUrl, size]);
 
   return (
-    <div className="qrp-qr-wrap">
+    <div className="qap-qr-wrap">
       <canvas ref={canvasRef} className="qrp-qr-canvas" />
       <CountdownBar segundos={segundos} total={ttlMinutes * 60} />
       <p className="qrp-cdb-note">
@@ -508,10 +508,10 @@ export default function AdminQRPanel({
   const btnDisabled   = loading || fecha < hoy || (esHoy && !turnoDisponible(turno));
 
   return (
-    <div className="qrp-root">
+    <div className="qap-root">
       {/* Banner offline */}
       {isOffline && (
-        <div className="qrp-offline-banner">
+        <div className="qap-offline-banner">
           <i className="ti ti-wifi-off qrp-ic-danger-20" aria-hidden="true" />
           <div>
             <div className="qrp-offline-title">Sin conexión a internet</div>
