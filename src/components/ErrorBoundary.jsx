@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { logger } from "../utils/logger";
 
 /**
@@ -58,3 +59,9 @@ export default class ErrorBoundary extends React.Component {
     );
   }
 }
+
+// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// props — no cambia comportamiento.
+ErrorBoundary.propTypes = {
+  children: PropTypes.node,
+};
