@@ -34,8 +34,7 @@ De la auditoría QA senior externa del 12 de julio (ver § Historial de
 auditorías al final para el detalle completo). Ninguno crítico ni
 bloqueante — orden de prioridad sugerido:
 
-1. **`U-8`** 🟡 — `HorariosView.css`/`QRProyeccion.css` sin media queries
-   (falta adaptabilidad en proyector de aula/tablet)
+1. ~~**`U-8`**~~ — ✅ Cerrado el 12 de julio (ver tabla "UI y estilos")
 2. **`ARCH-12`** 🟡 — chunk `view-qr` (320 KB) sin sub-lazy-loading interno
 3. **`SEC-13`** 🟡 — `api/admin-users.js` sin allowlist de origen (CORS,
    defensa en profundidad, sin explotación conocida hoy)
@@ -144,7 +143,7 @@ asumirlo.
 | **U-5** | Los 7 archivos del shell principal (`src/app/`) nunca se auditaron para responsividad — solo se había cubierto funcionalidad (QR, horarios, login) | `HorariosLayout.jsx`, `UserMenu.jsx`, `AsistenciasModulo.jsx`, `App.jsx`, `AdminMenu.jsx`, `SinPerfilAsignado.jsx`, `CuentaDesactivada.jsx` | ✅ Cerrado — migrados a clases con prefijo (`hl-`, `um-`, `asm-`, `adm-`, `spa-`, `cd-`) con reglas `@media` incluidas |
 | **U-6** | El bundle sin dividir (`ARCH-7`) alargaba la pantalla en blanco en la primera carga | mismo que `ARCH-7` | ✅ Cerrado (9 de julio, mismo fix que `ARCH-7`) |
 | **U-7** | `LoginFormNormal.jsx`, `LoginOfflinePinPanel.jsx`, `ModalActivarPIN.jsx` (extraídos de `LoginScreen.jsx` al cerrar `ARCH-10`, la noche del 9 de julio): el `<label>` de cada campo quedó como hermano del `<input>`, sin `htmlFor`/`id` — misma regresión que `U-4` ya había resuelto en `Campo.jsx`, reintroducida en archivos nuevos que no pasaron por ese fix | `src/components/login/{LoginFormNormal,LoginOfflinePinPanel,ModalActivarPIN}.jsx` | ✅ **Cerrado (11 de julio)** — mismo patrón que `Campo.jsx`/`U-4`: `useId()` por instancia de componente, enlazando cada `<label htmlFor>` con su `<input id>`/`<select id>` (2 campos en cada uno de los 3 componentes). Cambio puramente estructural, sin tocar `.form-label`/`.form-input` ni los handlers. Verificado contra el HEAD real (`9477be2`, ya con `ARCH-11` y `SEC-12` incluidos) antes de reemplazar: 121/121 tests (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`) |
-| **U-8** 🟡 | Solo 4 de los 29 archivos CSS del proyecto tienen media queries; `HorariosView.css` (la grilla de horarios) y `QRProyeccion.css` (pantalla de proyección en el aula) no tienen ninguna — en una tablet o un proyector con resolución distinta a un monitor de escritorio, la grilla o el QR proyectado pueden verse cortados o requerir scroll horizontal incómodo | `src/components/HorariosView.css`, `src/components/asistencias/QRProyeccion.css` | 🟡 Abierto (detectado 12 de julio, auditoría QA senior externa) — solución: agregar breakpoints usando las variables `--bp-tablet`/`--bp-mobile` ya definidas en `index.css` (mismo patrón que `DocentesView.css`/`MateriasView.css`); priorizar `QRProyeccion.css` primero por usarse en proyectores de aula con resoluciones variables |
+| **U-8** 🟡 | Solo 4 de los 29 archivos CSS del proyecto tienen media queries; `HorariosView.css` (la grilla de horarios) y `QRProyeccion.css` (pantalla de proyección en el aula) no tienen ninguna — en una tablet o un proyector con resolución distinta a un monitor de escritorio, la grilla o el QR proyectado pueden verse cortados o requerir scroll horizontal incómodo | `src/components/HorariosView.css`, `src/components/asistencias/QRProyeccion.css` | ✅ **Cerrado (12 de julio)** — verificado contra el HEAD real antes de tocar nada, con dos hallazgos distintos: (1) **falso positivo parcial en la mitad de `QRProyeccion.css`** — el archivo en sí no tiene `@media`, pero las clases `.qrp-*` que usa `QRProyeccion.jsx` (confirmado 1:1 contra el JSX) sí tienen tratamiento responsive real, ya implementado en `src/index.css` líneas ~424-439 (reflow a 1 columna en <900px, achique de fuente en <640px) — quedó ahí porque cuando `ARCH-6` extrajo el CSS del template literal, esas reglas ya vivían en `index.css` desde antes y no se movieron. No requiere fix de comportamiento, mismo tipo de corrección que `S2`/`D-6`; queda pendiente como mejora cosmética de organización (mover esas reglas a `QRProyeccion.css` por cohesión), no como bug. (2) **`HorariosView.css` sí carecía de adaptación real** — pero el archivo es solo la barra de filtros/pestañas (`.hv-filters`, `.hv-tabs`, `.hv-days`), no la grilla en sí (esa es `TurnoGrid.css`, fuera del alcance original de este hallazgo, ya se degrada con `overflow-x: auto` — patrón válido, no roto). `.hv-filters-row`/`.hv-days` ya tenían `flex-wrap: wrap`, así que no se rompían, pero en <640px el título y el padding quedaban sobredimensionados. Se agregó un único `@media (max-width: 640px)` que reduce `.hv-filters` padding y `.hv-title` font-size — mismo breakpoint que `AdminQRPanel.css`. Cambio de 9 líneas, solo aditivo, sin tocar ninguna regla existente. Verificado: `vite build` limpio (mismo tamaño de bundle, es solo CSS), 130/130 tests reales (2 suites de `xlsx` bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`) |
 
 ## 🎨 Identidad visual y sistema de diseño
 
@@ -408,6 +407,24 @@ repetir el detalle ya cubierto en las tablas de arriba.
   respecto al 88/100 del 11 de julio refleja este ángulo nuevo evaluado, no
   una regresión). Orden de prioridad sugerido para implementar: `U-8` →
   `ARCH-12` → `SEC-13` → `ARCH-13`.
+
+- **12 de julio, cierre de `U-8`:** verificado contra el HEAD real
+  (`f715090`) antes de tocar nada. El hallazgo resultó mixto: la mitad de
+  `QRProyeccion.css` era **falso positivo parcial** (mismo tipo de
+  corrección que `S2`/`D-6`) — el archivo no tiene `@media`, pero las
+  clases `.qrp-*` que usa `QRProyeccion.jsx` ya tienen tratamiento
+  responsive real en `src/index.css` (reflow a 1 columna en <900px,
+  achique de fuente en <640px), reglas que quedaron ahí desde antes de
+  `ARCH-6` y nunca se movieron al archivo del componente. La otra mitad
+  (`HorariosView.css`) sí carecía de adaptación — es la barra de
+  filtros/pestañas (no la grilla, que es `TurnoGrid.css` y ya se degrada
+  con `overflow-x: auto`, patrón válido) y en <640px el título/padding
+  quedaban sobredimensionados pese a que `.hv-filters-row`/`.hv-days` ya
+  usaban `flex-wrap`. Fix de 9 líneas, puramente aditivo (un solo
+  `@media (max-width: 640px)`, mismo breakpoint que `AdminQRPanel.css`),
+  sin tocar ninguna regla existente. Verificado: `vite build` limpio
+  (mismo tamaño de bundle), 130/130 tests reales (2 suites de `xlsx`
+  bloqueadas solo por el firewall del sandbox, mismo caso de `D-6`).
 
 ---
 
