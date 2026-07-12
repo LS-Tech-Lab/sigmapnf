@@ -32,10 +32,32 @@
 .module-welcome-name { color: var(--color-border-info); font-weight: 600; }
 .module-hint { margin: 10px 0 0; font-size: var(--font-size-13); color: var(--color-text-tertiary); }
 
-.module-grid { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; max-width: 680px; width: 100%; }
+/* Fix (12 de julio, reportado por el usuario con captura desde laptop):
+   con flexbox + max-width: 680px fijo, 2 tarjetas de 260px cabían en una
+   fila (520px + 20px de gap = 540px, dentro de 680px) pero la 3ra
+   ("Sistema"/admin) no (habría necesitado ~820px), así que bajaba sola a
+   una segunda fila aunque sobraba espacio horizontal en cualquier
+   laptop/monitor normal. Además ese 680px estaba calculado a mano para
+   2-3 tarjetas — con un módulo más ya no habría alcanzado ni para eso.
+   CSS Grid con auto-fit/minmax resuelve ambos: en pantallas anchas mete
+   tantas tarjetas de 260-300px como quepan en una sola fila (hoy 3, o
+   más si el max-width del contenedor lo permite); en mobile, una sola
+   columna de 260-300px ya cabe bajo cualquier ancho de teléfono una vez
+   restado el padding de .module-page, así que se apila sola sin
+   necesitar media query. Si en el futuro se agrega un 4to o 5to módulo,
+   no hace falta tocar este CSS: simplemente se acomodan más por fila o
+   pasan a una fila nueva según el espacio disponible. */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
+  gap: 20px;
+  justify-content: center;
+  width: 100%;
+  max-width: 1160px; /* alcanza para ~4 tarjetas de 300px + gaps en una fila */
+}
 
 .module-card {
-  flex: 1 1 260px; max-width: 300px; background: var(--navy-800); border: 2px solid var(--navy-700);
+  background: var(--navy-800); border: 2px solid var(--navy-700);
   border-radius: 16px; padding: 28px 24px; cursor: pointer; text-align: left;
   transition: all 0.18s cubic-bezier(.4,0,.2,1); box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
