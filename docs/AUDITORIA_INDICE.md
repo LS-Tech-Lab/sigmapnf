@@ -45,7 +45,9 @@ vulnerabilidades). Orden de prioridad sugerido por la auditoría:
 4. **`U-10`** 🟡 — 24/30 archivos CSS sin `@media`; falta captura de
    regresión visual automatizada en CI
 5. **`ARCH-17`** 🟢 — Sin `PropTypes`/TypeScript en los ~8 componentes más
-   reutilizados
+   reutilizados — fix implementado y verificado (tests/build local), 🔄
+   **en proceso de integrarse a `main`** (pendiente de subir vía
+   `github.dev`)
 6. **`SEC-15`** 🟢 — Sin política documentada de rotación de
    `SUPABASE_SERVICE_ROLE_KEY`
 7. **`U-11`** 🟢 — Reglas responsive de `.qrp-*` viven en `index.css` en
@@ -137,7 +139,7 @@ Ver las tablas de categoría abajo para el detalle de cada uno.
 | **ARCH-13** 🟢 | La suite de tests depende de un tarball externo (`cdn.sheetjs.com`) para `xlsx`, sin fallback local — en una red restringida (ej. CI con firewall estricto) el `npm install` completo falla y bloquea 2 suites de tests sin que sea un error del código (mismo síntoma ya visto en `D-6`) | `package.json` (`dependencies.xlsx`), `vendor/xlsx-0.20.3.tgz` | ✅ **Cerrado (12 de julio)** — se vendorizó el tarball oficial de `xlsx@0.20.3` (misma versión exacta que ya usaba producción, descargado del propio CDN de SheetJS y commiteado en `vendor/xlsx-0.20.3.tgz`, con hash SHA-256 documentado en `vendor/README.md` junto con el procedimiento para actualizarlo a futuro). `package.json` pasa de apuntar a la URL del CDN a `file:./vendor/xlsx-0.20.3.tgz`. Verificado con instalación limpia (`rm -rf node_modules && npm install`) sin acceso al CDN: instala sin salir a internet para esta dependencia, `vite build` limpio (mismo tamaño de bundle, `view-qr` sigue en 320 KB — `xlsx` no vive ahí), 153/153 tests reales, incluidas las 2 suites de `xlsx` que antes quedaban bloqueadas en redes restringidas (`excelParser.test.js`, 29 tests) |
 | **ARCH-15** 🟡 | `AdminQRPanel.jsx` volvió a crecer a 685 líneas (auditoría QA del 12 de julio, segunda pasada) — el archivo más grande del proyecto, por encima de los ya divididos en `ARCH-8`/`ARCH-10`. Mezclaba panel admin, historial de sesiones y borrado en un solo archivo | `src/components/asistencias/AdminQRPanel.jsx` | 🔄 **En proceso de integrarse a `main`** (12 de julio) — mismo patrón ya probado en `ARCH-8`/`ARCH-10`: `HistorialSesiones` (fetch de historial + su estado) extraído a `asistencias/adminQR/HistorialSesiones.jsx`, y su modal de confirmación de borrado a un componente presentacional propio (`adminQR/ConfirmBorrarSesionModal.jsx`, recibe `sesion`/`borrando`/`onConfirm`/`onCancel` por props). `AdminQRPanel.jsx` queda como orquestador: 685→543 líneas. `FeedActividad`/`ContadorSesion`/`ColaOfflinePanel` se dejaron en el archivo principal a propósito — son pequeños y no formaban parte del hallazgo, evitando scope creep. Extracción 1:1 verificada contra el original antes de reemplazar (mismo bloque de código, solo mueve archivo + ajusta imports relativos), sin cambios de lógica ni de estilos. Verificado en el entorno de trabajo: `vite build` limpio (257 módulos, +2 por los archivos nuevos, sin duplicar código), 153/153 tests reales, `npm audit --package-lock-only`: 0 vulnerabilidades. **Pendiente:** subir los archivos a `main` vía `github.dev` y marcar como cerrado recién entonces |
 | **ARCH-16** 🟡 | El proyecto no tiene ESLint ni Prettier configurados — no hay ningún archivo de lint en la raíz, ni paso de lint en `ci.yml` (auditoría QA del 12 de julio, segunda pasada) | raíz del repo, `.github/workflows/ci.yml` | 🔴 Abierto — en progreso en otra sesión al momento de escribir esta fila |
-| **ARCH-17** 🟢 | Cero uso de `PropTypes` o TypeScript — los "contratos" entre componentes no están declarados en ningún lado (auditoría QA del 12 de julio, segunda pasada) | componentes más reutilizados (`QRDisplay`, `Avatar`, `ModalUsuario`, etc.) | 🔴 Abierto |
+| **ARCH-17** 🟢 | Cero uso de `PropTypes` o TypeScript — los "contratos" entre componentes no están declarados en ningún lado (auditoría QA del 12 de julio, segunda pasada) | componentes más reutilizados (`QRDisplay`, `Avatar`, `ModalUsuario`, etc.) | 🔄 **En proceso de integrarse a `main`** (12 de julio) — se agregó `prop-types` como dependencia y `propTypes` a los 8 componentes más reutilizados/compartidos del repo (confirmado por conteo real de importadores, no a ojo): `Avatar.jsx`, `QRDisplay.jsx` (+`CountdownBar` interno), `usuarios/ModalUsuario.jsx`, `app/UserMenu.jsx`, `ModalCambiarPassword.jsx`, `ErrorBoundary.jsx`, `StatCard.jsx`, `ConfirmModal.jsx`. Los `shape`/`oneOf` de cada uno se verificaron contra los call sites reales antes de escribirlos (ej. `StatCard.variant` se corrigió de una primera lista adivinada a los 7 valores reales confirmados por grep de `sc-root--*` en `index.css` + los dos componentes que lo usan). Cambio puramente aditivo, sin tocar lógica ni JSX existente. Verificado: `vite build` limpio (chunk principal +1.47 KB, esperado por el peso de `prop-types`), 153/153 tests reales (incluida la suite de integración que renderiza `ModalUsuario` de verdad, sin warnings de PropTypes en consola), `npm audit --package-lock-only`: 0 vulnerabilidades. **Pendiente:** subir a `main` vía `github.dev` y marcar como cerrado recién entonces |
 | **ARCH-18** 🟢 | El chunk principal (`index-*.js`) sigue siendo el más pesado del bundle (446 KB / 149 KB gzip) incluso después de `ARCH-7`/`ARCH-12`/`ARCH-14` — no hay warning de Vite, no es urgente, pero es el techo actual de optimización de carga inicial (auditoría QA del 12 de julio, segunda pasada) | `vite.config.js`, chunk principal | 🔴 Abierto — pendiente correr `vite-bundle-visualizer` antes de invertir tiempo, candidato probable: `@tabler/icons-webfont` importado global en vez de por ícono |
 
 ## 🔧 CI/CD y automatización
@@ -590,6 +592,43 @@ repetir el detalle ya cubierto en las tablas de arriba.
   `U-10`, `U-11`, `U-12` de esta misma auditoría — `ARCH-16` en progreso
   en otra sesión en paralelo, por lo que no se tocó `package.json` ni
   `ci.yml` en esta sesión para evitar conflicto.
+
+- **12 de julio, fix de `ARCH-17` implementado (pendiente de integrar a
+  `main`):** clonado fresco contra `5777a53` (HEAD real ya con `ARCH-15`
+  integrado, confirmado antes de tocar nada). Se identificaron los 8
+  componentes más reutilizados/compartidos del repo contando importadores
+  reales (`grep` por archivo, no estimación) en vez de adivinar a partir
+  de los 3 ejemplos que daba la auditoría (`QRDisplay`, `Avatar`,
+  `ModalUsuario`): `Avatar.jsx` (4 importadores), `usuarios/
+  ModalUsuario.jsx` (nombrado explícitamente por la auditoría), `app/
+  UserMenu.jsx` (3), `ModalCambiarPassword.jsx` (3), `ErrorBoundary.jsx`
+  (3), `StatCard.jsx` (2), `asistencias/QRDisplay.jsx` (2, el archivo que
+  comparten `AdminQRPanel`/`QRProyeccion`) y `ConfirmModal.jsx` (genérico,
+  diseñado para reuso en operaciones destructivas). Se agregó `prop-types`
+  como dependencia nueva (`npm install prop-types --save`) y un bloque
+  `Componente.propTypes` a cada uno, verificando cada `shape`/`oneOf`
+  contra los call sites reales antes de escribirlo — no contra lo que
+  "debería" ser. Esto corrigió un error propio a mitad de la sesión: el
+  primer intento de `StatCard.propTypes.variant` listaba 7 valores
+  adivinados (`brand/success/warning/danger/info/neutral/purple`), pero
+  el grep real de `sc-root--*` en `index.css` + los dos call sites
+  (`ResumenView`, `DocentesView`) mostró que los valores reales son
+  `brand/danger/purple/role-coord/sky/success/warning` — completamente
+  distintos en 3 de los 7. Cambio puramente aditivo (148 líneas
+  insertadas, 0 eliminadas), sin tocar ninguna lógica ni JSX existente.
+  Verificado: `vite build` limpio (chunk principal 446.14→447.61 KB, +1.47
+  KB esperado por el peso de `prop-types` en los componentes que no son
+  lazy), 153/153 tests reales — incluida `PestanaUsuarios.integration.
+  test.jsx`, que renderiza `ModalUsuario` de verdad y no mostró ningún
+  warning de PropTypes en consola, confirmando que los `shape` quedaron
+  bien —, `npm audit --package-lock-only`: 0 vulnerabilidades. **Nota de
+  coordinación:** este cambio sí toca `package.json`/`package-lock.json`
+  (agrega `prop-types` a `dependencies`), a diferencia de `ARCH-15`. Es de
+  bajo riesgo de conflicto real con `ARCH-16` (que toca `devDependencies`
+  + `.eslintrc`/`ci.yml`, no `dependencies`), pero si `ARCH-16` ya se
+  subió a `main` para cuando esto se integre, hacer `git pull` antes de
+  aplicar este diff en vez de sobrescribir `package.json` a ciegas. **No
+  se marca como cerrado todavía** — pendiente de subir vía `github.dev`.
 
 ---
 
