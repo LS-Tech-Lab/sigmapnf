@@ -36,3 +36,12 @@
 
 .hv-content { flex: 1; overflow: auto; padding: 12px 16px; }
 .hv-content--conflictos { padding: 0; }
+
+/* Fix U-8 (auditoría 12/jul/2026): sin adaptación para pantallas angostas.
+   .hv-filters-row y .hv-days ya usan flex-wrap, así que no se rompían,
+   pero en < 640px el título y el padding quedaban sobredimensionados
+   para el espacio disponible. Mismo breakpoint que AdminQRPanel.css. */
+@media (max-width: 640px) {
+  .hv-filters { padding: 10px 14px; }
+  .hv-title { font-size: var(--font-size-16); }
+}
