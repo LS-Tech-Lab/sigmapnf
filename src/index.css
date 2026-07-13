@@ -179,23 +179,47 @@
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MODO OSCURO — U-12 (auditoría 12 de julio), Fase 1
-   Redefine cada token de color de arriba para `prefers-color-scheme: dark`.
+   Redefine cada token de color de arriba para el selector `[data-theme="dark"]`.
    Las superficies (bg-primary/secondary/tertiary) reusan --navy-900/800/950,
    la paleta oscura que ya existe y está probada en producción (sidebar) —
    no se inventó ningún color nuevo para las superficies.
 
+   DESACTIVADO A PROPÓSITO (13 de julio) — decisión explícita de LS: este
+   bloque YA NO se activa solo con `prefers-color-scheme: dark` (la
+   preferencia del sistema operativo). Se gatilla únicamente si algo le pone
+   el atributo `data-theme="dark"` a `<html>` — y hoy nada en la app lo hace,
+   así que en la práctica está inactivo para todo el mundo. Motivo: con
+   Fase 2 apenas empezada (1 de 29 archivos migrados a esa fecha), un
+   usuario con el SO en modo oscuro ya veía una mezcla rota — parte de la
+   UI se oscurecía (los `var()` migrados) y el resto se quedaba en su color
+   claro fijo (todo lo que aún es hex literal). Esto no era hipotético: otra
+   sesión en paralelo encontró y corrigió un caso real de esto en
+   `ModuleSelector.css` (ver `ADMIN-5`, pasada 3) — un fondo pensado para
+   verse siempre oscuro se rompía porque heredaba un token que sí cambia con
+   el tema. Reactivar `prefers-color-scheme` sin terminar la Fase 2 habría
+   seguido generando este mismo tipo de bug en cada archivo que falte.
+
+   Para reactivar cuando la Fase 2 esté completa: (a) si se decide detección
+   automática por SO, envolver este bloque de nuevo en
+   `@media (prefers-color-scheme: dark) { :root { ... } }`; (b) si se
+   decide un botón dentro del sistema (lo pedido por LS), el botón solo
+   necesita alternar `document.documentElement.dataset.theme = 'dark' | ''`
+   — el selector de abajo ya está listo para eso, no hace falta tocar CSS
+   de nuevo. Definir esa preferencia con `localStorage` para que persista
+   entre sesiones queda para cuando se construya el botón, no es parte de
+   este fix.
+
    IMPORTANTE — alcance real de esta fase: esto SOLO redefine los tokens.
    Los componentes que ya usan var(--color-*) heredan el modo oscuro
-   automáticamente. Los que todavía tienen el color en hex literal (la
+   cuando esté activo. Los que todavía tienen el color en hex literal (la
    mayoría — ver § U-12 en AUDITORIA_INDICE.md para el inventario completo
    por archivo) NO cambian de color todavía: seguirán viéndose en su color
    claro fijo hasta que se migren a var() en las fases siguientes. No
    verificado visualmente (mismo límite que U-10: sin navegador en este
-   entorno) — pendiente que se confirme en un navegador real con el SO en
-   modo oscuro antes de considerar la Fase 1 cerrada del todo.
+   entorno) — pendiente que se confirme en un navegador real antes de
+   activar esto para usuarios reales.
    ═══════════════════════════════════════════════════════════════════════════ */
-@media (prefers-color-scheme: dark) {
-  :root {
+:root[data-theme="dark"] {
     /* ── Marca institucional (mismo hue, un paso más claro para contraste) ── */
     --brand-50:  rgba(37, 99, 235, 0.12);
     --brand-100: rgba(37, 99, 235, 0.20);
@@ -265,7 +289,6 @@
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.36);
     --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
     --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.6);
-  }
 }
 
 * {
@@ -786,15 +809,20 @@ textarea:focus-visible,
 .app-spinner-label { color: var(--color-text-tertiary); font-size: var(--font-size-14); }
 .app-loading-text { color: var(--color-text-tertiary); font-size: var(--font-size-15); }
 
+/* Fix U-12 (13 de julio): mismo bug que .sb — fondo con var(--color-text-primary)
+   (swappable) pareado con var(--color-border-tertiary) como texto (también
+   swappable, casi transparente en oscuro). Esta pantalla de error fatal debe
+   verse siempre oscura — --navy-900 invariante + texto literal (mismo valor
+   de hoy) en vez de dos tokens swappable mal emparejados. */
 .app-error-screen {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  height: 100vh; background: var(--color-text-primary); color: var(--color-border-tertiary);
+  height: 100vh; background: var(--navy-900); color: #E2E8F0;
   gap: 16px; padding: 32px; text-align: center; font-family: var(--font-sans);
 }
 .app-error-icon { font-size: var(--font-size-44); }
 .app-error-icon--danger { color: #F87171; }
 .app-error-icon--warning { color: #FBBF24; }
-.app-error-title { margin: 0; font-size: var(--font-size-20); font-weight: 600; color: var(--color-background-tertiary); }
+.app-error-title { margin: 0; font-size: var(--font-size-20); font-weight: 600; color: #F1F5F9; } /* Fix U-12: usaba var(--color-background-tertiary), invisible sobre el fondo ya invariante */
 .app-error-desc { margin: 0; font-size: var(--font-size-14); color: var(--color-text-tertiary); max-width: 460px; line-height: 1.6; }
 .app-error-btn {
   margin-top: 8px; padding: 9px 22px; background: var(--brand-500); color: #fff;
@@ -859,12 +887,19 @@ textarea:focus-visible,
 .hl-root { display: flex; height: 100dvh; font-family: var(--font-sans); background: var(--color-background-tertiary); overflow: hidden; }
 .hl-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 299; }
 
-.sb { background: var(--color-text-primary); display: flex; flex-direction: column; flex-shrink: 0; border-right: 1px solid var(--navy-800); position: relative; }
+/* Fix U-12 (13 de julio): .sb usaba var(--color-text-primary) como fondo —
+   ese token SÍ cambia de valor entre temas. El sidebar entero (navegación
+   principal de la app, visible en casi todas las pantallas) está diseñado
+   para verse siempre oscuro — todos sus hijos (.hl-brand-row, .hl-lapso-box,
+   etc.) usan bordes --navy-800/700 (invariantes) asumiendo ese fondo fijo.
+   Con el modo oscuro activo se habría vuelto casi blanco, rompiendo toda
+   la navegación. --navy-900 es el mismo valor exacto de hoy, invariante. */
+.sb { background: var(--navy-900); display: flex; flex-direction: column; flex-shrink: 0; border-right: 1px solid var(--navy-800); position: relative; }
 .sb-flow-spacer { flex-shrink: 0; transition: width .22s; }
 
 .hl-brand-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-14px) var(--space-10px) var(--space-3); border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
 .hl-brand-text-wrap { flex: 1; overflow: hidden; }
-.hl-brand-title { font-size: var(--font-size-13); font-weight: 700; color: var(--color-background-tertiary); white-space: nowrap; }
+.hl-brand-title { font-size: var(--font-size-13); font-weight: 700; color: #F1F5F9; white-space: nowrap; } /* Fix U-12: usaba var(--color-background-tertiary), invisible sobre el sidebar ya invariante — literal, mismo valor de hoy */
 .hl-brand-subtitle { font-size: var(--font-size-10); color: var(--color-text-secondary); margin-top: 1px; white-space: nowrap; }
 
 .hl-lapso-box { padding: var(--space-10px); border-bottom: 1px solid var(--navy-800); flex-shrink: 0; }
