@@ -101,6 +101,30 @@
   --color-accent-light: #60A5FA;
   --color-role-coord: #7C3AED;
 
+  /* ── Extensión de la escala (U-12, auditoría 12 de julio) ────────────────
+     Mismo criterio que FE-3/FE-5: se agregan tokens solo para valores que
+     ya se repetían mucho en los 30 CSS de componentes (verificado por
+     `grep` de frecuencia real) y todavía no tenían token — no se inventa
+     ningún color nuevo, se nombra el que ya estaba en uso. Colores que
+     aparecen una sola vez en todo el proyecto (violetas/rosas/teals
+     puntuales de un solo componente) se dejan como literales, mismo
+     criterio que los tamaños de fuente únicos en FE-3. Paso 1 de la
+     migración a modo oscuro — ver bloque `prefers-color-scheme` más abajo
+     y § U-12 en AUDITORIA_INDICE.md para las fases pendientes (todavía no
+     se tocó ningún archivo de componente, así que esto no cambia nada
+     visualmente todavía). ─────────────────────────────────────────────── */
+  --color-text-muted:        #94A3B8; /* gris usado en 6+ componentes para texto secundario/deshabilitado */
+  --color-success-mid:       #22C55E; /* verde del punto de "sesión activa" (QR) y estados online */
+  --color-success-strong:    #16A34A;
+  --color-success-darker:    #15803D;
+  --color-success-bg-alt:    #F0FDF4; /* verde-50, distinto tono de --color-success-bg (esmeralda-50) */
+  --color-success-light:     #86EFAC;
+  --color-success-text:      #166534; /* texto sobre fondo verde claro */
+  --color-danger-lighter:    #FECACA;
+  --color-danger-text:       #991B1B; /* texto sobre fondo rojo claro */
+  --color-role-coord-bg:     #F5F3FF;
+  --color-warning-dark:      #B45309; /* texto sobre fondo ámbar claro */
+
   /* ── Sidebar / superficie oscura institucional ──────────────────────── */
   --navy-950: #0b1220;
   --navy-900: #0f172a;
@@ -151,6 +175,97 @@
   --bp-mobile:  640px;   /* móvil pequeño                    */
   --bp-tablet:  1024px;  /* tablet / sidebar colapsado       */
   --bp-qr:      900px;   /* breakpoint de QRProyeccion       */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODO OSCURO — U-12 (auditoría 12 de julio), Fase 1
+   Redefine cada token de color de arriba para `prefers-color-scheme: dark`.
+   Las superficies (bg-primary/secondary/tertiary) reusan --navy-900/800/950,
+   la paleta oscura que ya existe y está probada en producción (sidebar) —
+   no se inventó ningún color nuevo para las superficies.
+
+   IMPORTANTE — alcance real de esta fase: esto SOLO redefine los tokens.
+   Los componentes que ya usan var(--color-*) heredan el modo oscuro
+   automáticamente. Los que todavía tienen el color en hex literal (la
+   mayoría — ver § U-12 en AUDITORIA_INDICE.md para el inventario completo
+   por archivo) NO cambian de color todavía: seguirán viéndose en su color
+   claro fijo hasta que se migren a var() en las fases siguientes. No
+   verificado visualmente (mismo límite que U-10: sin navegador en este
+   entorno) — pendiente que se confirme en un navegador real con el SO en
+   modo oscuro antes de considerar la Fase 1 cerrada del todo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* ── Marca institucional (mismo hue, un paso más claro para contraste) ── */
+    --brand-50:  rgba(37, 99, 235, 0.12);
+    --brand-100: rgba(37, 99, 235, 0.20);
+    --brand-200: rgba(37, 99, 235, 0.30);
+    --brand-400: #93C5FD;
+    --brand-500: #3B82F6;
+    --brand-600: #2563EB;
+    --brand-700: #1D4ED8;
+
+    /* ── Superficie / fondo — reusa la paleta navy ya existente ──────────── */
+    --color-background-primary:   var(--navy-900);
+    --color-background-secondary: var(--navy-800);
+    --color-background-tertiary:  var(--navy-950);
+    --color-background-info:      rgba(37, 99, 235, 0.15);
+    --color-background-subtle:    var(--navy-800);
+
+    /* ── Texto ─────────────────────────────────────────────────────────── */
+    --color-text-primary:   #F1F5F9;
+    --color-text-secondary: #CBD5E1;
+    --color-text-tertiary:  #94A3B8;
+    --color-text-info:      #93C5FD;
+    --color-text-mid:       #E2E8F0;
+    --color-text-muted:     #64748B;
+
+    /* ── Bordes ────────────────────────────────────────────────────────── */
+    --color-border-tertiary: rgba(255, 255, 255, 0.08);
+    --color-border-secondary: #475569;
+    --color-border-info: #3B82F6;
+
+    /* ── Estados semánticos ───────────────────────────────────────────────
+       Mismo patrón en todos: color de texto/ícono un paso más claro (mejor
+       contraste sobre fondo oscuro), fondo del mismo hue pero translúcido
+       en vez de sólido pastel (el pastel claro original se ve mal sobre
+       fondo oscuro). ─────────────────────────────────────────────────── */
+    --color-success:        #34D399;
+    --color-success-bg:     rgba(5, 150, 105, 0.15);
+    --color-success-mid:    #4ADE80;
+    --color-success-strong: #22C55E;
+    --color-success-darker: #16A34A;
+    --color-success-bg-alt: rgba(21, 128, 61, 0.18);
+    --color-success-light:  #4ADE80;
+    --color-success-text:   #86EFAC;
+
+    --color-warning:        #FBBF24;
+    --color-warning-bg:     rgba(217, 119, 6, 0.15);
+    --color-warning-border: rgba(217, 119, 6, 0.35);
+    --color-warning-text:   #FCD34D;
+    --color-warning-dark:   #FBBF24;
+
+    --color-danger:         #F87171;
+    --color-danger-bg:      rgba(220, 38, 38, 0.15);
+    --color-danger-light:   #FCA5A5;
+    --color-danger-dark:    #EF4444;
+    --color-danger-mid:     #F87171;
+    --color-danger-lighter: rgba(220, 38, 38, 0.25);
+    --color-danger-text:    #FCA5A5;
+
+    /* ── Acento / rol ──────────────────────────────────────────────────── */
+    --color-accent:       #60A5FA;
+    --color-accent-light: #93C5FD;
+    --color-role-coord:   #A78BFA;
+    --color-role-coord-bg: rgba(124, 58, 237, 0.15);
+
+    /* ── Sombras — más oscuras/marcadas, el fondo ya no aporta contraste ── */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.32), 0 1px 2px rgba(0, 0, 0, 0.20);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.36);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+    --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.6);
+  }
 }
 
 * {
@@ -398,51 +513,9 @@ textarea:focus-visible,
   }
 }
 
-/* ── QRProyeccion: responsive via CSS — elimina useState(window.innerWidth) ──
-   Los estados isMobile/isTablet del componente se controlan aquí con media
-   queries; solo se mantiene en JS el qrSize necesario para el canvas del QR.
-   ─────────────────────────────────────────────────────────────────────────── */
-
-/* Por defecto: layout de 2 columnas (desktop ≥ 900px) */
-.qrp-layout { flex-direction: row; align-items: stretch; }
-.qrp-layout-qr-top { display: none; }    /* QR arriba (tablet/móvil) */
-.qrp-layout-qr-right { display: contents; } /* QR a la derecha (desktop) */
-.qrp-left { flex: 0 0 55%; border-right: 1px solid rgba(255,255,255,0.07); border-top: none; }
-.qrp-left { padding: 40px 40px 40px 48px; }
-.qrp-topbar-title { display: inline; }
-.qrp-topbar-meta-date { display: inline; }
-.qrp-topbar-meta-prog { display: inline; }
-.qrp-instr-titulo { font-size: clamp(20px,3.5vw,34px); text-align: left; margin-bottom: 24px; }
-.qrp-paso-row { gap: 16px; padding: 14px 18px; }
-.qrp-paso-icono { font-size: var(--font-size-22); }
-.qrp-paso-texto { font-size: clamp(15px,2.5vw,22px); }
-.qrp-waiting-emoji { font-size: 72px; }
-.qrp-topbar-meta-label-full { display: inline; }
-.qrp-topbar-meta-label-short { display: none; }
-
-/* Tablet y móvil (< 900px): 1 columna, QR arriba */
-@media (max-width: 900px) {
-  .qrp-layout { flex-direction: column; align-items: center; padding-bottom: 32px; }
-  .qrp-layout-min-h { min-height: unset !important; }
-  .qrp-layout-qr-top { display: block; width: 100%; }
-  .qrp-layout-qr-right { display: none; }
-  .qrp-left { flex: none; width: 100%; border-right: none; border-top: 1px solid rgba(255,255,255,0.07); padding: 28px 20px 8px; }
-  .qrp-instr-titulo { font-size: var(--font-size-20); margin-bottom: 16px; text-align: center; }
-  .qrp-topbar-title { display: none; }
-  .qrp-topbar-meta-date { display: none; }
-  .qrp-topbar-meta-prog { display: none; }
-  .qrp-topbar-meta-label-full { display: none; }
-  .qrp-topbar-meta-label-short { display: inline; }
-}
-
-/* Móvil pequeño (< 640px) */
-@media (max-width: 640px) {
-  .qrp-paso-row { gap: 10px; padding: 10px 14px; }
-  .qrp-paso-icono { font-size: var(--font-size-18); }
-  .qrp-paso-texto { font-size: var(--font-size-14); }
-  .qrp-instr-titulo { font-size: var(--font-size-18); margin-bottom: 12px; }
-  .qrp-waiting-emoji { font-size: 52px; }
-}
+/* Fix U-11 (auditoría 12 de julio): las reglas responsive de .qrp-* vivían
+   aquí en vez de en QRProyeccion.css (deuda cosmética ya anotada en U-8) —
+   movidas a ese archivo, ver comentario ahí. */
 
 /* ──────────────────────────────────────────────────────────────────────────
    Clases espejo del objeto `S` (src/constants/index.js) — A3 fase 4,
