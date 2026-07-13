@@ -5,6 +5,19 @@
    no un dato arbitrario en tiempo de ejecución — el objeto `palette` en JS se
    elimina y se resuelve con clases modificadoras (.toast--success, etc.).
    @keyframes slideIn ya está centralizado en src/index.css.
+
+   Revisado para U-12 (13 de julio) — EXCLUIDO a propósito de la migración a
+   var(--color-*): los 4 fondos (--toast-bg) sí coinciden exacto con tokens
+   existentes (--color-success-bg-alt, --color-danger-bg, --color-warning-bg,
+   --color-background-info), pero los 4 textos (--toast-text: #14532D/#7F1D1D/
+   #78350F/#1E3A8A) son tonos muy oscuros sin token equivalente — los tokens
+   de texto que existen (--color-success-text, etc.) están diseñados para
+   texto CLARO sobre fondo oscuro, no para este patrón de tarjeta pastel
+   (fondo claro + texto oscuro del mismo tono). Migrar solo el fondo dejando
+   el texto literal habría reproducido exactamente el mismo bug ya corregido
+   en .sb/.app-error-screen/.pu-toast/.pr-toast (fondo que cambia de tema,
+   texto que no). Diseñar tokens dedicados para este patrón queda pendiente
+   de una pasada futura de U-12 si se decide migrar este archivo también.
    ────────────────────────────────────────────────────────────────────────────── */
 
 .toast {
