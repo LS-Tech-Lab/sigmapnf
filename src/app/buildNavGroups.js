@@ -1,10 +1,11 @@
 // ── Grupos de navegación ──────────────────────────────────────────────────────
-// Se recalculan según permisos en el componente App
-//
 // ADMIN-3 (auditoría 10 de julio): el grupo "Sistema" (Historial, Registros,
 // Usuarios y Roles) se movió fuera de Horarios, al nuevo módulo de
 // Administración (src/app/AdminModulo.jsx). Ver docs/AUDITORIA_INDICE.md.
-function buildNavGroups(permisos) {
+// Los ítems que quedan aquí ya no dependen de ningún permiso — por eso esta
+// función ya no recibe `permisos` (lo recibía antes de ADMIN-3, cuando los
+// ítems movidos sí necesitaban filtrarse).
+function buildNavGroups() {
   const grupos = [
     {
       label: "Consulta",

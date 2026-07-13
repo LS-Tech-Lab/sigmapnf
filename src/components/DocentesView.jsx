@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DAYS, trayectoClass } from '../constants';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../utils/time';
 import { parseClase } from '../utils/parsing';

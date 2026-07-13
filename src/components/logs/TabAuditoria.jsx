@@ -20,7 +20,7 @@ const ENTIDADES_OPCIONES = [
   { value: "roles",       label: "Roles" },
 ];
 
-export default function TabAuditoria({ permisos }) {
+export default function TabAuditoria() {
   const [logs,          setLogs]          = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [filtroEmail,   setFiltroEmail]   = useState("");

@@ -26,22 +26,18 @@ function Tag({ variant = "neutral", children }) {
   );
 }
 
-function SectionHeader({ icon, label, count, accent }) {
-  return (
-    <div className={`upm-section-header${accent ? ' upm-section-header--accent' : ''}`}>
-      <i className={`ti ${icon} upm-section-header-icon`} aria-hidden="true" />
-      <span className="upm-section-header-label">{label}</span>
-      {count != null && (
-        <Tag variant="accent">{count}</Tag>
-      )}
-    </div>
-  );
-}
-
 // ── Subcomponente: tabla de registros ────────────────────────────────
 
 function TablaRegistros({ rows, limit = 200 }) {
   const [expanded, setExpanded] = useState(false);
+  // Nota (ARCH-16/ARCH-19, 12 de julio): `visible` se calcula pero la
+  // agrupación de abajo (`bySec`) usa `rows` completo, no `visible` — en
+  // la práctica la tabla siempre muestra todas las filas sin importar
+  // `expanded`, y el botón "mostrar más" (basado en `hasMore`) no cambia
+  // nada visible al hacer clic. No se corrige en este fix (es un cambio
+  // de comportamiento, no de linting) — ver `ARCH-19` en
+  // docs/AUDITORIA_INDICE.md, queda para revisión de producto.
+  // eslint-disable-next-line no-unused-vars
   const visible = expanded ? rows : rows.slice(0, limit);
   const hasMore  = rows.length > limit;
 

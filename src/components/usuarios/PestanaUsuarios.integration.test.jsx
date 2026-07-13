@@ -79,7 +79,7 @@ describe("PestanaUsuarios — flujo de carga y desactivación de usuario", () =>
   });
 
   it("desactivar un usuario llama a la RPC correcta, audita, avisa y refresca la lista", async () => {
-    supabase.rpc.mockImplementation((fn, args) => {
+    supabase.rpc.mockImplementation((fn, _args) => {
       if (fn === "admin_get_users") {
         // Segunda carga (tras el toggle) ya refleja activo=false
         const yaDesactivado = supabase.rpc.mock.calls.filter(c => c[0] === "admin_toggle_user_activo").length > 0;

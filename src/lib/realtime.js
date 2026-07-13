@@ -37,10 +37,6 @@ const DEBOUNCE_MS = 800;
  * @returns {() => void} función para cancelar la suscripción
  */
 export function suscribirCambiosRemotos({ lapso, onHorariosChange, onDocentesChange, onMateriasChange }) {
-  let horariosTimer = null;
-  let docentesTimer = null;
-  let materiasTimer = null;
-
   const debounced = (timerRef, fn) => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);

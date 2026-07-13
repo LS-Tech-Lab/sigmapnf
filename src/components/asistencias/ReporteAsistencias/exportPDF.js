@@ -20,6 +20,14 @@ function abrirVentanaPDF(html) {
 
 function plantilla({ titulo, subtitulo, seccionesHtml, pie }) {
   const ahora = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
+  // El <\/script> de más abajo escapa la barra a propósito (defensivo: evita
+  // que </script> corte el bloque si este archivo se embebiera crudo dentro
+  // de un <script> HTML real). eslint-disable/enable en vez de un
+  // eslint-disable-next-line: la línea real está dentro de un template
+  // literal de muchas líneas, así que un comentario JS no puede insertarse
+  // ahí sin volverse parte del HTML generado — solo puede ir por fuera del
+  // literal completo.
+  /* eslint-disable no-useless-escape */
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -121,6 +129,7 @@ function plantilla({ titulo, subtitulo, seccionesHtml, pie }) {
   <script>window.onload = () => window.print();<\/script>
 </body>
 </html>`;
+  /* eslint-enable no-useless-escape */
 }
 
 export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, ausentes = []) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import {
-  listarUsuariosOffline, verificarPinOffline, guardarPinOffline, tienePinOffline,
+  listarUsuariosOffline, verificarPinOffline, tienePinOffline,
   // Fix O-8: lockout del PIN en IDB — resiste tabs privadas
   leerLockoutIDB, registrarIntentoPinFallido, limpiarLockoutIDB,
   // SEC-5: lockout del login normal en IDB
@@ -17,7 +17,6 @@ import "./LoginScreen.css";
 // (pinOffline.js). Resiste tabs privadas y limpieza manual de DevTools.
 // La protección real contra brute-force la provee Supabase Auth (rate limiting por IP).
 const MAX_ATTEMPTS    = 5;
-const LOCKOUT_SECONDS = 60;
 
 function getAuthErrorMessage(error) {
   const msg    = (error?.message || "").toLowerCase();
@@ -67,6 +66,13 @@ export default function LoginScreen({ onOfflineLogin }) {
   // desde IDB cuando el usuario selecciona su perfil (ver useEffect abajo).
   const [pinLockedUntil,  setPinLockedUntil]  = useState(null);
   const [pinRemaining,    setPinRemaining]    = useState(0);
+  // Nota (ARCH-16, 12 de julio): `pinAttempts` se actualiza en 4 lugares del
+  // flujo de lockout de PIN (O-8) pero su valor nunca se lee en ningún lado
+  // (no se muestra "intentos restantes" en la UI). No se retiran los
+  // `setPinAttempts()` en este fix — tocar 4 puntos de lógica de lockout ya
+  // auditada (SEC-5/O-8) está fuera del alcance de agregar linting. Si se
+  // decide mostrar el contador al usuario, ya está siendo trackeado.
+  // eslint-disable-next-line no-unused-vars
   const [pinAttempts,     setPinAttempts]     = useState(0);
   const pinTimerRef = useRef(null);
 
@@ -180,9 +186,11 @@ export default function LoginScreen({ onOfflineLogin }) {
       // el lockout de IDB (SEC-5) sigue funcionando como respaldo mínimo.
     }
 
-    // Capturamos el user y profile del callback de Auth para el modal PIN
-    let loginUser    = null;
-    let loginProfile = null;
+    // Capturamos el user y profile del callback de Auth para el modal PIN.
+    // Nota (ARCH-16): sin valor inicial — solo se leen dentro del bloque
+    // `else` de abajo, que siempre los asigna antes de cualquier lectura.
+    let loginUser;
+    let loginProfile;
 
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 

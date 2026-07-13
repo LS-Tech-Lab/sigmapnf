@@ -128,7 +128,12 @@ async function handleRequest(req, res) {
   // create/reset_password/delete directamente contra Auth Admin API +
   // REST con la Service Role Key, sin pasar por las RPCs SQL — por
   // eso necesita su propio guard, no basta con corregir la BD.
-  let callerEsAdmin = false;
+  // Nota (ARCH-16): sin valor inicial — el bloque de abajo siempre lo
+  // asigna antes de la primera lectura; si `supabaseAdminFetch`/`.json()`
+  // lanzara, el `try/catch` de `handler()` ya corta la respuesta con 500
+  // antes de llegar a ningún chequeo de `callerEsAdmin`, así que un valor
+  // inicial nunca cambia el comportamiento en ningún camino real.
+  let callerEsAdmin;
   {
     const callerProfileRes = await supabaseAdminFetch(
       `/rest/v1/user_profiles?id=eq.${userData.id}&select=rol`

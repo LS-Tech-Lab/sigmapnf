@@ -17,7 +17,7 @@
 // llamar a deleteDatabase (cuya promesa puede colgarse en jsdom).
 // =====================================================================
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 
 // Re-asignar a globals ANTES de cada test para obtener un IDB limpio

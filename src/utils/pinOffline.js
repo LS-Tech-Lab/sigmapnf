@@ -157,7 +157,7 @@ export async function tienePinOffline(userId) {
   try {
     const db = await abrirDB();
     const tx = db.transaction(STORE, 'readonly');
-    return new Promise((res, rej) => {
+    return new Promise((res, _rej) => {
       const req = tx.objectStore(STORE).get(userId);
       req.onsuccess = () => res(!!req.result);
       req.onerror   = () => res(false);

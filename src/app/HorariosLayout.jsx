@@ -67,9 +67,7 @@ const LazyFallback = ({ label }) => (
  *   horariosFilters   — resultado de useHorariosFilters
  *   permisos
  *   profile
- *   user
  *   handleLogout
- *   handleFileUploadAuditado
  *
  * Props — módulos:
  *   tieneHorarios, tieneQR
@@ -96,9 +94,7 @@ export default function HorariosLayout({
   horariosFilters,
   permisos,
   profile,
-  user,
   handleLogout,
-  handleFileUploadAuditado,
   // Módulos
   tieneHorarios,
   tieneQR,

@@ -16,6 +16,16 @@ export default function HorariosView({
   allTrayectos,
   conflicts, onGoDocente,
   initialTab, onConsumeInitialTab,
+  // Nota (ARCH-16/U-13, 12 de julio): a diferencia de `DocentesView`/
+  // `MateriasView` (que sí leen `modoConsulta` para mostrar su banner de
+  // solo-lectura), este componente lo recibe pero no lo usa en ningún
+  // lado del cuerpo. No se retira la prop ni se le agrega comportamiento
+  // en este fix — no está claro si nunca se conectó a `TurnoGrid` (que
+  // hoy no tiene ningún mecanismo de solo-lectura ni de edición in-line,
+  // solo expandir celda) o si el "editar horarios" de
+  // `puedeEditarHorarios` vive en otro lado. Ver `U-13` en
+  // docs/AUDITORIA_INDICE.md — queda para revisión de producto.
+  // eslint-disable-next-line no-unused-vars
   modoConsulta,
 }) {
   const [tab, setTab] = useState('horarios');

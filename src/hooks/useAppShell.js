@@ -70,7 +70,6 @@ export default function useAppShell({ user, showToast }) {
         setEmailChangePending(refreshData?.session?.user?.email ?? "");
       }
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // solo al montar
 
   // Paso 2: lanzar el toast cuando showToast ya esté disponible

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { DAYS, trayectoClass } from '../constants';
+import { trayectoClass } from '../constants';
 import { getTurnoDeRegistro, findStartBlock } from '../utils/turno';
 import { countBlocks, getHoraDisplayDeRegistro } from '../utils/time';
 import { parseClase } from '../utils/parsing';

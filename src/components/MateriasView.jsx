@@ -6,7 +6,7 @@ import { parseClase } from '../utils/parsing';
 import Avatar from './Avatar';
 import './MateriasView.css';
 
-export default function MateriasView({ byMateria, initialSel, onConsumeNav, getMateriaName, onSaveMateriaName, data, getDocName, modoConsulta, lapso }) {
+export default function MateriasView({ byMateria, initialSel, onConsumeNav, getMateriaName, onSaveMateriaName, getDocName, modoConsulta, lapso }) {
   const sorted = Object.keys(byMateria).sort();
   const [sel, setSel] = useState(initialSel || null), [search, setSearch] = useState("");
   const [editingName, setEditingName] = useState(false), [editValue, setEditValue] = useState(""), [saving, setSaving] = useState(false);

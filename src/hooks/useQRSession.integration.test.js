@@ -22,7 +22,7 @@
 // =====================================================================
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 
 vi.mock("../lib/supabase", () => {
   const chain = {

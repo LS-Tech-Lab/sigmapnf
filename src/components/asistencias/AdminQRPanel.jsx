@@ -28,11 +28,11 @@ import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../constants";
 import { playRegistroSound, useFlashFeed } from "./useRegistroSound";
 import { supabase } from "../../lib/supabase";
 import { fechaHoyVE } from "../../utils/time";
-import { contarPendientes, obtenerPendientes, eliminarPendiente, purgarExpirados } from "../../utils/offlineQueue";
+import { obtenerPendientes, eliminarPendiente, purgarExpirados } from "../../utils/offlineQueue";
 // Fix ARCH-12: QRDisplay/formatFechaVE/TURNOS_VISIBLES ya no se definen
 // acá — viven en su propio archivo (QRDisplay.jsx) para que QRProyeccion.jsx
 // no tenga que importar este módulo completo solo para usar esos 3.
-import { QRDisplay, formatFechaVE, TURNOS_VISIBLES } from "./QRDisplay";
+import { formatFechaVE, TURNOS_VISIBLES } from "./QRDisplay";
 // Fix ARCH-15: extraído a adminQR/ (ver nota arriba).
 import HistorialSesiones from "./adminQR/HistorialSesiones";
 import "./AdminQRPanel.css";

@@ -18,7 +18,7 @@ import "./HistorialView.css";
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, openConfirm, closeConfirm, user, modoConsulta = false, logAudit = null, programaRestringido = null }) {
+export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, user, modoConsulta = false, logAudit = null, programaRestringido = null }) {
   const [trimestres,     setTrimestres]     = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [expandido,      setExpandido]      = useState(null);
