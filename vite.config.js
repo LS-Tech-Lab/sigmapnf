@@ -52,6 +52,14 @@ export default defineConfig(({ mode }) => {
     ],
     base: '/',
     build: {
+      // Fix ARCH-18: el único chunk que hoy pasa los 500 KB por defecto es
+      // "xlsx" (~500 KB), y es a propósito — es la librería de Excel
+      // completa, cargada solo cuando alguien sube un archivo (import
+      // dinámico en useUpload.js), nunca en la carga inicial. 520 deja
+      // pasar ese caso ya entendido sin subir tanto el límite como para
+      // dejar de avisar si el chunk *principal* (el que sí carga siempre)
+      // volviera a crecer por accidente.
+      chunkSizeWarningLimit: 520,
       rollupOptions: {
         output: {
           // Fix ARCH-14: la forma objeto de `manualChunks` asignaba a los

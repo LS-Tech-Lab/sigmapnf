@@ -11,20 +11,41 @@
 //      El usuario cancela → limpiar estado, nada se guarda
 
 import { useState, useCallback } from "react";
-// Fix D-6 (auditoría 9 de julio, verificación): "xlsx" en package.json apunta
-// al tarball https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz — NO al
-// paquete "xlsx" del registro de npm (ese sí quedó abandonado en 0.18.5, sin
-// parche). Las 2 únicas CVEs que existen en la historia de SheetJS ya están
-// corregidas en 0.20.3: CVE-2023-30533 (Prototype Pollution, corregido en
-// 0.19.3) y CVE-2024-22363 (ReDoS, corregido en 0.20.2) — confirmado contra
-// cdn.sheetjs.com/advisories el 9 de julio de 2026. Si `npm audit`/Snyk
-// vuelven a marcar "xlsx" como vulnerable, es el mismo falso positivo que ya
-// documentó esta auditoría en `S2`: la herramienta compara contra el paquete
-// de npm, no contra la versión real instalada aquí. Antes de actuar sobre esa
-// alerta, verificar la versión real en package.json y cotejarla contra
-// cdn.sheetjs.com/advisories — no basta con confiar en el reporte automático.
-import * as XLSX from "xlsx";
-import { parseExcelFile, parseHojaDocentes, parseHojaMalla } from "../../utils/excelParser";
+// Fix ARCH-18 (auditoría 12 de julio): "xlsx" es, con diferencia, el módulo
+// más pesado de todo el proyecto (750 KB sin comprimir, ~195 KB gzip — más
+// grande que todo el resto del chunk principal junto). Antes de este fix se
+// importaba de forma estática acá arriba, lo que lo metía dentro del chunk
+// principal (`index-*.js`) vía la cadena useAppData/index.js → useUpload.js
+// → xlsx: *cualquiera* que abre la app —aunque solo vaya a ver el login o
+// su horario, sin subir nunca un Excel— ya estaba descargando la librería
+// completa de SheetJS. `excelParser.js` importa "xlsx" de la misma forma,
+// así que arrastraba lo mismo.
+//
+// Fix: tanto "xlsx" como "../../utils/excelParser" se importan de forma
+// dinámica (`import()`) dentro de `leerWorkbookRaw`/`handleFileUpload`, los
+// dos únicos puntos donde de verdad se usan — ambos ya son código que solo
+// corre cuando el usuario elige un archivo, nunca al montar el componente.
+// Rollup separa automáticamente ambos módulos (y sus dependencias) en su
+// propio chunk async, cargado solo la primera vez que alguien sube un
+// Excel. No hace falta declarar nada en `manualChunks` para esto — a
+// diferencia de los chunks de `ARCH-12`/`ARCH-14`, acá no hay múltiples
+// entradas lazy compitiendo por el mismo módulo compartido, es un único
+// punto de entrada dinámico.
+//
+// `parseHojaDocentes`/`parseHojaMalla`/`parseExcelFile` (ver más abajo)
+// siguen siendo funciones normales dentro de `excelParser.js` — no cambia
+// su firma ni se vuelven async donde no lo eran (`parseHojaDocentes`/
+// `parseHojaMalla` ya se llaman sobre un workbook ya leído, siguen siendo
+// síncronas). Los tests de `excelParser.test.js` que las importan
+// directamente no se ven afectados: siguen importando el módulo de forma
+// estática desde el archivo de test, un grafo de módulos completamente
+// aparte del de producción.
+//
+// Fix D-6 (auditoría 9 de julio, verificación): "xlsx" en package.json
+// apunta al tarball https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz —
+// NO al paquete "xlsx" del registro de npm (ese sí quedó abandonado en
+// 0.18.5, sin parche). Las 2 únicas CVEs que existen en la historia de
+// SheetJS ya están corregidas en 0.20.3.
 import { tokensMatch } from "../../utils/parsing";
 import { supabase } from "../../lib/supabase";
 import { logger } from "../../utils/logger";
@@ -74,7 +95,11 @@ function humanizarErrorParser(mensaje) {
   return `Error al procesar el archivo: ${mensaje.split("\n")[0]}`;
 }
 
-function leerWorkbookRaw(file) {
+async function leerWorkbookRaw(file) {
+  // Import dinámico: este es el único lugar de todo useUpload.js que
+  // necesita el módulo XLSX en sí (el resto del parseo usa las funciones
+  // ya importadas dinámicamente de excelParser.js, ver handleFileUpload).
+  const XLSX = await import("xlsx");
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload  = (e) => {
@@ -136,6 +161,13 @@ export default function useUpload({
     setUploading(true);
 
     try {
+      // Import dinámico (ARCH-18): excelParser.js importa "xlsx" de forma
+      // estática en su propio archivo, así que este único import ya trae
+      // consigo tanto el parseo como la librería pesada — ambos quedan en
+      // el mismo chunk async, cargado solo acá, no en el chunk principal.
+      const { parseExcelFile, parseHojaDocentes, parseHojaMalla } =
+        await import("../../utils/excelParser");
+
       // ── 1. Leer workbook raw primero para tener el catálogo disponible ──
       let workbookRaw;
       try {
