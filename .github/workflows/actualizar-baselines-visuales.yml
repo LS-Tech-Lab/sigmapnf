@@ -1,0 +1,62 @@
+name: Actualizar baselines visuales (Playwright)
+
+# Se dispara manualmente desde la pestaña Actions ("Run workflow").
+# Mismo patrón que regenerar-lockfile.yml: hace falta cuando un cambio de
+# diseño intencional (ej. rediseño de ModuleSelector, 12-13 de julio) deja
+# desactualizadas las capturas base de tests/visual/__screenshots__/, pero
+# no hay un entorno local con Playwright para regenerarlas a mano — las
+# capturas deben generarse en el mismo entorno (SO, versión de Chromium)
+# que las va a comparar luego en cada corrida de CI normal, así que
+# regenerarlas localmente en otra máquina no serviría de nada aunque
+# hubiera cómo.
+#
+# Por diseño, este workflow SIEMPRE commitea lo que Playwright genere sin
+# pedir confirmación intermedia — quien lo dispara debe haber revisado ya
+# que el cambio visual es intencional (ej. contra el reporte HTML de un
+# corrida fallida de "Regresión visual" en el job normal de ci.yml) antes
+# de correr esto. No es para "arreglar" un diff inesperado sin mirarlo.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  actualizar-baselines:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependencias (versión exacta del lockfile)
+        run: npm ci
+
+      - name: Instalar navegador de Playwright (solo Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Build de producción
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-key
+
+      - name: Regenerar capturas base
+        run: npm run test:visual:update
+
+      - name: Commit y push de las capturas actualizadas
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tests/visual/__screenshots__/
+          if git diff --cached --quiet; then
+            echo "Ninguna captura cambió, nada que commitear."
+          else
+            git commit -m "chore: actualizar baselines visuales (workflow manual)"
+            git push
+          fi
