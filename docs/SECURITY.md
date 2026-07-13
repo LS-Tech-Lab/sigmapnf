@@ -169,6 +169,60 @@ Las acciones registradas automáticamente son:
 
 ---
 
+## Política de rotación de `SUPABASE_SERVICE_ROLE_KEY`
+
+> Fix SEC-15 (auditoría 12 de julio): esta clave no tenía política
+> documentada de rotación. No es una vulnerabilidad activa — es una nota
+> de proceso para el día en que haga falta rotarla (sospecha de fuga,
+> salida de alguien con acceso al Dashboard, rotación preventiva
+> periódica).
+
+**Dónde vive y quién la usa:**
+- Es la **única** clave de Service Role en el proyecto (bypassa RLS por
+  completo). Se usa exclusivamente en `api/admin-users.js`, la Vercel
+  Function que respalda la gestión de usuarios (crear/editar/desactivar
+  cuentas vía Auth Admin API) — ver § "Pasos de implementación", punto 3.
+- **No** se usa en el frontend (`src/`) ni se expone nunca al navegador:
+  solo existe como variable de entorno del lado servidor en Vercel.
+- Se distingue de `VITE_SUPABASE_ANON_KEY` (pública, sujeta a RLS, sí
+  viaja al navegador) — confundirlas en un rotado sería el error más
+  costoso, revisar siempre el nombre exacto de la variable antes de tocar
+  algo en el Dashboard.
+
+**Cuándo rotarla:**
+1. **Sospecha o confirmación de fuga** (commit accidental, log expuesto,
+   captura de pantalla, etc.) — rotar de inmediato, es el único caso
+   urgente.
+2. **Alguien con acceso al Dashboard de Supabase o a las variables de
+   entorno de Vercel dejó el proyecto** — rotar antes de que termine su
+   acceso, no después.
+3. **Rotación preventiva periódica** — no hay un plazo fijo impuesto por
+   Supabase; se sugiere revisarla al menos una vez al año o al hacer un
+   cambio mayor de infraestructura, como criterio de higiene y no porque
+   haya un incidente.
+
+**Cómo rotarla (pasos):**
+1. En el Dashboard de Supabase → **Project Settings → API**, generar una
+   nueva Service Role Key (Supabase invalida la anterior al regenerarla).
+2. En **Vercel → el proyecto → Settings → Environment Variables**,
+   actualizar `SUPABASE_SERVICE_ROLE_KEY` con el valor nuevo en los tres
+   entornos (Production, Preview, Development) si aplica.
+3. Volver a desplegar (`Redeploy` en Vercel, o un push a `main`) — la
+   Function no recoge la variable nueva hasta el próximo deploy.
+4. Verificar con una acción real de `api/admin-users.js` (por ejemplo,
+   editar un usuario de prueba) que la clave nueva funciona antes de dar
+   por cerrada la rotación.
+5. Si la rotación fue por sospecha de fuga, revisar además
+   `admin_actions_rate_limit` (`SEC-11`) y los `audit_logs` del período
+   en cuestión por actividad no reconocida.
+
+> No hay automatización para este proceso — es manual a propósito, dado
+> que ocurre con muy poca frecuencia y automatizarlo agregaría una
+> superficie de riesgo (permisos amplios para rotar una clave que ya de
+> por sí bypassa RLS) desproporcionada al beneficio.
+
+---
+
 ## Pendientes opcionales (mejoras futuras)
 
 > **Los 4 ítems que listaba esta sección originalmente ya están resueltos**
