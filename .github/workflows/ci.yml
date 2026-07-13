@@ -36,6 +36,9 @@ jobs:
       - name: Instalar dependencias (versión exacta del lockfile)
         run: npm ci
 
+      - name: Verificar estilo y errores comunes (ESLint — ARCH-16)
+        run: npm run lint
+
       - name: Ejecutar suite de pruebas (Vitest)
         run: npm test
 
