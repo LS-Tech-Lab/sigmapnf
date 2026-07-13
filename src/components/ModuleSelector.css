@@ -11,105 +11,94 @@
    Los alfa-hex "18"/"22" agregados a mod.color se convierten a rgba()
    equivalentes (9.4% y 13.3%) para no depender de var(--token) + sufijo hex.
 
-   Pasada de optimización visual (12 de julio, misma sesión que el fix del
-   grid de 3 columnas): este archivo se migró el 5 de julio, ANTES de que
-   el 1 de julio se consolidara el bloque :root de design tokens
-   (--space-N, --border-radius-*, --color-role-coord, etc. — ver
-   index.css). Quedó con valores de spacing/radio en px sueltos que ya
-   tenían token equivalente. Cambios en esta pasada:
-   1. Spacing/radio con valor EXACTO a algún token → reemplazado por el
-      token (20px→--space-5, 16px→--space-4, 24px→--space-6, etc.). Los
-      que no calzan con ningún token (28px, 18px, 40px) se dejan
-      literales a propósito — mismo criterio que --space-6px/7px/10px/14px
-      en index.css: no forzar al más cercano y alterar el tamaño real.
-   2. El púrpura de "Sistema" (#7C3AED) es exactamente
-      --color-role-coord, el token semántico de color de rol
-      "coordinación/admin" usado en el resto de la app (LogsView,
-      ReporteAsistencias, etc.) — antes estaba repetido como hex literal.
-   3. Fix mobile: :hover envuelto en `@media (hover: hover) and
-      (pointer: fine)` — sin esto, tocar una tarjeta en móvil puede dejarla
-      "pegada" en su color de hover hasta tocar en otro lado (comportamiento
-      real y conocido de :hover en navegadores táctiles), en vez de que el
-      estado visual dependa solo del :active/tap real.
-   4. `@media (max-width: 640px)` (mismo valor que --bp-mobile en
-      index.css — no se referencia con var() porque los media queries de
-      CSS estándar no aceptan custom properties sin un plugin de PostCSS
-      que este proyecto no tiene configurado) para achicar el espacio
-      vertical de cabecera/logo en teléfonos: con 2 módulos no se nota,
-      pero si se agrega un 3ro o 4to en el futuro, cada uno apilado suma
-      alto y el usuario de móvil termina haciendo más scroll del
-      necesario solo para ver todas las tarjetas.
-   5. `prefers-reduced-motion` deshabilita el translateY de hover y la
-      entrada fadeUp para quien lo tenga activado en su sistema.
-   6. Entrada sutil con `fadeUp` (definida en index.css, sin usar en
-      ningún componente todavía) al montar la pantalla — antes aparecía
-      de golpe.
+   Pasada de tokens/tokens de sistema + fix de grid (12 de julio): ver
+   docs/AUDITORIA_INDICE.md § ADMIN-5 para el detalle de esa pasada
+   (adopción de --space-N/--border-radius-*/--color-role-coord, fix de
+   hover pegado en touch, breakpoint mobile, prefers-reduced-motion).
+
+   Rediseño compacto/minimalista (12 de julio, pedido explícito del
+   usuario tras notar que la pasada anterior no cambiaba nada visible):
+   layout de tarjeta pasa de vertical (ícono arriba → título → descripción
+   → "Entrar" al final, ~180px de alto) a horizontal tipo fila de lista
+   (ícono | texto | chevron, ~72px de alto) — ver .module-card-body y
+   .module-chevron, y el JSX correspondiente en ModuleSelector.jsx.
+   También: bordes más finos (1px vs 2px), radios más chicos, sombra por
+   defecto eliminada (solo aparece, sutil, en hover), sin el translateY de
+   hover (el flat/minimalista no "levanta" tarjetas), y descripción con
+   clamp a 2 líneas para que las 3 tarjetas midan lo mismo sin importar
+   cuánto texto tenga cada una.
    ────────────────────────────────────────────────────────────────────────────── */
 
 .module-page {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh; padding: var(--space-6);
-  background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--navy-800) 100%);
+  /* Fix (13 de julio, detectado verificando este archivo contra lo que
+     cambió en main mientras tanto): U-12 (modo oscuro, ya en main)
+     redefine --color-text-primary de navy oscuro (#0f172a) a casi blanco
+     (#F1F5F9) bajo prefers-color-scheme:dark. Esta pantalla es un splash
+     de marca que debe verse siempre oscura sin importar el tema del
+     sistema operativo — usaba --color-text-primary como stop de
+     gradiente (heredado del archivo original, de antes de que existiera
+     modo oscuro), lo que habría roto el fondo para cualquier usuario con
+     el SO en modo oscuro (mitad casi-blanco, mitad navy). --navy-900 es
+     el mismo #0f172a exacto pero confirmado invariante entre temas (la
+     paleta oscura de superficies no se redefine en el bloque
+     prefers-color-scheme — ver index.css). */
+  background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%);
   font-family: system-ui, -apple-system, sans-serif;
 }
 
 .module-header {
-  text-align: center; margin-bottom: 40px;
+  text-align: center; margin-bottom: var(--space-8);
   animation: fadeUp 0.4s cubic-bezier(.4,0,.2,1);
 }
 
 .module-logo {
-  width: 80px; height: 80px; object-fit: contain; margin-bottom: var(--space-4);
+  width: 64px; height: 64px; object-fit: contain; margin-bottom: var(--space-3);
   filter: drop-shadow(0 4px 16px rgba(37,99,235,0.35));
 }
 
 .module-title { margin: 0; font-size: var(--font-size-22); font-weight: 700; color: var(--color-background-tertiary); letter-spacing: -0.3px; }
 .module-subtitle { margin: 4px 0 0; font-size: var(--font-size-12); color: var(--color-text-tertiary); letter-spacing: 0.02em; }
-.module-welcome { margin: 10px 0 0; font-size: var(--font-size-14); color: var(--color-text-tertiary); }
+.module-welcome { margin: var(--space-2) 0 0; font-size: var(--font-size-14); color: var(--color-text-tertiary); }
 .module-welcome-name { color: var(--color-border-info); font-weight: 600; }
-.module-hint { margin: 10px 0 0; font-size: var(--font-size-13); color: var(--color-text-tertiary); }
+.module-hint { margin: var(--space-2) 0 0; font-size: var(--font-size-13); color: var(--color-text-tertiary); }
 
-/* Fix (12 de julio, reportado por el usuario con captura desde laptop):
-   con flexbox + max-width: 680px fijo, 2 tarjetas de 260px cabían en una
-   fila (520px + 20px de gap = 540px, dentro de 680px) pero la 3ra
-   ("Sistema"/admin) no (habría necesitado ~820px), así que bajaba sola a
-   una segunda fila aunque sobraba espacio horizontal en cualquier
-   laptop/monitor normal. Además ese 680px estaba calculado a mano para
-   2-3 tarjetas — con un módulo más ya no habría alcanzado ni para eso.
-   CSS Grid con auto-fit/minmax resuelve ambos: en pantallas anchas mete
-   tantas tarjetas de 260-300px como quepan en una sola fila (hoy 3, o
-   más si el max-width del contenedor lo permite); en mobile, una sola
-   columna de 260-300px ya cabe bajo cualquier ancho de teléfono una vez
-   restado el padding de .module-page, así que se apila sola sin
-   necesitar media query. Si en el futuro se agrega un 4to o 5to módulo,
-   no hace falta tocar este CSS: simplemente se acomodan más por fila o
-   pasan a una fila nueva según el espacio disponible. */
+/* Grid: fix de "no caben en una fila" (ver ADMIN-5) + ahora también más
+   angosto por tarjeta, ya que el layout horizontal necesita menos ancho
+   por tarjeta que el anterior (el texto ya no tiene que caber centrado
+   bajo un ícono, va al lado). CSS Grid con auto-fit/minmax sigue
+   resolviendo lo mismo: en desktop entran todas en una fila, en mobile
+   una sola columna se apila sola sin media query, y si se agrega un 4to
+   o 5to módulo no hace falta tocar este CSS. */
 .module-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
-  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 280px));
+  gap: var(--space-4);
   justify-content: center;
   width: 100%;
-  max-width: 1160px; /* alcanza para ~4 tarjetas de 300px + gaps en una fila */
+  max-width: 1080px;
   animation: fadeUp 0.4s cubic-bezier(.4,0,.2,1) 0.08s backwards;
 }
 
 .module-card {
-  background: var(--navy-800); border: 2px solid var(--navy-700);
-  border-radius: var(--border-radius-xl); padding: 28px var(--space-6); cursor: pointer; text-align: left;
-  transition: all 0.18s cubic-bezier(.4,0,.2,1); box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  display: flex; align-items: center; gap: var(--space-3);
+  background: var(--navy-800); border: 1px solid var(--navy-700);
+  border-radius: var(--border-radius-lg); padding: var(--space-4);
+  cursor: pointer; text-align: left;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 /* `hover: hover` + `pointer: fine` = el dispositivo tiene un puntero de
    precisión que puede "flotar" sin tocar (mouse/trackpad). En touch puro
    esta condición es falsa, así que estas reglas nunca se activan ahí —
-   evita el hover "pegado" tras un tap en tablet/celular. */
+   evita el hover "pegado" tras un tap en tablet/celular. Sin translateY
+   ni sombra de color grande: el flat/minimalista solo cambia borde,
+   fondo (muy sutil) y color de texto/ícono/chevron. */
 @media (hover: hover) and (pointer: fine) {
-  .module-card:hover { transform: translateY(-3px); }
-
-  .module-card--horarios:hover { background: var(--color-background-info); border-color: var(--brand-500); box-shadow: 0 12px 32px rgba(37,99,235,0.133); }
-  .module-card--asistencias:hover { background: var(--color-success-bg); border-color: var(--color-success); box-shadow: 0 12px 32px rgba(5,150,105,0.133); }
-  .module-card--admin:hover { background: #F5F3FF; border-color: var(--color-role-coord); box-shadow: 0 12px 32px rgba(124,58,237,0.133); }
+  .module-card--horarios:hover { border-color: var(--brand-500); box-shadow: 0 0 0 1px var(--brand-500); }
+  .module-card--asistencias:hover { border-color: var(--color-success); box-shadow: 0 0 0 1px var(--color-success); }
+  .module-card--admin:hover { border-color: var(--color-role-coord); box-shadow: 0 0 0 1px var(--color-role-coord); }
 
   .module-card--horarios:hover .module-icon { background: rgba(37,99,235,0.094); border-color: var(--brand-200); }
   .module-card--asistencias:hover .module-icon { background: rgba(5,150,105,0.094); border-color: #A7F3D0; }
@@ -119,50 +108,57 @@
   .module-card--asistencias:hover .module-title-card { color: var(--color-success); }
   .module-card--admin:hover .module-title-card { color: var(--color-role-coord); }
 
-  .module-card:hover .module-desc { color: var(--navy-700); }
-
-  .module-card--horarios:hover .module-arrow { color: var(--brand-500); }
-  .module-card--asistencias:hover .module-arrow { color: var(--color-success); }
-  .module-card--admin:hover .module-arrow { color: var(--color-role-coord); }
+  .module-card--horarios:hover .module-chevron { color: var(--brand-500); }
+  .module-card--asistencias:hover .module-chevron { color: var(--color-success); }
+  .module-card--admin:hover .module-chevron { color: var(--color-role-coord); }
 
   .module-logout:hover { color: var(--color-text-tertiary); }
 }
 
 .module-icon {
-  width: 52px; height: 52px; border-radius: 14px; background: var(--color-text-primary);
+  flex-shrink: 0;
+  width: 40px; height: 40px; border-radius: var(--border-radius-md); background: var(--color-text-primary);
   border: 1.5px solid #1E3A5F; display: flex; align-items: center; justify-content: center;
-  margin-bottom: var(--space-4); transition: all 0.18s;
+  transition: background 0.15s, border-color 0.15s;
 }
-.module-icon i { font-size: var(--font-size-24); }
+.module-icon i { font-size: var(--font-size-20); }
 
-.module-title-card { font-size: var(--font-size-16); font-weight: 700; color: var(--color-border-tertiary); margin-bottom: var(--space-2); transition: color 0.18s; }
+/* Título + descripción, uno al lado del otro con el ícono en vez de
+   apilados debajo — el cambio estructural que hace la tarjeta compacta. */
+.module-card-body { flex: 1; min-width: 0; }
 
-.module-desc { font-size: var(--font-size-13); color: var(--color-text-tertiary); line-height: 1.55; transition: color 0.18s; }
+.module-title-card { font-size: var(--font-size-15); font-weight: 700; color: var(--color-border-tertiary); transition: color 0.15s; }
 
-.module-arrow { margin-top: 18px; font-size: var(--font-size-13); font-weight: 600; color: var(--color-text-secondary); display: flex; align-items: center; gap: var(--space-1); transition: color 0.18s; }
-.module-arrow i { font-size: var(--font-size-14); }
+/* Clamp a 2 líneas: sin esto, "Control de Asistencias" (descripción más
+   larga) hacía su tarjeta más alta que las otras 2 — con clamp, las 3
+   miden lo mismo sin importar cuánto texto tenga cada una. */
+.module-desc {
+  margin-top: 2px; font-size: var(--font-size-12); color: var(--color-text-tertiary); line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.module-chevron {
+  flex-shrink: 0; font-size: var(--font-size-18); color: var(--color-text-tertiary);
+  transition: color 0.15s;
+}
 
 .module-logout {
-  margin-top: 40px; background: none; border: none; color: var(--color-text-secondary);
+  margin-top: var(--space-6); background: none; border: none; color: var(--color-text-secondary);
   font-size: var(--font-size-13); cursor: pointer; display: flex; align-items: center; gap: var(--space-6px);
   padding: var(--space-6px) var(--space-3); border-radius: var(--border-radius-md); transition: color 0.15s;
 }
 
-/* Mismo valor que --bp-mobile (index.css) — ver nota arriba sobre por qué
-   no se referencia con var() dentro del media query. */
+/* Mismo valor que --bp-mobile (index.css) — no se referencia con var()
+   porque los media queries de CSS estándar no aceptan custom properties
+   sin un plugin de PostCSS que este proyecto no tiene configurado. */
 @media (max-width: 640px) {
   .module-page { padding: var(--space-5); }
   .module-header { margin-bottom: var(--space-6); }
-  .module-logo { width: 64px; height: 64px; margin-bottom: var(--space-3); }
-  .module-logout { margin-top: var(--space-6); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .module-header, .module-grid { animation: none; }
-  .module-card, .module-icon, .module-title-card, .module-desc, .module-arrow, .module-logout {
+  .module-card, .module-icon, .module-title-card, .module-chevron, .module-logout {
     transition: none;
   }
-}
-@media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
-  .module-card:hover { transform: none; }
 }

@@ -51,7 +51,12 @@ export default function ModuleSelector({ profile, tieneHorarios, tieneQR, tieneA
         <p className="module-hint">Selecciona el módulo al que deseas acceder</p>
       </div>
 
-      {/* Tarjetas de módulos */}
+      {/* Tarjetas de módulos.
+          Compactación (12 de julio, pedido directo del usuario): layout
+          horizontal (ícono | texto | chevron) en vez de vertical
+          (ícono arriba, título, descripción, "Entrar" al final) — reduce
+          la altura de cada tarjeta de forma notoria, más parecido a una
+          fila de lista que a una tarjeta grande. Ver ModuleSelector.css. */}
       <div className="module-grid">
         {modulosVisibles.map((mod) => (
           <button
@@ -64,16 +69,14 @@ export default function ModuleSelector({ profile, tieneHorarios, tieneQR, tieneA
               {mod.icon ? <i className={`ti ${mod.icon}`} aria-hidden="true" /> : null}
             </div>
 
-            {/* Título */}
-            <div className="module-title-card">{mod.title}</div>
-
-            {/* Descripción */}
-            <div className="module-desc">{mod.description}</div>
-
-            {/* Flecha */}
-            <div className="module-arrow">
-              Entrar <i className="ti ti-arrow-right" aria-hidden="true" />
+            {/* Título + descripción */}
+            <div className="module-card-body">
+              <div className="module-title-card">{mod.title}</div>
+              <div className="module-desc">{mod.description}</div>
             </div>
+
+            {/* Chevron (reemplaza el texto "Entrar" — más minimalista) */}
+            <i className="ti ti-chevron-right module-chevron" aria-hidden="true" />
           </button>
         ))}
       </div>
