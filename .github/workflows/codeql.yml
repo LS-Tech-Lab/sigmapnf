@@ -1,0 +1,51 @@
+name: CodeQL
+
+# Fix SEC-14 (auditoría 12 de julio): no había SAST/análisis estático de
+# seguridad sobre el código propio del repo en CI — solo `npm audit`
+# (dependencias de terceros) y ESLint (estilo/errores de código, no
+# vulnerabilidades). CodeQL analiza el código propio en busca de patrones
+# de vulnerabilidad conocidos (inyección, XSS, uso inseguro de RegExp,
+# manejo de secretos, etc.).
+#
+# Job separado de `ci.yml` a propósito, mismo criterio que `visual-regression`
+# (fix U-10): un hallazgo de CodeQL nunca debe bloquear un build/deploy que
+# está bien — los resultados se suben a la pestaña "Security" > "Code
+# scanning" del repo para revisión, no como check obligatorio de PR. Así se
+# evita el mismo problema que U-10 documentó (un check bloqueante sin
+# baseline entrena a ignorarlo).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Corrida semanal para capturar nuevos patrones de vulnerabilidad que
+    # CodeQL vaya agregando a sus queries, aunque no haya cambios en el repo.
+    - cron: '0 6 * * 1'
+
+# Permisos mínimos necesarios para que CodeQL pueda subir resultados a la
+# pestaña Security del repo.
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Análisis CodeQL (JavaScript/TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # queries por defecto (security-and-quality no hace falta;
+          # el set "default" ya cubre las categorías de seguridad estándar
+          # sin disparar tantos falsos positivos de estilo)
+
+      - name: Ejecutar análisis CodeQL
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript-typescript'
