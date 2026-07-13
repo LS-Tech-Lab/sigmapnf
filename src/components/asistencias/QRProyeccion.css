@@ -377,3 +377,53 @@
     color: #FCA5A5;
     line-height: 1.5;
   }
+
+  /* ── Responsive via CSS — elimina useState(window.innerWidth) ──────────────
+     Fix U-11 (auditoría 12 de julio): estas reglas vivían en src/index.css
+     en vez de en este archivo — movidas aquí sin cambiar ninguna regla ni
+     su orden relativo, solo el archivo donde viven. Los estados isMobile/
+     isTablet que tenía el componente originalmente se controlan aquí con
+     media queries; solo se mantiene en JS el qrSize necesario para el
+     canvas del QR.
+     ─────────────────────────────────────────────────────────────────────── */
+
+  /* Por defecto: layout de 2 columnas (desktop ≥ 900px) */
+  .qrp-layout { flex-direction: row; align-items: stretch; }
+  .qrp-layout-qr-top { display: none; }    /* QR arriba (tablet/móvil) */
+  .qrp-layout-qr-right { display: contents; } /* QR a la derecha (desktop) */
+  .qrp-left { flex: 0 0 55%; border-right: 1px solid rgba(255,255,255,0.07); border-top: none; }
+  .qrp-left { padding: 40px 40px 40px 48px; }
+  .qrp-topbar-title { display: inline; }
+  .qrp-topbar-meta-date { display: inline; }
+  .qrp-topbar-meta-prog { display: inline; }
+  .qrp-instr-titulo { font-size: clamp(20px,3.5vw,34px); text-align: left; margin-bottom: 24px; }
+  .qrp-paso-row { gap: 16px; padding: 14px 18px; }
+  .qrp-paso-icono { font-size: var(--font-size-22); }
+  .qrp-paso-texto { font-size: clamp(15px,2.5vw,22px); }
+  .qrp-waiting-emoji { font-size: 72px; }
+  .qrp-topbar-meta-label-full { display: inline; }
+  .qrp-topbar-meta-label-short { display: none; }
+
+  /* Tablet y móvil (< 900px): 1 columna, QR arriba */
+  @media (max-width: 900px) {
+    .qrp-layout { flex-direction: column; align-items: center; padding-bottom: 32px; }
+    .qrp-layout-min-h { min-height: unset !important; }
+    .qrp-layout-qr-top { display: block; width: 100%; }
+    .qrp-layout-qr-right { display: none; }
+    .qrp-left { flex: none; width: 100%; border-right: none; border-top: 1px solid rgba(255,255,255,0.07); padding: 28px 20px 8px; }
+    .qrp-instr-titulo { font-size: var(--font-size-20); margin-bottom: 16px; text-align: center; }
+    .qrp-topbar-title { display: none; }
+    .qrp-topbar-meta-date { display: none; }
+    .qrp-topbar-meta-prog { display: none; }
+    .qrp-topbar-meta-label-full { display: none; }
+    .qrp-topbar-meta-label-short { display: inline; }
+  }
+
+  /* Móvil pequeño (< 640px) */
+  @media (max-width: 640px) {
+    .qrp-paso-row { gap: 10px; padding: 10px 14px; }
+    .qrp-paso-icono { font-size: var(--font-size-18); }
+    .qrp-paso-texto { font-size: var(--font-size-14); }
+    .qrp-instr-titulo { font-size: var(--font-size-18); margin-bottom: 12px; }
+    .qrp-waiting-emoji { font-size: 52px; }
+  }
