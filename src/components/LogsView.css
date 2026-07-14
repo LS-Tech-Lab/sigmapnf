@@ -1,111 +1,89 @@
 /* ──────────────────────────────────────────────────────────────────────────────
-   LogsView.css
-   Migración A3 (auditoría 2026-07-02): estilos extraídos de LogsView.jsx.
-   Reutiliza .s-card / .s-th / .s-td / .s-input / .s-select / .s-btn (src/index.css).
-   Los colores que provienen de EVENTO_CONFIG / ACCION_CONFIG (definidos en el
-   propio JSX, por tipo de evento o acción) se mantienen inline por diseño —
-   son datos, no decisiones de estilo estáticas.
-   El hover de filas de la tabla de sesiones, que antes se hacía con JS
-   (onMouseEnter/onMouseLeave mutando el DOM), pasa a :hover en CSS.
-   ────────────────────────────────────────────────────────────────────────────── */
+   ResumenView.css
+   Fix quirúrgico del hallazgo S (auditoría 2026-07-01): los 11 usos de
+   `...S.card` en este archivo se migran a la clase compartida `.s-card`
+   (definida en index.css) + modificadores locales.
+   Migración A3 (auditoría 2026-07-02): el resto de los estilos en línea de
+   este archivo se migra aquí.
+   Fix A3/S3 Fase 1-2 (auditoría QA 2026-07-05): el color de las barras
+   (trayecto — dominio fijo de 13 valores; día/docente/materia/turno —
+   colores fijos hardcodeados en el propio componente) ya no se inyecta vía
+   style inline, lo definen las clases fijas .trayecto-<n> / .rv-fill--dia /
+   .rv-fill--docente / .rv-fill--materia / .rv-fill--diurno /
+   .rv-fill--vespertino (ver src/index.css) a través de --fill-color.
+   Fix Fase 4 (5/jul/2026): el ANCHO de cada barra, antes inline por ser un
+   % continuo real, ahora usa una de las 21 clases .w-pct-<n> (bucketizado
+   a incrementos de 5%, pctClass() en src/constants/index.js). `ResumenView`
+   queda a 0 estilos inline.
 
-.lv-root { padding: 24px 28px; max-width: 1000px; margin: 0 auto; }
+   Fix U-12 (13 de julio, Fase 2): colores migrados a var(--color-*)/
+   var(--brand-*) donde había token exacto. Se dejan literales a propósito:
+   el badge "sincronizando" (celeste/sky, #F0F9FF-#BAE6FD-#0369A1 — mismo
+   hue sin token que en LoginScreen.css, ver esa nota) y todo el esquema
+   "vespertino" (rosa, #FDF2F8/#BE185D — hue propio de ese turno, sin
+   token, pareado consistente fondo+texto). El fallback de
+   --trayecto-color (#555) y --fill-color (#888) también quedan literales:
+   son valores por defecto que casi nunca se renderizan en la práctica
+   (JS siempre define la variable real por trayecto/categoría), no vale
+   la pena inventarles un token. */
 
-.lv-header { margin-bottom: 24px; }
-.lv-title { margin: 0; font-size: var(--font-size-20); font-weight: 700; color: var(--color-text-primary); }
-.lv-subtitle { margin: 4px 0 0; font-size: var(--font-size-13); color: var(--color-text-tertiary); }
+.rv-card { padding: 16px 20px; }
+.rv-card--alert { background: var(--color-danger-bg); border: 1px solid var(--color-danger-lighter); }
+.rv-card--full { grid-column: 1 / -1; }
 
-.lv-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--color-border-tertiary); }
-.lv-tab-btn { padding: 8px 18px; border: none; background: none; cursor: pointer; font-size: var(--font-size-13); font-weight: 400; color: var(--color-text-tertiary); border-bottom: 2px solid transparent; margin-bottom: -2px; display: flex; align-items: center; gap: 6px; }
-.lv-tab-btn--active { font-weight: 700; color: var(--brand-500); border-bottom-color: var(--brand-500); }
-.lv-tab-icon { font-size: var(--font-size-14); }
+.rv-root { padding: 20px; }
 
-.lv-no-access { padding: 40px; text-align: center; color: var(--color-text-muted); }
-.lv-no-access-icon { font-size: var(--font-size-40); display: block; margin-bottom: 12px; }
-.lv-no-access-text { font-size: var(--font-size-14); }
+.rv-syncing-banner { background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 9px; font-size: var(--font-size-13); color: #0369A1; font-weight: 500; }
+.rv-syncing-icon { font-size: var(--font-size-15); animation: spin 1s linear infinite; }
 
-/* ── Badges (dinámicos por config, ver comentario arriba) ─────────────────── */
-.lv-evento-badge { background: var(--lv-bg, var(--color-background-secondary)); color: var(--lv-color, var(--color-text-secondary)); border-radius: 6px; padding: 2px 8px; font-size: var(--font-size-11); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
-.lv-evento-badge-icon { font-size: var(--font-size-12); }
-.lv-accion-badge { color: var(--lv-color, var(--color-text-secondary)); font-size: var(--font-size-13); display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
-.lv-accion-badge-icon { font-size: var(--font-size-14); }
+.rv-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.rv-title { margin: 0; font-size: var(--font-size-20); font-weight: 700; color: var(--color-text-primary); display: flex; align-items: center; gap: 9px; }
+.rv-title-icon { font-size: var(--font-size-19); color: var(--brand-500); }
 
-/* ── Filtros ───────────────────────────────────────────────────────────────── */
-.lv-filtros-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-.lv-filtros-row--tight { margin-bottom: 8px; }
-.lv-filtros-row--center { align-items: center; margin-bottom: 20px; }
-.lv-input--email200 { flex: 1; min-width: 200px; }
-.lv-input--email160 { flex: 1; min-width: 160px; }
-.lv-input--w140 { width: 140px; }
-.lv-select--180 { min-width: 180px; }
-.lv-select--160 { min-width: 160px; }
-.lv-btn-icon { flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
-/* Fix U-12 (13 de julio): usaba var(--color-error, ...) / var(--color-error-bg, ...)
-   — ninguna de las 2 existe en :root (typo/resto legacy, probablemente
-   --color-danger/--color-danger-bg), así que el fallback literal era el
-   único valor que se aplicaba en realidad. Se usan los tokens reales
-   directamente, sin fallback (no hace falta, no son datos dinámicos como
-   --lv-bg/--lv-color). #FECACA coincide exacto con --color-danger-lighter
-   (agregado en la Fase 1). */
-.lv-btn-borrar { color: var(--color-danger); border-color: var(--color-danger-lighter); background: var(--color-danger-bg); }
-.lv-th-checkbox { width: 32px; text-align: center; }
-.lv-btn-shrink { flex-shrink: 0; }
-.lv-fecha-field { display: flex; align-items: center; gap: 6px; }
-.lv-fecha-label { font-size: var(--font-size-12); color: var(--color-text-tertiary); white-space: nowrap; }
-.lv-icon-14 { font-size: var(--font-size-14); }
-.lv-stat-chip { background: var(--lv-bg, var(--color-background-secondary)); color: var(--lv-color, var(--color-text-secondary)); border-radius: 8px; padding: 8px 14px; font-size: var(--font-size-12); display: flex; align-items: center; gap: 6px; }
-.lv-stat-chip-count { font-weight: 700; font-size: var(--font-size-18); }
+.rv-tabs-wrap { display: flex; gap: 4px; background: var(--color-background-tertiary); border-radius: 10px; padding: 4px; }
+.rv-tab-btn { padding: 7px 16px; border-radius: 7px; border: none; cursor: pointer; font-size: var(--font-size-13); font-weight: 600; transition: all 0.15s; display: flex; align-items: center; gap: 6px; background: transparent; color: var(--color-text-tertiary); box-shadow: none; }
+.rv-tab-btn--active { background: var(--color-background-primary); color: var(--color-text-primary); box-shadow: 0 1px 4px rgba(15,23,42,0.10); }
 
-/* ── Estados de carga/vacío ───────────────────────────────────────────────── */
-.lv-state-loading, .lv-state-empty { text-align: center; color: var(--color-text-muted); }
-.lv-state-loading { padding: 32px; }
-.lv-state-empty { padding: 40px; }
-.lv-state-empty-icon { font-size: var(--font-size-28); display: block; margin-bottom: 8px; }
+.stats-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+.stats-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.rv-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 
-/* ── Tabla de sesiones ─────────────────────────────────────────────────────── */
-.lv-table-card { overflow: auto; }
-.lv-table { width: 100%; border-collapse: collapse; }
-.lv-table tbody tr { transition: background 0.1s; }
-.lv-table tbody tr:hover { background: var(--color-background-secondary); }
-.lv-td-fecha { font-size: var(--font-size-13); color: var(--color-text-secondary); }
-.lv-td-user-name { font-size: var(--font-size-13); font-weight: 600; color: var(--color-text-primary); }
-.lv-td-user-email { font-size: var(--font-size-11); color: var(--color-text-tertiary); }
-.lv-td-user-programa { font-size: var(--font-size-10); color: #0F766E; font-weight: 600; } /* teal, sin token exacto, un solo uso — literal a propósito */
-.lv-td-rol { font-size: var(--font-size-12); color: var(--color-text-secondary); }
+.rv-alert-title { font-size: var(--font-size-15); font-weight: 700; color: var(--color-danger-text); margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+.rv-alert-text { font-size: var(--font-size-13); color: var(--color-danger-dark); margin-bottom: 10px; font-weight: 500; }
+.rv-alert-btn { padding: 6px 14px; background: var(--color-danger); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: var(--font-size-12); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
 
-.lv-pagination { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
-.lv-pagination-label { padding: 7px 14px; font-size: var(--font-size-13); color: var(--color-text-secondary); }
+.rv-section-title { font-size: var(--font-size-14); font-weight: 700; color: var(--color-text-mid); margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+.rv-section-title--turno { margin-bottom: 12px; }
+.rv-analysis-title { font-size: var(--font-size-14); font-weight: 700; margin-bottom: 14px; }
 
-/* ── Auditoría ─────────────────────────────────────────────────────────────── */
-.lv-audit-list { display: flex; flex-direction: column; gap: 8px; }
-.lv-audit-card { border-left: 3px solid var(--lv-color, var(--color-border-tertiary)); }
-.lv-audit-header { display: flex; align-items: center; padding: 12px 16px; cursor: pointer; gap: 12px; user-select: none; }
-.lv-audit-header-icon { font-size: var(--font-size-20); flex-shrink: 0; color: var(--lv-color, var(--color-text-tertiary)); }
-.lv-audit-main { flex: 1; min-width: 0; }
-.lv-audit-badges-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.lv-audit-badge { border-radius: 5px; padding: 1px 7px; font-size: var(--font-size-11); font-weight: 600; }
-.lv-audit-badge--lapso { background: var(--color-background-info); color: var(--brand-600); }
-.lv-audit-badge--programa { background: var(--color-success-bg-alt); color: var(--color-success-text); }
-.lv-audit-resumen { font-size: var(--font-size-12); color: var(--color-text-tertiary); margin-top: 3px; }
-.lv-audit-meta { text-align: right; flex-shrink: 0; }
-.lv-audit-meta-name { font-size: var(--font-size-12); color: var(--color-text-secondary); font-weight: 600; }
-.lv-audit-meta-date { font-size: var(--font-size-11); color: var(--color-text-muted); }
-.lv-audit-chevron { color: var(--color-text-muted); font-size: var(--font-size-14); flex-shrink: 0; }
+.rv-turno-boxes { display: flex; gap: 16px; }
+.rv-turno-box { flex: 1; text-align: center; padding: 14px; border-radius: 8px; }
+.rv-turno-box--diurno { background: var(--color-background-info); }
+.rv-turno-box--vespertino { background: #FDF2F8; }
+.rv-turno-box-icon { font-size: var(--font-size-26); }
+.rv-turno-box-icon--diurno { color: var(--brand-500); }
+.rv-turno-box-icon--vespertino { color: #BE185D; }
+.rv-turno-box-value { font-size: var(--font-size-22); font-weight: 700; }
+.rv-turno-box-value--diurno { color: var(--brand-600); }
+.rv-turno-box-value--vespertino { color: #BE185D; }
+.rv-turno-box-label { font-size: var(--font-size-12); color: var(--color-text-tertiary); font-weight: 500; }
 
-.lv-audit-detail { border-top: 1px solid var(--color-background-tertiary); padding: 14px 16px; background: #FAFAFA; } /* #FAFAFA sin token exacto (cerca de --color-background-secondary pero no igual) — literal a propósito */
-.lv-audit-detail-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 12px; }
-.lv-audit-detail-label { font-size: var(--font-size-10); font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
-.lv-audit-detail-value { font-size: var(--font-size-13); color: var(--color-text-secondary); margin-top: 2px; }
+.rv-top-row { display: flex; align-items: center; gap: 10px; }
+.rv-top-name { font-size: var(--font-size-16); font-weight: 700; color: var(--color-text-primary); }
+.rv-top-sub { font-size: var(--font-size-13); color: var(--color-text-tertiary); font-weight: 500; }
 
-.lv-audit-datos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.lv-audit-datos-label { font-size: var(--font-size-11); font-weight: 700; margin-bottom: 4px; }
-.lv-audit-datos-label--antes { color: var(--color-danger); }
-.lv-audit-datos-label--despues { color: var(--color-success-strong); }
-.lv-audit-pre { font-size: var(--font-size-11); border-radius: 6px; padding: 8px 10px; overflow: auto; margin: 0; max-height: 120px; }
-/* .lv-audit-pre--antes/despues: mismo caso que Toast.css (ver ese archivo) —
-   tarjeta pastel con fondo claro + texto oscuro del mismo tono sin token
-   exacto para el texto (#7F1D1D/#14532D). Se dejan literales a propósito en
-   vez de migrar solo el fondo, que reproduciría el bug fondo/texto ya
-   corregido en .sb/.app-error-screen/los toasts de Pestana*. */
-.lv-audit-pre--antes { background: #FEF2F2; color: #7F1D1D; }
-.lv-audit-pre--despues { background: #F0FDF4; color: #14532D; }
+.rv-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.rv-bar-row--turno { margin-bottom: 12px; }
+.rv-trayecto-badge { background: var(--trayecto-bg, var(--color-background-subtle)); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: var(--font-size-12); font-weight: 600; }
+.rv-bar-track { flex: 1; background: var(--color-background-tertiary); border-radius: 4px; height: 12px; overflow: hidden; }
+.rv-bar-track--h14 { height: 14px; }
+.rv-bar-track--w100 { flex: none; width: 100px; height: 10px; }
+.rv-bar-fill { height: 100%; border-radius: 4px; background: var(--fill-color, #888); }
+.rv-rank { font-size: var(--font-size-12); font-weight: 700; color: var(--color-border-secondary); width: 16px; }
+.rv-bar-label { font-size: var(--font-size-13); flex: 1; color: var(--color-text-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.rv-day-label { font-size: var(--font-size-13); width: 80px; color: var(--color-text-tertiary); font-weight: 500; }
+.rv-turno-label { font-size: var(--font-size-13); width: 90px; color: var(--color-text-tertiary); font-weight: 500; }
+.rv-count-label { font-size: var(--font-size-13); text-align: right; color: var(--color-text-tertiary); font-weight: 600; }
+.rv-count-label--24 { width: 24px; }
+.rv-count-label--32 { width: 32px; }
+.rv-count-label--60 { width: 60px; }
