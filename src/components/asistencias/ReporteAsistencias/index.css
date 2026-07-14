@@ -16,13 +16,21 @@
    antes inline por ser un valor continuo real, ahora usa una de las 21
    clases .w-pct-<n> (bucketizado a incrementos de 5%, pctClass() en
    src/constants/index.js). `ReporteRango.jsx` queda a 0 estilos inline.
+
+   Fix U-12 (13 de julio, Fase 2): colores migrados a var(--color-*)/
+   var(--brand-*) donde había token exacto. Se dejan literales a propósito
+   los bordes con alpha manual de las stat cards (`#2563EB22`, `#05966922`,
+   `#15803D22`, `#DC262622`, `#D9770622`, `#7C3AED22` — hex de 8 dígitos,
+   el color base + una `22` de opacidad) porque no existe un token de
+   "color + alpha" en el sistema; y `#FCD34D` (borde del banner offline,
+   ámbar-300, sin token exacto — mismo caso que en DocenteScan.css). */
    ────────────────────────────────────────────────────────────────────────────── */
 
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 .ra-skeleton-bar {
   height: 14px; width: 100px; border-radius: 4px;
-  background: linear-gradient(90deg,#F1F5F9 25%,#E2E8F0 50%,#F1F5F9 75%);
+  background: linear-gradient(90deg,var(--color-background-tertiary) 25%,var(--color-border-tertiary) 50%,var(--color-background-tertiary) 75%);
   background-size: 200% 100%; animation: shimmer 1.4s infinite;
 }
 /* SkeletonRow.jsx (usado en index.jsx, siempre con cols=6) */
@@ -44,86 +52,86 @@
 .ra-root { padding: 24px; max-width: 980px; margin: 0 auto; }
 
 .ra-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-.ra-title { margin: 0; font-size: var(--font-size-20); font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 8px; }
+.ra-title { margin: 0; font-size: var(--font-size-20); font-weight: 700; color: var(--color-text-primary); display: flex; align-items: center; gap: 8px; }
 .ra-title-icon { font-size: var(--font-size-22); }
-.ra-subtitle { margin: 4px 0 0; font-size: var(--font-size-14); color: #64748B; }
+.ra-subtitle { margin: 4px 0 0; font-size: var(--font-size-14); color: var(--color-text-tertiary); }
 .ra-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .ra-btn { padding: 8px 16px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; font-size: var(--font-size-13); font-weight: 600; display: flex; align-items: center; gap: 5px; }
 .ra-btn-icon { font-size: var(--font-size-14); }
-.ra-btn-volver { background: #F8FAFC; border-color: #E2E8F0; color: #334155; }
-.ra-btn-rango { padding: 8px 14px; background: #EFF6FF; border-color: #BFDBFE; color: #1D4ED8; }
+.ra-btn-volver { background: var(--color-background-secondary); border-color: var(--color-border-tertiary); color: var(--color-text-mid); }
+.ra-btn-rango { padding: 8px 14px; background: var(--color-background-info); border-color: var(--brand-200); color: var(--brand-600); }
 .ra-btn-pdf, .ra-btn-csv { padding: 8px 14px; border: none; color: #fff; }
-.ra-btn-pdf { background: #DC2626; }
-.ra-btn-csv { padding: 8px 16px; background: #059669; }
-.ra-btn-pdf--disabled, .ra-btn-csv--disabled { background: #F1F5F9; color: #64748B; cursor: not-allowed; }
-.ra-btn-borrar-rango { background: #FEF2F2; color: #B91C1C; border: 1.5px solid #FECACA; }
-.ra-btn-borrar-rango--disabled { background: #F1F5F9; color: #94A3B8; border-color: #E2E8F0; cursor: not-allowed; }
+.ra-btn-pdf { background: var(--color-danger); }
+.ra-btn-csv { padding: 8px 16px; background: var(--color-success); }
+.ra-btn-pdf--disabled, .ra-btn-csv--disabled { background: var(--color-background-tertiary); color: var(--color-text-tertiary); cursor: not-allowed; }
+.ra-btn-borrar-rango { background: var(--color-danger-bg); color: var(--color-danger-dark); border: 1.5px solid var(--color-danger-lighter); }
+.ra-btn-borrar-rango--disabled { background: var(--color-background-tertiary); color: var(--color-text-muted); border-color: var(--color-border-tertiary); cursor: not-allowed; }
 
-.ra-filtros { background: #fff; border-radius: 10px; border: 1px solid #E2E8F0; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+.ra-filtros { background: var(--color-background-primary); border-radius: 10px; border: 1px solid var(--color-border-tertiary); padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 .ra-filtro-label { display: flex; flex-direction: column; gap: 5px; }
 .ra-filtro-label--grow { flex: 1; min-width: 180px; }
-.ra-filtro-label-text { font-size: var(--font-size-12); font-weight: 600; color: #334155; }
+.ra-filtro-label-text { font-size: var(--font-size-12); font-weight: 600; color: var(--color-text-mid); }
 .ra-input-date { font-size: var(--font-size-13); }
 
 .ra-stats-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 12px; margin-bottom: 20px; }
 .ra-stat-card { border-radius: 10px; padding: 14px 16px; }
 .ra-stat-value { font-size: var(--font-size-22); font-weight: 800; }
-.ra-stat-label { font-size: var(--font-size-12); color: #64748B; margin-top: 2px; font-weight: 500; }
+.ra-stat-label { font-size: var(--font-size-12); color: var(--color-text-tertiary); margin-top: 2px; font-weight: 500; }
 /* Fix A3 Fase 2: valores fijos hardcodeados en el propio array, sin
    depender de ningún dato — antes se leían via style inline. */
-.ra-stat-card--docentes { background: #EFF6FF; border: 1px solid #2563EB22; }
-.ra-stat-card--dias      { background: #ECFDF5; border: 1px solid #05966922; }
-.ra-stat-card--alta      { background: #F0FDF4; border: 1px solid #15803D22; }
-.ra-stat-card--baja      { background: #FEF2F2; border: 1px solid #DC262622; }
-.ra-stat-value--docentes { color: #2563EB; }
-.ra-stat-value--dias      { color: #059669; }
-.ra-stat-value--alta      { color: #15803D; }
-.ra-stat-value--baja      { color: #DC2626; }
+.ra-stat-card--docentes { background: var(--color-background-info); border: 1px solid #2563EB22; }
+.ra-stat-card--dias      { background: var(--color-success-bg); border: 1px solid #05966922; }
+.ra-stat-card--alta      { background: var(--color-success-bg-alt); border: 1px solid #15803D22; }
+.ra-stat-card--baja      { background: var(--color-danger-bg); border: 1px solid #DC262622; }
+.ra-stat-value--docentes { color: var(--brand-500); }
+.ra-stat-value--dias      { color: var(--color-success); }
+.ra-stat-value--alta      { color: var(--color-success-darker); }
+.ra-stat-value--baja      { color: var(--color-danger); }
 /* ReporteAsistencias/index.jsx (5 stats, prefijo distinto para no chocar
    con los de ReporteRango.jsx que comparten .ra-stat-card/.ra-stat-value) */
-.ra-stat-card--presentes      { background: #EFF6FF; border: 1px solid #2563EB22; }
-.ra-stat-card--entrada-salida { background: #ECFDF5; border: 1px solid #05966922; }
-.ra-stat-card--solo-entrada   { background: #FFFBEB; border: 1px solid #D9770622; }
-.ra-stat-card--primer         { background: #F5F3FF; border: 1px solid #7C3AED22; }
-.ra-stat-card--ultimo         { background: #FEF2F2; border: 1px solid #DC262622; }
-.ra-stat-value--presentes      { color: #2563EB; }
-.ra-stat-value--entrada-salida { color: #059669; }
-.ra-stat-value--solo-entrada   { color: #D97706; }
-.ra-stat-value--primer         { color: #7C3AED; }
-.ra-stat-value--ultimo         { color: #DC2626; }
+.ra-stat-card--presentes      { background: var(--color-background-info); border: 1px solid #2563EB22; }
+.ra-stat-card--entrada-salida { background: var(--color-success-bg); border: 1px solid #05966922; }
+.ra-stat-card--solo-entrada   { background: var(--color-warning-bg); border: 1px solid #D9770622; }
+.ra-stat-card--primer         { background: var(--color-role-coord-bg); border: 1px solid #7C3AED22; }
+.ra-stat-card--ultimo         { background: var(--color-danger-bg); border: 1px solid #DC262622; }
+.ra-stat-value--presentes      { color: var(--brand-500); }
+.ra-stat-value--entrada-salida { color: var(--color-success); }
+.ra-stat-value--solo-entrada   { color: var(--color-warning); }
+.ra-stat-value--primer         { color: var(--color-role-coord); }
+.ra-stat-value--ultimo         { color: var(--color-danger); }
 
 .ra-pct-label { font-weight: 700; font-size: var(--font-size-13); }
 .ra-pct-fill { height: 100%; border-radius: 4px; }
 /* Umbral de 3 estados (>=75%/>=50%/<50%) — fijo, no continuo. El ancho de
    la barra sí es continuo y sigue inline (ver nota de cabecera, Fase 4). */
-.ra-pct-label.ra-pct--alta  { color: #15803D; }
-.ra-pct-label.ra-pct--media { color: #D97706; }
-.ra-pct-label.ra-pct--baja  { color: #DC2626; }
-.ra-pct-fill.ra-pct--alta  { background: #15803D; }
-.ra-pct-fill.ra-pct--media { background: #D97706; }
-.ra-pct-fill.ra-pct--baja  { background: #DC2626; }
+.ra-pct-label.ra-pct--alta  { color: var(--color-success-darker); }
+.ra-pct-label.ra-pct--media { color: var(--color-warning); }
+.ra-pct-label.ra-pct--baja  { color: var(--color-danger); }
+.ra-pct-fill.ra-pct--alta  { background: var(--color-success-darker); }
+.ra-pct-fill.ra-pct--media { background: var(--color-warning); }
+.ra-pct-fill.ra-pct--baja  { background: var(--color-danger); }
 
-.ra-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #E2E8F0; }
-.ra-tab-btn { padding: 8px 18px; border: none; background: none; cursor: pointer; font-size: var(--font-size-13); font-weight: 500; color: #64748B; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.12s; display: flex; align-items: center; gap: 5px; }
-.ra-tab-btn--active { font-weight: 700; color: #1D4ED8; border-bottom-color: #2563EB; }
+.ra-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid var(--color-border-tertiary); }
+.ra-tab-btn { padding: 8px 18px; border: none; background: none; cursor: pointer; font-size: var(--font-size-13); font-weight: 500; color: var(--color-text-tertiary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.12s; display: flex; align-items: center; gap: 5px; }
+.ra-tab-btn--active { font-weight: 700; color: var(--brand-600); border-bottom-color: var(--brand-500); }
 .ra-tab-icon { font-size: var(--font-size-13); }
 
-.ra-offline-banner { background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 8px; font-size: var(--font-size-13); color: #92400E; }
+.ra-offline-banner { background: var(--color-warning-bg); border: 1px solid #FCD34D; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 8px; font-size: var(--font-size-13); color: var(--color-warning-text); }
 .ra-offline-icon { font-size: var(--font-size-15); flex-shrink: 0; margin-top: 1px; }
 
-.ra-error-banner { background: #FEF2F2; color: #DC2626; padding: 12px 16px; border-radius: 8px; font-size: var(--font-size-13); margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+.ra-error-banner { background: var(--color-danger-bg); color: var(--color-danger); padding: 12px 16px; border-radius: 8px; font-size: var(--font-size-13); margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
 .ra-error-icon { font-size: var(--font-size-15); flex-shrink: 0; }
 
 .ra-table-wrap { overflow-x: auto; }
 .ra-table { width: 100%; border-collapse: collapse; }
 .ra-table tbody tr { transition: background 0.1s; }
-.ra-table tbody tr:hover { background: #F8FAFC; }
-.ra-td-empty-msg { text-align: center; padding: 40px 0; color: #64748B; }
-.ra-td-cedula { font-family: monospace; font-weight: 600; color: #1D4ED8; font-size: var(--font-size-12); }
+.ra-table tbody tr:hover { background: var(--color-background-secondary); }
+.ra-td-empty-msg { text-align: center; padding: 40px 0; color: var(--color-text-tertiary); }
+.ra-td-cedula { font-family: monospace; font-weight: 600; color: var(--brand-600); font-size: var(--font-size-12); }
 .ra-td-nombre { font-weight: 500; }
-.ra-td-dash { color: #94A3B8; }
-.ra-td-dash--light { color: #CBD5E1; }
-.ra-td-hora { color: #334155; font-size: var(--font-size-13); font-weight: 600; }
-.ra-td-programa { font-size: var(--font-size-12); color: #64748B; }
-.ra-table-footer { padding: 10px 16px; font-size: var(--font-size-12); color: #64748B; border-top: 1px solid #F1F5F9; text-align: right; }
+.ra-td-dash { color: var(--color-text-muted); }
+.ra-td-dash--light { color: var(--color-border-secondary); }
+.ra-td-hora { color: var(--color-text-mid); font-size: var(--font-size-13); font-weight: 600; }
+.ra-td-programa { font-size: var(--font-size-12); color: var(--color-text-tertiary); }
+.ra-table-footer { padding: 10px 16px; font-size: var(--font-size-12); color: var(--color-text-tertiary); border-top: 1px solid var(--color-background-tertiary); text-align: right; }
