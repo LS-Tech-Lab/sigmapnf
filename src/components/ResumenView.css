@@ -15,10 +15,20 @@
    % continuo real, ahora usa una de las 21 clases .w-pct-<n> (bucketizado
    a incrementos de 5%, pctClass() en src/constants/index.js). `ResumenView`
    queda a 0 estilos inline.
-   ────────────────────────────────────────────────────────────────────────────── */
+
+   Fix U-12 (13 de julio, Fase 2): colores migrados a var(--color-*)/
+   var(--brand-*) donde había token exacto. Se dejan literales a propósito:
+   el badge "sincronizando" (celeste/sky, #F0F9FF-#BAE6FD-#0369A1 — mismo
+   hue sin token que en LoginScreen.css, ver esa nota) y todo el esquema
+   "vespertino" (rosa, #FDF2F8/#BE185D — hue propio de ese turno, sin
+   token, pareado consistente fondo+texto). El fallback de
+   --trayecto-color (#555) y --fill-color (#888) también quedan literales:
+   son valores por defecto que casi nunca se renderizan en la práctica
+   (JS siempre define la variable real por trayecto/categoría), no vale
+   la pena inventarles un token. */
 
 .rv-card { padding: 16px 20px; }
-.rv-card--alert { background: #FEF2F2; border: 1px solid #FECACA; }
+.rv-card--alert { background: var(--color-danger-bg); border: 1px solid var(--color-danger-lighter); }
 .rv-card--full { grid-column: 1 / -1; }
 
 .rv-root { padding: 20px; }
@@ -27,53 +37,53 @@
 .rv-syncing-icon { font-size: var(--font-size-15); animation: spin 1s linear infinite; }
 
 .rv-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-.rv-title { margin: 0; font-size: var(--font-size-20); font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 9px; }
-.rv-title-icon { font-size: var(--font-size-19); color: #2563EB; }
+.rv-title { margin: 0; font-size: var(--font-size-20); font-weight: 700; color: var(--color-text-primary); display: flex; align-items: center; gap: 9px; }
+.rv-title-icon { font-size: var(--font-size-19); color: var(--brand-500); }
 
-.rv-tabs-wrap { display: flex; gap: 4px; background: #F1F5F9; border-radius: 10px; padding: 4px; }
-.rv-tab-btn { padding: 7px 16px; border-radius: 7px; border: none; cursor: pointer; font-size: var(--font-size-13); font-weight: 600; transition: all 0.15s; display: flex; align-items: center; gap: 6px; background: transparent; color: #64748B; box-shadow: none; }
-.rv-tab-btn--active { background: #fff; color: #0F172A; box-shadow: 0 1px 4px rgba(15,23,42,0.10); }
+.rv-tabs-wrap { display: flex; gap: 4px; background: var(--color-background-tertiary); border-radius: 10px; padding: 4px; }
+.rv-tab-btn { padding: 7px 16px; border-radius: 7px; border: none; cursor: pointer; font-size: var(--font-size-13); font-weight: 600; transition: all 0.15s; display: flex; align-items: center; gap: 6px; background: transparent; color: var(--color-text-tertiary); box-shadow: none; }
+.rv-tab-btn--active { background: var(--color-background-primary); color: var(--color-text-primary); box-shadow: 0 1px 4px rgba(15,23,42,0.10); }
 
 .stats-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
 .stats-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .rv-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 
-.rv-alert-title { font-size: var(--font-size-15); font-weight: 700; color: #991B1B; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
-.rv-alert-text { font-size: var(--font-size-13); color: #B91C1C; margin-bottom: 10px; font-weight: 500; }
-.rv-alert-btn { padding: 6px 14px; background: #DC2626; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: var(--font-size-12); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.rv-alert-title { font-size: var(--font-size-15); font-weight: 700; color: var(--color-danger-text); margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+.rv-alert-text { font-size: var(--font-size-13); color: var(--color-danger-dark); margin-bottom: 10px; font-weight: 500; }
+.rv-alert-btn { padding: 6px 14px; background: var(--color-danger); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: var(--font-size-12); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
 
-.rv-section-title { font-size: var(--font-size-14); font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+.rv-section-title { font-size: var(--font-size-14); font-weight: 700; color: var(--color-text-mid); margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
 .rv-section-title--turno { margin-bottom: 12px; }
 .rv-analysis-title { font-size: var(--font-size-14); font-weight: 700; margin-bottom: 14px; }
 
 .rv-turno-boxes { display: flex; gap: 16px; }
 .rv-turno-box { flex: 1; text-align: center; padding: 14px; border-radius: 8px; }
-.rv-turno-box--diurno { background: #EFF6FF; }
+.rv-turno-box--diurno { background: var(--color-background-info); }
 .rv-turno-box--vespertino { background: #FDF2F8; }
 .rv-turno-box-icon { font-size: var(--font-size-26); }
-.rv-turno-box-icon--diurno { color: #2563EB; }
+.rv-turno-box-icon--diurno { color: var(--brand-500); }
 .rv-turno-box-icon--vespertino { color: #BE185D; }
 .rv-turno-box-value { font-size: var(--font-size-22); font-weight: 700; }
-.rv-turno-box-value--diurno { color: #1D4ED8; }
+.rv-turno-box-value--diurno { color: var(--brand-600); }
 .rv-turno-box-value--vespertino { color: #BE185D; }
-.rv-turno-box-label { font-size: var(--font-size-12); color: #64748B; font-weight: 500; }
+.rv-turno-box-label { font-size: var(--font-size-12); color: var(--color-text-tertiary); font-weight: 500; }
 
 .rv-top-row { display: flex; align-items: center; gap: 10px; }
-.rv-top-name { font-size: var(--font-size-16); font-weight: 700; color: #0F172A; }
-.rv-top-sub { font-size: var(--font-size-13); color: #64748B; font-weight: 500; }
+.rv-top-name { font-size: var(--font-size-16); font-weight: 700; color: var(--color-text-primary); }
+.rv-top-sub { font-size: var(--font-size-13); color: var(--color-text-tertiary); font-weight: 500; }
 
 .rv-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .rv-bar-row--turno { margin-bottom: 12px; }
-.rv-trayecto-badge { background: var(--trayecto-bg, #f3f4f6); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: var(--font-size-12); font-weight: 600; }
-.rv-bar-track { flex: 1; background: #F1F5F9; border-radius: 4px; height: 12px; overflow: hidden; }
+.rv-trayecto-badge { background: var(--trayecto-bg, var(--color-background-subtle)); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: var(--font-size-12); font-weight: 600; }
+.rv-bar-track { flex: 1; background: var(--color-background-tertiary); border-radius: 4px; height: 12px; overflow: hidden; }
 .rv-bar-track--h14 { height: 14px; }
 .rv-bar-track--w100 { flex: none; width: 100px; height: 10px; }
 .rv-bar-fill { height: 100%; border-radius: 4px; background: var(--fill-color, #888); }
-.rv-rank { font-size: var(--font-size-12); font-weight: 700; color: #CBD5E1; width: 16px; }
-.rv-bar-label { font-size: var(--font-size-13); flex: 1; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
-.rv-day-label { font-size: var(--font-size-13); width: 80px; color: #64748B; font-weight: 500; }
-.rv-turno-label { font-size: var(--font-size-13); width: 90px; color: #64748B; font-weight: 500; }
-.rv-count-label { font-size: var(--font-size-13); text-align: right; color: #64748B; font-weight: 600; }
+.rv-rank { font-size: var(--font-size-12); font-weight: 700; color: var(--color-border-secondary); width: 16px; }
+.rv-bar-label { font-size: var(--font-size-13); flex: 1; color: var(--color-text-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.rv-day-label { font-size: var(--font-size-13); width: 80px; color: var(--color-text-tertiary); font-weight: 500; }
+.rv-turno-label { font-size: var(--font-size-13); width: 90px; color: var(--color-text-tertiary); font-weight: 500; }
+.rv-count-label { font-size: var(--font-size-13); text-align: right; color: var(--color-text-tertiary); font-weight: 600; }
 .rv-count-label--24 { width: 24px; }
 .rv-count-label--32 { width: 32px; }
 .rv-count-label--60 { width: 60px; }
