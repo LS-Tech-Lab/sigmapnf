@@ -20,84 +20,21 @@ function abrirVentanaPDF(html) {
 
 function plantilla({ titulo, subtitulo, seccionesHtml, pie }) {
   const ahora = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
-  // El <\/script> de más abajo escapa la barra a propósito (defensivo: evita
-  // que </script> corte el bloque si este archivo se embebiera crudo dentro
-  // de un <script> HTML real). eslint-disable/enable en vez de un
-  // eslint-disable-next-line: la línea real está dentro de un template
-  // literal de muchas líneas, así que un comentario JS no puede insertarse
-  // ahí sin volverse parte del HTML generado — solo puede ir por fuera del
-  // literal completo.
-  /* eslint-disable no-useless-escape */
+  // Fix (14 de julio): el <style>/<script> de esta plantilla iban inline.
+  // El CSP del proyecto usa `script-src 'self'` y `style-src 'self'` (sin
+  // 'unsafe-inline' — ver S3/A3 en AUDITORIA_INDICE.md), y esta ventana
+  // emergente (about:blank del mismo origen, ver abrirVentanaPDF) hereda
+  // ese CSP. El navegador bloqueaba ambos bloques en silencio: el reporte
+  // se veía como HTML sin estilos (texto plano) y no se disparaba la
+  // impresión automática. Servidos como archivos externos desde
+  // `public/` (mismo origen), `'self'` sí los permite — ver
+  // reporte-print.css / reporte-print.js. NO volver a inlinearlos aquí.
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
   <title>${ESC(titulo)}</title>
-  <style>
-    @page { size: A4 landscape; margin: 14mm 12mm; }
-    * { box-sizing: border-box; }
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1a1a1a; margin: 0; }
-
-    /* ── Membrete ── */
-    .membrete {
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 3px solid #1E3A8A; padding-bottom: 10px; margin-bottom: 12px;
-    }
-    .membrete-izq { display: flex; align-items: center; gap: 14px; }
-    .membrete-logo {
-      width: 52px; height: 52px; border-radius: 50%;
-      background: linear-gradient(135deg, #1E3A8A, #2563EB);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22pt; font-weight: 900; color: #fff; flex-shrink: 0;
-    }
-    .membrete-texto h1 { margin: 0; font-size: 13pt; color: #1E3A8A; }
-    .membrete-texto p  { margin: 2px 0 0; font-size: 8.5pt; color: #555; }
-    .membrete-der { text-align: right; font-size: 8.5pt; color: #555; line-height: 1.6; }
-
-    /* ── Subtítulo del reporte ── */
-    .subtitulo {
-      background: #EFF6FF; border-left: 4px solid #2563EB;
-      padding: 7px 12px; border-radius: 0 6px 6px 0;
-      font-size: 10pt; font-weight: 700; color: #1D4ED8;
-      margin-bottom: 14px;
-    }
-
-    /* ── Sección ── */
-    .seccion-titulo {
-      font-size: 9pt; font-weight: 700; color: #374151;
-      text-transform: uppercase; letter-spacing: 0.06em;
-      margin: 14px 0 6px; border-bottom: 1px solid #E5E7EB; padding-bottom: 4px;
-    }
-
-    /* ── Tablas ── */
-    table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 6px; }
-    th { background: #1E3A8A; color: #fff; padding: 5px 8px; text-align: left; font-weight: 700; }
-    td { padding: 4px 8px; border-bottom: 1px solid #E5E7EB; vertical-align: middle; }
-    tr:nth-child(even) td { background: #F8FAFC; }
-    .badge-completo  { background: #DCFCE7; color: #166534; padding: 1px 6px; border-radius: 4px; font-size: 7.5pt; font-weight: 700; }
-    .badge-entrada   { background: #FEF3C7; color: #92400E; padding: 1px 6px; border-radius: 4px; font-size: 7.5pt; font-weight: 700; }
-    .badge-ausente   { background: #FEE2E2; color: #991B1B; padding: 1px 6px; border-radius: 4px; font-size: 7.5pt; font-weight: 700; }
-
-    /* ── Estadísticas ── */
-    .stats { display: flex; gap: 10px; margin-bottom: 12px; }
-    .stat-box {
-      flex: 1; border: 1px solid #E5E7EB; border-radius: 6px;
-      padding: 8px 12px; text-align: center;
-    }
-    .stat-num  { font-size: 18pt; font-weight: 900; line-height: 1; }
-    .stat-lbl  { font-size: 7.5pt; color: #555; margin-top: 2px; }
-
-    /* ── Pie y firma ── */
-    .pie {
-      margin-top: 20px; display: flex;
-      justify-content: space-between; align-items: flex-end;
-      font-size: 8pt; color: #555;
-    }
-    .firma-bloque { text-align: center; }
-    .firma-linea  { border-top: 1px solid #111; width: 200px; margin: 40px auto 4px; }
-
-    @media print { button { display: none !important; } }
-  </style>
+  <link rel="stylesheet" href="/reporte-print.css"/>
 </head>
 <body>
   <div class="membrete">
@@ -111,7 +48,7 @@ function plantilla({ titulo, subtitulo, seccionesHtml, pie }) {
     </div>
     <div class="membrete-der">
       <div>${ESC(titulo)}</div>
-      <div style="font-weight:700;color:#1E3A8A">${ESC(subtitulo)}</div>
+      <div class="pdf-subtitulo-valor">${ESC(subtitulo)}</div>
       <div>Generado: ${ahora}</div>
     </div>
   </div>
@@ -122,14 +59,13 @@ function plantilla({ titulo, subtitulo, seccionesHtml, pie }) {
     <div>${ESC(pie)}</div>
     <div class="firma-bloque">
       <div class="firma-linea"></div>
-      <div style="font-size:8pt;color:#374151">Firma y sello del Coordinador(a)</div>
+      <div class="pdf-firma-label">Firma y sello del Coordinador(a)</div>
     </div>
   </div>
 
-  <script>window.onload = () => window.print();<\/script>
+  <script src="/reporte-print.js"></script>
 </body>
 </html>`;
-  /* eslint-enable no-useless-escape */
 }
 
 export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, ausentes = []) {
@@ -140,10 +76,10 @@ export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, aus
 
   const statsHtml = `
     <div class="stats">
-      <div class="stat-box"><div class="stat-num" style="color:#2563EB">${total}</div><div class="stat-lbl">Presentes</div></div>
-      <div class="stat-box"><div class="stat-num" style="color:#059669">${conSalida}</div><div class="stat-lbl">Entrada y salida</div></div>
-      <div class="stat-box"><div class="stat-num" style="color:#D97706">${soloEntrad}</div><div class="stat-lbl">Solo entrada</div></div>
-      <div class="stat-box"><div class="stat-num" style="color:#DC2626">${ausentes.filter(a => !a.sinVincular).length}</div><div class="stat-lbl">Ausentes</div></div>
+      <div class="stat-box"><div class="stat-num stat-num--azul">${total}</div><div class="stat-lbl">Presentes</div></div>
+      <div class="stat-box"><div class="stat-num stat-num--verde">${conSalida}</div><div class="stat-lbl">Entrada y salida</div></div>
+      <div class="stat-box"><div class="stat-num stat-num--ambar">${soloEntrad}</div><div class="stat-lbl">Solo entrada</div></div>
+      <div class="stat-box"><div class="stat-num stat-num--rojo">${ausentes.filter(a => !a.sinVincular).length}</div><div class="stat-lbl">Ausentes</div></div>
     </div>`;
 
   const filasPresentes = docentesAgrupados.map(d => {
@@ -151,12 +87,12 @@ export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, aus
       ? `<span class="badge-completo">Entrada y Salida</span>`
       : `<span class="badge-entrada">Solo Entrada</span>`;
     return `<tr>
-      <td style="font-family:monospace;font-weight:700;color:#1D4ED8">${ESC(d.cedula)}</td>
-      <td style="font-weight:600">${ESC(d.nombre)}</td>
+      <td class="td-cedula">${ESC(d.cedula)}</td>
+      <td class="td-bold">${ESC(d.nombre)}</td>
       <td>${badge}</td>
-      <td style="font-weight:600">${FMT_HORA(d.horaEntrada)}</td>
-      <td style="font-weight:600">${FMT_HORA(d.horaSalida)}</td>
-      <td style="color:#555">${ESC(d.programa?.replace("PNF ", "") || "—")}</td>
+      <td class="td-bold">${FMT_HORA(d.horaEntrada)}</td>
+      <td class="td-bold">${FMT_HORA(d.horaSalida)}</td>
+      <td class="td-muted">${ESC(d.programa?.replace("PNF ", "") || "—")}</td>
     </tr>`;
   }).join("");
 
@@ -167,7 +103,7 @@ export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, aus
         <th>Cédula</th><th>Nombre docente</th><th>Estado</th>
         <th>Entrada</th><th>Salida</th><th>Programa</th>
       </tr></thead>
-      <tbody>${filasPresentes || `<tr><td colspan="6" style="text-align:center;color:#888;padding:16px">Sin registros</td></tr>`}</tbody>
+      <tbody>${filasPresentes || `<tr><td colspan="6" class="td-empty">Sin registros</td></tr>`}</tbody>
     </table>`;
 
   let tablaAusentes = "";
@@ -179,14 +115,14 @@ export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, aus
         return `${mat} (${c.sheet} · ${c.hora})`;
       }).join(", ");
       return `<tr>
-        <td style="font-weight:600">${ESC(a.nombre)}</td>
-        <td style="font-family:monospace;color:#DC2626;font-weight:700">${ESC(a.cedula)}</td>
-        <td style="color:#555;font-size:7.5pt">${ESC(clases)}</td>
-        <td style="color:#555">${ESC(a.programa?.replace("PNF ", "") || "—")}</td>
+        <td class="td-bold">${ESC(a.nombre)}</td>
+        <td class="td-cedula-ausente">${ESC(a.cedula)}</td>
+        <td class="td-muted-sm">${ESC(clases)}</td>
+        <td class="td-muted">${ESC(a.programa?.replace("PNF ", "") || "—")}</td>
       </tr>`;
     }).join("");
     tablaAusentes = `
-      <div class="seccion-titulo" style="color:#991B1B">Ausentes con cédula vinculada (${ausentesConf.length})</div>
+      <div class="seccion-titulo seccion-titulo--rojo">Ausentes con cédula vinculada (${ausentesConf.length})</div>
       <table>
         <thead><tr><th>Nombre</th><th>Cédula</th><th>Clases asignadas</th><th>Programa</th></tr></thead>
         <tbody>${filas}</tbody>
@@ -212,15 +148,15 @@ export function exportarPDFRango(docentes, inicio, fin, turno, diasHabiles) {
 
   const filas = docentes.map(d => {
     const pct = diasHabiles > 0 ? Math.round((d.diasAsistidos / diasHabiles) * 100) : 0;
-    const color = pct >= 75 ? "#059669" : pct >= 50 ? "#D97706" : "#DC2626";
+    const pctClase = pct >= 75 ? "td-pct--alta" : pct >= 50 ? "td-pct--media" : "td-pct--baja";
     return `<tr>
-      <td style="font-family:monospace;font-weight:700;color:#1D4ED8">${ESC(d.cedula)}</td>
-      <td style="font-weight:600">${ESC(d.nombre)}</td>
-      <td style="text-align:center;font-weight:700">${d.diasAsistidos}</td>
-      <td style="text-align:center">${diasHabiles}</td>
-      <td style="text-align:center;font-weight:800;color:${color}">${pct}%</td>
-      <td style="text-align:center">~${d.horasEstimadas}h</td>
-      <td style="color:#555;font-size:8pt">${ESC(d.programas?.join(" / ") || "—")}</td>
+      <td class="td-cedula">${ESC(d.cedula)}</td>
+      <td class="td-bold">${ESC(d.nombre)}</td>
+      <td class="td-center-bold">${d.diasAsistidos}</td>
+      <td class="td-center">${diasHabiles}</td>
+      <td class="td-pct ${pctClase}">${pct}%</td>
+      <td class="td-center">~${d.horasEstimadas}h</td>
+      <td class="td-muted-8">${ESC(d.programas?.join(" / ") || "—")}</td>
     </tr>`;
   }).join("");
 
@@ -232,7 +168,7 @@ export function exportarPDFRango(docentes, inicio, fin, turno, diasHabiles) {
         <th>Cédula</th><th>Nombre</th><th>Días asist.</th>
         <th>Días hábiles</th><th>% Asistencia</th><th>Horas est.</th><th>Programa(s)</th>
       </tr></thead>
-      <tbody>${filas || `<tr><td colspan="7" style="text-align:center;color:#888;padding:16px">Sin registros</td></tr>`}</tbody>
+      <tbody>${filas || `<tr><td colspan="7" class="td-empty">Sin registros</td></tr>`}</tbody>
     </table>`;
 
   abrirVentanaPDF(plantilla({

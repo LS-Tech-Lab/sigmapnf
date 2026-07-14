@@ -1,0 +1,105 @@
+/* Estilos de la vista de impresión de reportes de asistencia (PDF vía
+   window.print()). Extraído de exportPDF.js el 14 de julio: el CSP del
+   proyecto usa `style-src 'self'` (sin 'unsafe-inline', endurecido en la
+   auditoría anterior — ver S3/A3 en AUDITORIA_INDICE.md), y la ventana
+   emergente que abre exportPDF.js (`window.open("", "_blank")` +
+   `document.write`) es un documento about:blank del mismo origen, por lo
+   que hereda el CSP del documento que la abrió. Un <style> inline ahí
+   queda bloqueado silenciosamente por el navegador — el reporte se veía
+   como HTML sin estilos (texto plano). Sirviendo este CSS como archivo
+   externo desde el mismo origen, `style-src 'self'` sí lo permite.
+   ⚠️ NO volver a inlinear este bloque dentro de exportPDF.js. */
+
+@page { size: A4 landscape; margin: 14mm 12mm; }
+* { box-sizing: border-box; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1a1a1a; margin: 0; }
+
+/* ── Membrete ── */
+.membrete {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 3px solid #1E3A8A; padding-bottom: 10px; margin-bottom: 12px;
+}
+.membrete-izq { display: flex; align-items: center; gap: 14px; }
+.membrete-logo {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, #1E3A8A, #2563EB);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22pt; font-weight: 900; color: #fff; flex-shrink: 0;
+}
+.membrete-texto h1 { margin: 0; font-size: 13pt; color: #1E3A8A; }
+.membrete-texto p  { margin: 2px 0 0; font-size: 8.5pt; color: #555; }
+.membrete-der { text-align: right; font-size: 8.5pt; color: #555; line-height: 1.6; }
+
+/* ── Subtítulo del reporte ── */
+.subtitulo {
+  background: #EFF6FF; border-left: 4px solid #2563EB;
+  padding: 7px 12px; border-radius: 0 6px 6px 0;
+  font-size: 10pt; font-weight: 700; color: #1D4ED8;
+  margin-bottom: 14px;
+}
+
+/* ── Sección ── */
+.seccion-titulo {
+  font-size: 9pt; font-weight: 700; color: #374151;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin: 14px 0 6px; border-bottom: 1px solid #E5E7EB; padding-bottom: 4px;
+}
+
+/* ── Tablas ── */
+table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 6px; }
+th { background: #1E3A8A; color: #fff; padding: 5px 8px; text-align: left; font-weight: 700; }
+td { padding: 4px 8px; border-bottom: 1px solid #E5E7EB; vertical-align: middle; }
+tr:nth-child(even) td { background: #F8FAFC; }
+.badge-completo  { background: #DCFCE7; color: #166534; padding: 1px 6px; border-radius: 4px; font-size: 7.5pt; font-weight: 700; }
+.badge-entrada   { background: #FEF3C7; color: #92400E; padding: 1px 6px; border-radius: 4px; font-size: 7.5pt; font-weight: 700; }
+.badge-ausente   { background: #FEE2E2; color: #991B1B; padding: 1px 6px; border-radius: 4px; font-size: 7.5pt; font-weight: 700; }
+
+/* ── Estadísticas ── */
+.stats { display: flex; gap: 10px; margin-bottom: 12px; }
+.stat-box {
+  flex: 1; border: 1px solid #E5E7EB; border-radius: 6px;
+  padding: 8px 12px; text-align: center;
+}
+.stat-num  { font-size: 18pt; font-weight: 900; line-height: 1; }
+.stat-lbl  { font-size: 7.5pt; color: #555; margin-top: 2px; }
+
+/* ── Pie y firma ── */
+.pie {
+  margin-top: 20px; display: flex;
+  justify-content: space-between; align-items: flex-end;
+  font-size: 8pt; color: #555;
+}
+.firma-bloque { text-align: center; }
+.firma-linea  { border-top: 1px solid #111; width: 200px; margin: 40px auto 4px; }
+
+@media print { button { display: none !important; } }
+
+/* ── Utilidades (14 de julio) ── reemplazan los atributos style="" inline
+   que tenía exportPDF.js — CSP `style-src 'self'` bloquea también los
+   atributos style, no solo los bloques <style>, así que no basta con sacar
+   el <style> del <head>: cada color/peso puntual tiene que ser una clase
+   de aquí. */
+.pdf-subtitulo-valor  { font-weight: 700; color: #1E3A8A; }
+.pdf-firma-label      { font-size: 8pt; color: #374151; }
+
+.stat-num--azul   { color: #2563EB; }
+.stat-num--verde  { color: #059669; }
+.stat-num--ambar  { color: #D97706; }
+.stat-num--rojo   { color: #DC2626; }
+
+.seccion-titulo--rojo { color: #991B1B; }
+
+.td-cedula          { font-family: monospace; font-weight: 700; color: #1D4ED8; }
+.td-cedula-ausente   { font-family: monospace; font-weight: 700; color: #DC2626; }
+.td-bold            { font-weight: 600; }
+.td-muted           { color: #555; }
+.td-muted-sm        { color: #555; font-size: 7.5pt; }
+.td-muted-8         { color: #555; font-size: 8pt; }
+.td-center          { text-align: center; }
+.td-center-bold     { text-align: center; font-weight: 700; }
+.td-pct             { text-align: center; font-weight: 800; }
+.td-pct--alta       { color: #059669; }
+.td-pct--media      { color: #D97706; }
+.td-pct--baja       { color: #DC2626; }
+.td-empty           { text-align: center; color: #888; padding: 16px; }
+

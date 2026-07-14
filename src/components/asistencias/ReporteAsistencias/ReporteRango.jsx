@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import { DEFAULT_PROGRAMAS, TURNOS_CONFIG, pctClass } from "../../../constants";
 import { fechaHoyVE } from "../../../utils/time";
-import { logger } from "../../../utils/logger";
 import { rangoFechas } from "./helpers";
 import { exportarPDFRango } from "./exportPDF";
 import { exportarCSVRango } from "./exportCSV";
@@ -73,17 +72,28 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
 
     try {
       const todasLasFilas = [];
-      let cursor = 0;
+      // Fix (14 de julio): `asistencias_diarias.id` es UUID (ver migración
+      // 0006_modulo_asistencias_qr.sql), no un entero autoincremental. La
+      // paginación por cursor `.gt("id", cursor)` partía de `cursor = 0` y
+      // Postgres rechaza comparar una columna uuid contra el entero 0 —
+      // "invalid input syntax for type uuid: 0" en la primera página, antes
+      // de que llegara ningún dato real. Los UUID tampoco tienen un orden
+      // secuencial útil, así que un cursor por `id` no aplica aquí (a
+      // diferencia de `horarios.id`, que sí es INTEGER — ver
+      // useDataSync.js/PlanillaQR.jsx). Se pagina por offset, ordenando por
+      // `hora_registro` (con `id` como desempate estable) en vez de por
+      // cursor.
+      let offset = 0;
       let hayMas = true;
 
       while (hayMas) {
         let q = supabase
           .from("asistencias_diarias")
           .select("id, cedula_docente, nombre_docente, fecha, programa")
-          .gt("id", cursor)
           .gte("fecha", inicio).lte("fecha", fin).eq("turno", turno)
+          .order("hora_registro", { ascending: true })
           .order("id", { ascending: true })
-          .limit(RANGO_PAGE_SIZE)
+          .range(offset, offset + RANGO_PAGE_SIZE - 1)
           .abortSignal(signal);
         if (programa) q = q.eq("programa", programa);
 
@@ -103,13 +113,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
           setTruncado(true);
           hayMas = false;
         } else {
-          const nextCursor = filas[filas.length - 1].id;
-          if (nextCursor <= cursor) {
-            logger.error("Paginación: cursor no avanza, abortando para evitar loop infinito.", { cursor, nextCursor });
-            hayMas = false;
-          } else {
-            cursor = nextCursor;
-          }
+          offset += RANGO_PAGE_SIZE;
         }
       }
 
