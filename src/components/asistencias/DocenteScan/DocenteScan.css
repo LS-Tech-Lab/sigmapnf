@@ -7,27 +7,20 @@
    de style-src (S3).
    Estados condicionales (disabled, error/success) se resuelven con
    modificadores de clase o :disabled — no hay estilos calculados en JS.
-
-   Fix U-12 (auditoría 12 de julio, Fase 2): colores migrados de hex directo
-   a var(--color-*)/var(--brand-*) para heredar modo oscuro automáticamente.
-   Excepciones dejadas como literal a propósito (mismo criterio que FE-3
-   para valores únicos): #fff en texto sobre botones/badges de marca (el
-   botón azul no invierte con el tema, el texto debe seguir blanco siempre);
-   #1E3A8A y #FCD34D, sin token exacto y de un solo uso en este archivo.
    ────────────────────────────────────────────────────────────────────────────── */
 
 /* ── Colores compartidos (antes hardcodeados en RESULTADO_UI, icons.jsx) ─── */
-.scan-color-success { color: var(--color-success-darker); }
+.scan-color-success { color: #15803D; }
 .scan-color-indigo  { color: #4338CA; }
-.scan-color-warning { color: var(--color-warning-text); }
-.scan-color-danger  { color: var(--color-danger-text); }
-.scan-color-blue    { color: var(--color-text-info); }
-.scan-color-brand-dark { color: var(--brand-600); }
+.scan-color-warning { color: #92400E; }
+.scan-color-danger  { color: #991B1B; }
+.scan-color-blue    { color: #1E40AF; }
+.scan-color-brand-dark { color: #1D4ED8; }
 
 /* ── Shell.jsx — contenedor centrado de pantalla completa ─────────────────── */
 .scan-page {
   min-height: 100vh;
-  background: linear-gradient(135deg,var(--navy-900) 0%,#1E3A5F 100%);
+  background: linear-gradient(135deg,#0F172A 0%,#1E3A5F 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -36,7 +29,7 @@
   box-sizing: border-box;
 }
 .scan-card {
-  background: var(--color-background-primary);
+  background: #fff;
   border-radius: clamp(16px,4vw,24px);
   padding: clamp(24px,6vw,44px) clamp(20px,5vw,36px);
   width: 100%;
@@ -55,32 +48,32 @@
   display: block;
   font-size: clamp(14px,3.5vw,16px);
   font-weight: 700;
-  color: var(--color-text-mid);
+  color: #334155;
   margin-bottom: 8px;
 }
 .scan-input {
   width: 100%;
   padding: clamp(14px,3.5vw,16px) clamp(14px,3.5vw,18px);
   border-radius: 10px;
-  border: 2px solid var(--color-border-tertiary);
+  border: 2px solid #E2E8F0;
   font-size: clamp(17px,4vw,20px);
-  color: var(--color-text-primary);
+  color: #0F172A;
   outline: none;
   box-sizing: border-box;
   font-weight: 600;
   transition: border-color .15s, box-shadow .15s;
 }
-.scan-input--error   { border-color: var(--color-danger-light); }
-.scan-input--success { border-color: var(--color-success-light); }
+.scan-input--error   { border-color: #FCA5A5; }
+.scan-input--success { border-color: #86EFAC; }
 .scan-input:focus {
-  border-color: var(--brand-500);
+  border-color: #2563EB;
   box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
 }
 .scan-field__msg { margin: 5px 0 0; font-size: clamp(12px,3vw,14px); }
 .scan-field__msg--icon { display: flex; align-items: center; gap: 4px; }
-.scan-field__msg--error   { color: var(--color-danger); font-weight: 600; }
-.scan-field__msg--success { color: var(--color-success-darker); font-weight: 600; }
-.scan-field__msg--hint    { color: var(--color-text-muted); }
+.scan-field__msg--error   { color: #DC2626; font-weight: 600; }
+.scan-field__msg--success { color: #15803D; font-weight: 600; }
+.scan-field__msg--hint    { color: #64748B; }
 .scan-field__msg-icon { font-size: var(--font-size-13); }
 
 /* ── SelectorTipo.jsx — pantalla "elegir tipo de registro" ─────────────────── */
@@ -89,19 +82,19 @@
   width: clamp(60px,14vw,76px);
   height: clamp(60px,14vw,76px);
   border-radius: 18px;
-  background: linear-gradient(135deg,#1E3A8A,var(--brand-500));
+  background: linear-gradient(135deg,#1E3A8A,#2563EB);
   display: flex; align-items: center; justify-content: center;
   font-size: clamp(28px,7vw,36px);
   margin: 0 auto clamp(14px,3vw,18px);
 }
 .scan-selector-icon { font-size: clamp(28px,7vw,36px); color: #fff; }
-.scan-selector-title { margin: 0; font-size: clamp(22px,5vw,28px); font-weight: 800; color: var(--color-text-primary); }
-.scan-selector-subtitle { margin: 8px 0 0; font-size: clamp(15px,3.5vw,18px); color: var(--color-text-muted); }
+.scan-selector-title { margin: 0; font-size: clamp(22px,5vw,28px); font-weight: 800; color: #0F172A; }
+.scan-selector-subtitle { margin: 8px 0 0; font-size: clamp(15px,3.5vw,18px); color: #64748B; }
 
 .scan-btn-primary {
   width: 100%;
   padding: clamp(18px,4.5vw,22px) 0;
-  background: var(--brand-500); color: #fff;
+  background: #2563EB; color: #fff;
   border: none; border-radius: 14px;
   font-size: clamp(18px,4.5vw,22px); font-weight: 800;
   cursor: pointer;
@@ -112,8 +105,8 @@
 .scan-btn-secondary {
   width: 100%;
   padding: clamp(18px,4.5vw,22px) 0;
-  background: var(--color-background-primary); color: var(--color-text-mid);
-  border: 2px solid var(--color-border-tertiary); border-radius: 14px;
+  background: #fff; color: #334155;
+  border: 2px solid #E2E8F0; border-radius: 14px;
   font-size: clamp(18px,4.5vw,22px); font-weight: 800;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -123,44 +116,44 @@
 .scan-selector-footer-hint {
   margin-top: clamp(16px,4vw,22px);
   font-size: clamp(13px,3vw,15px);
-  color: var(--color-text-muted);
+  color: #94A3B8;
   text-align: center;
   line-height: 1.6;
 }
 
 /* ── HorarioHoyCard.jsx ──────────────────────────────────────────────────── */
 .scan-horario-empty {
-  margin-top: 16px; background: var(--color-background-secondary); border: 1px solid var(--color-border-tertiary); border-radius: 12px;
+  margin-top: 16px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;
   padding: 14px 18px; width: 100%; text-align: center;
 }
-.scan-horario-empty__label { font-size: var(--font-size-12); color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
-.scan-horario-empty__text  { font-size: var(--font-size-13); color: var(--color-text-muted); }
+.scan-horario-empty__label { font-size: var(--font-size-12); color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.scan-horario-empty__text  { font-size: var(--font-size-13); color: #64748B; }
 
 .scan-horario-card {
-  margin-top: 16px; background: var(--color-background-info); border: 1px solid var(--brand-200); border-radius: 12px;
+  margin-top: 16px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px;
   padding: 14px 18px; width: 100%;
 }
-.scan-horario-card__label { font-size: var(--font-size-12); color: var(--brand-600); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; text-align: center; }
+.scan-horario-card__label { font-size: var(--font-size-12); color: #1D4ED8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; text-align: center; }
 .scan-horario-list { display: flex; flex-direction: column; gap: 8px; }
-.scan-horario-item { background: var(--color-background-primary); border-radius: 9px; padding: 10px 12px; border: 1px solid var(--brand-100); }
-.scan-horario-item__materia { font-size: var(--font-size-14); font-weight: 700; color: var(--color-text-primary); }
+.scan-horario-item { background: #fff; border-radius: 9px; padding: 10px 12px; border: 1px solid #DBEAFE; }
+.scan-horario-item__materia { font-size: var(--font-size-14); font-weight: 700; color: #0F172A; }
 .scan-horario-item__row { display: flex; justify-content: space-between; margin-top: 3px; }
-.scan-horario-item__seccion { font-size: var(--font-size-12); color: var(--color-text-muted); }
-.scan-horario-item__hora    { font-size: var(--font-size-12); color: var(--brand-600); font-weight: 700; }
+.scan-horario-item__seccion { font-size: var(--font-size-12); color: #64748B; }
+.scan-horario-item__hora    { font-size: var(--font-size-12); color: #1D4ED8; font-weight: 700; }
 
 /* ── index.jsx — "Enlace inválido" (sin token) ──────────────────────────── */
 .scan-invalid-title { margin: 16px 0 8px; font-size: clamp(19px,5vw,24px); text-align: center; }
-.scan-error-desc { margin: 0; font-size: var(--font-size-14); color: var(--color-text-muted); text-align: center; }
+.scan-error-desc { margin: 0; font-size: var(--font-size-14); color: #64748B; text-align: center; }
 
 /* ── index.jsx — "Cargando" ──────────────────────────────────────────────── */
-.scan-spinner-icon { font-size: var(--font-size-40); color: var(--brand-500); margin-bottom: 12px; display: block; animation: scan-spin 1s linear infinite; }
+.scan-spinner-icon { font-size: var(--font-size-40); color: #2563EB; margin-bottom: 12px; display: block; animation: scan-spin 1s linear infinite; }
 @keyframes scan-spin { to { transform: rotate(360deg); } }
-.scan-loading-text { color: var(--color-text-muted); font-size: var(--font-size-14); }
+.scan-loading-text { color: #64748B; font-size: var(--font-size-14); }
 
 /* ── index.jsx — cabecera compartida por confirmar_nuevo/confirmar/formulario */
 .scan-icon-badge {
   width: 52px; height: 52px; border-radius: 14px;
-  background: linear-gradient(135deg,#1E3A8A,var(--brand-500));
+  background: linear-gradient(135deg,#1E3A8A,#2563EB);
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 12px;
 }
@@ -169,33 +162,33 @@
 .scan-step-header--mb20 { margin-bottom: 20px; }
 .scan-step-header--mb24 { margin-bottom: 24px; }
 .scan-step-header--full { width: 100%; }
-.scan-step-heading  { margin: 0; font-size: clamp(20px,5vw,26px); font-weight: 800; color: var(--color-text-primary); }
-.scan-step-subtitle { margin: 5px 0 0; font-size: clamp(15px,3.5vw,17px); color: var(--color-text-muted); }
+.scan-step-heading  { margin: 0; font-size: clamp(20px,5vw,26px); font-weight: 800; color: #0F172A; }
+.scan-step-subtitle { margin: 5px 0 0; font-size: clamp(15px,3.5vw,17px); color: #64748B; }
 
 /* ── index.jsx — resultado / requiere-reescaneo ──────────────────────────── */
 .scan-result-title { margin: 16px 0 6px; font-size: clamp(20px,5vw,26px); font-weight: 800; text-align: center; }
-.scan-result-desc  { margin: 0; font-size: clamp(15px,3.5vw,18px); color: var(--color-text-mid); text-align: center; line-height: 1.55; }
-.scan-result-hint  { margin: 10px 0 0; font-size: var(--font-size-13); color: var(--color-text-muted); text-align: center; }
+.scan-result-desc  { margin: 0; font-size: clamp(15px,3.5vw,18px); color: #334155; text-align: center; line-height: 1.55; }
+.scan-result-hint  { margin: 10px 0 0; font-size: var(--font-size-13); color: #64748B; text-align: center; }
 
 .scan-requiere-rescan-card {
-  margin-top: 20px; background: var(--color-background-secondary); border: 1.5px solid var(--color-border-tertiary); border-radius: 12px;
+  margin-top: 20px; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px;
   padding: 16px 18px; width: 100%; text-align: center;
 }
-.scan-requiere-rescan-card__label { font-size: var(--font-size-11); font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-.scan-requiere-rescan-card__name  { font-size: clamp(16px,4vw,19px); font-weight: 700; color: var(--color-text-primary); }
-.scan-requiere-rescan-card__cedula { font-size: var(--font-size-13); color: var(--color-text-muted); font-family: monospace; margin-top: 2px; }
+.scan-requiere-rescan-card__label { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.scan-requiere-rescan-card__name  { font-size: clamp(16px,4vw,19px); font-weight: 700; color: #0F172A; }
+.scan-requiere-rescan-card__cedula { font-size: var(--font-size-13); color: #64748B; font-family: monospace; margin-top: 2px; }
 
 .scan-success-card {
-  margin-top: 20px; background: var(--color-success-bg-alt); border: 1px solid var(--color-success-light); border-radius: 12px;
+  margin-top: 20px; background: #F0FDF4; border: 1px solid #86EFAC; border-radius: 12px;
   padding: 14px 18px; width: 100%; text-align: center;
 }
-.scan-success-card__label  { font-size: var(--font-size-12); color: var(--color-success-text); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-.scan-success-card__name   { font-size: var(--font-size-15); font-weight: 700; color: var(--color-success-darker); }
-.scan-success-card__cedula { font-size: var(--font-size-13); color: var(--color-success-text); font-family: monospace; margin-top: 2px; }
+.scan-success-card__label  { font-size: var(--font-size-12); color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.scan-success-card__name   { font-size: var(--font-size-15); font-weight: 700; color: #15803D; }
+.scan-success-card__cedula { font-size: var(--font-size-13); color: #166534; font-family: monospace; margin-top: 2px; }
 
 /* Botón "Cambiar tipo de registro" / "Registrar otra marca" (link azul, con icono) */
 .scan-link-btn {
-  margin-top: 18px; background: none; border: none; color: var(--brand-500);
+  margin-top: 18px; background: none; border: none; color: #2563EB;
   font-size: var(--font-size-13); font-weight: 600; cursor: pointer;
   display: flex; align-items: center; gap: 4px;
 }
@@ -203,48 +196,48 @@
 
 /* ── index.jsx — confirmar_nuevo / confirmar (datos guardados) ──────────── */
 .scan-warn-banner {
-  width: 100%; background: var(--color-warning-bg); border: 1.5px solid #FCD34D; border-radius: 10px;
+  width: 100%; background: #FFFBEB; border: 1.5px solid #FCD34D; border-radius: 10px;
   padding: 10px 14px; display: flex; gap: 8px; align-items: flex-start;
 }
 .scan-warn-banner--mb14 { margin-bottom: 14px; }
 .scan-warn-banner--mb16 { margin-bottom: 16px; }
-.scan-warn-banner__icon { font-size: var(--font-size-18); color: var(--color-warning); flex-shrink: 0; margin-top: 1px; }
-.scan-warn-banner__text { margin: 0; font-size: var(--font-size-12); color: var(--color-warning-text); line-height: 1.5; }
+.scan-warn-banner__icon { font-size: var(--font-size-18); color: #D97706; flex-shrink: 0; margin-top: 1px; }
+.scan-warn-banner__text { margin: 0; font-size: var(--font-size-12); color: #92400E; line-height: 1.5; }
 
-.scan-cedula-card { width: 100%; background: var(--color-background-secondary); border: 1.5px solid var(--color-border-tertiary); border-radius: 12px; padding: 18px; margin-bottom: 20px; text-align: center; }
-.scan-cedula-card__label--mb8 { font-size: var(--font-size-11); font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-.scan-cedula-card__label--mb6 { font-size: var(--font-size-11); font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
-.scan-cedula-card__value  { font-size: clamp(28px,7vw,36px); font-weight: 800; color: var(--color-text-primary); font-family: monospace; letter-spacing: 0.04em; }
-.scan-cedula-card__divider { height: 1px; background: var(--color-border-tertiary); margin: 14px 0; }
-.scan-cedula-card__name   { font-size: clamp(17px,4vw,20px); font-weight: 700; color: var(--color-text-primary); }
+.scan-cedula-card { width: 100%; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 18px; margin-bottom: 20px; text-align: center; }
+.scan-cedula-card__label--mb8 { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.scan-cedula-card__label--mb6 { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.scan-cedula-card__value  { font-size: clamp(28px,7vw,36px); font-weight: 800; color: #0F172A; font-family: monospace; letter-spacing: 0.04em; }
+.scan-cedula-card__divider { height: 1px; background: #E2E8F0; margin: 14px 0; }
+.scan-cedula-card__name   { font-size: clamp(17px,4vw,20px); font-weight: 700; color: #0F172A; }
 
-.scan-saved-card { width: 100%; background: var(--color-background-secondary); border: 1.5px solid var(--color-border-tertiary); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
-.scan-saved-card__label  { font-size: var(--font-size-11); font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
-.scan-saved-card__name   { font-size: clamp(17px,4vw,21px); font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px; }
-.scan-saved-card__cedula { font-size: var(--font-size-13); color: var(--color-text-muted); font-family: monospace; font-weight: 600; }
+.scan-saved-card { width: 100%; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
+.scan-saved-card__label  { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.scan-saved-card__name   { font-size: clamp(17px,4vw,21px); font-weight: 700; color: #0F172A; margin-bottom: 4px; }
+.scan-saved-card__cedula { font-size: var(--font-size-13); color: #64748B; font-family: monospace; font-weight: 600; }
 
 /* Botón principal "Confirmar…" — disabled ligado 1:1 al atributo disabled */
 .scan-btn-confirm {
   width: 100%; padding: clamp(16px,4vw,20px) 0;
-  background: var(--brand-500); color: #fff; border: none; border-radius: 12px;
+  background: #2563EB; color: #fff; border: none; border-radius: 12px;
   font-size: clamp(17px,4.5vw,20px); font-weight: 800; cursor: pointer;
   margin-bottom: 10px;
   display: flex; align-items: center; justify-content: center; gap: 6px;
 }
-.scan-btn-confirm:disabled { background: var(--color-border-info); cursor: not-allowed; }
+.scan-btn-confirm:disabled { background: #93C5FD; cursor: not-allowed; }
 .scan-btn-confirm__icon { font-size: var(--font-size-18); }
 
 .scan-corregir-btn {
-  background: none; border: none; color: var(--color-text-muted); font-size: var(--font-size-13); cursor: pointer;
+  background: none; border: none; color: #64748B; font-size: var(--font-size-13); cursor: pointer;
   text-decoration: underline; margin-bottom: 6px;
   display: flex; align-items: center; gap: 4px;
 }
 .scan-cambiar-datos-btn {
-  background: none; border: none; color: var(--color-text-muted); font-size: var(--font-size-13); cursor: pointer;
+  background: none; border: none; color: #64748B; font-size: var(--font-size-13); cursor: pointer;
   text-decoration: underline; margin-bottom: 6px;
 }
 .scan-tipo-link-sm {
-  background: none; border: none; color: var(--color-text-muted); font-size: var(--font-size-12); cursor: pointer;
+  background: none; border: none; color: #94A3B8; font-size: var(--font-size-12); cursor: pointer;
   display: flex; align-items: center; gap: 4px;
 }
 .scan-tipo-link-sm--mt14 { margin-top: 14px; }
@@ -255,8 +248,8 @@
 /* Botón submit del formulario — sin icono/gap, disabled ligado 1:1 al atributo */
 .scan-btn-submit {
   width: 100%; padding: clamp(16px,4vw,20px) 0;
-  background: var(--brand-500); color: #fff; border: none; border-radius: 12px;
+  background: #2563EB; color: #fff; border: none; border-radius: 12px;
   font-size: clamp(17px,4.5vw,20px); font-weight: 800; cursor: pointer;
 }
-.scan-btn-submit:disabled { background: var(--color-border-info); cursor: not-allowed; }
-.scan-footer-note { margin-top: 10px; font-size: var(--font-size-11); color: var(--color-text-muted); text-align: center; line-height: 1.5; }
+.scan-btn-submit:disabled { background: #93C5FD; cursor: not-allowed; }
+.scan-footer-note { margin-top: 10px; font-size: var(--font-size-11); color: #64748B; text-align: center; line-height: 1.5; }

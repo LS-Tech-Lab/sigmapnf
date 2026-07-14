@@ -87,15 +87,7 @@
 
 .pu-toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  /* Fix U-12 (13 de julio): usaba var(--color-text-primary) como fondo —
-     ese token SÍ cambia de valor entre temas (casi negro en claro, casi
-     blanco en oscuro), y el texto de este toast es blanco fijo (línea de
-     abajo) — con el modo oscuro activo habría quedado texto blanco sobre
-     fondo casi blanco, invisible. Un toast/snackbar es un overlay que
-     debe verse siempre oscuro para contrastar sobre cualquier fondo,
-     igual en ambos temas — --navy-900 es el mismo valor exacto de hoy
-     pero invariante entre temas. */
-  background: var(--navy-900); color: #fff; border-radius: 10px;
+  background: var(--color-text-primary); color: #fff; border-radius: 10px;
   padding: 10px 20px; font-size: var(--font-size-13); font-weight: 500; z-index: 2000;
   box-shadow: 0 8px 24px rgba(0,0,0,0.3); white-space: nowrap;
 }

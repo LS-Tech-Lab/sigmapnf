@@ -66,9 +66,7 @@
 
 .pr-toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  /* Fix U-12 (13 de julio) — mismo bug y misma corrección que .pu-toast en
-     PestanaUsuarios.css: ver ese comentario para el detalle completo. */
-  background: var(--navy-900); color: #fff; border-radius: 10px;
+  background: var(--color-text-primary); color: #fff; border-radius: 10px;
   padding: 10px 20px; font-size: var(--font-size-13); font-weight: 500; z-index: 2000;
   box-shadow: 0 8px 24px rgba(0,0,0,0.3); white-space: nowrap;
 }

@@ -32,17 +32,19 @@
 .module-page {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh; padding: var(--space-6);
-  /* Fix U-12 (13 de julio) — corrige una decisión anterior: se había fijado
-     este fondo a --navy-900/800 (invariante entre temas) para evitar que
-     se rompiera con el modo oscuro (ver historial en AUDITORIA_INDICE.md
-     § ADMIN-5, pasada 3). A pedido explícito de LS, este splash SÍ debe
-     adaptarse al tema en vez de quedar fijo siempre oscuro: se usa
-     --color-background-secondary/tertiary, que sí cambian de valor entre
-     claro/oscuro (ver bloque `[data-theme="dark"]` en index.css) — en
-     claro da un degradado sutil gris-azulado claro, en oscuro el mismo
-     degradado navy que tenía antes (esos tokens ya reusan --navy-800/950
-     en el bloque dark). */
-  background: linear-gradient(135deg, var(--color-background-secondary) 0%, var(--color-background-tertiary) 100%);
+  /* Fix (13 de julio, detectado verificando este archivo contra lo que
+     cambió en main mientras tanto): U-12 (modo oscuro, ya en main)
+     redefine --color-text-primary de navy oscuro (#0f172a) a casi blanco
+     (#F1F5F9) bajo prefers-color-scheme:dark. Esta pantalla es un splash
+     de marca que debe verse siempre oscura sin importar el tema del
+     sistema operativo — usaba --color-text-primary como stop de
+     gradiente (heredado del archivo original, de antes de que existiera
+     modo oscuro), lo que habría roto el fondo para cualquier usuario con
+     el SO en modo oscuro (mitad casi-blanco, mitad navy). --navy-900 es
+     el mismo #0f172a exacto pero confirmado invariante entre temas (la
+     paleta oscura de superficies no se redefine en el bloque
+     prefers-color-scheme — ver index.css). */
+  background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%);
   font-family: system-ui, -apple-system, sans-serif;
 }
 
@@ -56,17 +58,10 @@
   filter: drop-shadow(0 4px 16px rgba(37,99,235,0.35));
 }
 
-/* Fix U-12 (13 de julio): .module-title usaba --color-background-tertiary
-   (un token de FONDO) como color de texto — funcionaba por coincidencia
-   numérica en claro (valor claro, se leía bien sobre este fondo oscuro
-   fijo de antes) pero se habría vuelto invisible en oscuro, donde ese
-   mismo token pasa a ser casi negro. Corregido al token semánticamente
-   correcto para texto. Mismo caso en .module-title-card e .module-icon
-   más abajo (tokens de borde/fondo usados como texto/fondo de ícono). */
-.module-title { margin: 0; font-size: var(--font-size-22); font-weight: 700; color: var(--color-text-primary); letter-spacing: -0.3px; }
+.module-title { margin: 0; font-size: var(--font-size-22); font-weight: 700; color: var(--color-background-tertiary); letter-spacing: -0.3px; }
 .module-subtitle { margin: 4px 0 0; font-size: var(--font-size-12); color: var(--color-text-tertiary); letter-spacing: 0.02em; }
 .module-welcome { margin: var(--space-2) 0 0; font-size: var(--font-size-14); color: var(--color-text-tertiary); }
-.module-welcome-name { color: var(--brand-500); font-weight: 600; }
+.module-welcome-name { color: var(--color-border-info); font-weight: 600; }
 .module-hint { margin: var(--space-2) 0 0; font-size: var(--font-size-13); color: var(--color-text-tertiary); }
 
 /* Grid: fix de "no caben en una fila" (ver ADMIN-5) + ahora también más
@@ -88,7 +83,7 @@
 
 .module-card {
   display: flex; align-items: center; gap: var(--space-3);
-  background: var(--color-background-primary); border: 1px solid var(--color-border-tertiary);
+  background: var(--navy-800); border: 1px solid var(--navy-700);
   border-radius: var(--border-radius-lg); padding: var(--space-4);
   cursor: pointer; text-align: left;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
@@ -122,20 +117,17 @@
 
 .module-icon {
   flex-shrink: 0;
-  width: 40px; height: 40px; border-radius: var(--border-radius-md); background: var(--color-background-tertiary);
-  border: 1.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: var(--border-radius-md); background: var(--color-text-primary);
+  border: 1.5px solid #1E3A5F; display: flex; align-items: center; justify-content: center;
   transition: background 0.15s, border-color 0.15s;
 }
-/* Color del glyph en reposo — antes no tenía ninguno declarado (heredaba
-   lo que sea que el navegador resolviera por defecto). Los 3 colores por
-   rol en :hover ya estaban bien; en reposo faltaba un valor explícito. */
-.module-icon i { font-size: var(--font-size-20); color: var(--color-text-secondary); }
+.module-icon i { font-size: var(--font-size-20); }
 
 /* Título + descripción, uno al lado del otro con el ícono en vez de
    apilados debajo — el cambio estructural que hace la tarjeta compacta. */
 .module-card-body { flex: 1; min-width: 0; }
 
-.module-title-card { font-size: var(--font-size-15); font-weight: 700; color: var(--color-text-primary); transition: color 0.15s; }
+.module-title-card { font-size: var(--font-size-15); font-weight: 700; color: var(--color-border-tertiary); transition: color 0.15s; }
 
 /* Clamp a 2 líneas: sin esto, "Control de Asistencias" (descripción más
    larga) hacía su tarjeta más alta que las otras 2 — con clamp, las 3

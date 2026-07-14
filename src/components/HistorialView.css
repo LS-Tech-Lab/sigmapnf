@@ -8,21 +8,6 @@
    verdaderamente dependientes de datos (dot de métrica, header A/B del
    comparador) se resuelven con clases modificadoras — el set de valores
    posibles es fijo y conocido, no hay estilos calculados en JS.
-
-   Fix U-12 (13 de julio, Fase 2): colores migrados a var(--color-*)/
-   var(--brand-*) donde había token exacto. Se deja literal a propósito
-   (mismo criterio que el esquema "vespertino" de ResumenView.css o
-   Toast.css) todo el "grupo B" púrpura del comparador (`--b`,
-   `.hist-label--b`, `#F5F3FF`/`#8B5CF6`/`#6D28D9`) — es un hue propio sin
-   token exacto (distinto de `--color-role-coord`, que es un violeta más
-   oscuro), y varias de esas reglas emparejan fondo pastel con texto oscuro
-   del mismo tono: migrar solo el fondo habría repetido el bug fondo/texto
-   ya corregido en `.sb`/`.app-error-screen`/los toasts de `Pestana*`.
-   También quedan literales `#DCFCE7` (badge "activo" — sin token exacto,
-   distinto de `--color-success-bg-alt`) y `#34D399`/`#A78BFA`/`#FBBF24`
-   (dots de métrica secciones/docentes/materias — colores emerald/violet/
-   amber-400 sin token exacto en el sistema, `--color-role-coord` y
-   `--color-warning-dark` son tonos distintos aunque del mismo hue). */
    ────────────────────────────────────────────────────────────────────────────── */
 
 /* ── Layout general ─────────────────────────────────────────────────────── */
@@ -36,11 +21,11 @@
 
 .hist-btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: var(--font-size-13); font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .hist-btn--primary { background: var(--brand-500); color: #fff; }
-.hist-btn--danger { background: #FFF5F5; color: var(--color-danger); border: 1px solid var(--color-danger-lighter); }
+.hist-btn--danger { background: #FFF5F5; color: var(--color-danger); border: 1px solid #FECACA; }
 .hist-btn__icon { font-size: var(--font-size-14); }
 
 /* ── Tarjeta de trimestre activo ─────────────────────────────────────────── */
-.hist-current { background: linear-gradient(135deg, var(--brand-50), var(--color-role-coord-bg)); border: 1.5px solid var(--brand-200); border-radius: 12px; padding: 18px 22px; margin-bottom: 24px; }
+.hist-current { background: linear-gradient(135deg, var(--brand-50), #F5F3FF); border: 1.5px solid var(--brand-200); border-radius: 12px; padding: 18px 22px; margin-bottom: 24px; }
 .hist-current__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .hist-current__eyebrow { font-size: var(--font-size-11); font-weight: 600; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
 .hist-current__lapso { font-size: var(--font-size-22); font-weight: 800; color: var(--brand-700); }
@@ -55,7 +40,7 @@
 .hist-badge--activo { background: #DCFCE7; color: #166534; }
 .hist-badge--cerrado { background: var(--color-background-tertiary); color: var(--color-text-secondary); }
 .hist-badge--archivado { background: var(--color-background-info); color: var(--brand-700); }
-.hist-badge--success { background: var(--color-success-bg-alt); color: var(--color-success-text); }
+.hist-badge--success { background: #F0FDF4; color: #166534; }
 .hist-badge--info { background: var(--color-background-info); color: var(--brand-600); }
 
 /* ── Tabs ────────────────────────────────────────────────────────────────── */
@@ -64,14 +49,14 @@
 .hist-tab--active { font-weight: 700; color: var(--brand-500); border-bottom-color: var(--brand-500); }
 
 /* ── Búsqueda / estados vacíos ──────────────────────────────────────────── */
-.hist-search { width: 100%; box-sizing: border-box; margin-bottom: 16px; font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); outline: none; font-weight: 500; }
-.hist-loading, .hist-empty { text-align: center; padding: 48px; color: var(--color-text-muted); font-size: var(--font-size-14); }
-.hist-empty__icon { font-size: var(--font-size-32); color: var(--color-border-secondary); display: block; margin-bottom: 12px; }
+.hist-search { width: 100%; box-sizing: border-box; margin-bottom: 16px; font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); outline: none; font-weight: 500; }
+.hist-loading, .hist-empty { text-align: center; padding: 48px; color: #94A3B8; font-size: var(--font-size-14); }
+.hist-empty__icon { font-size: var(--font-size-32); color: #CBD5E1; display: block; margin-bottom: 12px; }
 .hist-empty__text { font-size: var(--font-size-14); color: var(--color-text-tertiary); }
 
 /* ── Lista de trimestres ────────────────────────────────────────────────── */
 .hist-list { display: flex; flex-direction: column; gap: 10px; }
-.hist-card { background: var(--color-background-primary); border-radius: 10px; border: 1px solid var(--color-border-tertiary); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); overflow: hidden; }
+.hist-card { background: #fff; border-radius: 10px; border: 1px solid var(--color-border-tertiary); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); overflow: hidden; }
 .hist-card--current { border: 1.5px solid var(--color-accent); }
 
 .hist-card__header { display: flex; align-items: center; padding: 14px 18px; cursor: pointer; gap: 12px; user-select: none; }
@@ -79,19 +64,19 @@
 .hist-card__title { font-size: var(--font-size-15); font-weight: 700; color: var(--color-text-primary); }
 .hist-card__meta { display: flex; gap: 14px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
 .hist-card__meta-item { font-size: var(--font-size-11); color: var(--color-text-tertiary); display: flex; align-items: center; gap: 3px; }
-.hist-card__meta-item--muted { color: var(--color-text-muted); }
-.hist-card__chevron { color: var(--color-text-muted); font-size: var(--font-size-14); }
+.hist-card__meta-item--muted { color: #94A3B8; }
+.hist-card__chevron { color: #94A3B8; font-size: var(--font-size-14); }
 
 .hist-card__detail { border-top: 1px solid var(--color-background-tertiary); padding: 16px 18px; }
 .hist-card__note { background: var(--color-warning-bg); border: 1px solid var(--color-warning-border); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: var(--font-size-12); color: var(--color-warning-text); display: flex; align-items: flex-start; gap: 6px; }
 .hist-card__note-icon { flex-shrink: 0; margin-top: 1px; }
 
-.hist-detail-loading, .hist-detail-empty { color: var(--color-text-muted); font-size: var(--font-size-13); }
+.hist-detail-loading, .hist-detail-empty { color: #94A3B8; font-size: var(--font-size-13); }
 
 .hist-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
 .hist-stat { background: var(--color-background-secondary); border-radius: 8px; padding: 10px 14px; }
 .hist-stat__value { font-size: var(--font-size-22); font-weight: 700; }
-.hist-stat__value--total { color: var(--brand-400); }
+.hist-stat__value--total { color: #60A5FA; }
 .hist-stat__value--secciones { color: #34D399; }
 .hist-stat__label { font-size: var(--font-size-11); color: var(--color-text-tertiary); }
 
@@ -104,7 +89,7 @@
 
 /* ── Modal (ModalTrimestre) ──────────────────────────────────────────────── */
 .hist-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; z-index: 900; padding: 24px; }
-.hist-modal { background: var(--color-background-primary); border-radius: 14px; padding: 28px; max-width: 460px; width: 100%; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18); }
+.hist-modal { background: #fff; border-radius: 14px; padding: 28px; max-width: 460px; width: 100%; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18); }
 .hist-modal__icon-wrap { margin-bottom: 8px; }
 .hist-modal__icon { font-size: var(--font-size-28); }
 .hist-modal__icon--crear { color: var(--brand-500); }
@@ -113,9 +98,9 @@
 .hist-modal__desc { margin: 0 0 20px; font-size: var(--font-size-12); color: var(--color-text-tertiary); line-height: 1.6; }
 .hist-modal__fields { display: flex; flex-direction: column; gap: 14px; }
 
-.hist-field__input { width: 100%; box-sizing: border-box; font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); outline: none; font-weight: 500; }
+.hist-field__input { width: 100%; box-sizing: border-box; font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); outline: none; font-weight: 500; }
 .hist-field__input--textarea { resize: vertical; font-family: inherit; }
-.hist-field__hint { font-size: var(--font-size-11); color: var(--color-text-muted); margin-top: 4px; display: block; }
+.hist-field__hint { font-size: var(--font-size-11); color: #94A3B8; margin-top: 4px; display: block; }
 .hist-field__hint--accent { color: var(--color-accent); }
 
 .hist-label { font-size: var(--font-size-12); font-weight: 600; color: var(--color-text-secondary); display: block; margin-bottom: 5px; }
@@ -127,14 +112,14 @@
 .hist-modal__confirm { flex: 2; padding: 10px 0; border-radius: 8px; border: none; font-size: var(--font-size-13); font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .hist-modal__confirm--crear { background: var(--brand-500); color: #fff; cursor: pointer; }
 .hist-modal__confirm--cerrar { background: var(--color-danger); color: #fff; cursor: pointer; }
-.hist-modal__confirm--disabled { background: var(--color-border-tertiary); color: var(--color-text-muted); cursor: not-allowed; }
+.hist-modal__confirm--disabled { background: var(--color-border-tertiary); color: #94A3B8; cursor: not-allowed; }
 .hist-modal__confirm-icon { font-size: var(--font-size-15); }
 
 /* ── Comparador de trimestres ────────────────────────────────────────────── */
 .hist-comp-card { padding: 20px; }
-.hist-comp-empty { text-align: center; padding: 32px 0; color: var(--color-text-muted); font-size: var(--font-size-13); }
+.hist-comp-empty { text-align: center; padding: 32px 0; color: #94A3B8; font-size: var(--font-size-13); }
 .hist-comp-selectors { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-.hist-comp-select { width: 100%; font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; background: var(--color-background-primary); color: var(--color-text-primary); cursor: pointer; font-weight: 500; border: 1px solid; }
+.hist-comp-select { width: 100%; font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; background: #fff; color: var(--color-text-primary); cursor: pointer; font-weight: 500; border: 1px solid; }
 .hist-comp-select--a { border-color: var(--color-accent); }
 .hist-comp-select--b { border-color: #8B5CF6; }
 
@@ -145,36 +130,36 @@
 .hist-comp-th--b { background: #F5F3FF; color: #6D28D9; }
 
 .hist-comp-td { padding: 10px 14px; font-size: var(--font-size-13); color: var(--color-text-secondary); }
-.hist-comp-td--metric { background: var(--color-background-primary); font-weight: 400; text-align: left; }
+.hist-comp-td--metric { background: #fff; font-weight: 400; text-align: left; }
 .hist-comp-td--a { background: var(--color-background-info); font-weight: 700; text-align: center; }
 .hist-comp-td--b { background: #F5F3FF; font-weight: 700; text-align: center; }
 .hist-comp-td--flex { display: flex; align-items: center; gap: 6px; justify-content: center; }
 
 .hist-comp-dot { font-weight: 700; }
-.hist-comp-dot--total { color: var(--brand-400); }
+.hist-comp-dot--total { color: #60A5FA; }
 .hist-comp-dot--secciones { color: #34D399; }
 .hist-comp-dot--docentes { color: #A78BFA; }
 .hist-comp-dot--materias { color: #FBBF24; }
 
 .hist-comp-diff { font-size: var(--font-size-10); font-weight: 700; }
-.hist-comp-diff--up { color: var(--color-success-strong); }
+.hist-comp-diff--up { color: #16A34A; }
 .hist-comp-diff--down { color: var(--color-danger); }
 
 .hist-comp-clock-icon { font-size: var(--font-size-12); margin-right: 4px; color: var(--color-text-tertiary); }
 
 .hist-comp-programs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 4px; }
 .hist-comp-prog-group { border-radius: 8px; padding: 10px 12px; }
-.hist-comp-prog-group--comun { background: var(--color-success-bg-alt); }
+.hist-comp-prog-group--comun { background: #F0FDF4; }
 .hist-comp-prog-group--a { background: var(--color-background-info); }
 .hist-comp-prog-group--b { background: #F5F3FF; }
 .hist-comp-prog-title { font-size: var(--font-size-10); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; }
-.hist-comp-prog-title--comun { color: var(--color-success-text); }
+.hist-comp-prog-title--comun { color: #166534; }
 .hist-comp-prog-title--a { color: var(--brand-600); }
 .hist-comp-prog-title--b { color: #6D28D9; }
-.hist-comp-prog-empty { font-size: var(--font-size-11); color: var(--color-text-muted); }
+.hist-comp-prog-empty { font-size: var(--font-size-11); color: #94A3B8; }
 .hist-comp-prog-item { font-size: var(--font-size-11); margin-bottom: 2px; }
-.hist-comp-prog-item--comun { color: var(--color-success-text); }
+.hist-comp-prog-item--comun { color: #166534; }
 .hist-comp-prog-item--a { color: var(--brand-600); }
 .hist-comp-prog-item--b { color: #6D28D9; }
 
-.hist-comp-footer-hint { font-size: var(--font-size-12); color: var(--color-text-muted); margin-top: 12px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.hist-comp-footer-hint { font-size: var(--font-size-12); color: #94A3B8; margin-top: 12px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; }
