@@ -739,11 +739,14 @@ textarea:focus-visible,
 }
 .asm-topbar--hidden { transform: translateY(-100%); }
 
-.asm-back-btn {
+/* Fix U-13/ARCH-19 (auditoría 14 de julio): unificado con HorariosTopbar —
+   antes era exclusivo de Asistencias (.asm-back-btn), ahora es el botón
+   compartido de "volver al selector de módulos" en ambos topbars. */
+.topbar-back-btn {
   background: none; border: 1px solid var(--color-border-tertiary);
   border-radius: 7px; padding: 5px 12px; cursor: pointer;
   font-size: var(--font-size-13); font-weight: 600; color: var(--navy-700);
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
 }
 
 .asm-tabs { display: flex; gap: 4px; }
