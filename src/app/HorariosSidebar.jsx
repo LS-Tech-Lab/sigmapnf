@@ -39,7 +39,7 @@ export default function HorariosSidebar({
   // Lógica de colapso: expandido si está fijado, en hover, o abierto en móvil.
   const expanded = pinned || hovered || mobileOpen;
 
-  const navGroups      = buildNavGroups(permisos);
+  const navGroups      = buildNavGroups();
   const conflictCount  = appData.conflicts.length;
   const puedeSeleccionarPrograma = !permisos.puedeVerSoloSuPrograma;
 
@@ -112,6 +112,27 @@ export default function HorariosSidebar({
                   </button>
                 )}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Estado de conexión — Fix UX-21 (auditoría 14 de julio): antes solo
+            visible dentro del dropdown de Administración (un clic para verlo);
+            promovido a caja siempre visible, igual que hl-lapso-box. Se quitó
+            de AdminMenu.jsx para no duplicarlo en el mismo sidebar. */}
+        <div className="hl-status-box">
+          {!expanded ? (
+            <div
+              className={`hl-status-dot-icon ${appData.isOffline ? "hl-status-dot-icon--offline" : ""}`}
+              title={appData.isOffline ? "Sin conexión" : `En línea — últ. sync: ${appData.lastSync}`}
+            />
+          ) : (
+            <div className="hl-status-row">
+              <span className={`hl-status-dot ${appData.isOffline ? "hl-status-dot--offline" : ""}`} />
+              <span className={`hl-status-text ${appData.isOffline ? "hl-status-text--offline" : ""}`}>
+                {appData.isOffline ? "Sin conexión" : "En línea"}
+              </span>
+              <span className="hl-status-sync">{appData.lastSync}</span>
             </div>
           )}
         </div>
