@@ -14,6 +14,22 @@ NNNN — Fix <ID>: resumen` en SQL), agregar/actualizar su fila aquí, y si
 reabre o profundiza un hallazgo anterior decirlo explícitamente en la
 descripción.
 
+**Nota de proceso (agregada tras `UX-19`, 14 de julio):** las auditorías de
+arquitectura ya tienen un checklist implícito para código duplicado entre
+componentes (ver `ARCH-23`: "mismo problema ya corregido 3 veces antes,
+nunca aplicado aquí"), pero no existía un chequeo equivalente para
+*patrones de UI/UX repetidos entre los 3 módulos raíz*
+(`HorariosLayout`/`AsistenciasModulo`/`AdminModulo`) — la misma acción de
+usuario resuelta de forma distinta en cada módulo (caso `UX-19`: "Cambiar
+módulo" como botón visible en dos módulos, enterrado en un dropdown en el
+tercero) no aparece en ningún grep de código duplicado porque el código en
+sí no está duplicado, solo el comportamiento diverge. A partir de la
+próxima auditoría, agregar una pasada dedicada: por cada elemento de
+navegación o acción común a los 3 módulos raíz (topbar, dropdown de
+usuario, back-buttons, badges de estado, atajos de teclado), confirmar que
+los 3 usan el mismo componente/clase o que la diferencia es intencional y
+está documentada como tal.
+
 **IDs mencionados en código pero nunca localizados (esquema antiguo,
 antes de la reorganización del 13-14 de julio):** `O-6`, `O-7`, `P-1`,
 `S1`, `SEC-4` — probablemente descartados o fusionados con otro fix
@@ -219,6 +235,7 @@ vivía sueltó en el esquema de "Concurrencia" pese a ser un tema de UI).
 | **UX-16** 🔴 | Reportado por LS (14 de julio): los reportes en PDF (diario y por rango, botón "PDF" en `ReporteAsistencias`) se abrían en la ventana nueva sin ningún formato — tabla, colores y membrete aparecían como texto plano sin estilo | `src/components/asistencias/ReporteAsistencias/exportPDF.js`, `public/reporte-print.css` (nuevo), `public/reporte-print.js` (nuevo) | ✅ **Cerrado (14 de julio)** — causa raíz: el CSP del proyecto usa `script-src 'self'` y `style-src 'self'` sin `'unsafe-inline'` (endurecido en `SEC-3`/`UX-5`, ver sección de Seguridad). `exportPDF.js` abre la vista de impresión con `window.open("", "_blank")` + `document.write(html)` — un documento `about:blank` del mismo origen que **hereda el CSP del documento que lo abrió** (comportamiento estándar del navegador, no específico de este proyecto) en vez de partir sin política propia. El `<style>` inline del `<head>`, el `<script>` inline de auto-impresión, y **todos** los atributos `style="..."` sueltos en las celdas/tarjetas de la plantilla (colores de estado, alineaciones) quedaban bloqueados en silencio — de ahí el HTML sin ningún estilo aplicado. Fix: el CSS se extrajo a `public/reporte-print.css` y el script de auto-impresión a `public/reporte-print.js`, referenciados como recursos externos del mismo origen (`<link rel="stylesheet" href="/reporte-print.css">`, `<script src="/reporte-print.js">`) — `'self'` sí los permite. Los ~20 atributos `style=""` restantes de la plantilla (colores de stat-box, celdas de tabla, badges) se reemplazaron por clases utilitarias nuevas en ese mismo CSS (`.stat-num--azul/verde/ambar/rojo`, `.td-cedula`, `.td-pct--alta/media/baja`, etc.), sin cambiar ningún color ni tamaño visual respecto al original. Verificado: `vite build` limpio (los 2 archivos nuevos de `public/` quedan precacheados por el service worker), 153/153 tests, `eslint .` 0 errores. **Sin verificar visualmente en navegador real** (mismo límite ya documentado en `UX-11`/`UX-13`: este entorno de auditoría no tiene navegador) — recomendado que LS confirme abriendo un PDF de cada tipo (diario y por rango) antes de dar por cerrado |
 | **UX-17** 🟢 | Sin soporte de modo oscuro (`UX-13`, revertido a pedido explícito de LS — decisión de producto válida, no un defecto). El `theme_color`/`background_color` del manifiesto PWA (`vite.config.js`) siguen fijos en claro, así que en sistemas con modo oscuro del SO, la barra de estado/splash del navegador puede no combinar con el resto de la UI aunque la app en sí se vea bien (auditoría QA del 15 de julio) | `vite.config.js` (`manifest.theme_color`/`background_color`) | 🔴 **Pendiente** (baja prioridad) — ninguna acción a menos que se retome `UX-13` desde cero, ya documentado que conviene rehacerlo con verificación visual real en navegador |
 | **UX-18** 🟢 | `ModuleSelector.css` referencia en comentarios el mecanismo de `prefers-color-scheme` que ya no existe en el proyecto (revertido por `UX-13`) — no afecta el comportamiento (son solo comentarios), pero puede confundir a quien lea el archivo más adelante (auditoría QA del 15 de julio) | `src/components/ModuleSelector.css` | 🔴 **Pendiente** (cosmético) — limpiar el comentario obsoleto la próxima vez que se toque ese archivo por otro motivo, no amerita cambio dedicado |
+| **UX-19** | "Cambiar módulo" era un botón visible en el topbar (`.asm-back-btn`) en Asistencias y Admin, pero en Horarios estaba enterrado como ítem dentro del dropdown de usuario (`UserMenu`) — misma acción de navegación resuelta de dos formas distintas en el mismo repo, sin ningún hallazgo previo que lo cubriera (reportado por LS, 14 de julio) | `src/app/HorariosTopbar.jsx`, `src/app/UserMenu.jsx`, `src/app/AsistenciasModulo.jsx`, `src/app/AdminModulo.jsx`, `src/index.css` | ✅ **Cerrado (14 de julio)** — se unificó hacia el patrón ya usado en Asistencias/Admin: botón visible "← Módulos" en el topbar de los 3 módulos raíz, mismo lugar y misma clase compartida `.topbar-back-btn` (renombrada desde `.asm-back-btn`, que vivía solo en Asistencias pero ya la reutilizaba Admin también — descubierto al hacer el cambio). `UserMenu.jsx` quedó con una sola responsabilidad (cuenta/sesión: cambiar contraseña, cerrar sesión), sin la opción "Cambiar módulo" ni las props `tieneHorarios`/`tieneQR`/`onCambiarModulo` que ya no usa. Verificado: `vite build` limpio, 153/153 tests reales. Ver nota de proceso en la Metodología arriba — este hallazgo no encajaba en ningún checklist existente |
 
 ## 🎨 Identidad visual y sistema de diseño
 
