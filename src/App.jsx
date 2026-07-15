@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from "react";
 import useAppData from "./hooks/useAppData";
 import useHorariosFilters from "./hooks/useHorariosFilters";
 import useAuth from "./hooks/useAuth";
@@ -18,10 +18,24 @@ import { AppDataProvider } from "./context/AppDataContext";
 
 // Layouts extraídos (P4)
 import HorariosLayout from "./app/HorariosLayout";
-import AsistenciasModulo from "./app/AsistenciasModulo";
-import AdminModulo from "./app/AdminModulo";
 import CuentaDesactivada from "./app/CuentaDesactivada";
 import SinPerfilAsignado from "./app/SinPerfilAsignado";
+
+// Fix ARCH-24: `AsistenciasModulo`/`AdminModulo` se importaban de forma
+// estática igual que `HorariosLayout`, así que los 3 módulos raíz (más
+// todas sus dependencias exclusivas: `AdminMenu.jsx`, etc.) terminaban en
+// el chunk principal aunque una sesión determinada solo visite uno de
+// los tres. Nota de verificación: el hallazgo original decía que
+// `AdminModulo` era "el único" importado de forma estática, dando a
+// entender que los otros dos ya eran `lazy()` — falso positivo parcial
+// (confirmado por `grep` de `React.lazy`/`Suspense` en `App.jsx`: ninguno
+// de los 3 lo era). `HorariosLayout` se deja estático a propósito, mismo
+// criterio que `ResumenView` en `ARCH-10` (es el módulo por defecto:
+// auto-seleccionado cuando el perfil solo tiene acceso a Horarios, y el
+// destino más común tras el login en el resto de los casos).
+const AsistenciasModulo = lazy(() => import("./app/AsistenciasModulo"));
+const AdminModulo       = lazy(() => import("./app/AdminModulo"));
+
 
 // Hook que monta los inputs de archivo en document.body directamente,
 // sin pasar por el árbol de React. Así nunca se desmontan por re-renders
@@ -287,16 +301,18 @@ export default function App() {
   // ── Módulo Asistencias QR ─────────────────────────────────────────────────
   if (moduloActivo === "asistencias") {
     return (
-      <AsistenciasModulo
-        profile={efectiveProfile}
-        permisos={efectivePermisos}
-        qrSession={qrSession}
-        tieneHorarios={tieneHorarios}
-        onVolverSelector={() => setModuloActivo(null)}
-        showToast={appData.showToast}
-        onLogout={handleLogout}
-        pendientesCount={pendientesCount}
-      />
+      <Suspense fallback={<FullScreenSpinner label="Cargando módulo…" />}>
+        <AsistenciasModulo
+          profile={efectiveProfile}
+          permisos={efectivePermisos}
+          qrSession={qrSession}
+          tieneHorarios={tieneHorarios}
+          onVolverSelector={() => setModuloActivo(null)}
+          showToast={appData.showToast}
+          onLogout={handleLogout}
+          pendientesCount={pendientesCount}
+        />
+      </Suspense>
     );
   }
 
@@ -304,17 +320,19 @@ export default function App() {
   if (moduloActivo === "admin") {
     return (
       <AppDataProvider value={appDataAuditada}>
-        <AdminModulo
-          profile={efectiveProfile}
-          permisos={efectivePermisos}
-          user={user}
-          lapso={lapso}
-          onCambiarLapso={handleCambiarLapso}
-          tieneHorarios={tieneHorarios}
-          tieneQR={tieneQR}
-          onVolverSelector={() => setModuloActivo(null)}
-          onLogout={handleLogout}
-        />
+        <Suspense fallback={<FullScreenSpinner label="Cargando módulo…" />}>
+          <AdminModulo
+            profile={efectiveProfile}
+            permisos={efectivePermisos}
+            user={user}
+            lapso={lapso}
+            onCambiarLapso={handleCambiarLapso}
+            tieneHorarios={tieneHorarios}
+            tieneQR={tieneQR}
+            onVolverSelector={() => setModuloActivo(null)}
+            onLogout={handleLogout}
+          />
+        </Suspense>
       </AppDataProvider>
     );
   }
