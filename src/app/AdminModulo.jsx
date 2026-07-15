@@ -99,7 +99,7 @@ export default function AdminModulo({
       <header className="asm-topbar">
         {/* Volver al selector — solo si también tiene acceso a otro módulo */}
         {(tieneHorarios || tieneQR) && (
-          <button onClick={onVolverSelector} className="asm-back-btn">
+          <button onClick={onVolverSelector} className="topbar-back-btn">
             <i className="ti ti-arrow-left" aria-hidden="true" /> Módulos
           </button>
         )}
