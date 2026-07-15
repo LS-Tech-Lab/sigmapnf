@@ -5,11 +5,11 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { logger } from './utils/logger'
 import './index.css'
 
-// Fix O-5 / ARCH-7: registrar el Service Worker explícitamente para habilitar
+// Fix OFF-5 / ARCH-10: registrar el Service Worker explícitamente para habilitar
 // banners de actualización y garantizar el ciclo de vida del SW en
 // todos los entornos (incluido tras recargas forzadas).
 //
-// ARCH-7: antes usábamos registerType 'autoUpdate', que recarga la página
+// ARCH-10: antes usábamos registerType 'autoUpdate', que recarga la página
 // SOLA en cuanto detecta una versión nueva — sin avisar, sin importar si
 // el usuario está a mitad de escribir su correo en el login. Con 'prompt'
 // (ver vite.config.js) el SW nuevo se queda esperando y solo se activa

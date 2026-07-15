@@ -1,5 +1,5 @@
 /**
- * password.js — validación centralizada de contraseñas (SEC-3).
+ * password.js — validación centralizada de contraseñas (SEC-5).
  *
  * Exporta validarPassword(), usada en:
  *   - ModalCambiarPassword.jsx

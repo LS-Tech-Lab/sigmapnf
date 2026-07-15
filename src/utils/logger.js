@@ -1,6 +1,6 @@
 // src/utils/logger.js
 //
-// FIX-CI-2: wrapper centralizado de logging.
+// CI-2: wrapper centralizado de logging.
 //
 // Problema que resuelve: llamadas directas a console.log/warn/error
 // quedan visibles en la consola del navegador de CUALQUIER usuario en
@@ -15,7 +15,7 @@
 // llamadas — son puramente diagnósticas — por lo que silenciarlas en
 // producción no cambia el comportamiento visible para el usuario.
 //
-// Fix FIX-CI-4: se agregó `info` (faltaba) para los 2 únicos usos de
+// Fix CI-4: se agregó `info` (faltaba) para los 2 únicos usos de
 // console.info que quedaban fuera de este wrapper (src/main.jsx,
 // src/utils/cache.js) — mismo patrón que log/warn/error.
 

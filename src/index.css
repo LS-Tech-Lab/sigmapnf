@@ -23,7 +23,7 @@
 :root {
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  /* ── Escala tipográfica (FE-3) ──────────────────────────────────────────
+  /* ── Escala tipográfica (DESIGN-3) ──────────────────────────────────────────
      Valores tomados 1:1 de los que ya estaban en uso — no se redondeó ni
      consolidó ningún tamaño, para no alterar el render actual de ningún
      componente (mismo criterio que --space-N). Ampliada el 9 de julio al
@@ -31,7 +31,7 @@
      sumaron 17/19/22/24/26/28/32/36/40/44px, repetidos varias veces entre
      esos componentes aunque no dentro de index.css. Los que aparecen una
      sola vez en todo el proyecto (72px, 52px) y los tamaños dinámicos de
-     Avatar (11.4/16.7/19.8px, excepción legítima ya documentada en A3) se
+     Avatar (11.4/16.7/19.8px, excepción legítima ya documentada en UX-5) se
      dejan como literales. ────────────────────────────────────────────── */
   --font-size-9:  9px;
   --font-size-10: 10px;
@@ -116,7 +116,7 @@
   --space-6: 24px;
   --space-8: 32px;
 
-  /* ── Espaciado con valor exacto (FE-5) ───────────────────────────────────
+  /* ── Espaciado con valor exacto (DESIGN-5) ───────────────────────────────────
      La escala de arriba es un múltiplo de 4px por índice (--space-N =
      N × 4px), así que no cubre valores que ya estaban en uso en las reglas
      `.hl-*` y no son múltiplo de 4 (6px, 7px, 10px, 14px). Se nombran con
@@ -234,9 +234,9 @@ textarea:focus-visible,
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   UTILIDADES COMPARTIDAS — refactor A3 fase 1 (auditoría 2026-06-30)
+   UTILIDADES COMPARTIDAS — refactor UX-5 fase 1 (auditoría 2026-06-30)
    Extraídas de LoginScreen.jsx. Reutilizables en próximas vistas para poder
-   retirar 'unsafe-inline' de style-src (S3) una vez cubierta suficiente
+   retirar 'unsafe-inline' de style-src (SEC-3) una vez cubierta suficiente
    superficie. No usar para casos con valores distintos a los aquí definidos.
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -445,7 +445,7 @@ textarea:focus-visible,
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Clases espejo del objeto `S` (src/constants/index.js) — A3 fase 4,
+   Clases espejo del objeto `S` (src/constants/index.js) — UX-5 fase 4,
    auditoría 2026-06-30 / 2026-07-01.
 
    `S.card`, `S.th`, `S.td`, `S.input`, `S.select` y `S.btn()` se usan hoy
@@ -519,7 +519,7 @@ textarea:focus-visible,
 .sc-icon { font-size: var(--font-size-20); }
 .sc-value { font-size: var(--font-size-24); font-weight: 700; color: #0F172A; line-height: 1.1; }
 .sc-label { font-size: var(--font-size-12); color: #64748B; margin-top: 2px; font-weight: 500; }
-/* Fix A3/S3 Fase 2: 7 variantes fijas (antes `color` arbitrario + style
+/* Fix UX-5/SEC-3 Fase 2: 7 variantes fijas (antes `color` arbitrario + style
    inline). Corrige de paso un bug latente: con var(--brand-500) como
    `color`, "${color}18" producía un string inválido — el tinte de fondo de
    Clases/Materias/Secciones/Trayectos (DocentesView) nunca se veía. */
@@ -556,7 +556,7 @@ textarea:focus-visible,
 .asv-chip { font-size: var(--font-size-12); font-family: monospace; font-weight: 700; background: #FEF3C7; color: var(--color-warning-text); border: 1px solid var(--color-warning-border); border-radius: 5px; padding: 2px 8px; }
 
 /* ProgramaLogo.jsx */
-/* Fix A3/S3 Fase 2: los 2 usos reales siempre son size=32 — ancho/alto/radio
+/* Fix UX-5/SEC-3 Fase 2: los 2 usos reales siempre son size=32 — ancho/alto/radio
    fijos en vez de --pl-size/--pl-radius inline. El gradiente por programa
    (dominio fijo de 5 claves, PROGRAMA_META en el propio componente) usa
    .pl-container--<programa> en vez de --pl-bg/--pl-shadow inline. */
@@ -572,7 +572,7 @@ textarea:focus-visible,
 .pl-img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(37,99,235,0.45)); }
 
 /* Avatar.jsx */
-/* Fix A3/S3 Fase 5 (5/jul/2026): tamaño fijo (solo 30/44/52 se usan en todo
+/* Fix UX-5/SEC-3 Fase 5 (5/jul/2026): tamaño fijo (solo 30/44/52 se usan en todo
    el repo) + tono bucketizado a pasos de 15° (24 valores posibles en vez de
    360 continuos) — ver comentario en Avatar.jsx. */
 .av-root {
@@ -618,7 +618,7 @@ textarea:focus-visible,
 .ec-chip--solo_salida   { --ec-bg: #FEF2F2; --ec-color: #DC2626; --ec-border: #FECACA; }
 .ec-chip-icon { font-size: var(--font-size-12); }
 
-/* UserMenu.jsx — menú desplegable de usuario (A3, auditoría 2026-07-05) */
+/* UserMenu.jsx — menú desplegable de usuario (UX-5, auditoría 2026-07-05) */
 .um-root { margin-left: auto; position: relative; }
 
 .um-trigger-btn {
@@ -673,7 +673,7 @@ textarea:focus-visible,
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
 
-/* SinPerfilAsignado.jsx / CuentaDesactivada.jsx — pantallas de bloqueo compartidas (A3, auditoría 2026-07-05) */
+/* SinPerfilAsignado.jsx / CuentaDesactivada.jsx — pantallas de bloqueo compartidas (UX-5, auditoría 2026-07-05) */
 .bs-wrap {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   height: 100vh; background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
@@ -774,7 +774,7 @@ textarea:focus-visible,
 .asm-main { padding-top: 52px; }
 .asm-main--proyeccion { padding-top: 0; }
 
-/* HorariosLayout.jsx — shell completo del módulo Horarios (A3, auditoría 2026-07-05) */
+/* HorariosLayout.jsx — shell completo del módulo Horarios (UX-5, auditoría 2026-07-05) */
 .hl-select-dark { width: 100%; background: var(--navy-800); color: var(--color-border-secondary); border-color: var(--navy-700); font-size: var(--font-size-12); padding: var(--space-6px) var(--space-2); }
 .hl-select-dark:disabled { opacity: 0.6; cursor: not-allowed; }
 .hl-select-dark:not(:disabled) { cursor: pointer; opacity: 1; }
@@ -883,7 +883,7 @@ textarea:focus-visible,
 .tg-th-day { padding: 10px 10px; font-size: var(--font-size-13); border-left: 1px solid #E2E8F0; text-align: center; }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Fix A3/S3 (auditoría QA 5/jul/2026, Fase 1) — Clases fijas de trayecto.
+   Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, Fase 1) — Clases fijas de trayecto.
 
    El color por trayecto (TRAYECTO_BG/TRAYECTO_COLORS, src/constants/index.js)
    es un dominio FIJO de 13 valores hardcodeados que nunca cambian en
@@ -927,7 +927,7 @@ textarea:focus-visible,
 .trayecto-desconocido { --trayecto-bg: var(--color-background-subtle); --trayecto-color: var(--color-text-tertiary); --clase-shadow: transparent; --clase-border: transparent; }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Fix A3/S3 (auditoría QA 5/jul/2026, Fase 2) — Clases fijas para configs
+   Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, Fase 2) — Clases fijas para configs
    ya hardcodeadas en el propio código (no son "dato" tampoco): eventos y
    acciones de LogsView, niveles de fortaleza de contraseña, colores de
    distribución fija en ResumenView, estado de % en ReporteRango/AdminQRPanel.
@@ -959,7 +959,7 @@ textarea:focus-visible,
 .lv-a-default            { --lv-color: #475569; }
 
 /* ModalCambiarPassword.jsx — los 4 niveles de fortaleza y sus reglas
-   compuestas viven en ModalCambiarPassword.css (fix A3/S3 Fase 2). */
+   compuestas viven en ModalCambiarPassword.css (fix UX-5/SEC-3 Fase 2). */
 
 /* ResumenView.jsx — colores fijos de distribución (no trayecto, hardcodeados
    en el propio componente: día/docente/materia/turno) */
@@ -976,7 +976,7 @@ textarea:focus-visible,
    selectores compuestos, no aquí. */
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Fix A3/S3 (auditoría QA 5/jul/2026, Fase 3) — Clases fijas de color de rol.
+   Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, Fase 3) — Clases fijas de color de rol.
 
    Combina los 5 colores de ROL_SIDEBAR (roles del sistema) y los 10 de
    COLORES_PRESET (usuarios/shared.jsx, roles personalizados) — 14 valores
@@ -984,7 +984,7 @@ textarea:focus-visible,
    --role-color/--role-bg/--role-border (bg = 12% alpha, border = 25% alpha,
    mismo cálculo que hacía hex2rgba() antes). Afecta: UserMenu.jsx (.um-role),
    usuarios/shared.jsx Badge (.shared-badge), PestanaRoles.jsx (.pr-avatar).
-   Pendiente para que S3 pueda cerrar de verdad: migración 0052 (CHECK en
+   Pendiente para que SEC-3 pueda cerrar de verdad: migración 0052 (CHECK en
    roles.color) — hasta que se aplique, un color insertado fuera de esta
    lista (ej. directo por API, sin pasar por el picker) cae en
    .role-color--default sin romper visualmente, pero sí sin distinguirse.
@@ -1008,7 +1008,7 @@ textarea:focus-visible,
 .role-color--default    { --role-color: var(--color-text-tertiary); --role-bg: var(--color-background-subtle); --role-border: var(--color-border); --role-tint-5: var(--color-background-subtle); }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Fix A3/S3 (auditoría QA 5/jul/2026, Fase 4) — Ancho bucketizado (5%).
+   Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, Fase 4) — Ancho bucketizado (5%).
 
    El % de una barra de progreso es un valor continuo real (0-100, cualquier
    decimal) — a diferencia de trayecto/rol/configs, no es un dominio
@@ -1026,7 +1026,7 @@ textarea:focus-visible,
 .w-pct-90  { width: 90%; }  .w-pct-95  { width: 95%; }  .w-pct-100 { width: 100%; }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Fix S3 (5/jul/2026) — Manipulación directa de `style` vía JS (fuera de
+   Fix SEC-3 (5/jul/2026) — Manipulación directa de `style` vía JS (fuera de
    React, no la detecta ningún grep de "style={{"). También requiere
    'unsafe-inline' en style-src, igual que un atributo style en JSX.
    ────────────────────────────────────────────────────────────────────────── */

@@ -2,7 +2,7 @@
 // Usa IndexedDB para persistir las marcas cuando no hay red,
 // y las sincroniza con Supabase al recuperar la conexión.
 //
-// Fix O-2: TTL de 48 h para evitar crecimiento indefinido.
+// Fix OFF-2: TTL de 48 h para evitar crecimiento indefinido.
 // Los registros más viejos se purgan automáticamente al abrir la cola.
 
 import { abrirDBCompartida } from './idb';
@@ -12,7 +12,7 @@ const STORE = 'asistencias_pendientes';
 // 48 horas en ms — registros más antiguos se purgan automáticamente
 const TTL_MS = 48 * 60 * 60 * 1000;
 
-// Fix A1 (auditoría 2026-06-30): la apertura de la base 'sigma_offline'
+// Fix ARCH-1 (auditoría 2026-06-30): la apertura de la base 'sigma_offline'
 // ahora vive centralizada en idb.js, para evitar conflictos de versión
 // con pinOffline.js y reporteCache.js. Ver idb.js para el detalle.
 function abrirDB() {
@@ -59,7 +59,7 @@ export async function contarPendientes() {
   });
 }
 
-// Fix O-2: eliminar registros cuyo TTL haya vencido (>48 h).
+// Fix OFF-2: eliminar registros cuyo TTL haya vencido (>48 h).
 // Llamado desde useSyncPendientes antes de cada ciclo de sync.
 export async function purgarExpirados() {
   const db = await abrirDB();

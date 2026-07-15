@@ -11,7 +11,7 @@
 //      El usuario cancela → limpiar estado, nada se guarda
 
 import { useState, useCallback } from "react";
-// Fix ARCH-18 (auditoría 12 de julio): "xlsx" es, con diferencia, el módulo
+// Fix ARCH-21 (auditoría 12 de julio): "xlsx" es, con diferencia, el módulo
 // más pesado de todo el proyecto (750 KB sin comprimir, ~195 KB gzip — más
 // grande que todo el resto del chunk principal junto). Antes de este fix se
 // importaba de forma estática acá arriba, lo que lo metía dentro del chunk
@@ -28,7 +28,7 @@ import { useState, useCallback } from "react";
 // Rollup separa automáticamente ambos módulos (y sus dependencias) en su
 // propio chunk async, cargado solo la primera vez que alguien sube un
 // Excel. No hace falta declarar nada en `manualChunks` para esto — a
-// diferencia de los chunks de `ARCH-12`/`ARCH-14`, acá no hay múltiples
+// diferencia de los chunks de `ARCH-15`/`ARCH-17`, acá no hay múltiples
 // entradas lazy compitiendo por el mismo módulo compartido, es un único
 // punto de entrada dinámico.
 //
@@ -41,7 +41,7 @@ import { useState, useCallback } from "react";
 // estática desde el archivo de test, un grafo de módulos completamente
 // aparte del de producción.
 //
-// Fix D-6 (auditoría 9 de julio, verificación): "xlsx" en package.json
+// Fix SEC-14 (auditoría 9 de julio, verificación): "xlsx" en package.json
 // apunta al tarball https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz —
 // NO al paquete "xlsx" del registro de npm (ese sí quedó abandonado en
 // 0.18.5, sin parche). Las 2 únicas CVEs que existen en la historia de
@@ -161,7 +161,7 @@ export default function useUpload({
     setUploading(true);
 
     try {
-      // Import dinámico (ARCH-18): excelParser.js importa "xlsx" de forma
+      // Import dinámico (ARCH-21): excelParser.js importa "xlsx" de forma
       // estática en su propio archivo, así que este único import ya trae
       // consigo tanto el parseo como la librería pesada — ambos quedan en
       // el mismo chunk async, cargado solo acá, no en el chunk principal.
@@ -502,7 +502,7 @@ export default function useUpload({
             return;
           }
 
-          // A-2: si el insert terminó después del timeout la UI ya mostró
+          // ARCH-2: si el insert terminó después del timeout la UI ya mostró
           // "tiempo agotado", pero los datos SÍ quedaron en BD. Refrescar
           // silenciosamente para que la vista refleje el estado real.
           if (timedOut) {

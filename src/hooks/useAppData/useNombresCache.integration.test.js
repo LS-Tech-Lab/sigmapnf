@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =====================================================================
-// useNombresCache.integration.test.js — ARCH-5 (auditoría julio 2026):
+// useNombresCache.integration.test.js — ARCH-8 (auditoría julio 2026):
 // cobertura de FLUJO para la carga de nombres de docentes/materias que
 // se usa en toda la vista de horarios (carga de horarios → resolución
 // de nombres "display" a partir de los "raw" del Excel importado).

@@ -53,7 +53,7 @@ const AdminFallback = () => (
  *   onLogout              — handleLogout de useAuth
  *
  * appData (showToast, openConfirm, closeConfirm, logAudit, data.programas)
- * se consume vía AppDataContext (ARCH-5) — el padre (App.jsx) envuelve
+ * se consume vía AppDataContext (ARCH-8) — el padre (App.jsx) envuelve
  * este componente en <AppDataProvider>, igual que HorariosLayout.
  */
 export default function AdminModulo({

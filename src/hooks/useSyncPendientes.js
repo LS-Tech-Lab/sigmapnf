@@ -2,7 +2,7 @@
 // pendientes guardadas en IndexedDB durante períodos sin conexión.
 // Montar una sola vez en App.jsx.
 //
-// Fix O-2: los registros irrecuperables se eliminan de IDB en lugar de
+// Fix OFF-2: los registros irrecuperables se eliminan de IDB en lugar de
 // reintentar indefinidamente. Se purgan también entradas con TTL > 48 h.
 //
 // UX-4: el hook ahora expone `pendientesCount` (número de registros en cola)
@@ -51,7 +51,7 @@ export default function useSyncPendientes(showToast) {
   }, []);
 
   const sync = useCallback(async () => {
-    // Fix O-2: purgar entradas expiradas (>48 h) antes de intentar sync
+    // Fix OFF-2: purgar entradas expiradas (>48 h) antes de intentar sync
     try { await purgarExpirados(); } catch { /* silencioso */ }
 
     let pendientes;
@@ -80,7 +80,7 @@ export default function useSyncPendientes(showToast) {
           await eliminarPendiente(id);
           sincronizados++;
         } else if (CODIGOS_IRRECUPERABLES.has(data?.codigo)) {
-          // Fix O-2: el registro nunca podrá sincronizarse → purgar de IDB
+          // Fix OFF-2: el registro nunca podrá sincronizarse → purgar de IDB
           await eliminarPendiente(id);
           irrecuperables++;
         } else {

@@ -36,7 +36,7 @@ export default function useDataSync({
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [lastSync, setLastSync] = useState(obtenerUltimaSincronizacion());
 
-  // A-4: referencia al AbortController del fetch en curso. fetchHorarios se
+  // ARCH-4: referencia al AbortController del fetch en curso. fetchHorarios se
   // dispara desde varios lugares (cambio de programa/lapso, listener
   // "online", listener realtime); si un fetch anterior sigue en vuelo y
   // llega uno nuevo, se aborta el anterior para que su respuesta tardía no
@@ -51,7 +51,7 @@ export default function useDataSync({
   // externos (useUpload, handlers de lapso) puedan pasar el valor fresco
   // sin depender del closure, evitando stale references al memoizar.
   const fetchHorarios = useCallback(async (programa, lapsoParam = lapso) => {
-    // A-4: cancelar cualquier fetch anterior aún en curso antes de empezar
+    // ARCH-4: cancelar cualquier fetch anterior aún en curso antes de empezar
     // uno nuevo, y guardar el controller de este fetch para poder abortarlo
     // a su vez (por un cambio de programa más reciente o el desmonte).
     if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -65,7 +65,7 @@ export default function useDataSync({
       setLoading(false);
       setIsSyncing(true);
     } else {
-      // A-5: limpiar data inmediatamente al iniciar fetch sin caché para
+      // ARCH-5: limpiar data inmediatamente al iniciar fetch sin caché para
       // evitar que ResumenView muestre contadores del programa anterior
       // durante la ventana de carga del nuevo programa.
       setData([]);
@@ -91,7 +91,7 @@ export default function useDataSync({
 
         const { data: pagina, error } = await query;
 
-        // A-4: si este fetch fue abortado (superado por uno más reciente o
+        // ARCH-4: si este fetch fue abortado (superado por uno más reciente o
         // por desmonte), descartar el resultado en silencio — no tocar
         // estado ni mostrar toasts, el fetch vigente ya se encarga de eso.
         if (signal.aborted) return;
@@ -116,7 +116,7 @@ export default function useDataSync({
           hayMas = false;
         } else {
           const nextCursor = filas[filas.length - 1].id;
-          // A-3: guardia de sanidad — si el cursor no avanza, abortar para
+          // ARCH-3: guardia de sanidad — si el cursor no avanza, abortar para
           // evitar un loop infinito con IDs no secuenciales o reutilizados.
           if (nextCursor <= cursor) {
             logger.error("Paginación: cursor no avanza, abortando para evitar loop infinito.", { cursor, nextCursor });
@@ -133,7 +133,7 @@ export default function useDataSync({
       localStorage.setItem(CACHE_KEYS.lastSync, Date.now().toString());
       setLastSync(obtenerUltimaSincronizacion());
     } catch (err) {
-      // A-4: un abort intencional (fetch superado o cleanup de desmonte) no
+      // ARCH-4: un abort intencional (fetch superado o cleanup de desmonte) no
       // es un error de conexión real — descartar en silencio.
       if (signal.aborted || err.name === "AbortError") return;
       logger.error(err);
@@ -150,7 +150,7 @@ export default function useDataSync({
   useEffect(() => { fetchProgramas(lapso); fetchDocenteNames(); fetchMateriaNames(); }, [lapso, fetchProgramas, fetchDocenteNames, fetchMateriaNames]);
   useEffect(() => { fetchHorarios(selectedPrograma); }, [selectedPrograma, lapso, fetchHorarios]);
 
-  // A-4: abortar el fetch en curso si el hook se desmonta, para que su
+  // ARCH-4: abortar el fetch en curso si el hook se desmonta, para que su
   // respuesta tardía no intente actualizar estado de un componente ya fuera.
   useEffect(() => () => { if (abortControllerRef.current) abortControllerRef.current.abort(); }, []);
 

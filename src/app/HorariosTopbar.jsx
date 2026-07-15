@@ -1,6 +1,6 @@
 // Topbar del módulo Horarios: hamburguesa móvil, búsqueda global, menú de
 // usuario, indicador de sincronización y badge de pendientes offline.
-// Extraído de HorariosLayout.jsx (ARCH-8).
+// Extraído de HorariosLayout.jsx (ARCH-11).
 import { useAppDataContext } from "../context/AppDataContext";
 import { ROL_SIDEBAR } from "../constants";
 import UserMenu from "./UserMenu";

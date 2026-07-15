@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =====================================================================
-// useAuth.integration.test.js — ARCH-5 (auditoría julio 2026):
+// useAuth.integration.test.js — ARCH-8 (auditoría julio 2026):
 // cobertura de FLUJO, no solo de función pura.
 //
 // useAuth.test.js ya cubre calcularPermisos() como función aislada.

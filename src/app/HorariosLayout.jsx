@@ -6,7 +6,7 @@ import HorariosTopbar from "./HorariosTopbar";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import ModalCambiarPassword from "../components/ModalCambiarPassword";
-// Fix ARCH-7/U-6 (auditoría 9 de julio): ResumenView se mantiene con import
+// Fix ARCH-10/UX-7 (auditoría 9 de julio): ResumenView se mantiene con import
 // estático a propósito — es la vista por defecto (`useState("resumen")` en
 // App.jsx), la que ve todo el mundo justo después de iniciar sesión.
 // Volverla lazy no reduce el tiempo de carga real (el chunk se pediría casi
@@ -40,7 +40,7 @@ const LazyFallback = ({ label }) => (
  * El sidebar (marca, trimestre, selector de programa, navegación, admin y
  * lógica de expansión/colapso) vive en `HorariosSidebar.jsx`, y el header
  * (búsqueda global, menú de usuario, indicadores de sync) en
- * `HorariosTopbar.jsx` — extraídos de este archivo en ARCH-8. Este archivo
+ * `HorariosTopbar.jsx` — extraídos de este archivo en ARCH-11. Este archivo
  * orquesta modales globales, el banner de modo consulta y el switch de
  * vistas del contenido principal.
  *
@@ -63,7 +63,7 @@ const LazyFallback = ({ label }) => (
  *   fileRef, backupRef
  *
  * Props — datos y auth:
- *   appData           — consumido desde AppDataContext (ARCH-5), ya no es prop
+ *   appData           — consumido desde AppDataContext (ARCH-8), ya no es prop
  *   horariosFilters   — resultado de useHorariosFilters
  *   permisos
  *   profile
@@ -90,7 +90,7 @@ export default function HorariosLayout({
   userMenuOpen, setUserMenuOpen,
   cambiarPwdOpen, setCambiarPwdOpen,
   fileRef, backupRef,
-  // Datos y auth (appData viene de AppDataContext — ARCH-5)
+  // Datos y auth (appData viene de AppDataContext — ARCH-8)
   horariosFilters,
   permisos,
   profile,
@@ -119,7 +119,7 @@ export default function HorariosLayout({
         />
       )}
 
-      {/* Fix ARCH-7/U-6: fallback=null a propósito — el componente ya
+      {/* Fix ARCH-10/UX-7: fallback=null a propósito — el componente ya
           retorna null cuando `open` es false, así que mientras carga su
           chunk no debe verse ningún spinner donde normalmente no hay nada */}
       <Suspense fallback={null}>

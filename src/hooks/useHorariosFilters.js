@@ -27,7 +27,7 @@ export default function useHorariosFilters(data = []) {
     setSelectedSeccion("all"); // resetear sección al cambiar trayecto
   };
 
-  // A-4: al cambiar lapso desde App.jsx, los filtros del lapso anterior
+  // ARCH-4: al cambiar lapso desde App.jsx, los filtros del lapso anterior
   // pueden no existir en el nuevo lapso → resetear todo para evitar
   // que `filtered` quede vacío sin aviso al usuario.
   const resetFilters = () => {

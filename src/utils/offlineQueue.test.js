@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =====================================================================
-// offlineQueue.test.js — ARCH-4: cobertura de tests para la cola
+// offlineQueue.test.js — ARCH-7: cobertura de tests para la cola
 // offline de asistencias.
 //
 // offlineQueue.js es la capa de persistencia crítica del módulo QR:
@@ -165,7 +165,7 @@ describe("purgarExpirados", () => {
 
   // Helper: insertar un registro con timestamp personalizado directamente en IDB.
   //
-  // Fix A1 (auditoría 2026-06-30): antes este helper abría la base con
+  // Fix ARCH-1 (auditoría 2026-06-30): antes este helper abría la base con
   // `indexedDB.open(DB_NAME, 1)` — la versión histórica de offlineQueue.js —
   // y dejaba esa conexión sin cerrar. Ahora que la apertura está unificada
   // en idb.js (versión 6), esa conexión "vieja" bloqueaba indefinidamente

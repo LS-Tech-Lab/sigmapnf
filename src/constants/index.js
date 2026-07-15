@@ -36,10 +36,10 @@ export const TRAYECTO_BG = {
   "4-1": "#ECFDF5", "4-2": "#D1FAE5", "4-3": "#A7F3D0",
 };
 
-// Fix A3/S3 (auditoría QA 5/jul/2026, fases 1-2): antes, cada componente que
+// Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, fases 1-2): antes, cada componente que
 // pintaba color por trayecto leía TRAYECTO_BG/TRAYECTO_COLORS e inyectaba el
 // valor vía style={{...}} inline — bloqueaba poder quitar 'unsafe-inline' de
-// la CSP (S3). Como el dominio es fijo (13 trayectos, hardcodeados arriba,
+// la CSP (SEC-3). Como el dominio es fijo (13 trayectos, hardcodeados arriba,
 // nunca cambian en runtime), se puede resolver con clases CSS fijas en vez
 // de estilo inline. trayectoClass() devuelve el sufijo de clase; las 13
 // combinaciones (--trayecto-bg/--trayecto-color/--tag-bg/--tag-color/
@@ -77,7 +77,7 @@ export const ROL_SIDEBAR = {
   operador_qr:    { label: "Operador QR",    color: "#34D399" },
 };
 
-// Fix A3/S3 Fase 3 (auditoría QA 5/jul/2026): el color de rol combina dos
+// Fix UX-5/SEC-3 Fase 3 (auditoría QA 5/jul/2026): el color de rol combina dos
 // dominios fijos — los 5 de ROL_SIDEBAR (arriba, roles del sistema) y los
 // 10 de COLORES_PRESET (usuarios/shared.jsx, roles personalizados vía
 // ModalRol). Juntos son 14 valores únicos conocidos, no un color arbitrario
@@ -108,13 +108,13 @@ export function roleColorClass(color) {
   return `role-color--${ROLE_COLOR_SLUGS[key] || "default"}`;
 }
 
-// Fix A3/S3 Fase 4 (auditoría QA 5/jul/2026): a diferencia de trayecto/rol/
+// Fix UX-5/SEC-3 Fase 4 (auditoría QA 5/jul/2026): a diferencia de trayecto/rol/
 // configs (dominios ya fijos), el % de una barra de progreso es un valor
 // REALMENTE continuo (0-100, cualquier decimal) — no hay forma de
 // enumerarlo sin perder precisión. Se decidió bucketizar a incrementos de
 // 5% (21 clases fijas .w-pct-0 … .w-pct-100 en index.css) en vez de dejarlo
 // inline permanentemente. Pierde precisión visual (±2.5% en el peor caso),
-// gana el cierre completo de S3 para este tipo de dato.
+// gana el cierre completo de SEC-3 para este tipo de dato.
 // Afecta: ResumenView.jsx, ReporteRango.jsx, AdminQRPanel.jsx.
 export function pctClass(pct) {
   const n = Number.isFinite(pct) ? pct : 0;
@@ -128,7 +128,7 @@ export function pctClass(pct) {
 // objeto S" al final de src/index.css (.s-card, .s-th, .s-td, .s-input,
 // .s-select, .s-btn, .s-badge). Si cambias un valor aquí, replica el
 // cambio allá — algunos .jsx ya migraron a las clases CSS y otros aún
-// usan este objeto directamente (migración en curso, A3 fase 4).
+// usan este objeto directamente (migración en curso, UX-5 fase 4).
 export const S = {
   card: { background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", boxShadow: "0 1px 2px rgba(15,23,42,0.04)", overflow: "hidden" },
   th: { padding: "11px 14px", fontSize: 11, fontWeight: 700, color: "#475569", textAlign: "left", borderBottom: "1px solid #E2E8F0", background: "#F8FAFC", textTransform: "uppercase", letterSpacing: "0.06em" },

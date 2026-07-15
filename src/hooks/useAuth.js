@@ -71,7 +71,7 @@ export function calcularPermisos(profile) {
 // Se cancela y reinicia con cada evento de mouse, teclado o touch.
 // onTimeout debe ser estable (useCallback) para evitar re-registros.
 //
-// Fix SEC-12 (reportado por LS 10-jul-2026): el timer anterior vivía
+// Fix SEC-21 (reportado por LS 10-jul-2026): el timer anterior vivía
 // solo en memoria del componente. Cerrar la pestaña/navegador y
 // reabrirla — aunque hubieran pasado días — reiniciaba el conteo
 // desde cero, así que una sesión nunca se veía cerrar sola en ese
@@ -145,7 +145,7 @@ function useIdleTimeout(timeoutMs, onTimeout, enabled) {
   }, [timeoutMs, enabled]);
 }
 
-// ── Time-box absoluto de sesión (Fix SEC-12 — 10-jul-2026) ────────────
+// ── Time-box absoluto de sesión (Fix SEC-21 — 10-jul-2026) ────────────
 // Cierra la sesión a las TIME_BOX_MS desde el login, sin importar
 // actividad. Mantener sincronizado con v_time_box en
 // 0053_limpieza_sesiones_expiradas.sql (10h — jornada laboral de SIGMA).

@@ -1,6 +1,6 @@
 // idb.js
 // ─────────────────────────────────────────────────────────────────────────────
-// Fix A1 (auditoría SIGMA PNF 2026-06-30): punto ÚNICO de apertura de la
+// Fix ARCH-1 (auditoría SIGMA PNF 2026-06-30): punto ÚNICO de apertura de la
 // base de datos IndexedDB compartida 'sigma_offline'.
 //
 // Antes de este fix, tres módulos abrían la misma base cada uno con su

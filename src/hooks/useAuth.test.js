@@ -1,5 +1,5 @@
 // =====================================================================
-// useAuth.test.js — ARCH-4: cobertura de tests para lógica crítica
+// useAuth.test.js — ARCH-7: cobertura de tests para lógica crítica
 // de autenticación y autorización.
 //
 // calcularPermisos() es la función pura que transforma el perfil del

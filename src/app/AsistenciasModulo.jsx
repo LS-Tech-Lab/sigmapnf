@@ -83,7 +83,7 @@ export default function AsistenciasModulo({
     };
   }, [subView]);
 
-  // V-3 fix: filtrar pestañas según permisos individuales.
+  // PERM-1 fix: filtrar pestañas según permisos individuales.
   // Antes todas las pestañas eran accesibles a cualquier usuario que
   // llegara al módulo, sin verificar puedeGestionarQR / puedeVerReporteAsistencias.
   const TABS = [

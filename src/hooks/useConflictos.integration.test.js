@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =====================================================================
-// useConflictos.integration.test.js — ARCH-5 (auditoría julio 2026):
+// useConflictos.integration.test.js — ARCH-8 (auditoría julio 2026):
 // cobertura de FLUJO, no solo de función pura.
 //
 // conflictos.test.js ya cubre calcularConflictosLocal() como función

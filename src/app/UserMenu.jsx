@@ -117,7 +117,7 @@ export default function UserMenu({
   );
 }
 
-// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// Fix ARCH-20 (auditoría 12 de julio): PropTypes agregado como contrato de
 // props — no cambia comportamiento. `profile` refleja los campos que este
 // archivo lee (`nombre`, `email`, `programa`); `sessionStart` puede ser
 // `null` (ver comentario de prop original: "Date | null — expuesto por

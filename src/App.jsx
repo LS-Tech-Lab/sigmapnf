@@ -13,7 +13,7 @@ import DocenteScan from "./components/asistencias/DocenteScan";
 import { getCurrentLapso } from "./utils/lapso";
 import { supabase, supabaseConfigError } from "./lib/supabase";
 
-// Context de datos (ARCH-5)
+// Context de datos (ARCH-8)
 import { AppDataProvider } from "./context/AppDataContext";
 
 // Layouts extraídos (P4)
@@ -168,7 +168,7 @@ export default function App() {
   const handleCambiarLapso = useCallback((nuevo) => {
     setLapso(nuevo);
     setView("resumen");
-    // A-4: resetear filtros al cambiar lapso — evita que quede una
+    // ARCH-4: resetear filtros al cambiar lapso — evita que quede una
     // sección/trayecto del lapso anterior que no exista en el nuevo.
     horariosFilters.resetFilters();
   }, [horariosFilters.resetFilters]);
@@ -344,7 +344,7 @@ export default function App() {
         userMenuOpen={shell.userMenuOpen} setUserMenuOpen={shell.setUserMenuOpen}
         cambiarPwdOpen={shell.cambiarPwdOpen} setCambiarPwdOpen={shell.setCambiarPwdOpen}
         fileRef={fileRef} backupRef={backupRef}
-        // Datos y auth (appData ahora via AppDataContext — ARCH-5)
+        // Datos y auth (appData ahora via AppDataContext — ARCH-8)
         horariosFilters={horariosFilters}
         permisos={efectivePermisos}
         profile={efectiveProfile}

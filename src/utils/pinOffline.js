@@ -21,7 +21,7 @@ import { abrirDBCompartida } from './idb';
 const STORE = 'pin_offline';
 const LOCKOUT_STORE = 'pin_lockout';
 
-// Fix A1 (auditoría 2026-06-30): la apertura de la base 'sigma_offline'
+// Fix ARCH-1 (auditoría 2026-06-30): la apertura de la base 'sigma_offline'
 // ahora vive centralizada en idb.js (DB_VER 6, con todos los stores
 // declarados en un único onupgradeneeded), para evitar el VersionError
 // que se producía cuando este módulo (antes v6) abría la base antes que
@@ -167,7 +167,7 @@ export async function tienePinOffline(userId) {
   }
 }
 
-// ── Fix O-8: lockout en IDB (resiste tabs privadas) ───────────────────────────
+// ── Fix OFF-6: lockout en IDB (resiste tabs privadas) ───────────────────────────
 
 const PIN_MAX_ATTEMPTS = 5;
 const PIN_LOCKOUT_MS   = 5 * 60 * 1000; // 5 minutos
@@ -235,7 +235,7 @@ export async function limpiarLockoutIDB(userId) {
   } catch { /* no crítico */ }
 }
 
-// ── SEC-5: lockout del login normal en IDB ────────────────────────────────────
+// ── SEC-6: lockout del login normal en IDB ────────────────────────────────────
 // Reemplaza los helpers de localStorage (LOCKOUT_STORAGE_KEY / ATTEMPTS_STORAGE_KEY)
 // con el mismo patrón IDB ya usado para el PIN. Keyed por email (string).
 

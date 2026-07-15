@@ -1,6 +1,6 @@
 // Capa de caché IndexedDB para reportes de asistencias.
 //
-// Fix A1 (auditoría 2026-06-30): la apertura de la base 'sigma_offline'
+// Fix ARCH-1 (auditoría 2026-06-30): la apertura de la base 'sigma_offline'
 // ahora vive centralizada en idb.js (DB_VER 6, con todos los stores —
 // incluidos los de offlineQueue.js y pinOffline.js — declarados en un
 // único onupgradeneeded). Esto evita el VersionError que se producía

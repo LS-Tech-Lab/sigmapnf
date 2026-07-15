@@ -1,5 +1,5 @@
 // useFocusTrap.js
-// U-3: hook reutilizable que atrapa el foco de teclado dentro de un modal
+// UX-3: hook reutilizable que atrapa el foco de teclado dentro de un modal
 // mientras está abierto. Generaliza el patrón que ya usaba ConfirmModal
 // (useEffect + document.addEventListener) agregando el manejo de Tab /
 // Shift+Tab para que el foco no escape al contenido detrás del overlay.

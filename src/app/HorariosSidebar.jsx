@@ -1,6 +1,6 @@
 // Sidebar del módulo Horarios: marca, trimestre activo, selector de programa,
 // navegación, dropdown de administración y lógica de expansión/colapso
-// (hover, pin, apertura móvil). Extraído de HorariosLayout.jsx (ARCH-8).
+// (hover, pin, apertura móvil). Extraído de HorariosLayout.jsx (ARCH-11).
 import { useAppDataContext } from "../context/AppDataContext";
 import { getCurrentLapso, formatLapso } from "../utils/lapso";
 import buildNavGroups from "./buildNavGroups";

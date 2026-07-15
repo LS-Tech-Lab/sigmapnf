@@ -17,7 +17,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 
-// ── Fix O-1 / O-4: exponer estado de red para que AdminQRPanel y
+// ── Fix OFF-1 / OFF-4: exponer estado de red para que AdminQRPanel y
 // QRProyeccion muestren un banner cuando no hay conexión.
 
 const TTL_MINUTES = 5;
@@ -54,7 +54,7 @@ export default function useQRSession() {
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState(null);
   const [activa,     setActiva]     = useState(false);
-  // Fix O-1: exponer estado de red al exterior
+  // Fix OFF-1: exponer estado de red al exterior
   const [isOffline,  setIsOffline]  = useState(!navigator.onLine);
 
   const renewTimerRef  = useRef(null);
@@ -209,7 +209,7 @@ export default function useQRSession() {
       .then(({ count }) => { if (!cancelado) scanCountRef.current = count || 0; });
 
     scanPollRef.current = setInterval(async () => {
-      // Fix O-4: no hacer queries si no hay conexión
+      // Fix OFF-4: no hacer queries si no hay conexión
       if (!navigator.onLine) return;
 
       const { count } = await supabase
@@ -284,7 +284,7 @@ export default function useQRSession() {
     setActiva(false);
   }, [sessionId, limpiarIntervalos]);
 
-  // ── Fix O-1: detectar online/offline y gestionar renovación automática ───
+  // ── Fix OFF-1: detectar online/offline y gestionar renovación automática ───
   useEffect(() => {
     const goOffline = () => {
       setIsOffline(true);
@@ -316,7 +316,7 @@ export default function useQRSession() {
   useEffect(() => () => limpiarIntervalos(), [limpiarIntervalos]);
 
   // ── Recuperar sesión activa al montar (ej. tras recargar la página) ───────
-  // A-4: con AbortController para poder cancelar esta consulta si el
+  // ARCH-4: con AbortController para poder cancelar esta consulta si el
   // componente se desmonta antes de que responda (o si para entonces ya se
   // creó una sesión manualmente, ver guardia `activa` más abajo).
   useEffect(() => {
@@ -334,7 +334,7 @@ export default function useQRSession() {
           .abortSignal(controller.signal)
           .maybeSingle();
 
-        // A-4: si se abortó (desmonte) o mientras tanto ya se creó/activó
+        // ARCH-4: si se abortó (desmonte) o mientras tanto ya se creó/activó
         // una sesión por otra vía, descartar este resultado para no pisarla.
         if (controller.signal.aborted || activa) return;
         if (!data) return;
