@@ -1,5 +1,7 @@
 // Menú desplegable de administración del sidebar: cargar/exportar/restaurar
-// backup, borrar datos del trimestre y estado de conexión.
+// backup, borrar datos del trimestre y conteo de registros. El estado de
+// conexión se movió al sidebar (Fix UX-21, auditoría 14 de julio) — ver
+// HorariosSidebar.jsx.
 // Extraído de App.jsx.
 import { useEffect, useRef } from "react";
 import { useAppDataContext } from "../context/AppDataContext";
@@ -61,23 +63,14 @@ function AdminMenu({ onClose, modoConsulta, fileRef, backupRef, permisos }) {
         </>
       )}
 
-      <div className="admin-divider" />
-
-      {/* Estado de conexión */}
-      <div className="am-status-row">
-        <span className={`am-status-dot ${appData.isOffline ? "am-status-dot--offline" : ""}`} />
-        <span className={`am-status-text ${appData.isOffline ? "am-status-text--offline" : ""}`}>
-          {appData.isOffline ? "Sin conexión" : "En línea"}
-        </span>
-        {appData.data.length > 0 && (
-          <span className="am-status-count">
-            {appData.data.length} registros
-          </span>
-        )}
-      </div>
-      <div className="am-last-sync">
-        Últ. sync: {appData.lastSync}
-      </div>
+      {appData.data.length > 0 && (
+        <>
+          <div className="admin-divider" />
+          <div className="am-status-row">
+            <span className="am-status-count">{appData.data.length} registros</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }
