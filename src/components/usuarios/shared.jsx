@@ -43,6 +43,8 @@ export const GRUPOS_PERMISOS = [
     items: [
       { key: "puedeGestionarQR",          label: "Gestionar QR",              desc: "Abrir sesiones QR, ver proyección, cerrar sesiones" },
       { key: "puedeVerReporteAsistencias", label: "Ver reporte de asistencias", desc: "Consultar y exportar el historial de asistencias" },
+      { key: "puedeBorrarSesiones",       label: "Borrar sesiones",           desc: "Eliminar sesiones QR ya cerradas del historial" },
+      { key: "puedeBorrarReportes",       label: "Borrar reportes",           desc: "Eliminar registros de asistencia en el reporte por rango" },
     ],
   },
   {
