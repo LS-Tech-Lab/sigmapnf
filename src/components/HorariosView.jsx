@@ -16,17 +16,15 @@ export default function HorariosView({
   allTrayectos,
   conflicts, onGoDocente,
   initialTab, onConsumeInitialTab,
-  // Nota (ARCH-19/UX-14, 12 de julio): a diferencia de `DocentesView`/
-  // `MateriasView` (que sí leen `modoConsulta` para mostrar su banner de
-  // solo-lectura), este componente lo recibe pero no lo usa en ningún
-  // lado del cuerpo. No se retira la prop ni se le agrega comportamiento
-  // en este fix — no está claro si nunca se conectó a `TurnoGrid` (que
-  // hoy no tiene ningún mecanismo de solo-lectura ni de edición in-line,
-  // solo expandir celda) o si el "editar horarios" de
-  // `puedeEditarHorarios` vive en otro lado. Ver `UX-14` en
-  // docs/AUDITORIA_INDICE.md — queda para revisión de producto.
-  // eslint-disable-next-line no-unused-vars
+  // UX-14 (implementado 15 de julio): mismo patrón que `DocentesView`/
+  // `MateriasView` — `modoConsulta` solo controla el banner de solo-lectura
+  // de acá abajo. La capacidad real de editar/borrar se gatea aparte, por
+  // permiso, vía `puedeEditar`/`puedeBorrar` (null cuando no se tiene el
+  // permiso — ver HorariosLayout.jsx), igual que `onSaveDocenteName` en
+  // `DocentesView`.
   modoConsulta,
+  lapso,
+  puedeEditar, puedeBorrar, onSaveClase, onDeleteClase, openConfirm, closeConfirm,
 }) {
   const [tab, setTab] = useState('horarios');
 
@@ -48,6 +46,14 @@ export default function HorariosView({
 
   return (
     <div className="hv-root">
+      {modoConsulta && (
+        <div className="hv-modo-banner">
+          <i className="ti ti-archive hv-modo-icon" aria-hidden="true" />
+          <span className="hv-modo-text">
+            Modo consulta — trimestre {lapso} (solo lectura)
+          </span>
+        </div>
+      )}
       {/* ── Tabs + filtros ── */}
       <div className="hv-filters">
         <div className={`hv-filters-row${tab === 'conflictos' ? ' hv-filters-row--conflictos' : ''}`}>
@@ -91,8 +97,8 @@ export default function HorariosView({
       <div className={`hv-content${tab === 'conflictos' ? ' hv-content--conflictos' : ''}`}>
         {tab === 'horarios' && (
           <>
-            {fd.length > 0 && <TurnoGrid bloques={BLOQUES_DIURNO} turnoLabel="DIURNO" filtered={fd} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} />}
-            {fv.length > 0 && <TurnoGrid bloques={BLOQUES_VESPERTINO} turnoLabel="VESPERTINO" filtered={fv} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} />}
+            {fd.length > 0 && <TurnoGrid bloques={BLOQUES_DIURNO} turnoLabel="DIURNO" filtered={fd} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
+            {fv.length > 0 && <TurnoGrid bloques={BLOQUES_VESPERTINO} turnoLabel="VESPERTINO" filtered={fv} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
             {(filtered.length === 0 || (fd.length === 0 && fv.length === 0)) && <div className="s-card s-empty-state">No hay clases para los filtros seleccionados.</div>}
           </>
         )}

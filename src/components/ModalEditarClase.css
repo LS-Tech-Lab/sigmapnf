@@ -1,0 +1,85 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   ModalEditarClase.css (UX-14)
+   Mismo criterio de tokens que ConfirmModal.css — sin valores nuevos fuera
+   del sistema salvo los ya usados como literales en otros modales.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.mec-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+
+.mec-modal {
+  background: var(--color-background-primary);
+  border-radius: 12px;
+  padding: 24px 28px;
+  max-width: 440px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.mec-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+
+.mec-icon { font-size: var(--font-size-22); color: var(--brand-500); }
+
+.mec-title {
+  margin: 0; font-size: var(--font-size-16); font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.mec-error {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--color-danger);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: var(--font-size-13);
+  margin-bottom: 14px;
+}
+
+.mec-field {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mec-field label {
+  font-size: var(--font-size-13);
+  font-weight: 600;
+  color: var(--navy-700);
+}
+
+.mec-hint {
+  margin: 2px 0 0;
+  font-size: var(--font-size-12);
+  color: #6B7280;
+  line-height: 1.4;
+}
+
+.mec-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 20px;
+}
+
+.mec-actions-right {
+  display: flex; gap: 10px;
+}
+
+.mec-btn {
+  padding: 9px 20px; border-radius: 8px; font-size: var(--font-size-13); font-weight: 600;
+  cursor: pointer; border: none;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+
+.mec-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.mec-btn--cancel  { background: var(--color-background-tertiary); color: var(--navy-700); }
+.mec-btn--primary { background: var(--brand-500); color: #fff; }
+.mec-btn--danger  { background: var(--color-danger); color: #fff; }

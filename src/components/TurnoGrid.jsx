@@ -1,11 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { trayectoClass } from '../constants';
 import { getTurnoDeRegistro, findStartBlock } from '../utils/turno';
 import { countBlocks, getHoraDisplayDeRegistro } from '../utils/time';
 import { parseClase } from '../utils/parsing';
+import ModalEditarClase from './ModalEditarClase';
 import './TurnoGrid.css';
 
-export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expandedCell, setExpandedCell, getDocName, getMateriaName }) {
+// UX-14: puedeEditar/puedeBorrar/onSaveClase/onDeleteClase/openConfirm/
+// closeConfirm son opcionales — si no llegan (vista de solo lectura o sin
+// permiso), la grilla se comporta exactamente igual que antes: solo
+// expandir/colapsar el detalle de la celda, sin botones de edición.
+export default function TurnoGrid({
+  bloques, turnoLabel, filtered, days, expandedCell, setExpandedCell, getDocName, getMateriaName,
+  puedeEditar, puedeBorrar, onSaveClase, onDeleteClase, openConfirm, closeConfirm,
+}) {
+  const [editingEntry, setEditingEntry] = useState(null);
   const cellMap = useMemo(() => {
     if (!days || !bloques || !filtered) return {};
     const map = {};
@@ -97,6 +106,15 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
                                   <div className="tg-clase-detail-row"><i className="ti ti-folder" aria-hidden="true" /> {e.sheet.trim()} · T.{e.trayecto}</div>
                                   <div className="tg-clase-detail-row"><i className="ti ti-clock" aria-hidden="true" /> {getHoraDisplayDeRegistro(e)}</div>
                                   <div className="tg-clase-detail-row"><i className="ti ti-door" aria-hidden="true" /> {e.aula || "Sin aula"}</div>
+                                  {(puedeEditar || puedeBorrar) && (
+                                    <button
+                                      type="button"
+                                      className="tg-clase-edit-btn"
+                                      onClick={ev => { ev.stopPropagation(); setEditingEntry(e); }}
+                                    >
+                                      <i className="ti ti-edit" aria-hidden="true" /> Editar
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -112,6 +130,19 @@ export default function TurnoGrid({ bloques, turnoLabel, filtered, days, expande
           </tbody>
         </table>
       </div>
+      {(puedeEditar || puedeBorrar) && (
+        <ModalEditarClase
+          open={!!editingEntry}
+          entry={editingEntry}
+          puedeEditar={puedeEditar}
+          puedeBorrar={puedeBorrar}
+          onSave={onSaveClase}
+          onDelete={onDeleteClase}
+          onClose={() => setEditingEntry(null)}
+          openConfirm={openConfirm}
+          closeConfirm={closeConfirm}
+        />
+      )}
     </div>
   );
 }

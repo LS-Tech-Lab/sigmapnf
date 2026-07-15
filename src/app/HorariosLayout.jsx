@@ -227,7 +227,14 @@ export default function HorariosLayout({
                 onGoDocente={(d) => { setDocenteNav(d); setView("docentes"); }}
                 initialTab={horariosTab}
                 onConsumeInitialTab={() => setHorariosTab(null)}
-                modoConsulta={modoConsulta || !permisos.puedeEditarHorarios}
+                modoConsulta={modoConsulta}
+                lapso={lapso}
+                puedeEditar={permisos.puedeEditarHorarios}
+                puedeBorrar={permisos.puedeBorrarHorarios}
+                onSaveClase={permisos.puedeEditarHorarios ? appData.saveClase : null}
+                onDeleteClase={permisos.puedeBorrarHorarios ? appData.deleteClase : null}
+                openConfirm={appData.openConfirm}
+                closeConfirm={appData.closeConfirm}
               />
             </Suspense>
           )}

@@ -26,6 +26,7 @@ import useNombresCache from "./useNombresCache";
 import useDataSync from "./useDataSync";
 import useUpload from "./useUpload";
 import { createNameEditingActions } from "./nameEditing";
+import { createHorarioEditingActions } from "./horarioEditing";
 import { createBackupActions } from "./backupActions";
 
 export default function useAppData(lapso, logAudit = null, userId = null) {
@@ -79,6 +80,11 @@ export default function useAppData(lapso, logAudit = null, userId = null) {
     return res;
   }, [saveDocenteCedulaBase, setDocenteCedulas]);
 
+  // UX-14: edición/borrado in-line de bloques de horario desde TurnoGrid.
+  const { saveClase, deleteClase } = createHorarioEditingActions({
+    logAudit, showToast, fetchHorarios, selectedPrograma,
+  });
+
   const { uploading, setUploading, handleFileUpload, previewData, cancelPreview, confirmPreview } = useUpload({
     lapso, selectedPrograma, showToast, setError,
     fetchHorarios, fetchProgramas, fetchDocenteNames, fetchMateriaNames, invalidarCacheDocentes,
@@ -108,6 +114,7 @@ export default function useAppData(lapso, logAudit = null, userId = null) {
     handleFileUpload, exportarDatos, importarDatos, clearAllData,
     previewData, cancelPreview, confirmPreview,
     saveDocenteName, saveDocenteCedula, saveMateriaName, getDocName, getDocCedula, getDocCedulaFuente, getMateriaName,
+    saveClase, deleteClase,
     logAudit,
   };
 }
