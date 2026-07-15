@@ -60,6 +60,19 @@ export default function HorariosTopbar({
         <i className="ti ti-menu-2" aria-hidden="true" />
       </button>
 
+      {/* Fix U-13/ARCH-19 (auditoría 14 de julio): "Cambiar módulo" estaba
+          enterrado en el dropdown de UserMenu, inconsistente con Asistencias
+          donde es un botón visible del topbar. Unificado: mismo patrón,
+          misma clase (.topbar-back-btn), mismo lugar en ambos módulos. */}
+      {tieneHorarios && tieneQR && (
+        <button
+          onClick={onCambiarModulo}
+          className="topbar-back-btn"
+        >
+          <i className="ti ti-arrow-left" aria-hidden="true" /> Módulos
+        </button>
+      )}
+
       <div className="hl-search-wrap">
         <GlobalSearch
           onNavigate={handleNavigate}
@@ -79,9 +92,6 @@ export default function HorariosTopbar({
         onClose={() => setUserMenuOpen(false)}
         onCambiarPassword={() => setCambiarPwdOpen(true)}
         onLogout={handleLogout}
-        tieneHorarios={tieneHorarios}
-        tieneQR={tieneQR}
-        onCambiarModulo={onCambiarModulo}
       />
 
       {appData.isSyncing && (
