@@ -5,7 +5,7 @@
  * Props:
  *   usuario      — objeto usuario existente (null/undefined = modo "nuevo")
  *   esActorAdmin — true si quien usa el modal tiene rol === "admin"
- *                  (SEC-10/migración 0050). Con false, "admin" se oculta
+ *                  (SEC-15/migración 0050). Con false, "admin" se oculta
  *                  del selector de rol — el backend ya lo rechazaría,
  *                  esto solo evita que alguien llegue a ese error. Por
  *                  diseño, PestanaUsuarios ya bloquea el botón "Editar"
@@ -266,7 +266,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
   );
 }
 
-// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// Fix ARCH-20 (auditoría 12 de julio): PropTypes agregado como contrato de
 // props — no cambia comportamiento. El shape de `usuario`/`roles` refleja
 // exactamente los campos que este archivo lee (ver uso de `usuario?.email`,
 // `r.nombre`/`r.label`/`r.emoji`/`r.restringe_programa` arriba); `programas`

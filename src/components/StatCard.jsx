@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-// Fix A3/S3 (auditoría QA 5/jul/2026, Fase 2): antes recibía un `color`
+// Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, Fase 2): antes recibía un `color`
 // arbitrario e inyectaba `--stat-bg`/`--stat-color` vía style inline. Los 8
 // usos reales en todo el repo (ResumenView, DocentesView) solo pasan uno de
 // 7 colores fijos — se reemplaza por `variant` + clases en index.css.
@@ -22,7 +22,7 @@ export default function StatCard({ label, value, icon, variant = "brand" }) {
   );
 }
 
-// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// Fix ARCH-20 (auditoría 12 de julio): PropTypes agregado como contrato de
 // props — no cambia comportamiento. `value` acepta string o number: se usa
 // tanto para conteos (number) como para valores ya formateados (string) en
 // los 8 usos reales (ResumenView, DocentesView). `variant` restringido a

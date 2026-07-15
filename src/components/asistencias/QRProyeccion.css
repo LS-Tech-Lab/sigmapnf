@@ -1,13 +1,13 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    QRProyeccion.css
-   Fix A3/S3 + ARCH-6 (5/jul/2026): antes vivía como un template literal
+   Fix UX-5/SEC-3 + ARCH-9 (5/jul/2026): antes vivía como un template literal
    (`const CSS`) inyectado vía <style>{CSS}</style> en runtime — dos veces
    en el mismo componente. Un <style> con contenido dinámico en el DOM
    también requiere 'unsafe-inline' en style-src (igual que un atributo
-   style), así que bloqueaba S3 tanto como cualquier otro estilo inline.
+   style), así que bloqueaba SEC-3 tanto como cualquier otro estilo inline.
    Como el contenido siempre fue 100% estático (sin interpolación ${...}),
    se extrajo a un archivo CSS real e importado normalmente — cierra ese
-   hueco de S3 y, de paso, resuelve ARCH-6: el template literal tenía el
+   hueco de SEC-3 y, de paso, resuelve ARCH-9: el template literal tenía el
    stylesheet completo duplicado dos veces seguidas (~315 líneas cada
    copia); la primera era una versión vieja e incompleta que quedaba
    pisada por la segunda solo por cascada CSS (mismo selector, misma
@@ -337,7 +337,7 @@
   /* ── Animaciones ── */
   @keyframes qrpPulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
 
-  /* Fix O-3: pill de red caída en topbar */
+  /* Fix OFF-3: pill de red caída en topbar */
   .qrp-topbar-offline-pill {
     font-size: var(--font-size-11);
     font-weight: 700;
@@ -357,7 +357,7 @@
     animation: qrpOfflinePulse 2s ease-in-out infinite !important;
   }
 
-  /* Fix O-3: banner de alerta grande visible para docentes en el aula */
+  /* Fix OFF-3: banner de alerta grande visible para docentes en el aula */
   .qrp-offline-banner {
     display: flex;
     align-items: flex-start;
@@ -379,7 +379,7 @@
   }
 
   /* ── Responsive via CSS — elimina useState(window.innerWidth) ──────────────
-     Fix U-11 (auditoría 12 de julio): estas reglas vivían en src/index.css
+     Fix UX-12 (auditoría 12 de julio): estas reglas vivían en src/index.css
      en vez de en este archivo — movidas aquí sin cambiar ninguna regla ni
      su orden relativo, solo el archivo donde viven. Los estados isMobile/
      isTablet que tenía el componente originalmente se controlan aquí con

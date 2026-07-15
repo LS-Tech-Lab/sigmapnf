@@ -1,7 +1,7 @@
 import React from "react";
 import { TURNOS_CONFIG } from "../../../constants";
 
-// Fix ARCH-15 (auditoría 12 de julio): extraído de AdminQRPanel.jsx
+// Fix ARCH-18 (auditoría 12 de julio): extraído de AdminQRPanel.jsx
 // (dentro de HistorialSesiones) sin cambios de lógica — es puramente
 // presentacional. El estado (confirmBorrar, borrando) y el handler
 // (handleBorrar) siguen viviendo en HistorialSesiones.jsx, que los pasa

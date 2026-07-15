@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =====================================================================
-// DocenteScan.flow.test.jsx — ARCH-5 (auditoría julio 2026, continuación):
+// DocenteScan.flow.test.jsx — ARCH-8 (auditoría julio 2026, continuación):
 //
 // F3 pedía pruebas de "flujo de usuario completo", no solo funciones
 // puras u orquestación de hooks. Este archivo cubre el flujo real que
@@ -10,10 +10,10 @@
 // subcomponentes — solo se mockea el cliente de Supabase.
 //
 // Nota: se usa getByLabelText (el método recomendado por Testing Library,
-// que imita cómo un lector de pantalla encuentra el campo) ahora que U-4
+// que imita cómo un lector de pantalla encuentra el campo) ahora que UX-4
 // está corregido — Campo.jsx asocia label/input vía useId(). Antes de ese
 // fix este archivo usaba getByPlaceholderText como workaround; se dejó de
-// usar en cuanto U-4 se cerró, precisamente para que este test sirviera de
+// usar en cuanto UX-4 se cerró, precisamente para que este test sirviera de
 // guardia contra que alguien rompa esa asociación en el futuro.
 //
 // No se usa @testing-library/jest-dom (no está en las dependencias del

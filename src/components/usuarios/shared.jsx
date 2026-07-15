@@ -60,7 +60,7 @@ export const GRUPOS_PERMISOS = [
 export const TODOS_LOS_PERMISOS = GRUPOS_PERMISOS.flatMap(g => g.items.map(i => i.key));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-// hex2rgba() se eliminó (5/jul/2026, cierre de S3): era la última fuente de
+// hex2rgba() se eliminó (5/jul/2026, cierre de SEC-3): era la última fuente de
 // color arbitrario en tiempo de ejecución (recibía form.color/r.color, un
 // hex libre); con el <input type="color"> quitado de ModalRol.jsx y
 // roleColorClass() cubriendo los 10 COLORES_PRESET con clases fijas, ya no

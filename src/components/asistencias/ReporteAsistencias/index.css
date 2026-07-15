@@ -1,13 +1,13 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    ReporteAsistencias/index.css
-   Migración A3 (auditoría 2026-07-02): estilos extraídos de index.jsx.
+   Migración UX-5 (auditoría 2026-07-02): estilos extraídos de index.jsx.
    Reutiliza .s-card / .s-th / .s-td / .s-input / .s-select (src/index.css).
    Incluye @keyframes shimmer (antes inyectado con una etiqueta <style> inline
    duplicada en index.jsx, ReporteRango.jsx y VistaAusentes.jsx). Al ser un
    @keyframes global, definirlo una vez aquí es suficiente para las tres
    vistas — las otras dos etiquetas <style> inline se retiran cuando les
    toque su propia pasada de migración, sin romper nada mientras tanto.
-   Fix A3/S3 Fase 2 (auditoría QA 2026-07-05): --skeleton-width (ancho fijo
+   Fix UX-5/SEC-3 Fase 2 (auditoría QA 2026-07-05): --skeleton-width (ancho fijo
    por índice de columna, no por dato) y el color de las 4 stat cards
    (literales en el propio array, no derivados de datos) ya no van vía
    style inline — ver .ra-table--fecha/--rango nth-child, .ra-stat-card--*
@@ -70,7 +70,7 @@
 .ra-stat-card { border-radius: 10px; padding: 14px 16px; }
 .ra-stat-value { font-size: var(--font-size-22); font-weight: 800; }
 .ra-stat-label { font-size: var(--font-size-12); color: #64748B; margin-top: 2px; font-weight: 500; }
-/* Fix A3 Fase 2: valores fijos hardcodeados en el propio array, sin
+/* Fix UX-5 Fase 2: valores fijos hardcodeados en el propio array, sin
    depender de ningún dato — antes se leían via style inline. */
 .ra-stat-card--docentes { background: #EFF6FF; border: 1px solid #2563EB22; }
 .ra-stat-card--dias      { background: #ECFDF5; border: 1px solid #05966922; }

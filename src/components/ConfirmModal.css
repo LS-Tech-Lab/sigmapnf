@@ -1,8 +1,8 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    ConfirmModal.css
-   Estilos extraídos de ConfirmModal.jsx (A3, auditoría 2026-06-30).
+   Estilos extraídos de ConfirmModal.jsx (UX-5, auditoría 2026-06-30).
    Migración incremental de estilos en línea a clases + tokens del sistema,
-   siguiendo el mismo patrón ya aplicado en AdminQRPanel.css (U-1).
+   siguiendo el mismo patrón ya aplicado en AdminQRPanel.css (UX-1).
    Los valores hexadecimales sin token equivalente exacto se conservan
    literales para no alterar la apariencia visual existente.
    ────────────────────────────────────────────────────────────────────────────── */

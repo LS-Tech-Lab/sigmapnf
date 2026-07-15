@@ -7,7 +7,7 @@
  * Props:
  *   permisos     — objeto de permisos del usuario actual
  *   esActorAdmin — true si el usuario actual tiene rol === "admin"
- *                  (jerarquía fija de SEC-10/migración 0050). Se usa
+ *                  (jerarquía fija de SEC-15/migración 0050). Se usa
  *                  para reflejar en la UI la misma regla que el backend
  *                  ya aplica: bloquear editar/desactivar/eliminar sobre
  *                  una fila admin, y ocultar "admin" del selector de rol
@@ -246,7 +246,7 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
                     </td>
                     <td className="s-td pu-td-right">
                       {permisos.puedeGestionarUsuarios && (() => {
-                        // SEC-10 en la UI: el backend ya rechaza estas acciones
+                        // SEC-15 en la UI: el backend ya rechaza estas acciones
                         // sobre una cuenta admin si quien las pide no lo es —
                         // aquí solo evitamos que alguien llegue a ese error.
                         const bloqueado = u.rol === "admin" && !esActorAdmin;

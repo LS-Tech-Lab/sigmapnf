@@ -2,7 +2,7 @@ import React from "react";
 import { formatLapso } from "../../utils/lapso";
 import { fmt, duracion, StatusBadge } from "./historialUtils";
 
-// Fix ARCH-10 (auditoría 9 de julio): extraído de HistorialView.jsx sin
+// Fix ARCH-13 (auditoría 9 de julio): extraído de HistorialView.jsx sin
 // cambios de lógica — es puramente presentacional. El estado (búsqueda,
 // expandido, detalles) y los handlers (cargarDetalle) siguen viviendo en
 // HistorialView.jsx, que los pasa por props.

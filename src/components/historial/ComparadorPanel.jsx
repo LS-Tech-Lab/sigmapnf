@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { formatLapso } from "../../utils/lapso";
 import { duracion } from "./historialUtils";
 
-// Fix ARCH-10 (auditoría 9 de julio): extraído de HistorialView.jsx sin
+// Fix ARCH-13 (auditoría 9 de julio): extraído de HistorialView.jsx sin
 // cambios de lógica. Panel de comparación entre trimestres (tab "comparar").
 
 const METRICAS_DOT_CLASE = {

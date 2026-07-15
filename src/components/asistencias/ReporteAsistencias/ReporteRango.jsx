@@ -35,14 +35,14 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
   const [confirmBorrar, setConfirmBorrar] = useState(false);
   const [borrando,      setBorrando]      = useState(false);
 
-  // A-4: ref al AbortController del fetch en curso. fetchRango se dispara
+  // ARCH-4: ref al AbortController del fetch en curso. fetchRango se dispara
   // de nuevo cada vez que cambian inicio/fin/turno/programa; si el usuario
   // cambia filtros antes de que termine la paginación anterior, se aborta
   // el fetch viejo para que su respuesta tardía no pise la tabla con datos
   // de un rango/turno que ya no es el seleccionado.
   const abortControllerRef = useRef(null);
 
-  // A-2: paginación por cursor (mismo patrón que useDataSync) para evitar
+  // ARCH-2: paginación por cursor (mismo patrón que useDataSync) para evitar
   // que el límite por defecto de Supabase (1000 filas) trunque el reporte
   // sin avisar. RANGO_PAGE_SIZE controla el tamaño de cada página y
   // RANGO_MAX_FILAS es un tope de seguridad para no cargar rangos absurdos.
@@ -52,7 +52,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
   const fetchRango = useCallback(async () => {
     if (!inicio || !fin || inicio > fin) return;
 
-    // A-4: cancelar el fetch anterior si seguía en curso.
+    // ARCH-4: cancelar el fetch anterior si seguía en curso.
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -98,7 +98,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
         if (programa) q = q.eq("programa", programa);
 
         const { data, error: err } = await q;
-        // A-4: si este fetch ya fue superado por uno más nuevo, descartar
+        // ARCH-4: si este fetch ya fue superado por uno más nuevo, descartar
         // el resultado en silencio en vez de pisar la tabla actual.
         if (signal.aborted) return;
         if (err) { setError(err.message); setRows([]); setLoading(false); return; }
@@ -146,7 +146,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
     }
   };
 
-  // A-4: abortar el fetch en curso al desmontar el componente.
+  // ARCH-4: abortar el fetch en curso al desmontar el componente.
   useEffect(() => () => { if (abortControllerRef.current) abortControllerRef.current.abort(); }, []);
 
   useEffect(() => {

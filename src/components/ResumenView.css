@@ -3,9 +3,9 @@
    Fix quirúrgico del hallazgo S (auditoría 2026-07-01): los 11 usos de
    `...S.card` en este archivo se migran a la clase compartida `.s-card`
    (definida en index.css) + modificadores locales.
-   Migración A3 (auditoría 2026-07-02): el resto de los estilos en línea de
+   Migración UX-5 (auditoría 2026-07-02): el resto de los estilos en línea de
    este archivo se migra aquí.
-   Fix A3/S3 Fase 1-2 (auditoría QA 2026-07-05): el color de las barras
+   Fix UX-5/SEC-3 Fase 1-2 (auditoría QA 2026-07-05): el color de las barras
    (trayecto — dominio fijo de 13 valores; día/docente/materia/turno —
    colores fijos hardcodeados en el propio componente) ya no se inyecta vía
    style inline, lo definen las clases fijas .trayecto-<n> / .rv-fill--dia /

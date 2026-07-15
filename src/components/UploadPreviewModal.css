@@ -1,8 +1,8 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    UploadPreviewModal.css
-   Migración A3 (auditoría 2026-07-02): estilos extraídos de
+   Migración UX-5 (auditoría 2026-07-02): estilos extraídos de
    UploadPreviewModal.jsx.
-   Fix A3/S3 Fase 2 (auditoría QA 2026-07-05): los subcomponentes reutilizables
+   Fix UX-5/SEC-3 Fase 2 (auditoría QA 2026-07-05): los subcomponentes reutilizables
    (Tag, StatChip, EmptyState) reciben `color`/`bg`/`border` provenientes de la
    paleta interna fija `C` — un dominio 100% enumerable, sin dato arbitrario de
    por medio. Se refactorizaron a un prop `variant` (accent/neutral/ok/warn/

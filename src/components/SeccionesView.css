@@ -1,7 +1,7 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    SeccionesView.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de SeccionesView.jsx.
-   Fix A3/S3 Fase 1 (auditoría QA 2026-07-05): los colores de trayecto
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de SeccionesView.jsx.
+   Fix UX-5/SEC-3 Fase 1 (auditoría QA 2026-07-05): los colores de trayecto
    (TRAYECTO_COLORS/TRAYECTO_BG) son un dominio fijo de 13 valores, no datos
    arbitrarios — ya no se inyectan vía style inline. Las custom properties
    (--dot-color, --badge-bg, --badge-color, --clase-bg, --clase-color) ahora

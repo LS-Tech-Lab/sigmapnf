@@ -79,7 +79,7 @@ export default function ConfirmModal({
   );
 }
 
-// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// Fix ARCH-20 (auditoría 12 de julio): PropTypes agregado como contrato de
 // props — no cambia comportamiento. Refleja 1:1 el JSDoc de props ya
 // existente arriba en este archivo.
 ConfirmModal.propTypes = {

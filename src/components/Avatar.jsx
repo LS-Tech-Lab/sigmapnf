@@ -1,13 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-// Fix A3/S3 (auditoría QA 5/jul/2026, Fase 5): los 4 usos reales en todo el
+// Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, Fase 5): los 4 usos reales en todo el
 // repo solo pasan size={30|44|52} — tamaño fijo, ya no --av-size/--av-font-size
 // inline. El tono de color por nombre (`hue`, hash de caracteres, 0-359°) SÍ
 // es un dominio genuinamente continuo/arbitrario (nombres de docentes) — se
 // bucketiza a pasos de 15° (24 clases .av-hue-0…av-hue-345 en index.css) en
 // vez de dejarlo inline permanentemente. Se pierde precisión de tono exacto
-// (nombres distintos pueden compartir bucket), se gana cierre completo de S3.
+// (nombres distintos pueden compartir bucket), se gana cierre completo de SEC-3.
 export default function Avatar({ name, size = 36 }) {
   const safeName = name || "Docente";
   const initials = typeof safeName === "string"
@@ -28,7 +28,7 @@ export default function Avatar({ name, size = 36 }) {
   );
 }
 
-// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// Fix ARCH-20 (auditoría 12 de julio): PropTypes agregado como contrato de
 // props — no cambia comportamiento. `size` acepta cualquier número por
 // diseño (ver comentario arriba: valores fuera de [30,44,52] caen al más
 // cercano en vez de romper), así que se documenta como number, no como

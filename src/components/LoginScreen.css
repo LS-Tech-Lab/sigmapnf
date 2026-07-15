@@ -1,8 +1,8 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    LoginScreen.css
-   Estilos extraídos de LoginScreen.jsx (A3, auditoría 2026-06-30).
+   Estilos extraídos de LoginScreen.jsx (UX-5, auditoría 2026-06-30).
    Vista pública (ruta de autenticación, sin guard previo) — priorizada para
-   avanzar hacia poder retirar 'unsafe-inline' de style-src (S3).
+   avanzar hacia poder retirar 'unsafe-inline' de style-src (SEC-3).
    Usa tokens del sistema definidos en src/index.css. Los estados :disabled y
    :focus se resuelven aquí por CSS puro — ya no hay mutaciones de
    e.target.style.* ni objetos de estilo condicionales en JS.

@@ -1,7 +1,7 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    PestanaUsuarios.css
-   Migración A3 (auditoría 2026-07): estilos extraídos de PestanaUsuarios.jsx.
-   Fix A3/S3 Fase 2 (auditoría QA 2026-07-05): el color de las 3 tarjetas de
+   Migración UX-5 (auditoría 2026-07): estilos extraídos de PestanaUsuarios.jsx.
+   Fix UX-5/SEC-3 Fase 2 (auditoría QA 2026-07-05): el color de las 3 tarjetas de
    estadística (Total/Activos/Inactivos) es fijo — 3 estados conocidos, no
    un dato arbitrario — ya no se inyecta vía style inline
    (--stat-bg/--stat-border/--stat-color), lo definen .pu-stat--total/

@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    PlanillaImprimibleBase.css
-   Migración A3 (auditoría 2026-07-02): estilos extraídos de
+   Migración UX-5 (auditoría 2026-07-02): estilos extraídos de
    PlanillaImprimibleBase.jsx. Reutiliza clases compartidas (.s-card, .s-th,
    .s-td, .s-btn) definidas en src/index.css allí donde aplican; el resto
    queda en clases locales con prefijo `pib-`.

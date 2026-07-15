@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    ModuleSelector.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de ModuleSelector.jsx.
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de ModuleSelector.jsx.
    MODULES es un enum fijo y conocido de 2 variantes ("horarios" / "asistencias"),
    no datos arbitrarios en tiempo de ejecución — se resuelve con clases
    modificadoras (.module-card--horarios / .module-card--asistencias) en vez
@@ -33,7 +33,7 @@
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh; padding: var(--space-6);
   /* Fix (13 de julio, detectado verificando este archivo contra lo que
-     cambió en main mientras tanto): U-12 (modo oscuro, ya en main)
+     cambió en main mientras tanto): UX-13 (modo oscuro, ya en main)
      redefine --color-text-primary de navy oscuro (#0f172a) a casi blanco
      (#F1F5F9) bajo prefers-color-scheme:dark. Esta pantalla es un splash
      de marca que debe verse siempre oscura sin importar el tema del

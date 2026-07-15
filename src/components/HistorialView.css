@@ -1,7 +1,7 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    HistorialView.css
    Estilos extraídos de HistorialView.jsx (StatusBadge, ModalTrimestre,
-   ComparadorPanel, vista principal) — A3 fase 3, auditoría 2026-06-30.
+   ComparadorPanel, vista principal) — UX-5 fase 3, auditoría 2026-06-30.
    Usa var(--...) de index.css donde el color coincide exactamente con un
    token existente; se deja el hex literal donde no hay token equivalente,
    para no alterar la apariencia original. Los pocos casos de color

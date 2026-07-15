@@ -1,7 +1,7 @@
 /**
  * QRDisplay.jsx
  *
- * Fix ARCH-12 (auditoría 12 de julio): extraído de `AdminQRPanel.jsx`.
+ * Fix ARCH-15 (auditoría 12 de julio): extraído de `AdminQRPanel.jsx`.
  * `QRProyeccion.jsx` importaba `QRDisplay`/`formatFechaVE`/`TURNOS_VISIBLES`
  * directamente desde `AdminQRPanel.jsx` — un import estático que arrastraba
  * el módulo completo del panel admin (y todo lo que este importa) a
@@ -47,7 +47,7 @@ function CountdownBar({ segundos, total }) {
   );
 }
 
-// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// Fix ARCH-20 (auditoría 12 de julio): PropTypes agregado como contrato de
 // props — no cambia comportamiento.
 CountdownBar.propTypes = {
   segundos: PropTypes.number.isRequired,
@@ -77,7 +77,7 @@ export function QRDisplay({ qrUrl, segundos, ttlMinutes, size = 280 }) {
   );
 }
 
-// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// Fix ARCH-20 (auditoría 12 de julio): PropTypes agregado como contrato de
 // props — no cambia comportamiento. Es el componente que la auditoría
 // nombró explícitamente como ejemplo de candidato (usado por AdminQRPanel
 // y QRProyeccion, los dos consumidores reales de este archivo).

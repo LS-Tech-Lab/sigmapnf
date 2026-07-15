@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import {
   listarUsuariosOffline, verificarPinOffline, tienePinOffline,
-  // Fix O-8: lockout del PIN en IDB — resiste tabs privadas
+  // Fix OFF-6: lockout del PIN en IDB — resiste tabs privadas
   leerLockoutIDB, registrarIntentoPinFallido, limpiarLockoutIDB,
-  // SEC-5: lockout del login normal en IDB
+  // SEC-6: lockout del login normal en IDB
   leerLoginLockoutIDB, registrarIntentoLoginFallido, limpiarLoginLockoutIDB,
 } from "../utils/pinOffline";
 import ModalActivarPIN from "./login/ModalActivarPIN";
@@ -12,7 +12,7 @@ import LoginOfflinePinPanel from "./login/LoginOfflinePinPanel";
 import LoginFormNormal from "./login/LoginFormNormal";
 import "./LoginScreen.css";
 
-// SEC-5 (Junio 2026): el lockout del login normal fue migrado de localStorage a IDB
+// SEC-6 (Junio 2026): el lockout del login normal fue migrado de localStorage a IDB
 // usando leerLoginLockoutIDB / registrarIntentoLoginFallido / limpiarLoginLockoutIDB
 // (pinOffline.js). Resiste tabs privadas y limpieza manual de DevTools.
 // La protección real contra brute-force la provee Supabase Auth (rate limiting por IP).
@@ -29,14 +29,14 @@ function getAuthErrorMessage(error) {
   return "No se pudo iniciar sesión. Intenta de nuevo.";
 }
 
-// ── PIN lockout helpers — Fix O-8: reemplazados por IDB (ver pinOffline.js) ───
+// ── PIN lockout helpers — Fix OFF-6: reemplazados por IDB (ver pinOffline.js) ───
 // Los helpers readPinLockout / persistPinLockout etc. han sido eliminados.
 // El estado de bloqueo ahora se lee/escribe en IDB mediante:
 //   leerLockoutIDB(userId), registrarIntentoPinFallido(userId), limpiarLockoutIDB(userId)
 
-// Fix ARCH-10 (auditoría 9 de julio): ModalActivarPIN, el panel de PIN
+// Fix ARCH-13 (auditoría 9 de julio): ModalActivarPIN, el panel de PIN
 // offline y el formulario normal se extrajeron a src/components/login/ —
-// mismo patrón que ARCH-8 (HorariosSidebar/HorariosTopbar). Este archivo
+// mismo patrón que ARCH-11 (HorariosSidebar/HorariosTopbar). Este archivo
 // mantiene TODO el estado, los efectos y los handlers (son los que
 // realmente concentraban la complejidad, no el JSX); los tres
 // subcomponentes son puramente presentacionales y reciben todo por props.
@@ -48,7 +48,7 @@ export default function LoginScreen({ onOfflineLogin }) {
   const [password, setPassword] = useState("");
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState(null);
-  // SEC-5: inicializar a 0 — IDB es async, se carga en useEffect
+  // SEC-6: inicializar a 0 — IDB es async, se carga en useEffect
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil,    setLockedUntil]    = useState(null);
   const [remaining,   setRemaining]   = useState(0);
@@ -62,15 +62,15 @@ export default function LoginScreen({ onOfflineLogin }) {
   const [pin,             setPin]             = useState("");
   const [pinError,        setPinError]        = useState(null);
   const [pinLoading,      setPinLoading]      = useState(false);
-  // Fix O-8: el lockout ya no se inicializa desde localStorage — se carga
+  // Fix OFF-6: el lockout ya no se inicializa desde localStorage — se carga
   // desde IDB cuando el usuario selecciona su perfil (ver useEffect abajo).
   const [pinLockedUntil,  setPinLockedUntil]  = useState(null);
   const [pinRemaining,    setPinRemaining]    = useState(0);
-  // Nota (ARCH-16, 12 de julio): `pinAttempts` se actualiza en 4 lugares del
-  // flujo de lockout de PIN (O-8) pero su valor nunca se lee en ningún lado
+  // Nota (ARCH-19, 12 de julio): `pinAttempts` se actualiza en 4 lugares del
+  // flujo de lockout de PIN (OFF-6) pero su valor nunca se lee en ningún lado
   // (no se muestra "intentos restantes" en la UI). No se retiran los
   // `setPinAttempts()` en este fix — tocar 4 puntos de lógica de lockout ya
-  // auditada (SEC-5/O-8) está fuera del alcance de agregar linting. Si se
+  // auditada (SEC-6/OFF-6) está fuera del alcance de agregar linting. Si se
   // decide mostrar el contador al usuario, ya está siendo trackeado.
   // eslint-disable-next-line no-unused-vars
   const [pinAttempts,     setPinAttempts]     = useState(0);
@@ -81,7 +81,7 @@ export default function LoginScreen({ onOfflineLogin }) {
   const [pendingPinUser,    setPendingPinUser]    = useState(null); // { user, profile }
   const [mostrarModalPIN,   setMostrarModalPIN]   = useState(false);
 
-  // SEC-5: cargar estado de lockout del login normal desde IDB cuando el email cambia.
+  // SEC-6: cargar estado de lockout del login normal desde IDB cuando el email cambia.
   // Permite mostrar el bloqueo restante si el usuario ya agotó intentos anteriores.
   useEffect(() => {
     if (!email) return;
@@ -115,7 +115,7 @@ export default function LoginScreen({ onOfflineLogin }) {
       const s = Math.max(0, Math.ceil((pinLockedUntil - Date.now()) / 1000));
       setPinRemaining(s);
       if (s <= 0) {
-        // Fix O-8: limpiar IDB cuando vence el bloqueo
+        // Fix OFF-6: limpiar IDB cuando vence el bloqueo
         if (usuarioSelec?.userId) limpiarLockoutIDB(usuarioSelec.userId);
         setPinLockedUntil(null); setPinAttempts(0);
         clearInterval(pinTimerRef.current);
@@ -126,7 +126,7 @@ export default function LoginScreen({ onOfflineLogin }) {
     return () => clearInterval(pinTimerRef.current);
   }, [pinLockedUntil, usuarioSelec]);
 
-  // Fix O-8: cargar estado de lockout desde IDB al seleccionar un usuario offline
+  // Fix OFF-6: cargar estado de lockout desde IDB al seleccionar un usuario offline
   useEffect(() => {
     if (!usuarioSelec?.userId) return;
     leerLockoutIDB(usuarioSelec.userId).then(({ intentos, bloqueadoHasta }) => {
@@ -165,8 +165,8 @@ export default function LoginScreen({ onOfflineLogin }) {
     setLoading(true);
     setError(null);
 
-    // Fix SEC-6 (auditoría julio 2026): respaldo server-side del lockout de
-    // SEC-5. El de IDB se salta borrando el navegador o cambiando de
+    // Fix SEC-7 (auditoría julio 2026): respaldo server-side del lockout de
+    // SEC-6. El de IDB se salta borrando el navegador o cambiando de
     // dispositivo — este no, porque cuenta contra login_attempts (0031),
     // que ya se llenaba pero nadie leía para bloquear nada. Se consulta
     // ANTES de llamar a signInWithPassword para no gastar ese intento
@@ -183,11 +183,11 @@ export default function LoginScreen({ onOfflineLogin }) {
       }
     } catch {
       // Si la RPC falla (red, etc.) no bloqueamos el login por eso —
-      // el lockout de IDB (SEC-5) sigue funcionando como respaldo mínimo.
+      // el lockout de IDB (SEC-6) sigue funcionando como respaldo mínimo.
     }
 
     // Capturamos el user y profile del callback de Auth para el modal PIN.
-    // Nota (ARCH-16): sin valor inicial — solo se leen dentro del bloque
+    // Nota (ARCH-19): sin valor inicial — solo se leen dentro del bloque
     // `else` de abajo, que siempre los asigna antes de cualquier lectura.
     let loginUser;
     let loginProfile;
@@ -196,7 +196,7 @@ export default function LoginScreen({ onOfflineLogin }) {
 
     if (authError) {
       setError(getAuthErrorMessage(authError));
-      // SEC-5: registrar intento fallido en IDB
+      // SEC-6: registrar intento fallido en IDB
       const { intentos, bloqueadoHasta, bloqueadoAhora } =
         await registrarIntentoLoginFallido(email);
       setFailedAttempts(intentos);
@@ -207,7 +207,7 @@ export default function LoginScreen({ onOfflineLogin }) {
         });
       } catch { /* no-op */ }
     } else {
-      // SEC-5: limpiar lockout en IDB tras login exitoso
+      // SEC-6: limpiar lockout en IDB tras login exitoso
       setFailedAttempts(0); setLockedUntil(null);
       limpiarLoginLockoutIDB(email);
       loginUser = data.user;
@@ -244,7 +244,7 @@ export default function LoginScreen({ onOfflineLogin }) {
     const perfil = await verificarPinOffline(usuarioSelec.userId, pin);
 
     if (!perfil) {
-      // Fix O-8: registrar intento en IDB — resiste tabs privadas
+      // Fix OFF-6: registrar intento en IDB — resiste tabs privadas
       const { intentos, bloqueadoHasta, bloqueadoAhora } =
         await registrarIntentoPinFallido(usuarioSelec.userId);
 
@@ -267,7 +267,7 @@ export default function LoginScreen({ onOfflineLogin }) {
     setPinLoading(false);
   };
 
-  // A3 (auditoría 2026-06-30): los estilos de inputs/labels/botones se
+  // UX-5 (auditoría 2026-06-30): los estilos de inputs/labels/botones se
   // resolvieron a clases CSS (LoginScreen.css + utilidades de index.css).
   // El estado disabled ya no requiere objetos de estilo condicionales en JS
   // — se resuelve con el selector :disabled directamente en el CSS.

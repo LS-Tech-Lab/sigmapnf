@@ -1,6 +1,6 @@
 /* QRDisplay.css
  *
- * Fix ARCH-12 (auditoría 12 de julio): reglas movidas 1:1 desde
+ * Fix ARCH-15 (auditoría 12 de julio): reglas movidas 1:1 desde
  * AdminQRPanel.css — son las que usan CountdownBar y QRDisplay, ahora
  * extraídos a QRDisplay.jsx. Ningún valor cambiado, solo reubicadas.
  */
@@ -11,7 +11,7 @@
 .qrp-cdb-track       { height: 6px; border-radius: 3px; background: var(--color-border); overflow: hidden; }
 .qrp-cdb-fill        { height: 100%; border-radius: 3px; transition: width 0.9s linear, background 0.4s; }
 .qrp-cdb-note        { margin-top: 6px; font-size: var(--font-size-11); color: var(--color-text-tertiary); text-align: center; }
-/* Fix A3/S3 Fase 2: umbral fijo de 3 estados (pct>40/>15/resto) — antes
+/* Fix UX-5/SEC-3 Fase 2: umbral fijo de 3 estados (pct>40/>15/resto) — antes
    inyectado vía style inline. Solo el ANCHO (pct real) sigue inline,
    pendiente de bucketizar en Fase 4. */
 .qrp-cdb-time.qrp-cdb--ok       { color: #22C55E; }

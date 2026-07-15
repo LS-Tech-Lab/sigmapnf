@@ -1,16 +1,16 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    ConflictosView.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de ConflictosView.jsx.
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de ConflictosView.jsx.
    El estado "hay conflictos" / "sin conflictos" es un binario conocido (no
    depende de datos arbitrarios en tiempo de ejecución) — se resuelve con
    clases modificadoras (.cv-title-icon--ok, .cv-badge--ok) en vez de lógica
    ternaria inline.
    El color por trayecto (TRAYECTO_COLORS / TRAYECTO_BG, indexado por
-   e.trayecto) es un dominio fijo de 13 valores (fix A3/S3 Fase 1, auditoría
+   e.trayecto) es un dominio fijo de 13 valores (fix UX-5/SEC-3 Fase 1, auditoría
    QA 2026-07-05) — ya no se inyecta vía style inline, lo define la clase
    fija .trayecto-<n> (ver src/index.css) vía --tag-color/--tag-bg.
    #94A3B8 y #F0FDF4/#16A34A no tienen token exacto en src/index.css
-   (ver nota de la migración A3) — se dejan como hex literal.
+   (ver nota de la migración UX-5) — se dejan como hex literal.
    ────────────────────────────────────────────────────────────────────────────── */
 
 .cv-root { padding: 20px; }

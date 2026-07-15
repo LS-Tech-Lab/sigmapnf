@@ -7,7 +7,7 @@ import { logger } from "../utils/logger";
  * Captura cualquier error de render en el árbol y muestra un mensaje amigable
  * en lugar de una pantalla blanca. Incluye botón para recargar.
  *
- * SEC-2: el stack trace completo solo se renderiza en desarrollo
+ * SEC-4: el stack trace completo solo se renderiza en desarrollo
  * (import.meta.env.DEV). En producción se muestra únicamente el mensaje
  * de error, sin exponer rutas internas del bundle ni nombres de componentes.
  */
@@ -43,7 +43,7 @@ export default class ErrorBoundary extends React.Component {
         <p className="eb-desc">
           {this.state.error?.message || "Error inesperado en la aplicación."}
         </p>
-        {/* Stack trace visible SOLO en desarrollo (SEC-2) */}
+        {/* Stack trace visible SOLO en desarrollo (SEC-4) */}
         {import.meta.env.DEV && this.state.stack && (
           <pre className="eb-stack">
             {this.state.stack}
@@ -60,7 +60,7 @@ export default class ErrorBoundary extends React.Component {
   }
 }
 
-// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// Fix ARCH-20 (auditoría 12 de julio): PropTypes agregado como contrato de
 // props — no cambia comportamiento.
 ErrorBoundary.propTypes = {
   children: PropTypes.node,

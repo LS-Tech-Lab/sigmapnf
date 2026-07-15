@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    MateriasView.css
-   Migración A3 (auditoría 2026-07-02): estilos extraídos de MateriasView.jsx.
+   Migración UX-5 (auditoría 2026-07-02): estilos extraídos de MateriasView.jsx.
    Reutiliza .s-card / .s-th / .s-td / .s-input (src/index.css). Comparte
    estructura con DocentesView.css (mismo patrón de panel izquierdo + detalle).
    Las reglas responsive existentes para `.materias-layout` / `.materias-left-panel`

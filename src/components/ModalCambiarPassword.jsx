@@ -329,7 +329,7 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
   );
 }
 
-// Fix ARCH-17 (auditoría 12 de julio): PropTypes agregado como contrato de
+// Fix ARCH-20 (auditoría 12 de julio): PropTypes agregado como contrato de
 // props — no cambia comportamiento.
 ModalCambiarPassword.propTypes = {
   onCerrar: PropTypes.func.isRequired,

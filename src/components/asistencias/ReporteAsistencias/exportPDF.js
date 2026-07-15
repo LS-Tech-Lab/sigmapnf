@@ -22,7 +22,7 @@ function plantilla({ titulo, subtitulo, seccionesHtml, pie }) {
   const ahora = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
   // Fix (14 de julio): el <style>/<script> de esta plantilla iban inline.
   // El CSP del proyecto usa `script-src 'self'` y `style-src 'self'` (sin
-  // 'unsafe-inline' — ver S3/A3 en AUDITORIA_INDICE.md), y esta ventana
+  // 'unsafe-inline' — ver SEC-3/UX-5 en AUDITORIA_INDICE.md), y esta ventana
   // emergente (about:blank del mismo origen, ver abrirVentanaPDF) hereda
   // ese CSP. El navegador bloqueaba ambos bloques en silencio: el reporte
   // se veía como HTML sin estilos (texto plano) y no se disparaba la

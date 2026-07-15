@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-// Fix ARCH-12: antes se importaba de "./AdminQRPanel", lo que arrastraba
+// Fix ARCH-15: antes se importaba de "./AdminQRPanel", lo que arrastraba
 // todo ese módulo (y sus dependencias) al chunk de QRProyeccion.
 import { QRDisplay, formatFechaVE, TURNOS_VISIBLES } from "./QRDisplay";
 import { supabase } from "../../lib/supabase";
@@ -127,7 +127,7 @@ export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinu
     <div className="qrp-root">
       <TopBar visible={barVisible} meta={meta} turnoInfo={turnoInfo} isOffline={isOffline} />
 
-      {/* Fix O-3: banner de red caída visible para docentes en el aula */}
+      {/* Fix OFF-3: banner de red caída visible para docentes en el aula */}
       {isOffline && (
         <div className="qrp-offline-banner">
           <span className="qrp-offline-icon">📡</span>
@@ -221,7 +221,7 @@ function TopBar({ visible, meta, turnoInfo, isOffline }) {
           <i className="ti ti-device-desktop qrp-topbar-icon" aria-hidden="true" />
           <span className="qrp-topbar-title">Proyección de Asistencia</span>
           <span className="qrp-topbar-badge">Solo lectura</span>
-          {/* Fix O-3: indicador compacto de red en la barra superior */}
+          {/* Fix OFF-3: indicador compacto de red en la barra superior */}
           {isOffline && (
             <span className="qrp-topbar-offline-pill">
               📡 Sin red

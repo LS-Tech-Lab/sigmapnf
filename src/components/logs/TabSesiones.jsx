@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { fmtDateTime, EVENTO_CONFIG, eventoClass, EventoBadge } from "./logsUtils";
 import { ModalConfirm } from "../usuarios/shared";
 
-// Fix ARCH-10 (auditoría 9 de julio): extraído de LogsView.jsx sin cambios
+// Fix ARCH-13 (auditoría 9 de julio): extraído de LogsView.jsx sin cambios
 // de lógica — ya era un componente autocontenido dentro del archivo, solo
 // se movió a su propio módulo.
 export default function TabSesiones({ permisos, showToast }) {

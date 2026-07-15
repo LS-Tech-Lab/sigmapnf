@@ -1,10 +1,10 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    DocenteScan.css
    Estilos extraídos de todo el módulo DocenteScan (index.jsx, Shell.jsx,
-   Campo.jsx, SelectorTipo.jsx, HorarioHoyCard.jsx) — A3 fase 2, auditoría
+   Campo.jsx, SelectorTipo.jsx, HorarioHoyCard.jsx) — UX-5 fase 2, auditoría
    2026-06-30. Ruta pública /scan sin guard de autenticación — junto con
    LoginScreen, prioritaria para avanzar hacia poder retirar 'unsafe-inline'
-   de style-src (S3).
+   de style-src (SEC-3).
    Estados condicionales (disabled, error/success) se resuelven con
    modificadores de clase o :disabled — no hay estilos calculados en JS.
    ────────────────────────────────────────────────────────────────────────────── */

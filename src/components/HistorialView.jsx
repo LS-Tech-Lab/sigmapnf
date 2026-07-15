@@ -9,9 +9,9 @@ import ComparadorPanel from "./historial/ComparadorPanel";
 import HistorialLista from "./historial/HistorialLista";
 import "./HistorialView.css";
 
-// Fix ARCH-10 (auditoría 9 de julio): ModalTrimestre, ComparadorPanel,
+// Fix ARCH-13 (auditoría 9 de julio): ModalTrimestre, ComparadorPanel,
 // HistorialLista y las utilidades compartidas (fmt/duracion/StatusBadge)
-// se extrajeron a src/components/historial/ — mismo patrón que ARCH-8
+// se extrajeron a src/components/historial/ — mismo patrón que ARCH-11
 // (HorariosSidebar/HorariosTopbar). Este archivo mantiene TODO el estado,
 // los efectos y los handlers; los subcomponentes son puramente
 // presentacionales y reciben todo por props.
@@ -32,7 +32,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
 
   const cargarTrimestres = useCallback(async () => {
     setLoading(true);
-    // D-2 fix: si el usuario tiene restringe_programa, solo mostramos
+    // PERM-3 fix: si el usuario tiene restringe_programa, solo mostramos
     // trimestres que contengan horarios de su programa. Para usuarios sin
     // restricción la query es idéntica a la original.
     let data, error;
@@ -68,7 +68,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
   const cargarDetalle = async (lapso) => {
     if (detalles[lapso]) { setExpandido(lapso); return; }
     setLoadingDet(true);
-    // D-2 fix: si hay restricción de programa, el detalle también se filtra
+    // PERM-3 fix: si hay restricción de programa, el detalle también se filtra
     let query = supabase.from("horarios").select("programa, trayecto, sheet").eq("lapso", lapso);
     if (programaRestringido) query = query.eq("programa", programaRestringido);
     const { data: horarios } = await query;

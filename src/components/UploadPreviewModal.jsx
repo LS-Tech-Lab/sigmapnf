@@ -29,7 +29,7 @@ function Tag({ variant = "neutral", children }) {
 // ── Subcomponente: tabla de registros ────────────────────────────────
 
 function TablaRegistros({ rows }) {
-  // Fix ARCH-19 (13 de julio): antes había un límite de 200 filas + botón
+  // Fix ARCH-22 (13 de julio): antes había un límite de 200 filas + botón
   // "mostrar más", pero la agrupación de abajo (`bySec`) siempre usó `rows`
   // completo — el límite nunca se aplicaba de verdad, el botón no cambiaba
   // nada visible. Decisión de producto (LS, 13 de julio): mantener el

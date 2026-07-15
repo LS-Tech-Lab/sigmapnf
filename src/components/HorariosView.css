@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    HorariosView.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de HorariosView.jsx.
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de HorariosView.jsx.
    El tab activo ("horarios" / "conflictos") es un enum fijo y conocido de 2
    variantes — se resuelve con clases modificadoras (.hv-tab--active,
    .hv-filters-row--conflictos, .hv-content--conflictos) en vez de leer
@@ -37,7 +37,7 @@
 .hv-content { flex: 1; overflow: auto; padding: 12px 16px; }
 .hv-content--conflictos { padding: 0; }
 
-/* Fix U-8 (auditoría 12/jul/2026): sin adaptación para pantallas angostas.
+/* Fix UX-9 (auditoría 12/jul/2026): sin adaptación para pantallas angostas.
    .hv-filters-row y .hv-days ya usan flex-wrap, así que no se rompían,
    pero en < 640px el título y el padding quedaban sobredimensionados
    para el espacio disponible. Mismo breakpoint que AdminQRPanel.css. */

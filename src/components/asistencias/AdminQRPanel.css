@@ -1,8 +1,8 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    AdminQRPanel.css
-   Estilos extraídos de AdminQRPanel.jsx (U-1, auditoría Junio 2026).
+   Estilos extraídos de AdminQRPanel.jsx (UX-1, auditoría Junio 2026).
    Usa tokens del sistema definidos en src/index.css.
-   Fix A3/S3 Fase 2 (auditoría QA 2026-07-05): color del CountdownBar — umbral
+   Fix UX-5/SEC-3 Fase 2 (auditoría QA 2026-07-05): color del CountdownBar — umbral
    fijo de 3 estados — ya no va vía style inline, ver .qrp-cdb--ok/--warn/
    --critical más abajo.
    Fix Fase 4 (5/jul/2026): el ANCHO del CountdownBar, antes inline por ser
@@ -102,7 +102,7 @@
 .qrp-btn-proyeccion  { padding: 10px 18px; background: var(--brand-500, #2563EB); color: #fff; border: none; border-radius: 9px; font-size: var(--font-size-13); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .qrp-btn-nueva-ventana { padding: 10px 18px; background: var(--color-surface); color: var(--color-text-secondary); border: 1px solid var(--color-border); border-radius: 9px; font-size: var(--font-size-13); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 
-/* Fix ARCH-12: reglas de CountdownBar/QRDisplay movidas a QRDisplay.css
+/* Fix ARCH-15: reglas de CountdownBar/QRDisplay movidas a QRDisplay.css
    (ver ese archivo), junto con el componente que las usa. */
 
 
@@ -202,7 +202,7 @@
 @keyframes pulse        { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   Residuo A3 (auditoría 2026-07-02, segunda pasada sobre este archivo): U-1
+   Residuo UX-5 (auditoría 2026-07-02, segunda pasada sobre este archivo): UX-1
    migró 142 bloques style={{}} en junio, pero funcionalidad añadida después
    (CountdownBar, FeedActividad, ContadorSesion, ColaOfflinePanel,
    HistorialSesiones, y varios ajustes en el panel principal) volvió a

@@ -42,7 +42,7 @@ export default function DocenteScan() {
     // del URL corresponde al día actual consultando la BD. Si el token es de
     // un día anterior (sesión QR vencida) o no existe, ir directo al formulario
     // para evitar que el próximo docente en el dispositivo vea datos del anterior.
-    // P-3: timeout de 3 s — sin red, el spinner no queda infinito.
+    // OFF-8: timeout de 3 s — sin red, el spinner no queda infinito.
     const cargarConValidacion = async () => {
       try {
         const raw = localStorage.getItem(LS_KEY);
@@ -212,7 +212,7 @@ export default function DocenteScan() {
         p_tipo:               tipoFinal,
       };
 
-      // P-2: sin red, encolar en IndexedDB y mostrar confirmación optimista
+      // OFF-7: sin red, encolar en IndexedDB y mostrar confirmación optimista
       if (!navigator.onLine) {
         await encolarAsistencia(payload);
         guardarDatos(cedulaNorm, nombreFinal.trim() || cedulaNorm);

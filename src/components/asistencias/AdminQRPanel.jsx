@@ -3,23 +3,23 @@
  *
  * Panel del admin/operador_qr para gestionar la sesión QR.
  *
- * U-1 (auditoría Junio 2026): estilos migrados a AdminQRPanel.css usando
+ * UX-1 (auditoría Junio 2026): estilos migrados a AdminQRPanel.css usando
  * tokens del sistema (var(--brand-*), var(--color-*)). Eliminados los 142
  * bloques style={{}} inline que existían en la versión anterior.
  *
- * A3 (auditoría 2026-07-02, segunda pasada): funcionalidad añadida después
- * de U-1 (CountdownBar, FeedActividad, ContadorSesion, ColaOfflinePanel,
+ * UX-5 (auditoría 2026-07-02, segunda pasada): funcionalidad añadida después
+ * de UX-1 (CountdownBar, FeedActividad, ContadorSesion, ColaOfflinePanel,
  * HistorialSesiones) había vuelto a introducir 34 bloques style={{}}. Se
  * migraron todos salvo 2 legítimamente dinámicos (color de la barra de
  * countdown, que depende del tiempo restante). Si este comentario alguna
  * vez vuelve a no coincidir con el código, confiar en un grep de
  * `style={{` sobre el archivo, no en este texto — así se detectó la
- * desincronización anterior (ver docs/AUDITORIA_INDICE.md, nota bajo U-1).
+ * desincronización anterior (ver docs/AUDITORIA_INDICE.md, nota bajo UX-1).
  *
- * ARCH-15 (auditoría 12 de julio): HistorialSesiones (y su modal de
+ * ARCH-18 (auditoría 12 de julio): HistorialSesiones (y su modal de
  * borrado) se extrajeron a adminQR/ — este archivo queda como orquestador
  * (estado + handlers de la sesión QR), mismo patrón ya aplicado en
- * ARCH-8/ARCH-10. FeedActividad, ContadorSesion y ColaOfflinePanel se
+ * ARCH-11/ARCH-13. FeedActividad, ContadorSesion y ColaOfflinePanel se
  * mantienen acá: son pequeños y no forman parte del hallazgo.
  */
 
@@ -29,11 +29,11 @@ import { playRegistroSound, useFlashFeed } from "./useRegistroSound";
 import { supabase } from "../../lib/supabase";
 import { fechaHoyVE } from "../../utils/time";
 import { obtenerPendientes, eliminarPendiente, purgarExpirados } from "../../utils/offlineQueue";
-// Fix ARCH-12: QRDisplay/formatFechaVE/TURNOS_VISIBLES ya no se definen
+// Fix ARCH-15: QRDisplay/formatFechaVE/TURNOS_VISIBLES ya no se definen
 // acá — viven en su propio archivo (QRDisplay.jsx) para que QRProyeccion.jsx
 // no tenga que importar este módulo completo solo para usar esos 3.
 import { formatFechaVE, TURNOS_VISIBLES } from "./QRDisplay";
-// Fix ARCH-15: extraído a adminQR/ (ver nota arriba).
+// Fix ARCH-18: extraído a adminQR/ (ver nota arriba).
 import HistorialSesiones from "./adminQR/HistorialSesiones";
 import "./AdminQRPanel.css";
 

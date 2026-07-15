@@ -3,8 +3,8 @@ import { TURNOS_CONFIG } from "../../../constants";
 import { supabase } from "../../../lib/supabase";
 import ConfirmBorrarSesionModal from "./ConfirmBorrarSesionModal";
 
-// Fix ARCH-15 (auditoría 12 de julio): extraído de AdminQRPanel.jsx sin
-// cambios de lógica — mismo patrón ya usado en ARCH-8/ARCH-10 (extraer un
+// Fix ARCH-18 (auditoría 12 de julio): extraído de AdminQRPanel.jsx sin
+// cambios de lógica — mismo patrón ya usado en ARCH-11/ARCH-13 (extraer un
 // bloque autocontenido a su propio archivo, dejando el panel principal como
 // orquestador). El modal de confirmación de borrado vive en su propio
 // archivo presentacional (ConfirmBorrarSesionModal.jsx).

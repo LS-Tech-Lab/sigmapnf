@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { formatLapso, isValidLapso } from "../../utils/lapso";
 import { duracion } from "./historialUtils";
 
-// Fix ARCH-10 (auditoría 9 de julio): extraído de HistorialView.jsx sin
+// Fix ARCH-13 (auditoría 9 de julio): extraído de HistorialView.jsx sin
 // cambios de lógica. Modal de cierre / creación de trimestre.
 export default function ModalTrimestre({ modo, lapsoSugerido, onConfirm, onCancel, loading }) {
   const esCrear = modo === "crear";

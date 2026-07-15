@@ -51,7 +51,7 @@ const PROGRAMA_META = {
 };
 
 // ── Componente principal ─────────────────────────────────────────────────────
-// Fix A3/S3 (auditoría QA 5/jul/2026, Fase 2): los 2 usos reales en todo el
+// Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, Fase 2): los 2 usos reales en todo el
 // repo (HorariosLayout.jsx) siempre llaman con size={32} — no hay caso real
 // de tamaño variable, así que --pl-size/--pl-radius se fijan en CSS en vez
 // de inline. El gradiente color1/color2 depende de `programa`, un dominio

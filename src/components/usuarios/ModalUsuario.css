@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    ModalUsuario.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de usuarios/ModalUsuario.jsx.
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de usuarios/ModalUsuario.jsx.
    El estado "guardando" del botón de acción se resuelve con el pseudo-selector
    :disabled (el botón ya recibe el atributo disabled={saving}) en vez de
    lógica ternaria inline para cursor/opacity.

@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    GlobalSearch.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de GlobalSearch.jsx.
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de GlobalSearch.jsx.
    La clase "global-search" ya tenía reglas responsive en src/index.css
    (max-width en breakpoints) — se conserva intacta, junto a "gs-root" para
    el resto del estilo.
@@ -8,7 +8,7 @@
    solo de la posición del índice, no de datos reales — se resuelve con
    `:not(:first-child)` en CSS puro.
    El color/fondo del badge de trayecto es un dominio fijo de 13 valores
-   (fix A3/S3 Fase 1, auditoría QA 2026-07-05) — ya no se inyecta vía style
+   (fix UX-5/SEC-3 Fase 1, auditoría QA 2026-07-05) — ya no se inyecta vía style
    inline, lo define la clase fija .trayecto-<n> (ver src/index.css) vía
    --tag-bg/--tag-color.
    ────────────────────────────────────────────────────────────────────────────── */

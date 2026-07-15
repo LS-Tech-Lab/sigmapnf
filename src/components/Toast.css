@@ -1,12 +1,12 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    Toast.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de Toast.jsx.
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de Toast.jsx.
    `type` es un enum fijo y conocido de 4 variantes (success/error/warning/info),
    no un dato arbitrario en tiempo de ejecución — el objeto `palette` en JS se
    elimina y se resuelve con clases modificadoras (.toast--success, etc.).
    @keyframes slideIn ya está centralizado en src/index.css.
 
-   Revisado para U-12 (13 de julio) — EXCLUIDO a propósito de la migración a
+   Revisado para UX-13 (13 de julio) — EXCLUIDO a propósito de la migración a
    var(--color-*): los 4 fondos (--toast-bg) sí coinciden exacto con tokens
    existentes (--color-success-bg-alt, --color-danger-bg, --color-warning-bg,
    --color-background-info), pero los 4 textos (--toast-text: #14532D/#7F1D1D/
@@ -17,7 +17,7 @@
    el texto literal habría reproducido exactamente el mismo bug ya corregido
    en .sb/.app-error-screen/.pu-toast/.pr-toast (fondo que cambia de tema,
    texto que no). Diseñar tokens dedicados para este patrón queda pendiente
-   de una pasada futura de U-12 si se decide migrar este archivo también.
+   de una pasada futura de UX-13 si se decide migrar este archivo también.
    ────────────────────────────────────────────────────────────────────────────── */
 
 .toast {

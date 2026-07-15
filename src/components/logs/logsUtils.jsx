@@ -1,6 +1,6 @@
 import React from "react";
 
-// Fix ARCH-10 (auditoría 9 de julio): extraído de LogsView.jsx sin cambios
+// Fix ARCH-13 (auditoría 9 de julio): extraído de LogsView.jsx sin cambios
 // de lógica. Compartido por TabSesiones y TabAuditoria.
 
 export function fmtDateTime(iso) {
@@ -47,7 +47,7 @@ export const ACCION_CONFIG = {
   ELIMINAR_ROL:        { icon: "ti-shield-off",     color: "#DC2626" },
 };
 
-// Fix A3/S3 (auditoría QA 5/jul/2026, Fase 2): EVENTO_CONFIG/ACCION_CONFIG
+// Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, Fase 2): EVENTO_CONFIG/ACCION_CONFIG
 // son objetos fijos hardcodeados arriba — no son "dato" en el sentido que
 // bloquea CSP. Las clases .lv-c-<evento>/.lv-a-<accion> (ver src/index.css)
 // reemplazan el fondo/color que antes se inyectaba vía estilo inline.

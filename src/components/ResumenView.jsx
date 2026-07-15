@@ -47,7 +47,7 @@ export default function ResumenView({ stats, data, byDocente, byMateria, conflic
 
   return (
     <div className="rv-root">
-      {/* A-5: banner mientras data está vacía y se está cargando el programa nuevo */}
+      {/* ARCH-5: banner mientras data está vacía y se está cargando el programa nuevo */}
       {isSyncing && (!data || data.length === 0) && (
         <div className="rv-syncing-banner">
           <i className="ti ti-refresh rv-syncing-icon" aria-hidden="true" />

@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    usuarios/index.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de usuarios/index.jsx
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de usuarios/index.jsx
    (UsuariosView). El tab activo ("usuarios" / "roles") es un enum fijo y
    conocido de 2 variantes — se resuelve con la clase modificadora
    .uv-tab--active en vez de leer `tab === t.id` en cada style inline.

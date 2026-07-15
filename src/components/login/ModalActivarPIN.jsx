@@ -2,15 +2,15 @@ import React, { useState, useId } from "react";
 import { guardarPinOffline } from "../../utils/pinOffline";
 import "../LoginScreen.css";
 
-// Fix ARCH-10 (auditoría 9 de julio): extraído de LoginScreen.jsx sin
+// Fix ARCH-13 (auditoría 9 de julio): extraído de LoginScreen.jsx sin
 // cambios de lógica — ya era una función separada dentro del archivo,
 // solo se movió a su propio módulo. Modal para activar PIN offline tras
 // un login exitoso.
 //
-// Fix U-7 (auditoría 11 de julio): los <label> quedaron como hermanos del
-// <input> tras la extracción de ARCH-10, sin htmlFor/id, por lo que un
+// Fix UX-8 (auditoría 11 de julio): los <label> quedaron como hermanos del
+// <input> tras la extracción de ARCH-13, sin htmlFor/id, por lo que un
 // lector de pantalla no anunciaba el campo al enfocarlo. Se usa useId()
-// (mismo patrón de Campo.jsx / U-4) para generar ids estables por
+// (mismo patrón de Campo.jsx / UX-4) para generar ids estables por
 // instancia y enlazar cada label con su input.
 export default function ModalActivarPIN({ user, profile, onDone }) {
   const [pin,    setPin]    = useState("");

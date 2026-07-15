@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    DocentesView.css
-   Migración A3 (auditoría 2026-07-02): estilos extraídos de DocentesView.jsx.
+   Migración UX-5 (auditoría 2026-07-02): estilos extraídos de DocentesView.jsx.
    Reutiliza .s-card / .s-th / .s-td / .s-input (src/index.css). Los estilos que
    dependen de datos reales (colores de trayecto, borde de agrupación por día)
    se mantienen inline por diseño, igual que en el resto de la migración.
@@ -120,7 +120,7 @@
 .dv-table tbody tr:nth-child(odd) { background: #fff; }
 
 .dv-td-dia { font-weight: 600; color: var(--color-text-primary); }
-/* Fix A3 (Fase 2): antes era un ternario inline (2 estados: nuevo día vs.
+/* Fix UX-5 (Fase 2): antes era un ternario inline (2 estados: nuevo día vs.
    mismo día), ahora modificador de clase fijo. */
 .dv-td-dia--nuevo-dia { border-top: 2px solid var(--color-border-tertiary); }
 .dv-td-dia--mismo-dia { border-top: 1px solid var(--color-background-tertiary); }

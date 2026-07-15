@@ -49,9 +49,9 @@ export const IconScan = () => (
 // aula. Ver REESCANEAR_REQUERIDO en index.jsx.
 export const CODIGOS_REQUIEREN_REESCANEO = ["TOKEN_INVALIDO", "TOKEN_EXPIRADO", "SESION_FECHA_INVALIDA"];
 
-// A3 (auditoría 2026-06-30): "color" pasó a "colorClass" — referencia a una
+// UX-5 (auditoría 2026-06-30): "color" pasó a "colorClass" — referencia a una
 // clase definida en DocenteScan.css en vez de un hex embebido, para poder
-// aplicarlo como className y no como style en línea (necesario para S3).
+// aplicarlo como className y no como style en línea (necesario para SEC-3).
 // Mapa de equivalencia: scan-color-success=#15803D, scan-color-indigo=#4338CA,
 // scan-color-warning=#92400E, scan-color-danger=#991B1B, scan-color-blue=#1E40AF.
 export const RESULTADO_UI = {

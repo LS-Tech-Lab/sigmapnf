@@ -8,7 +8,7 @@
  * Props:
  *   permisos  — objeto de permisos del usuario actual
  *   profile   — perfil del usuario actual (se usa solo para saber si
- *               rol === "admin" — jerarquía fija de SEC-10, ver
+ *               rol === "admin" — jerarquía fija de SEC-15, ver
  *               PestanaUsuarios/ModalUsuario)
  *   programas — lista de programas disponibles
  *   logAudit  — función de auditoría
@@ -26,7 +26,7 @@ export default function UsuariosView({ permisos, profile, programas, logAudit, s
   const programasDisponibles = programas?.length ? programas : DEFAULT_PROGRAMAS;
   const puedeUsuarios = permisos.puedeGestionarUsuarios;
   const puedeRoles    = permisos.puedeGestionarRoles;
-  // SEC-10 (jerarquía fija del rol admin, migración 0050): el backend ya
+  // SEC-15 (jerarquía fija del rol admin, migración 0050): el backend ya
   // rechaza que alguien sin rol admin cree/edite/elimine una cuenta admin.
   // esActorAdmin es solo para reflejar esa misma regla en la UI (ocultar
   // la opción "admin" del selector, bloquear las acciones sobre filas

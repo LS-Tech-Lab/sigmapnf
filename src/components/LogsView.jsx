@@ -12,14 +12,14 @@ import TabSesiones from "./logs/TabSesiones";
 import TabAuditoria from "./logs/TabAuditoria";
 import "./LogsView.css";
 
-// Fix ARCH-10 (auditoría 9 de julio): TabSesiones, TabAuditoria y las
+// Fix ARCH-13 (auditoría 9 de julio): TabSesiones, TabAuditoria y las
 // utilidades compartidas (fmtDateTime/EVENTO_CONFIG/ACCION_CONFIG/badges)
-// se extrajeron a src/components/logs/ — mismo patrón que ARCH-8. Este
+// se extrajeron a src/components/logs/ — mismo patrón que ARCH-11. Este
 // archivo queda solo como orquestador de pestañas.
 
 // ── Componente principal ──────────────────────────────────────────────
 export default function LogsView({ permisos, showToast }) {
-  // D-1 fix: las pestañas se construyen según permisos individuales.
+  // PERM-2 fix: las pestañas se construyen según permisos individuales.
   // puedeVerLogs → "Registros de sesión"
   // puedeVerAuditoria → "Auditoría de cambios"
   // Antes: ambas pestañas visibles a cualquier usuario con puedeVerLogs.

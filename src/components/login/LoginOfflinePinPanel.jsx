@@ -1,14 +1,14 @@
 import React, { useId } from "react";
 
-// Fix ARCH-10 (auditoría 9 de julio): extraído de LoginScreen.jsx sin
+// Fix ARCH-13 (auditoría 9 de julio): extraído de LoginScreen.jsx sin
 // cambios de lógica — es puramente presentacional, todo el estado y los
 // handlers (handlePinLogin, lockout, carga de usuarios offline) siguen
 // viviendo en LoginScreen.jsx, que es quien los pasa por props.
 //
-// Fix U-7 (auditoría 11 de julio): los <label> quedaron como hermanos del
-// <input>/<select> tras la extracción de ARCH-10, sin htmlFor/id, por lo
+// Fix UX-8 (auditoría 11 de julio): los <label> quedaron como hermanos del
+// <input>/<select> tras la extracción de ARCH-13, sin htmlFor/id, por lo
 // que un lector de pantalla no anunciaba el campo al enfocarlo. Se usa
-// useId() (mismo patrón de Campo.jsx / U-4) para generar ids estables por
+// useId() (mismo patrón de Campo.jsx / UX-4) para generar ids estables por
 // instancia y enlazar cada label con su campo.
 export default function LoginOfflinePinPanel({
   usuariosOffline,

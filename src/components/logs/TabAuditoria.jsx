@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { fmtDateTime, ACCION_CONFIG, accionClass, AccionBadge } from "./logsUtils";
 
-// Fix ARCH-10 (auditoría 9 de julio): extraído de LogsView.jsx sin cambios
+// Fix ARCH-13 (auditoría 9 de julio): extraído de LogsView.jsx sin cambios
 // de lógica — ya era un componente autocontenido dentro del archivo, solo
 // se movió a su propio módulo.
 

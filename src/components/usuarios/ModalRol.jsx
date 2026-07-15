@@ -230,11 +230,11 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
                   </span>
                 </div>
                 <div className="mr-items-list">
-                  {/* Fix A3/S3 (5/jul/2026): se quitó el <input type="color">
+                  {/* Fix UX-5/SEC-3 (5/jul/2026): se quitó el <input type="color">
                       libre — form.color ahora solo puede ser uno de los 10
                       COLORES_PRESET (ver arriba), así que este tinte y el
                       accentColor del checkbox ya pueden resolverse con la
-                      misma clase fija roleColorClass() que el resto de A3,
+                      misma clase fija roleColorClass() que el resto de UX-5,
                       en vez de quedar como excepción permanente. */}
                   {g.items.map((item, idx) => (
                     <label key={item.key} className={`mr-item${idx > 0 ? ' mr-item--divider' : ''} ${roleColorClass(form.color)}${form.permisos[item.key] ? ' mr-item--checked' : ''}`}>

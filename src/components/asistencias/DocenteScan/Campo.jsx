@@ -1,5 +1,5 @@
 // Input con estilo y manejo de error/hint, usado en el formulario de primera vez.
-// Fix U-4 (auditoría julio 2026): label e input no estaban asociados
+// Fix UX-4 (auditoría julio 2026): label e input no estaban asociados
 // programáticamente (sin htmlFor/id), por lo que un lector de pantalla no
 // anunciaba la etiqueta al enfocar el campo. Se usa useId() para generar
 // un id estable por instancia y se enlaza también el mensaje de

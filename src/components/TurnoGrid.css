@@ -1,9 +1,9 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    TurnoGrid.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de TurnoGrid.jsx.
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de TurnoGrid.jsx.
    .tg-card / .tg-th-hora / .tg-th-day ya existían en src/index.css y se
    mantienen ahí.
-   Fix A3/S3 Fase 1 (auditoría QA 2026-07-05): --clase-bg/--clase-color/
+   Fix UX-5/SEC-3 Fase 1 (auditoría QA 2026-07-05): --clase-bg/--clase-color/
    --clase-shadow/--clase-border (color de trayecto) ya NO son dinámicos —
    TRAYECTO_BG/TRAYECTO_COLORS es un dominio fijo de 13 valores, ahora
    definido por la clase .trayecto-<n> (ver src/index.css) en vez de style
@@ -57,7 +57,7 @@
   vertical-align: top;
 }
 .tg-cell-inner { display: flex; flex-direction: column; height: 100%; }
-/* Fix A3/S3 Fase 5 (5/jul/2026): BLOQUES_DIURNO/VESPERTINO siempre tienen 6
+/* Fix UX-5/SEC-3 Fase 5 (5/jul/2026): BLOQUES_DIURNO/VESPERTINO siempre tienen 6
    bloques (constants/index.js) — el rowSpan de una celda combinada solo
    puede ser 1-6, un dominio fijo. 6 clases en vez de --cell-height inline. */
 .tg-cell-data--span-1 { height: 52px; }

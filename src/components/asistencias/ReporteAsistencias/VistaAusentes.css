@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    VistaAusentes.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de VistaAusentes.jsx.
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de VistaAusentes.jsx.
    Reutiliza .s-card / .s-th / .s-td (src/index.css), que reemplazan al helper
    S del componente (S.card/S.th/S.td eran objetos idénticos a esas clases).
    El @keyframes shimmer ya vive en ReporteAsistencias/index.css — se retira

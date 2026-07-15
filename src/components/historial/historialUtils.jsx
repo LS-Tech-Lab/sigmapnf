@@ -1,6 +1,6 @@
 import React from "react";
 
-// Fix ARCH-10 (auditoría 9 de julio): extraído de HistorialView.jsx sin
+// Fix ARCH-13 (auditoría 9 de julio): extraído de HistorialView.jsx sin
 // cambios de lógica. Compartido por HistorialView, ModalTrimestre,
 // ComparadorPanel y HistorialLista.
 

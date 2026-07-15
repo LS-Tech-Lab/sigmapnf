@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    LogsView.css
-   Migración A3 (auditoría 2026-07-02): estilos extraídos de LogsView.jsx.
+   Migración UX-5 (auditoría 2026-07-02): estilos extraídos de LogsView.jsx.
    Reutiliza .s-card / .s-th / .s-td / .s-input / .s-select / .s-btn (src/index.css).
    Los colores que provienen de EVENTO_CONFIG / ACCION_CONFIG (definidos en el
    propio JSX, por tipo de evento o acción) se mantienen inline por diseño —

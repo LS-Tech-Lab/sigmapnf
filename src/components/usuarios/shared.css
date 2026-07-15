@@ -1,7 +1,7 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    shared.css
-   Migración A3 (auditoría 2026-07-05): estilos extraídos de usuarios/shared.jsx.
-   Fix A3/S3 Fase 3 (auditoría QA 2026-07-05): el color de Badge (rol,
+   Migración UX-5 (auditoría 2026-07-05): estilos extraídos de usuarios/shared.jsx.
+   Fix UX-5/SEC-3 Fase 3 (auditoría QA 2026-07-05): el color de Badge (rol,
    sistema o personalizado) es un dominio fijo de 14 valores conocidos
    (roleColorClass(), src/constants/index.js) — ya no se inyecta vía style
    inline, lo define la clase .role-color--<slug> (ver src/index.css) a
