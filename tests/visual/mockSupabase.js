@@ -1,6 +1,6 @@
 // tests/visual/mockSupabase.js
 //
-// Fix U-10, opción C (decidida por LS 13-jul-2026): mockear el cliente de
+// Fix UX-11, opción C (decidida por LS 13-jul-2026): mockear el cliente de
 // Supabase en el navegador del test en vez de usar un usuario de prueba
 // real (opción A) o un proyecto Supabase de staging (opción B). Sin
 // credenciales de ningún tipo en CI, sin red externa, mismo patrón que ya

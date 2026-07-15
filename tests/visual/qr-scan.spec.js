@@ -1,6 +1,6 @@
 // tests/visual/qr-scan.spec.js
 //
-// Fix U-10 (auditoría 12 de julio): regresión visual de la pantalla que
+// Fix UX-11 (auditoría 12 de julio): regresión visual de la pantalla que
 // ve el docente al escanear el QR — "¿Qué deseas registrar?"
 // (Marcar Entrada / Marcar Salida). Es una ruta pública (/scan?token=...),
 // no requiere sesión — confirmado en src/App.jsx: `if (pathname === "/scan")

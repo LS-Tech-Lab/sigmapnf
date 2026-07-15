@@ -2,13 +2,13 @@
 
 ## `xlsx-0.20.3.tgz`
 
-Fix `ARCH-13` (auditoría 12 de julio de 2026): `xlsx` no se publica en el
+Fix `ARCH-16` (auditoría 12 de julio de 2026): `xlsx` no se publica en el
 registro de npm desde hace varias versiones — SheetJS lo distribuye solo
 desde su propio CDN (`cdn.sheetjs.com`). `package.json` apuntaba
 directamente a esa URL, así que cualquier `npm install` en una red
 restringida (CI con firewall estricto, sandbox sin ese dominio en su
 allowlist, etc.) fallaba con `403 Forbidden` y bloqueaba toda la suite de
-tests — mismo síntoma ya documentado en `D-6`.
+tests — mismo síntoma ya documentado en `SEC-14`.
 
 Este archivo es el tarball oficial descargado de
 `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`, la misma versión

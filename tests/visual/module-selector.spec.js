@@ -1,6 +1,6 @@
 // tests/visual/module-selector.spec.js
 //
-// Fix U-10, opción C (decidida por LS 13-jul-2026): el selector de
+// Fix UX-11, opción C (decidida por LS 13-jul-2026): el selector de
 // módulos solo se ve con sesión iniciada. En vez de credenciales reales
 // (opción A) o un proyecto Supabase de staging (opción B), se mockea el
 // cliente de Supabase a nivel de red del navegador — ver

@@ -1,6 +1,6 @@
 // tests/visual/login.spec.js
 //
-// Fix U-10 (auditoría 12 de julio): regresión visual de la pantalla de
+// Fix UX-11 (auditoría 12 de julio): regresión visual de la pantalla de
 // login en los 3 breakpoints definidos en playwright.config.js. No
 // requiere sesión ni datos de Supabase — es la pantalla que ve cualquiera
 // que abre la app sin loguearse.
