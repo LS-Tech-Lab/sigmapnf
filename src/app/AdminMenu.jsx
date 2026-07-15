@@ -12,7 +12,16 @@ function AdminMenu({ onClose, modoConsulta, fileRef, backupRef, permisos }) {
   const appData = useAppDataContext();
 
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    // Fix (14 de julio, reportado por LS desde móvil): el botón que abre/
+    // cierra este dropdown vive fuera de `ref` (está en el footer del
+    // sidebar). Sin este guard, tocar el botón de nuevo para cerrar
+    // disparaba una carrera: mousedown cerraba vía este listener y el
+    // click del propio botón lo reabría de inmediato (toggle sobre el
+    // estado ya actualizado) — parecía que nunca se cerraba.
+    const handler = (e) => {
+      if (e.target.closest(".hl-admin-btn")) return;
+      if (ref.current && !ref.current.contains(e.target)) onClose();
+    };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
