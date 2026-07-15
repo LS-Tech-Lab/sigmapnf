@@ -1,5 +1,5 @@
 // eslint.config.js
-// Fix ARCH-16 (auditoría 12 de julio): el proyecto no tenía ningún linter
+// Fix ARCH-19 (auditoría 12 de julio): el proyecto no tenía ningún linter
 // configurado — nada revisaba automáticamente reglas de hooks de React,
 // variables sin usar, o errores comunes antes de un commit/PR. Se agrega
 // ESLint (flat config, formato nativo desde ESLint 9+) con el set mínimo
@@ -15,7 +15,7 @@
 //     desarrollo — vale la pena la advertencia).
 // Deliberadamente NO se agrega `eslint-plugin-react` completo: sus reglas
 // (prop-types, jsx-uses-react, etc.) no aplican a este proyecto — el
-// contrato de props ya lo cubre `prop-types` (ARCH-17) directamente en
+// contrato de props ya lo cubre `prop-types` (ARCH-20) directamente en
 // cada componente, y el runtime automático de JSX hace innecesario tener
 // React en scope.
 import js from '@eslint/js'
@@ -26,9 +26,9 @@ import globals from 'globals'
 export default [
   {
     // Nada de esto se audita: build generado, dependencias vendorizadas
-    // (el propio xlsx vendorizado en ARCH-13 no es código nuestro), el
+    // (el propio xlsx vendorizado en ARCH-16 no es código nuestro), el
     // Service Worker que genera vite-plugin-pwa en cada build, y los
-    // artefactos/reportes de Playwright (U-10) — no las imágenes base
+    // artefactos/reportes de Playwright (UX-11) — no las imágenes base
     // (esas no son código) sino los reportes HTML/resultados de corrida.
     ignores: [
       'dist/**',
@@ -102,7 +102,7 @@ export default [
       // hace falta tener `React` en scope para que JSX funcione. Varios
       // archivos igual conservan `import React from 'react'` de antes de
       // esa migración — no son un bug, así que no se marcan como error
-      // (tampoco se borran en este fix: no es el alcance de ARCH-16
+      // (tampoco se borran en este fix: no es el alcance de ARCH-19
       // limpiar imports de 15+ archivos no relacionados).
       'no-unused-vars': [
         'error',
@@ -148,7 +148,7 @@ export default [
     },
   },
 
-  // --- Tests visuales de Playwright (U-10) — runner y globals propios,
+  // --- Tests visuales de Playwright (UX-11) — runner y globals propios,
   // distintos de Vitest (test/expect vienen de @playwright/test, no hay
   // "describe" global, y corren en Node, no en jsdom) ---
   {

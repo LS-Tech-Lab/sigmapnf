@@ -109,7 +109,7 @@ el impacto real de cada uno antes de calificarlo:
   > positivo silencioso: `.data || []` no distingue "tabla inexistente"
   > de "tabla vacía", así que nunca lanzó un error visible).
   >
-  > **Cerrado como `D-4`** — un cambio de una línea en
+  > **Cerrado como `PERM-4`** — un cambio de una línea en
   > `src/hooks/useAppData/backupActions.js` (`exportarDatos`): la consulta
   > ahora apunta a `asistencias_diarias`, igual que ya hacía el lado de
   > restauración (`importarDatos`, que nunca tuvo este bug). Ver

@@ -28,7 +28,7 @@ export default defineConfig({
       VITE_SUPABASE_URL:      "https://placeholder.supabase.co",
       VITE_SUPABASE_ANON_KEY: "placeholder-anon-key",
     },
-    // Fix U-10: tests/visual/ son specs de Playwright (@playwright/test),
+    // Fix UX-11: tests/visual/ son specs de Playwright (@playwright/test),
     // no de Vitest — usan un `test`/`expect` propio y un runner que
     // levanta un browser real. Sin este exclude, Vitest los recoge igual
     // por el glob por defecto (*.spec.js) y falla con "Playwright Test

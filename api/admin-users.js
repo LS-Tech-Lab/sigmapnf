@@ -7,7 +7,7 @@ import { validarPassword } from "../src/utils/password.js";
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// ── ARCH-11: helper central para llamadas a Supabase con service_role ─
+// ── ARCH-14: helper central para llamadas a Supabase con service_role ─
 // Antes, cada una de las 13 llamadas a Supabase repetía a mano el
 // armado de headers (Authorization + apikey + Content-Type condicional)
 // y el `${SUPABASE_URL}${path}`. Este helper centraliza ese bloque para
@@ -50,7 +50,7 @@ async function handleRequest(req, res) {
     return res.status(405).json({ error: "Método no permitido." });
   }
 
-  // ── SEC-13: allowlist explícito de origen (defensa en profundidad) ──
+  // ── SEC-19: allowlist explícito de origen (defensa en profundidad) ──
   // Este endpoint solo debe llamarse desde el propio frontend de
   // sigmapnf (mismo origen que sirve la SPA en Vercel). Hoy no era
   // explotable porque Vercel sirve frontend y función del mismo origen
@@ -99,11 +99,11 @@ async function handleRequest(req, res) {
     return res.status(403).json({ error: "No tienes permiso para gestionar usuarios." });
   }
 
-  // ── SEC-11: rate limiting por cuenta ─────────────────────────────
+  // ── SEC-16: rate limiting por cuenta ─────────────────────────────
   // Máx. 10 acciones por minuto por cuenta que llama a este endpoint
   // (create/reset_password/delete/delete_orphan comparten el mismo
   // límite: es por endpoint, no por acción). Mismo patrón que
-  // scan_rate_limit (D-3) — ver migración 0051.
+  // scan_rate_limit (SEC-13) — ver migración 0051.
   const rateLimitRes = await supabaseAdminFetch(
     "/rest/v1/rpc/registrar_admin_action_rate_limit",
     { method: "POST", body: { p_actor_id: userData.id } }
@@ -120,7 +120,7 @@ async function handleRequest(req, res) {
     });
   }
 
-  // ── SEC-10: jerarquía fija del rol admin ─────────────────────────
+  // ── SEC-15: jerarquía fija del rol admin ─────────────────────────
   // Regla fija (no depende de la tabla dinámica `roles`, igual que
   // en las RPCs SQL — ver migración 0050): solo una cuenta con rol
   // 'admin' puede asignar el rol 'admin' o tocar (resetear contraseña,
@@ -128,7 +128,7 @@ async function handleRequest(req, res) {
   // create/reset_password/delete directamente contra Auth Admin API +
   // REST con la Service Role Key, sin pasar por las RPCs SQL — por
   // eso necesita su propio guard, no basta con corregir la BD.
-  // Nota (ARCH-16): sin valor inicial — el bloque de abajo siempre lo
+  // Nota (ARCH-19): sin valor inicial — el bloque de abajo siempre lo
   // asigna antes de la primera lectura; si `supabaseAdminFetch`/`.json()`
   // lanzara, el `try/catch` de `handler()` ya corta la respuesta con 500
   // antes de llegar a ningún chequeo de `callerEsAdmin`, así que un valor

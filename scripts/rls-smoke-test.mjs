@@ -4,10 +4,10 @@
 // que usa el frontend en producción), que las tablas sensibles se
 // comportan como deben — ni más abiertas ni más cerradas de lo esperado.
 //
-// Nace del hallazgo S2 de docs/AUDITORIA_INDICE.md (docentes/materias —
-// no confundir con S1 de ese mismo índice, que es horarios; en la
+// Nace del hallazgo SEC-2 de docs/AUDITORIA_INDICE.md (docentes/materias —
+// no confundir con SEC-1 de ese mismo índice, que es horarios; en la
 // auditoría externa auditoria_sigmapnf.md este mismo hallazgo se llamó
-// S1, de ahí la colisión original de este comentario)
+// SEC-1, de ahí la colisión original de este comentario)
 // y del historial de este proyecto: dos veces ya (horarios en 0035/0045,
 // docentes/materias en 0046) una política de RLS quedó más permisiva de
 // lo que la UI asumía, sin que nada lo detectara hasta una auditoría
@@ -136,7 +136,7 @@ async function main() {
   await checkSelectPermitido("materias", "id");
   await checkSelectPermitido("horarios", "id");
 
-  // Escrituras que deben rechazarse — foco de S1 (docentes/materias)
+  // Escrituras que deben rechazarse — foco de SEC-1 (docentes/materias)
   await checkInsertRechazado("docentes", {
     nombre_raw: SMOKE_TEST_MARKER,
     nombre_display: SMOKE_TEST_MARKER,

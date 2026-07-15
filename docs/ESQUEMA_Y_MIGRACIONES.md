@@ -24,7 +24,7 @@ adivinar qué está realmente activo en producción.
 Documentar contra la BD real (no contra el código) encontró dos problemas
 que ningún archivo de migración mostraba:
 
-### 🔴 SEC-8 — Grants de `anon` que contradicen su propia migración
+### 🔴 SEC-9 — Grants de `anon` que contradicen su propia migración
 
 4 funciones tenían `REVOKE ALL FROM PUBLIC` explícito en su migración
 original, pero la BD real las mostraba ejecutables por `anon`. Ninguna
@@ -37,7 +37,7 @@ funciones a la vez sin quedar registrado en ningún lado.
 | Función | Debía ser solo | Impacto real si quedaba abierta |
 |---|---|---|
 | `limpiar_audit_logs_antiguos` | `service_role` | Cualquiera sin cuenta podía borrar el log de auditoría completo al instante (`p_dias_retencion := 0`) — anti-forense directo |
-| `limpiar_scan_rate_limit` | `service_role` | Cualquiera podía resetear el rate limiting de `/scan`, anulando `D-3` por completo |
+| `limpiar_scan_rate_limit` | `service_role` | Cualquiera podía resetear el rate limiting de `/scan`, anulando `SEC-13` por completo |
 | `asegurar_particion_lapso` | `authenticated` | Menor: creación de particiones vacías arbitrarias |
 | `docentes_con_cedula` | `authenticated` | Menor: ya era información esencialmente pública vía la tabla `docentes` |
 
@@ -47,11 +47,11 @@ Mitigado en la práctica porque ese UUID nunca se expone al docente anónimo
 (la respuesta de `registrar_asistencia` no lo incluye), pero se agregó el
 mismo chequeo que ya usa `crear_qr_session`.
 
-### 🔴 SEC-7 — INSERT abierto en `login_attempts`
+### 🔴 SEC-8 — INSERT abierto en `login_attempts`
 
 Política `la_insert_anon`: `INSERT` para `public` con `WITH CHECK (true)` —
 cualquiera sin cuenta podía insertar un intento fallido falso con el email
-de otra persona. Combinado con `SEC-6` (bloqueo por cuenta, `0047`, misma
+de otra persona. Combinado con `SEC-7` (bloqueo por cuenta, `0047`, misma
 sesión): permitía forzar el bloqueo de una cuenta ajena a voluntad. Cerrado
 en `0048`. Ver `AUDITORIA_INDICE.md` para el detalle completo de ambos.
 
@@ -102,7 +102,7 @@ Todas las tablas tienen **RLS habilitado** (verificado, no asumido).
 
 - **PK compuesta:** `(id, lapso)` — necesaria por ser tabla particionada.
 - **FK:** `docente_id → docentes.id` (`NO ACTION`), `materia_id → materias.id` (`NO ACTION`), `lapso → trimestres.lapso` (`RESTRICT`).
-- **Particiones reales (7):** `horarios_lapso_1_2026`, `horarios_lapso_2_2026`, `horarios_lapso_3_2026`, `horarios_lapso_1_2027`, `horarios_lapso_2_2027`, `horarios_lapso_3_2027`, `horarios_lapso_default`. Cada una con su propio RLS habilitado y las mismas 4 políticas que el padre (`S1`/`0045` corrigió que el padre mismo no las aplicaba).
+- **Particiones reales (7):** `horarios_lapso_1_2026`, `horarios_lapso_2_2026`, `horarios_lapso_3_2026`, `horarios_lapso_1_2027`, `horarios_lapso_2_2027`, `horarios_lapso_3_2027`, `horarios_lapso_default`. Cada una con su propio RLS habilitado y las mismas 4 políticas que el padre (`SEC-1`/`0045` corrigió que el padre mismo no las aplicaba).
 - **Índices:** `horarios_id_idx`, `horarios_lapso_idx`, `horarios_lapso_dia_idx (lapso, dia)`, `horarios_part_pkey (id, lapso)`, `idx_horarios_lapso_programa (lapso, programa)`, `idx_horarios_sheet`.
 - **RLS (4 políticas, padre + cada partición):** SELECT público (`true`); INSERT/UPDATE requieren `puedeEditarHorarios`; DELETE requiere `puedeBorrarHorarios`.
 - **Realtime:** habilitado (padre no, pero **cada partición sí** — coherente con que Postgres publica por relación física, no por el padre lógico).
@@ -236,7 +236,7 @@ Todas las tablas tienen **RLS habilitado** (verificado, no asumido).
 | `ip` / `user_agent` / `motivo` | text | sí | — |
 | `created_at` | timestamptz | NO | `now()` |
 
-- **RLS (3 políticas, post-`0048`):** SELECT para `authenticated` con `puedeVerLogs`; INSERT bloqueado para todos directamente (`false`) — escritura exclusiva vía `log_login_fallido()`/`verificar_bloqueo_login()` (`SECURITY DEFINER`). Antes de `0048` existía `la_insert_anon` (`public`, `WITH CHECK (true)`) — ver `SEC-7`.
+- **RLS (3 políticas, post-`0048`):** SELECT para `authenticated` con `puedeVerLogs`; INSERT bloqueado para todos directamente (`false`) — escritura exclusiva vía `log_login_fallido()`/`verificar_bloqueo_login()` (`SECURITY DEFINER`). Antes de `0048` existía `la_insert_anon` (`public`, `WITH CHECK (true)`) — ver `SEC-8`.
 
 ### `scan_rate_limit`
 
@@ -270,7 +270,7 @@ por categoría — el detalle completo de argumentos está en
 | Utilitarias de sesión | `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa`, `tiene_permiso`, `fecha_hoy_ve` | `DEFINER`, solo lectura — devuelven vacío/null para `anon` sin exponer nada sensible |
 | Parsing / triggers | `parse_clase`, `parse_rango_hora`, `time_to_min`, `horario_docente_hoy`, `docentes_con_cedula`, `proteger_columnas_sensibles_user_profiles`, `proteger_roles_sistema`, `update_user_profiles_timestamp` | Mixto — las últimas 3 son funciones de trigger, no invocables directo vía RPC aunque `pg_proc` muestre permisos amplios |
 
-**Cerrado (`SEC-9`, migración `0052`):** `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecían ejecutables por `anon` sin ningún `REVOKE` explícito en ninguna migración. Auditadas con el mismo criterio que `SEC-8`: `0052` resolvió cada función real vía `pg_proc` (ninguna fue creada por una migración de este repo, así que no había firma versionada) y le hizo `REVOKE ... FROM anon` + `GRANT ... TO authenticated`. Verificado contra la BD real tras aplicar: las 4 son `()` sin argumentos y su `EXECUTE` quedó en `authenticated`/`postgres`/`service_role` — `anon` ya no aparece.
+**Cerrado (`SEC-17`, migración `0052`):** `get_auth_role`, `get_my_role`, `get_auth_programa`, `get_my_programa` aparecían ejecutables por `anon` sin ningún `REVOKE` explícito en ninguna migración. Auditadas con el mismo criterio que `SEC-9`: `0052` resolvió cada función real vía `pg_proc` (ninguna fue creada por una migración de este repo, así que no había firma versionada) y le hizo `REVOKE ... FROM anon` + `GRANT ... TO authenticated`. Verificado contra la BD real tras aplicar: las 4 son `()` sin argumentos y su `EXECUTE` quedó en `authenticated`/`postgres`/`service_role` — `anon` ya no aparece.
 
 ---
 
@@ -314,19 +314,19 @@ depende de datos "estáticos" de estas tablas, tenerlo en cuenta.
 | 0016–0021 | *(serie `Fix #N`)* | RLS de `user_profiles`, FKs, índices, RPCs de gestión de usuarios |
 | 0022–0030 | índices, auditoría, formato v2, cédula única | Mantenimiento e iteración de `docentes`/`materias` |
 | 0031–0034 | `session_logs`, `login_attempts`, RPCs faltantes | Documentación de objetos creados sin migración |
-| 0035 | `fix_rls_horarios_y_permiso_qr.sql` | **V-1, V-4** |
-| 0036 | `fix_rls_qr_permisos_granulares.sql` | **V-2** |
+| 0035 | `fix_rls_horarios_y_permiso_qr.sql` | **SEC-10, SEC-12** |
+| 0036 | `fix_rls_qr_permisos_granulares.sql` | **SEC-11** |
 | 0037–0038 | limpieza de backup, retención de audit_logs | Mantenimiento |
-| 0039–0040 | `rate_limit_scan.sql` + limpieza | **D-3** |
+| 0039–0040 | `rate_limit_scan.sql` + limpieza | **SEC-13** |
 | 0041 | `restaurar_backup_asistencias.sql` | *(Gap #16)* |
 | 0042 | `fix_default_id_horarios.sql` | `IDENTITY` en `horarios.id` |
 | 0043 | `enable_rls_user_profiles_y_proteger_columnas.sql` | RLS nunca habilitado a nivel de tabla |
 | 0044 | `documentar_tiene_permiso.sql` | Documentación de función sin migración |
-| 0045 | `fix_rls_horarios_update_sin_permiso.sql` | **S1** |
-| 0046 | `permisos_granulares_docentes_materias.sql` | Mismo patrón que S1 en `docentes`/`materias` |
-| 0047 | `bloqueo_login_fuerza_bruta.sql` | **SEC-6** |
-| 0048 | `cerrar_insert_directo_login_attempts.sql` | **SEC-7** |
-| 0049 | `cerrar_grants_anon_excesivos.sql` | **SEC-8** |
+| 0045 | `fix_rls_horarios_update_sin_permiso.sql` | **SEC-1** |
+| 0046 | `permisos_granulares_docentes_materias.sql` | Mismo patrón que SEC-1 en `docentes`/`materias` |
+| 0047 | `bloqueo_login_fuerza_bruta.sql` | **SEC-7** |
+| 0048 | `cerrar_insert_directo_login_attempts.sql` | **SEC-8** |
+| 0049 | `cerrar_grants_anon_excesivos.sql` | **SEC-9** |
 
 ---
 
@@ -335,8 +335,8 @@ depende de datos "estáticos" de estas tablas, tenerlo en cuenta.
 Correr `verificacion_esquema_completo.sql` (11 queries de solo lectura) en
 el SQL Editor de Supabase, un bloque a la vez, y comparar contra este
 documento. Recomendado después de cualquier sesión donde se haya tocado
-algo directo en el dashboard (la causa raíz de `SEC-8` y de la mitad de
-los hallazgos de `S1` en adelante) y periódicamente de todos modos, dado
+algo directo en el dashboard (la causa raíz de `SEC-9` y de la mitad de
+los hallazgos de `SEC-1` en adelante) y periódicamente de todos modos, dado
 el patrón ya repetido varias veces en este proyecto.
 
 ---

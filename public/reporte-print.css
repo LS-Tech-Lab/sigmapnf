@@ -1,7 +1,7 @@
 /* Estilos de la vista de impresión de reportes de asistencia (PDF vía
    window.print()). Extraído de exportPDF.js el 14 de julio: el CSP del
    proyecto usa `style-src 'self'` (sin 'unsafe-inline', endurecido en la
-   auditoría anterior — ver S3/A3 en AUDITORIA_INDICE.md), y la ventana
+   auditoría anterior — ver SEC-3/UX-5 en AUDITORIA_INDICE.md), y la ventana
    emergente que abre exportPDF.js (`window.open("", "_blank")` +
    `document.write`) es un documento about:blank del mismo origen, por lo
    que hereda el CSP del documento que la abrió. Un <style> inline ahí

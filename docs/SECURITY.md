@@ -126,8 +126,8 @@ En **Authentication → Settings**:
 
 | ID | Hallazgo | Causa raíz | Fix |
 |---|---|---|---|
-| S1 | Cualquier usuario autenticado podía `UPDATE`/`INSERT`/`DELETE` horarios de **cualquier** programa | Doble causa: (1) una política `FOR ALL` heredada ("Escritura autenticada") se combinaba en `OR` con las políticas granulares y las neutralizaba — las políticas RLS en PostgreSQL son permisivas por defecto; (2) la tabla padre particionada `horarios` nunca tuvo RLS habilitado sobre sí misma, solo en las particiones — y PostgREST accede siempre por el nombre del padre, así que ninguna política se evaluaba nunca en producción | `0035` (políticas granulares en las particiones) + `0045` (elimina la política heredada, habilita RLS en el padre, reaplica en todas las particiones vía `pg_inherits`) |
-| — | `docentes`/`materias`: la política de escritura solo exigía `authenticated`, sin verificar el permiso específico (`puedeEditarDocentes`/`puedeEditarMaterias`) | Mismo patrón que S1, alcance más angosto — RLS sí estaba activo (falso positivo parcial de un informe externo), pero sin control granular | `0046` |
+| SEC-1 | Cualquier usuario autenticado podía `UPDATE`/`INSERT`/`DELETE` horarios de **cualquier** programa | Doble causa: (1) una política `FOR ALL` heredada ("Escritura autenticada") se combinaba en `OR` con las políticas granulares y las neutralizaba — las políticas RLS en PostgreSQL son permisivas por defecto; (2) la tabla padre particionada `horarios` nunca tuvo RLS habilitado sobre sí misma, solo en las particiones — y PostgREST accede siempre por el nombre del padre, así que ninguna política se evaluaba nunca en producción | `0035` (políticas granulares en las particiones) + `0045` (elimina la política heredada, habilita RLS en el padre, reaplica en todas las particiones vía `pg_inherits`) |
+| — | `docentes`/`materias`: la política de escritura solo exigía `authenticated`, sin verificar el permiso específico (`puedeEditarDocentes`/`puedeEditarMaterias`) | Mismo patrón que SEC-1, alcance más angosto — RLS sí estaba activo (falso positivo parcial de un informe externo), pero sin control granular | `0046` |
 | — | RLS de `user_profiles` nunca se activó a nivel de tabla, aunque las políticas existían desde `0016` | Drift entre lo aplicado directo en el dashboard de Supabase y lo versionado en el repo | `0043`, con un trigger adicional para proteger columnas sensibles antes de habilitar RLS |
 
 **Patrón recurrente a vigilar:** varias de estas causas raíz son *drift* entre
@@ -171,7 +171,7 @@ Las acciones registradas automáticamente son:
 
 ## Política de rotación de `SUPABASE_SERVICE_ROLE_KEY`
 
-> Fix SEC-15 (auditoría 12 de julio): esta clave no tenía política
+> Fix SEC-22 (auditoría 12 de julio): esta clave no tenía política
 > documentada de rotación. No es una vulnerabilidad activa — es una nota
 > de proceso para el día en que haga falta rotarla (sospecha de fuga,
 > salida de alguien con acceso al Dashboard, rotación preventiva
@@ -213,7 +213,7 @@ Las acciones registradas automáticamente son:
    editar un usuario de prueba) que la clave nueva funciona antes de dar
    por cerrada la rotación.
 5. Si la rotación fue por sospecha de fuga, revisar además
-   `admin_actions_rate_limit` (`SEC-11`) y los `audit_logs` del período
+   `admin_actions_rate_limit` (`SEC-16`) y los `audit_logs` del período
    en cuestión por actividad no reconocida.
 
 > No hay automatización para este proceso — es manual a propósito, dado
@@ -242,5 +242,5 @@ Las acciones registradas automáticamente son:
 >
 > No queda ningún pendiente abierto en esta lista. El único hallazgo de
 > seguridad que seguía abierto tras la auditoría de sesiones (protección
-> de fuerza bruta server-side en el login) se cerró como `SEC-6` — ver
+> de fuerza bruta server-side en el login) se cerró como `SEC-7` — ver
 > `AUDITORIA_INDICE.md`.

@@ -81,7 +81,7 @@ nombre del padre — así que:
 
 - Una política RLS aplicada solo a las particiones (y no al padre) **no
   se evalúa nunca** vía la API normal de la app. Esto es exactamente lo
-  que pasó con `S1` (ver `AUDITORIA_INDICE.md`): RLS granular existía en
+  que pasó con `SEC-1` (ver `AUDITORIA_INDICE.md`): RLS granular existía en
   cada partición desde `0035`, pero el padre nunca tuvo RLS *habilitado*
   sobre sí mismo hasta `0045`.
 - Un `ALTER TABLE horarios` para agregar una columna se propaga a las
@@ -97,7 +97,7 @@ verificarse con la query de `pg_class` de `SECURITY.md` contra el padre
 
 `pinOffline.js`, `offlineQueue.js` y `reporteCache.js` abrían bases de
 IndexedDB con nombres que colisionaban entre sí, lo que causó un crash de
-producción por *temporal dead zone* en el bundle (`A1`, ver
+producción por *temporal dead zone* en el bundle (`ARCH-1`, ver
 `AUDITORIA_INDICE.md`). El fix fue prefijar cada nombre de base/store de
 forma única por módulo. Si se agrega un cuarto módulo que necesite
 IndexedDB, seguir el mismo patrón desde el inicio — no esperar a que
@@ -111,7 +111,7 @@ de sesión al montar): cualquier fetch disparado por un cambio de filtro,
 props, o parámetro que pueda repetirse antes de que el anterior responda,
 necesita un `AbortController` en un `ref` para cancelar el fetch obsoleto
 si llega tarde. Sin esto, una respuesta lenta puede sobreescribir estado
-más reciente con datos viejos — el bug que documenta `A-4`.
+más reciente con datos viejos — el bug que documenta `ARCH-4`.
 
 ## 7. El módulo de asistencias QR no comparte `AppDataContext` con Horarios
 
@@ -153,7 +153,7 @@ Cuando una decisión de arquitectura viva solo en un comentario de código
 y tenga consecuencias si alguien la ignora sin saberlo, agregarla aquí con:
 qué se decidió, por qué (el bug o riesgo concreto que motivó la decisión,
 no una justificación abstracta), y dónde vive en el código. Si la decisión
-ya tiene un ID de auditoría asociado (`S1`, `A1`, `A-4`...), referenciarlo
+ya tiene un ID de auditoría asociado (`SEC-1`, `ARCH-1`, `ARCH-4`...), referenciarlo
 en vez de repetir el detalle — este documento explica el *principio
 reutilizable*, `AUDITORIA_INDICE.md` lleva el registro del *hallazgo
 puntual*.

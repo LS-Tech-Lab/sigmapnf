@@ -1,10 +1,10 @@
 // playwright.config.js
 //
-// Fix U-10 (auditoría 12 de julio): captura de regresión visual automatizada
+// Fix UX-11 (auditoría 12 de julio): captura de regresión visual automatizada
 // en CI. Objetivo original de la auditoría: detectar si un cambio futuro
 // rompe el layout responsive en pantallas chicas — la mayoría de los 24
 // archivos CSS sin `@media` se apoyan hoy en `flex-wrap`/`overflow-x: auto`
-// (verificado como válido en `U-8`), pero eso no tiene forma automática de
+// (verificado como válido en `UX-9`), pero eso no tiene forma automática de
 // confirmarse si alguien lo cambia sin darse cuenta.
 //
 // Alcance de esta primera entrega: SOLO la pantalla de login (no requiere
@@ -13,7 +13,7 @@
 // cómo simular esa sesión en tests (¿usuario de prueba real contra un
 // proyecto Supabase de staging? ¿mock del cliente de Supabase?) es una
 // decisión de alcance que no se tomó unilateralmente aquí. Ver nota al
-// final de `docs/AUDITORIA_INDICE.md` (entrada de `U-10`).
+// final de `docs/AUDITORIA_INDICE.md` (entrada de `UX-11`).
 //
 // IMPORTANTE — no verificado end-to-end en el entorno de trabajo: este
 // sandbox no tiene salida de red hacia cdn.playwright.dev, así que no se

@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
-        // Fix ARCH-7: 'autoUpdate' recargaba la página SOLA en cuanto el
+        // Fix ARCH-10: 'autoUpdate' recargaba la página SOLA en cuanto el
         // Service Worker detectaba una versión nueva (evento "activated"
         // de workbox-window), sin avisar ni esperar a que el usuario
         // terminara lo que estaba haciendo — interrumpía el login a mitad
@@ -52,7 +52,7 @@ export default defineConfig(({ mode }) => {
     ],
     base: '/',
     build: {
-      // Fix ARCH-18: el único chunk que hoy pasa los 500 KB por defecto es
+      // Fix ARCH-21: el único chunk que hoy pasa los 500 KB por defecto es
       // "xlsx" (~500 KB), y es a propósito — es la librería de Excel
       // completa, cargada solo cuando alguien sube un archivo (import
       // dinámico en useUpload.js), nunca en la carga inicial. 520 deja
@@ -62,7 +62,7 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 520,
       rollupOptions: {
         output: {
-          // Fix ARCH-14: la forma objeto de `manualChunks` asignaba a los
+          // Fix ARCH-17: la forma objeto de `manualChunks` asignaba a los
           // 4 grupos (view-historial/usuarios/logs/qr) no solo los archivos
           // listados, sino también módulos compartidos por toda la app
           // (cliente de Supabase, logger, parseClase) que Rollup terminaba
@@ -138,8 +138,8 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/src/components/LogsView')) {
               return 'view-logs'
             }
-            // Fix ARCH-12: antes los 3 componentes iban forzados a un
-            // único chunk `view-qr` (320 KB con ARCH-14 sin cerrar, 90 KB
+            // Fix ARCH-15: antes los 3 componentes iban forzados a un
+            // único chunk `view-qr` (320 KB con ARCH-17 sin cerrar, 90 KB
             // ya con `vendor-supabase`/`vendor-core` separados) aunque
             // cada uno ya tenía su propio `React.lazy()` en
             // `AsistenciasModulo.jsx` — nadie visita los 3 a la vez, así
@@ -156,7 +156,7 @@ export default defineConfig(({ mode }) => {
             // dejarlo en `undefined`: se probó primero con `undefined` y
             // Rollup lo terminó colocando físicamente dentro de
             // `view-qr-admin` de todos modos (mismo patrón de fondo que
-            // `ARCH-14` — un módulo compartido queda arrastrado dentro de
+            // `ARCH-17` — un módulo compartido queda arrastrado dentro de
             // uno de los chunks que lo usan en vez de separarse), lo cual
             // forzaba a `view-qr-proyeccion` a importar cruzado
             // `view-qr-admin` — exactamente lo que se quería evitar
@@ -166,7 +166,7 @@ export default defineConfig(({ mode }) => {
             // consumidores que `QRDisplay.jsx` (`AdminQRPanel` y
             // `QRProyeccion`) — encontrado con el mismo análisis de grafo
             // (intersección de módulos alcanzables desde cada una de las
-            // 3 entradas QR) usado para `ARCH-14`. Mismo chunk, mismo
+            // 3 entradas QR) usado para `ARCH-17`. Mismo chunk, mismo
             // motivo.
             if (
               id.includes('/src/components/asistencias/QRDisplay') ||
