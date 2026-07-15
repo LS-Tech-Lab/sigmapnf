@@ -16,11 +16,6 @@ export default function UserMenu({
   onCambiarPassword,
   onLogout,
   sessionStart,       // Date | null — expuesto por useAuth
-  // Solo horarios:
-  tieneHorarios,
-  tieneQR,
-  onCambiarModulo,
-  // Solo asistencias: no tiene opciones extra actualmente
   variant = "horarios",
 }) {
   // Formatear tiempo transcurrido desde el login
@@ -80,16 +75,10 @@ export default function UserMenu({
               )}
             </div>
 
-            {/* Cambiar módulo — solo horarios, solo si tiene ambos */}
-            {variant === "horarios" && tieneHorarios && tieneQR && (
-              <button
-                onClick={() => { onCambiarModulo?.(); onClose(); }}
-                className="um-item"
-              >
-                <i className="ti ti-switch-horizontal um-item-icon" aria-hidden="true" />
-                Cambiar módulo
-              </button>
-            )}
+            {/* Fix U-13/ARCH-19 (auditoría 14 de julio): "Cambiar módulo" se
+                sacó de este dropdown — ahora es un botón visible en el
+                topbar (.topbar-back-btn), unificado con Asistencias. Este
+                menú queda dedicado a cuenta/sesión. */}
 
             {/* Cambiar contraseña */}
             <button
@@ -136,8 +125,5 @@ UserMenu.propTypes = {
   onCambiarPassword: PropTypes.func.isRequired,
   onLogout: PropTypes.func.isRequired,
   sessionStart: PropTypes.instanceOf(Date),
-  tieneHorarios: PropTypes.bool,
-  tieneQR: PropTypes.bool,
-  onCambiarModulo: PropTypes.func,
   variant: PropTypes.oneOf(["horarios", "asistencias"]),
 };
