@@ -118,7 +118,7 @@ export default function AsistenciasModulo({
         {tieneHorarios && (
           <button
             onClick={() => { qrSession.cerrarSesion(); onVolverSelector(); }}
-            className="asm-back-btn"
+            className="topbar-back-btn"
           >
             <i className="ti ti-arrow-left" aria-hidden="true" /> Módulos
           </button>
