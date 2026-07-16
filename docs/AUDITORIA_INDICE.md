@@ -41,20 +41,19 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ## 🔴 Hallazgos realmente abiertos
 
-Todo lo demás en este documento está cerrado. Solo queda 1 ID pendiente:
+**Ninguno, por ahora.** `SEC-23` se cerró el 16 de julio: la primera
+corrida real de CodeQL flageó 2 alertas High, ambas triadas y resueltas —
+ver `SEC-25`. Con eso, los 66 IDs de este índice (`SEC-1`–`SEC-25`,
+`ARCH-*`, `PERM-*`, `OFF-*`, `UX-1`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-*`)
+están ✅ cerrados y verificados contra el HEAD real (181/181 tests, `vite
+build` limpio — 16 de julio). `UX-13` (modo oscuro) está ⛔ revertido a
+pedido explícito de LS ("no la veo necesaria") — decisión de producto, no
+un hallazgo pendiente.
 
-1. **`SEC-23`** 🔴 — `SEC-20` (job de CodeQL) está desplegado pero nadie
-   confirmó su primera corrida real en GitHub Actions (no verificable sin
-   credenciales de GitHub). **Acción:** entrar a Security → Code scanning
-   del repo, confirmar que corrió, triar los falsos positivos de la primera
-   pasada (normal que existan).
-
-Todo lo demás (`SEC-1`–`SEC-22`, `SEC-24`, `ARCH-*`, `PERM-*`, `OFF-*`,
-`UX-1`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-*`) está ✅ cerrado y verificado
-contra el HEAD real (181/181 tests, `vite build` limpio — 16 de julio).
-`UX-13` (modo oscuro) está ⛔ revertido a pedido explícito de LS ("no la veo
-necesaria") — decisión de producto confirmada de nuevo el 16 de julio, no un
-hallazgo pendiente.
+Esto no significa que no vaya a aparecer nada nuevo — CodeQL corre en cada
+push/PR y semanalmente por cron (`SEC-20`), así que conviene revisar
+Security → Code scanning periódicamente en vez de asumir que 0 hallazgos
+abiertos es un estado permanente.
 
 ---
 
@@ -87,8 +86,9 @@ Esquema `SEC-N`. Fusiona lo que antes eran 4 esquemas paralelos (`S-N`,
 | **SEC-20** | Sin SAST sobre código propio en CI | `.github/workflows/codeql.yml` | — | ✅ Cerrado (13 jul) — job CodeQL separado y no bloqueante. **Ver `SEC-23`**: primera corrida real aún sin confirmar |
 | **SEC-21** | Sesión nunca expiraba sola (persistSession + timeout solo en memoria del componente) | `useAuth.js`, `auth.sessions` | `0053`, `0055` | ✅ Cerrado (10 jul) — 2 capas: client (timeout persistido en `localStorage` + time-box 10h) y server (`pg_cron` cada 15min purga sesiones vencidas). Pendiente en dashboard Supabase (no es migración): confirmar `pg_cron` habilitado |
 | **SEC-22** | Sin política documentada de rotación de `SUPABASE_SERVICE_ROLE_KEY` | `docs/SECURITY.md` | — | ✅ Cerrado (13 jul) — sección nueva con casos de rotación y pasos concretos |
-| **SEC-23** 🔴 | Ver § Hallazgos abiertos arriba | `.github/workflows/codeql.yml` | — | 🔴 **Pendiente** |
-| **SEC-24** | CSP estricta sin endpoint de reporte (`report-uri`/`report-to`) — violaciones se bloqueaban en silencio | `vercel.json`, `api/csp-report.js` | — | ✅ Cerrado (15 jul) — endpoint público sin auth (insertado en `audit_logs` vía Service Role), rate limit 20 req/min por IP (best-effort en memoria, no persistente entre instancias serverless), 8 tests nuevos |
+| **SEC-23** | Ver detalle en `SEC-25` — la corrida real de CodeQL que faltaba confirmar ya ocurrió | `.github/workflows/codeql.yml` | — | ✅ Cerrado (16 jul) — primera corrida real de CodeQL flageó 2 alertas High ("DOM text reinterpreted as HTML" vía `document.write()`), ambas triadas y resueltas — ver `SEC-25` |
+| **SEC-24** | La CSP de `vercel.json` es estricta pero no tenía endpoint de reporte (`report-uri`/`report-to`) | `vercel.json`, `api/csp-report.js` | — | ✅ Cerrado (15 jul) — endpoint público sin auth (inserta en `audit_logs` vía Service Role), rate limit 20 req/min por IP (best-effort en memoria, no persistente entre instancias serverless), 8 tests nuevos |
+| **SEC-25** | Las 2 alertas High de la primera corrida real de CodeQL (`SEC-23`), ambas "DOM text reinterpreted as HTML" vía `document.write()`, investigadas por separado en vez de asumir un veredicto compartido | `exportPDF.js`, `PlanillaImprimibleBase.jsx` | — | ✅ Cerrado (16 jul) — **`exportPDF.js`: falso positivo parcial** (mismo patrón que `SEC-2`/`SEC-14`): ya escapaba casi todo con su `ESC()` local; el único hueco (`programa` en `exportarPDFDiario`) solo puede venir de un `<select>` de opciones fijas, nunca texto libre — no explotable en la práctica, pero se escapó igual por defensa en profundidad. **`PlanillaImprimibleBase.jsx`: vulnerabilidad real** — sin ningún escapado; docente/materia/sección/programa (datos reales de cargas masivas de Excel vía `useUpload.js`) se interpolaban crudos en el HTML de `document.write()` — XSS almacenado de segundo orden explotable con un nombre de docente/materia cargado con HTML/script. Mismo helper `ESC()` agregado, las 4 interpolaciones escapadas. 2 tests de regresión nuevos confirmando que un payload `<script>`/`<img onerror>` llega escapado al HTML impreso. 181/181 tests, 0 errores de lint, build limpio |
 
 ## 🔎 Filtrado de datos por permiso/programa
 
@@ -265,6 +265,8 @@ Solo hitos — el "cómo" completo vive en las tablas de arriba.
 - **14 jul:** reverso completo de `UX-13` (modo oscuro) a pedido de LS. Cierre de `UX-15`/`UX-16` (bugs reportados por LS) y `UX-19`–`UX-22`. Segunda normalización de IDs (repo avanzó 3 commits entre pasadas).
 - **15 jul, auditoría QA senior (Arq. 90, Seg. 96, UX 87):** clonado fresco contra `23628f9`, sin reabrir nada. Aporta 7 hallazgos nuevos (`ARCH-23`–`ARCH-25`, `SEC-23`/`SEC-24`, `UX-17`/`UX-18`). Informe completo: `docs/AUDITORIA_QA_2026-07-14.md`.
 - **15 jul, sesión de implementación:** clonado fresco contra `8637053` (14 commits por delante). Cierra `ARCH-23`, `ARCH-24`, `ARCH-25`, `SEC-24`, `UX-23`. No toca `SEC-23` (requiere verificación manual de LS en GitHub) ni `UX-11`/`UX-17`/`UX-18` (esperando corridas de CI / diferidos sin acción dedicada). 179/179 tests reales.
+- **16 jul, primera corrida real de CodeQL (cierra `SEC-23`):** 2 alertas High, "DOM text reinterpreted as HTML" vía `document.write()`. `exportPDF.js` — falso positivo parcial (mismo patrón que `SEC-2`/`SEC-14`), escapado igual por defensa en profundidad. `PlanillaImprimibleBase.jsx` — vulnerabilidad real (XSS almacenado de segundo orden vía nombres de docente/materia cargados por Excel), corregida y con 2 tests de regresión nuevos (`SEC-25`). 181/181 tests.
+- **16 jul, cierre de `UX-17`/`UX-18` y `UX-11`:** `UX-17` sin acción de código (misma decisión de producto que `UX-13`, LS confirmó no retomar modo oscuro); `UX-18` comentario obsoleto reescrito en `ModuleSelector.css`. `UX-11` cerrado tras confirmar 7 corridas reales de CI sin diffs desde el 13 de julio; `continue-on-error` retirado de `ci.yml`. Con esto, 0 hallazgos abiertos en el índice.
 
 ## 🔁 Tabla de equivalencias (IDs antiguos → nuevos)
 
@@ -393,8 +395,14 @@ narrativo (ya duplicado en las tablas) a un resumen por fecha. En esa misma
 pasada se cerraron `UX-17` y `UX-18` (ambos cosméticos, sin tocar `UX-13` —
 LS confirmó de nuevo que el modo oscuro no se retoma) y, más tarde el mismo
 día, `UX-11` (7 corridas reales de CI sin diffs desde el 13 de julio,
-`continue-on-error` retirado de `ci.yml`). Único pendiente real: `SEC-23`.
-Último estado real: 181/181 tests, `vite build` limpio. Última
-reorganización de fondo: 14 de julio de 2026 (normalización de IDs a 8
-prefijos únicos). Para el índice de migraciones SQL y el esquema de BD, ver
+`continue-on-error` retirado de `ci.yml`). **Nota de recuperación:** un
+commit de LS (`44b25f6`, mismo día) había agregado `SEC-25` y cerrado
+`SEC-23` en el índice original, pero un `git push` posterior con esta
+versión optimizada lo sobrescribió sin querer (el archivo optimizado se
+generó antes de ese commit). Reconstruido acá a partir del diff real de
+`44b25f6` — sin pérdida de información, solo de orden de commits. Con
+`SEC-23` cerrado, el índice queda en **0 hallazgos abiertos**. Último
+estado real: 181/181 tests, `vite build` limpio. Última reorganización de
+fondo: 14 de julio de 2026 (normalización de IDs a 8 prefijos únicos). Para
+el índice de migraciones SQL y el esquema de BD, ver
 `ESQUEMA_Y_MIGRACIONES.md`.*
