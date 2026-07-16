@@ -32,18 +32,16 @@
 .module-page {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh; padding: var(--space-6);
-  /* Fix (13 de julio, detectado verificando este archivo contra lo que
-     cambió en main mientras tanto): UX-13 (modo oscuro, ya en main)
-     redefine --color-text-primary de navy oscuro (#0f172a) a casi blanco
-     (#F1F5F9) bajo prefers-color-scheme:dark. Esta pantalla es un splash
-     de marca que debe verse siempre oscura sin importar el tema del
-     sistema operativo — usaba --color-text-primary como stop de
-     gradiente (heredado del archivo original, de antes de que existiera
-     modo oscuro), lo que habría roto el fondo para cualquier usuario con
-     el SO en modo oscuro (mitad casi-blanco, mitad navy). --navy-900 es
-     el mismo #0f172a exacto pero confirmado invariante entre temas (la
-     paleta oscura de superficies no se redefine en el bloque
-     prefers-color-scheme — ver index.css). */
+  /* Fix UX-18 (16 de julio): usa --navy-900, no --color-text-primary, a
+     propósito. Esta pantalla es un splash de marca que debe verse siempre
+     oscura sin importar el tema del sistema operativo — ambos tokens
+     valen hoy #0f172a, pero --color-text-primary es semánticamente "color
+     de texto" y podría volver a redefinirse por tema si se retoma el
+     modo oscuro (UX-13, revertido) o cualquier otro esquema futuro,
+     mientras que --navy-900 es un color de marca fijo. (Comentario previo
+     citaba el mecanismo concreto de prefers-color-scheme de UX-13, que ya
+     no existe en index.css tras el reverso — ver docs/AUDITORIA_INDICE.md
+     § UX-13/UX-18.) */
   background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%);
   font-family: system-ui, -apple-system, sans-serif;
 }
