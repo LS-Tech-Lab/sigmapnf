@@ -26,6 +26,12 @@
  *                              personalizados pueden tener puedeBorrarHorarios
  *                              sin puedeEditarHorarios, o viceversa)
  *   puedeBorrar   {boolean} — si se muestra el botón "Eliminar"
+ *   puedeCrearDocentes {boolean} — si se ofrece "+ Nuevo docente" (RLS de
+ *                              la tabla `docentes`, migración 0046, exige
+ *                              puedeEditarDocentes O puedeImportarExcel —
+ *                              distinto de puedeEditarHorarios)
+ *   puedeCrearMaterias {boolean} — mismo caso para "+ Nueva materia"
+ *                              (puedeEditarMaterias O puedeImportarExcel)
  *   onSave        {fn(id, payload) => Promise<{success}>}
  *   onDelete      {fn(id, resumen) => Promise<{success}>}
  *   onClose       {fn}
@@ -48,6 +54,8 @@ const OPCIONES_BLOQUE = [
   ...BLOQUES_VESPERTINO.map(b => ({ ...b, turno: "VESPERTINO" })),
 ];
 
+const NUEVO = "__nuevo__";
+
 function bloqueValue(b) { return `${b.inicio}|${b.fin}`; }
 
 // Encuentra, entre los bloques de 45 min, cuál coincide con el inicio real
@@ -59,7 +67,10 @@ function bloqueInicialDe(entry) {
   return OPCIONES_BLOQUE.find(b => b.inicio.toUpperCase() === inicio) || OPCIONES_BLOQUE[0];
 }
 
-export default function ModalEditarClase({ open, entry, puedeEditar, puedeBorrar, onSave, onDelete, onClose, openConfirm, closeConfirm }) {
+export default function ModalEditarClase({
+  open, entry, puedeEditar, puedeBorrar, puedeCrearDocentes, puedeCrearMaterias,
+  onSave, onDelete, onClose, openConfirm, closeConfirm,
+}) {
   const dialogRef = useRef(null);
   useFocusTrap(dialogRef, open);
 
@@ -68,6 +79,8 @@ export default function ModalEditarClase({ open, entry, puedeEditar, puedeBorrar
   const [aula, setAula] = useState("");
   const [docenteId, setDocenteId] = useState("");
   const [materiaId, setMateriaId] = useState("");
+  const [nuevoDocenteNombre, setNuevoDocenteNombre] = useState("");
+  const [nuevaMateriaNombre, setNuevaMateriaNombre] = useState("");
   const [docentes, setDocentes] = useState([]);
   const [materias, setMaterias] = useState([]);
   const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
@@ -83,6 +96,8 @@ export default function ModalEditarClase({ open, entry, puedeEditar, puedeBorrar
     setAula(entry.aula || "");
     setDocenteId(entry.docente_id ? String(entry.docente_id) : "");
     setMateriaId(entry.materia_id ? String(entry.materia_id) : "");
+    setNuevoDocenteNombre("");
+    setNuevaMateriaNombre("");
 
     setCargandoCatalogos(true);
     Promise.all([
@@ -113,30 +128,65 @@ export default function ModalEditarClase({ open, entry, puedeEditar, puedeBorrar
 
   const handleGuardar = () => {
     setError("");
-    if (!materiaId) return setError("Selecciona una materia.");
-    if (!docenteId) return setError("Selecciona un docente.");
+    if (materiaId === NUEVO) { if (!nuevaMateriaNombre.trim()) return setError("Escribe el nombre de la nueva materia."); }
+    else if (!materiaId) return setError("Selecciona una materia.");
+    if (docenteId === NUEVO) { if (!nuevoDocenteNombre.trim()) return setError("Escribe el nombre del nuevo docente."); }
+    else if (!docenteId) return setError("Selecciona un docente.");
 
     const bloque = OPCIONES_BLOQUE.find(b => bloqueValue(b) === bloqueSel);
-    const docente = docentes.find(d => String(d.id) === docenteId);
-    const materia = materias.find(m => String(m.id) === materiaId);
-
-    const payload = {
-      dia,
-      hora: `${bloque.inicio}-${bloque.fin}`,
-      aula: aula.trim() || null,
-      docente_id: docente.id,
-      materia_id: materia.id,
-      clase: `${materia.nombre_raw}\nProf. ${docente.nombre_raw}`,
-    };
+    const materiaLabel = materiaId === NUEVO ? `${nuevaMateriaNombre.trim()} (materia nueva)` : (() => {
+      const m = materias.find(x => String(x.id) === materiaId);
+      return m.nombre_display || m.nombre_raw;
+    })();
+    const docenteLabel = docenteId === NUEVO ? `${nuevoDocenteNombre.trim()} (docente nuevo)` : (() => {
+      const d = docentes.find(x => String(x.id) === docenteId);
+      return d.nombre_display || d.nombre_raw;
+    })();
 
     openConfirm({
       title: "Guardar cambios",
-      message: `Se moverá a ${dia.charAt(0) + dia.slice(1).toLowerCase()}, ${bloque.label}${payload.aula ? `, aula ${payload.aula}` : ""}: ${materia.nombre_display || materia.nombre_raw} — ${docente.nombre_display || docente.nombre_raw}. ¿Confirmas?`,
+      message: `Se moverá a ${dia.charAt(0) + dia.slice(1).toLowerCase()}, ${bloque.label}${aula.trim() ? `, aula ${aula.trim()}` : ""}: ${materiaLabel} — ${docenteLabel}. ¿Confirmas?`,
       confirmLabel: "Guardar",
       danger: false,
       onConfirm: async () => {
         closeConfirm();
         setSaving(true);
+
+        // Si se eligió "+ Nuevo", primero hay que crear el registro en el
+        // catálogo (docentes/materias) para obtener su id real — RLS de
+        // esas tablas exige puedeEditarDocentes/puedeEditarMaterias u
+        // puedeImportarExcel (migración 0046), no puedeEditarHorarios, por
+        // eso las opciones "+ Nuevo" solo aparecen si el usuario tiene ese
+        // permiso (ver puedeCrearDocentes/puedeCrearMaterias).
+        let materiaRow = materiaId !== NUEVO ? materias.find(m => String(m.id) === materiaId) : null;
+        let docenteRow = docenteId !== NUEVO ? docentes.find(d => String(d.id) === docenteId) : null;
+
+        if (materiaId === NUEVO) {
+          const nombre = nuevaMateriaNombre.trim();
+          const { data, error: insError } = await supabase
+            .from("materias").upsert({ nombre_raw: nombre, nombre_display: nombre }, { onConflict: "nombre_raw" })
+            .select().single();
+          if (insError) { setSaving(false); setError("Error al crear la materia: " + insError.message); return; }
+          materiaRow = data;
+        }
+        if (docenteId === NUEVO) {
+          const nombre = nuevoDocenteNombre.trim();
+          const { data, error: insError } = await supabase
+            .from("docentes").upsert({ nombre_raw: nombre, nombre_display: nombre }, { onConflict: "nombre_raw" })
+            .select().single();
+          if (insError) { setSaving(false); setError("Error al crear el docente: " + insError.message); return; }
+          docenteRow = data;
+        }
+
+        const payload = {
+          dia,
+          hora: `${bloque.inicio}-${bloque.fin}`,
+          aula: aula.trim() || null,
+          docente_id: docenteRow.id,
+          materia_id: materiaRow.id,
+          clase: `${materiaRow.nombre_raw}\nProf. ${docenteRow.nombre_raw}`,
+        };
+
         const res = await onSave(entry.id, payload);
         setSaving(false);
         if (res.success) onClose();
@@ -200,7 +250,18 @@ export default function ModalEditarClase({ open, entry, puedeEditar, puedeBorrar
           <select id="mec-materia" className="s-select s-select--full" value={materiaId} onChange={e => setMateriaId(e.target.value)} disabled={cargandoCatalogos || !puedeEditar}>
             <option value="">{cargandoCatalogos ? "Cargando…" : `Seleccionar${materiaRawActual ? ` (actual: ${materiaRawActual})` : ""}`}</option>
             {materias.map(m => <option key={m.id} value={m.id}>{m.nombre_display || m.nombre_raw}</option>)}
+            {puedeCrearMaterias && <option value={NUEVO}>+ Agregar nueva materia…</option>}
           </select>
+          {materiaId === NUEVO && (
+            <input
+              className="s-input s-input--full mec-nuevo-input"
+              type="text" autoFocus
+              value={nuevaMateriaNombre}
+              onChange={e => setNuevaMateriaNombre(e.target.value)}
+              placeholder="Nombre de la materia nueva"
+              disabled={!puedeEditar}
+            />
+          )}
         </div>
 
         <div className="mec-field">
@@ -208,7 +269,18 @@ export default function ModalEditarClase({ open, entry, puedeEditar, puedeBorrar
           <select id="mec-docente" className="s-select s-select--full" value={docenteId} onChange={e => setDocenteId(e.target.value)} disabled={cargandoCatalogos || !puedeEditar}>
             <option value="">{cargandoCatalogos ? "Cargando…" : `Seleccionar${docenteRawActual ? ` (actual: ${docenteRawActual})` : ""}`}</option>
             {docentes.map(d => <option key={d.id} value={d.id}>{d.nombre_display || d.nombre_raw}</option>)}
+            {puedeCrearDocentes && <option value={NUEVO}>+ Agregar nuevo docente…</option>}
           </select>
+          {docenteId === NUEVO && (
+            <input
+              className="s-input s-input--full mec-nuevo-input"
+              type="text" autoFocus
+              value={nuevoDocenteNombre}
+              onChange={e => setNuevoDocenteNombre(e.target.value)}
+              placeholder="Nombre del docente nuevo"
+              disabled={!puedeEditar}
+            />
+          )}
         </div>
 
         <div className="mec-actions">
@@ -236,6 +308,8 @@ ModalEditarClase.propTypes = {
   entry: PropTypes.object,
   puedeEditar: PropTypes.bool,
   puedeBorrar: PropTypes.bool,
+  puedeCrearDocentes: PropTypes.bool,
+  puedeCrearMaterias: PropTypes.bool,
   onSave: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,

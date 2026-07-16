@@ -231,6 +231,8 @@ export default function HorariosLayout({
                 lapso={lapso}
                 puedeEditar={permisos.puedeEditarHorarios}
                 puedeBorrar={permisos.puedeBorrarHorarios}
+                puedeCrearDocentes={permisos.puedeEditarDocentes || permisos.puedeImportarExcel}
+                puedeCrearMaterias={permisos.puedeEditarMaterias || permisos.puedeImportarExcel}
                 onSaveClase={permisos.puedeEditarHorarios ? appData.saveClase : null}
                 onDeleteClase={permisos.puedeBorrarHorarios ? appData.deleteClase : null}
                 openConfirm={appData.openConfirm}

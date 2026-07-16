@@ -63,6 +63,8 @@
   line-height: 1.4;
 }
 
+.mec-nuevo-input { margin-top: 6px; }
+
 .mec-actions {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin-top: 20px;

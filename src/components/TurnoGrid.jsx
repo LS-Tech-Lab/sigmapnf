@@ -12,7 +12,7 @@ import './TurnoGrid.css';
 // expandir/colapsar el detalle de la celda, sin botones de edición.
 export default function TurnoGrid({
   bloques, turnoLabel, filtered, days, expandedCell, setExpandedCell, getDocName, getMateriaName,
-  puedeEditar, puedeBorrar, onSaveClase, onDeleteClase, openConfirm, closeConfirm,
+  puedeEditar, puedeBorrar, puedeCrearDocentes, puedeCrearMaterias, onSaveClase, onDeleteClase, openConfirm, closeConfirm,
 }) {
   const [editingEntry, setEditingEntry] = useState(null);
   const cellMap = useMemo(() => {
@@ -136,6 +136,8 @@ export default function TurnoGrid({
           entry={editingEntry}
           puedeEditar={puedeEditar}
           puedeBorrar={puedeBorrar}
+          puedeCrearDocentes={puedeCrearDocentes}
+          puedeCrearMaterias={puedeCrearMaterias}
           onSave={onSaveClase}
           onDelete={onDeleteClase}
           onClose={() => setEditingEntry(null)}
