@@ -95,10 +95,10 @@ jobs:
   visual-regression:
     name: Regresión visual (Playwright)
     runs-on: ubuntu-latest
-    # Fix U-10 (auditoría 12 de julio): job separado del job principal a
+    # Fix UX-11 (auditoría 12 de julio): job separado del job principal a
     # propósito — un diff visual (o una imagen base todavía inexistente)
     # nunca debe bloquear un build/test/deploy que sí está bien. Ver
-    # docs/AUDITORIA_INDICE.md § U-10 para el motivo original del hallazgo.
+    # docs/AUDITORIA_INDICE.md § UX-11 para el motivo original del hallazgo.
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
@@ -131,9 +131,7 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
-    # TEMPORAL: quitar esta línea una vez que las imágenes base de
-    # tests/visual/__screenshots__/ estén commiteadas y confirmadas
-    # estables en al menos 2-3 corridas de CI seguidas sin diffs falsos.
-    # Sin esto, el job falla en TODOS los PRs (no hay baseline todavía) y
-    # entrena a ignorar el check — justo el problema que U-10 quería evitar.
-    continue-on-error: true
+    # Fix UX-11 (cerrado 16 de julio): continue-on-error retirado — 7
+    # corridas reales en CI desde el 13 de julio, todas success, sin
+    # ningún diff falso (ver docs/AUDITORIA_INDICE.md § UX-11). Este job
+    # ahora sí bloquea el check si una imagen difiere de la base.
