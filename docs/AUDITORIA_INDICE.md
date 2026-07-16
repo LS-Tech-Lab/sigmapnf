@@ -41,10 +41,7 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ## 🔴 Hallazgos realmente abiertos
 
-Todo lo demás en este documento está cerrado. Solo 4 IDs siguen pendientes,
-de la auditoría QA senior externa del 15 de julio (clonado fresco contra
-HEAD `23628f9`, sin reabrir nada — 153/153 tests, `eslint .` 0 errores/33
-warnings, `npm audit` 0 vulnerabilidades):
+Todo lo demás en este documento está cerrado. Solo 2 IDs siguen pendientes:
 
 1. **`SEC-23`** 🔴 — `SEC-20` (job de CodeQL) está desplegado pero nadie
    confirmó su primera corrida real en GitHub Actions (no verificable sin
@@ -57,20 +54,14 @@ warnings, `npm audit` 0 vulnerabilidades):
    veces más sin diffs falsos (descartar flakiness de fuentes/antialiasing)
    antes de sacar `continue-on-error: true` de `ci.yml`. Detalle del mock de
    sesión en `tests/visual/mockSupabase.js`.
-3. **`UX-17`** 🟢 (baja prioridad) — manifest PWA (`vite.config.js`,
-   `theme_color`/`background_color`) sigue fijo en modo claro; en SO con
-   modo oscuro la barra de estado/splash puede no combinar con la UI. Sin
-   acción a menos que se retome `UX-13` (modo oscuro) desde cero.
-4. **`UX-18`** 🟢 (cosmético) — `ModuleSelector.css` tiene comentarios
-   obsoletos sobre el mecanismo `prefers-color-scheme` de `UX-13`
-   (revertido). Limpiar la próxima vez que se toque ese archivo por otro
-   motivo.
 
 Todo lo demás (`SEC-1`–`SEC-22`, `SEC-24`, `ARCH-*`, `PERM-*`, `OFF-*`,
-`UX-1`–`UX-10`, `UX-12`–`UX-16`, `UX-19`–`UX-23`, `DESIGN-*`, `CI-*`,
-`ADMIN-*`) está ✅ cerrado y verificado contra el HEAD real. `UX-13` (modo
-oscuro) está ⛔ revertido a pedido explícito de LS — no es un hallazgo
-pendiente, es una decisión de producto.
+`UX-1`–`UX-10`, `UX-12`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-*`) está ✅
+cerrado y verificado contra el HEAD real (181/181 tests, `vite build`
+limpio — 16 de julio). `UX-13` (modo oscuro) está ⛔ revertido a pedido
+explícito de LS ("no la veo necesaria") — decisión de producto confirmada
+de nuevo el 16 de julio al cerrar `UX-17`/`UX-18`, no un hallazgo
+pendiente.
 
 ---
 
@@ -206,8 +197,8 @@ Esquema `UX-N` (antes `U-N` + `A3` de inline styles).
 | **UX-14** | `HorariosView.jsx` recibía `modoConsulta` pero no la usaba — el permiso `puedeEditarHorarios` no tenía funcionalidad real detrás (no existía edición in-line) | `HorariosView.jsx`, `TurnoGrid.jsx`, `ModalEditarClase.jsx` (nuevo), `horarioEditing.js` (nuevo) | ✅ Cerrado (15 jul) — specs de LS: edición por formulario modal (no drag-and-drop), día/bloque/aula/docente/materia + eliminar, con confirmación. Reescribe también la columna `clase` (texto crudo) para no desincronizar 6 pantallas que la leen directo sin pasar por el join. Gating de permisos separado del banner: `puedeEditar`/`puedeBorrar` independientes |
 | **UX-15** | Reportado por LS: "Reporte por Rango" tiraba `invalid input syntax for type uuid: "0"` | `ReporteAsistencias/ReporteRango.jsx` | ✅ Cerrado (14 jul) — causa raíz: `asistencias_diarias.id` es UUID, no INTEGER como asumía la paginación por cursor de `ARCH-2`. Cambiado a paginación por offset (`.range()`, ordenado por `hora_registro`) |
 | **UX-16** | Reportado por LS: reportes PDF se abrían sin ningún formato (texto plano) | `exportPDF.js`, `public/reporte-print.{css,js}` (nuevos) | ✅ Cerrado (14 jul) — causa raíz: la ventana de impresión (`document.write`) hereda la CSP `'self'` del documento que la abre, bloqueando en silencio el `<style>`/`<script>` inline. CSS y JS extraídos a archivos externos del mismo origen. **Sin verificar visualmente en navegador real** — recomendado que LS confirme abriendo un PDF de cada tipo |
-| **UX-17** 🟢 | Ver § Hallazgos abiertos arriba | `vite.config.js` (manifest) | 🔴 **Pendiente** (baja prioridad) |
-| **UX-18** 🟢 | Ver § Hallazgos abiertos arriba | `ModuleSelector.css` | 🔴 **Pendiente** (cosmético) |
+| **UX-17** | Manifest PWA (`theme_color`/`background_color`) fijo en modo claro; en SO con modo oscuro la barra de estado/splash puede no combinar | `vite.config.js` (manifest) | ✅ **Cerrado (16 jul) — sin acción de código, misma decisión que `UX-13`**: la app es 100% de tema claro por decisión de producto, así que no hay "variante oscura" que el manifest deba reflejar. El manifest ya es correcto para el único tema que existe (`#1E3A8A`/`#ffffff`, coinciden con la marca). Reabre solo si se retoma `UX-13` |
+| **UX-18** | `ModuleSelector.css` con comentario obsoleto sobre el mecanismo `prefers-color-scheme` de `UX-13` (revertido) | `ModuleSelector.css` | ✅ **Cerrado (16 jul)** — comentario reescrito: ya no cita el mecanismo concreto (removido de `index.css` con el reverso), explica en cambio por qué se usa `--navy-900` en vez de `--color-text-primary` (splash de marca fijo, no debe depender de ningún tema futuro) |
 | **UX-19** | "Cambiar módulo" era botón visible en Asistencias/Admin pero enterrado en dropdown en Horarios | `HorariosTopbar.jsx`, `UserMenu.jsx`, `AsistenciasModulo.jsx`, `AdminModulo.jsx` | ✅ Cerrado (14 jul) — unificado hacia botón "← Módulos" en topbar de los 3 módulos, clase compartida `.topbar-back-btn`. Llevó a revisar el sidebar de Horarios — ver `UX-20` |
 | **UX-20** | Sidebar de Horarios con solo 5 ítems tras `ADMIN-3`, se sentía subutilizado; código muerto encontrado: `hasBadge` nunca se activaba | `buildNavGroups.js`, `HorariosSidebar.jsx` | ✅ Cerrado (14 jul) — se descartaron 2 propuestas (mini-panel, conteo por ítem) por duplicar info ya visible en otro lado; único cambio real: reactivar `hasBadge: true` en "Horarios" |
 | **UX-21** | Estado de conexión solo visible dentro de un dropdown, a diferencia de la caja de trimestre siempre visible | `HorariosSidebar.jsx`, `AdminMenu.jsx`, `index.css` | ✅ Cerrado (14 jul) — `.hl-status-box` nueva en sidebar (mismo trato que `hl-lapso-box`), quitado el bloque equivalente del dropdown |
@@ -402,10 +393,12 @@ dice `Fix S1`, es el mismo hallazgo que esta tabla mapea a `SEC-1`.
 
 ---
 
-*Optimizado el 16 de julio de 2026: de 601 a ~280 líneas. Se condensaron los
+*Optimizado el 16 de julio de 2026: de 601 a ~400 líneas. Se condensaron los
 párrafos de verificación de cada hallazgo ✅ cerrado a causa raíz + fix en
 una línea (migraciones, archivos e IDs intactos); se recortó el historial
-narrativo (ya duplicado en las tablas) a un resumen por fecha. Ningún
-hallazgo cambió de estado en esta pasada. Última reorganización de fondo:
-14 de julio de 2026 (normalización de IDs a 8 prefijos únicos). Para el
-índice de migraciones SQL y el esquema de BD, ver `ESQUEMA_Y_MIGRACIONES.md`.*
+narrativo (ya duplicado en las tablas) a un resumen por fecha. En esa misma
+pasada se cerraron `UX-17` y `UX-18` (ambos cosméticos, sin tocar `UX-13` —
+LS confirmó de nuevo que el modo oscuro no se retoma). Último estado real:
+181/181 tests, `vite build` limpio. Última reorganización de fondo: 14 de
+julio de 2026 (normalización de IDs a 8 prefijos únicos). Para el índice de
+migraciones SQL y el esquema de BD, ver `ESQUEMA_Y_MIGRACIONES.md`.*
