@@ -1,5 +1,18 @@
 // Motor de exportación a PDF del módulo de Reporte de Asistencias.
 // Sin librerías externas: abre ventana nueva con HTML/CSS y window.print().
+//
+// Nota SEC-25 (CodeQL, 15 de julio — "DOM text reinterpreted as HTML"):
+// CodeQL marca `abrirVentanaPDF`/`document.write(html)` como sink de XSS
+// porque no puede rastrear que cada valor dinámico ya pasó por `ESC()`
+// antes de llegar ahí. Falso positivo parcial: se revisó interpolación
+// por interpolación y todas ya tenían `ESC()` salvo `programa` en
+// `exportarPDFDiario` — ese valor solo puede venir de un `<select>` con
+// opciones fijas (`DEFAULT_PROGRAMAS`, ver ReporteAsistencias/index.jsx),
+// nunca texto libre, así que no era explotable en la práctica. Se
+// escapó de todos modos por consistencia/defensa en profundidad (no
+// depender para siempre de que ese `<select>` nunca cambie a texto
+// libre). Contraste con el hallazgo hermano en `PlanillaImprimibleBase.jsx`,
+// que sí era una vulnerabilidad real.
 
 const ESC = s => String(s ?? "—")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -130,7 +143,7 @@ export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, aus
   }
 
   const seccionesHtml = `
-    <div class="subtitulo">${ESC(turnoLabel)} · ${FMT_FECHA(fecha)}${programa ? " · " + programa : ""}</div>
+    <div class="subtitulo">${ESC(turnoLabel)} · ${FMT_FECHA(fecha)}${programa ? " · " + ESC(programa) : ""}</div>
     ${statsHtml}
     ${tablaPresentes}
     ${tablaAusentes}`;

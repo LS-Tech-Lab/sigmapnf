@@ -63,23 +63,23 @@ el HEAD real `23628f9`, sin reabrir ningún hallazgo previamente cerrado —
 `npm audit` con y sin `devDependencies`: 0 vulnerabilidades). Orden de
 prioridad sugerido por la auditoría:
 
-1. **`SEC-23`** 🟢 — confirmar en GitHub la primera corrida real de CodeQL
-   (`SEC-20`), pendiente desde su cierre — ver detalle abajo
-2. **`UX-11`** 🟡 — 24/30 archivos CSS sin `@media`; `9 passed` confirmado
+1. **`UX-11`** 🟡 — 24/30 archivos CSS sin `@media`; `9 passed` confirmado
    en un run real de CI (las 3 pantallas × 3 breakpoints); falta solo
    2-3 corridas más estables antes de sacar `continue-on-error`
-3. **`UX-14`** ✅ — Cerrado (15 de julio): edición/borrado in-line de bloques
-   de horario implementado en `TurnoGrid.jsx` — ver detalle abajo
-4. **`UX-17`** 🟢 / **`UX-18`** 🟢 — cosméticos, sin prioridad real (manifest
+2. **`UX-17`** 🟢 / **`UX-18`** 🟢 — cosméticos, sin prioridad real (manifest
    PWA sin variante oscura; comentario obsoleto en `ModuleSelector.css`
    sobre un mecanismo ya revertido) — ver detalle abajo
-5. **`UX-13`** ⛔ — Modo oscuro, revertido a pedido de LS (14 de julio) — ver detalle abajo
+3. **`UX-13`** ⛔ — Modo oscuro, revertido a pedido de LS (14 de julio) — ver detalle abajo
 
-`ARCH-18` a `ARCH-25`, `SEC-20`, `SEC-22`, `SEC-24` y `UX-12` ✅ cerrados —
-ver tablas de Arquitectura y Seguridad abajo. `ARCH-23`, `ARCH-24`,
-`ARCH-25` y `SEC-24` se cerraron en la sesión de implementación del 15
-de julio (mismo día de la auditoría), sobre HEAD `8637053` — 14 commits
-por delante del `23628f9` contra el que se había auditado originalmente
+`ARCH-18` a `ARCH-25`, `SEC-20`, `SEC-22` a `SEC-25`, `UX-12` y `UX-14`
+✅ cerrados — ver tablas de Arquitectura/Seguridad/UX abajo. `SEC-23`
+se confirmó cerrado por LS el 15 de julio (screenshot de GitHub:
+"All tools are working as expected", 2 alertas High reales detectadas
+por la primera corrida de CodeQL — ver `SEC-25`, que audita esas 2
+alertas). `ARCH-23`, `ARCH-24`, `ARCH-25` y `SEC-24` se cerraron en la
+sesión de implementación del 15 de julio (mismo día de la auditoría),
+sobre HEAD `8637053` — 14 commits por delante del `23628f9` contra el
+que se había auditado originalmente
 (trabajo nuevo ya mergeado en paralelo, ninguno reabre un hallazgo
 previo). Ver el detalle de cada uno en sus tablas de categoría, incluida
 una corrección de premisa en `ARCH-24` (ver nota en la tabla de
@@ -121,6 +121,7 @@ ver tabla de equivalencias al final del documento.
 | **SEC-22** | Sin política documentada de rotación de `SUPABASE_SERVICE_ROLE_KEY` — no es una vulnerabilidad activa, es una nota de proceso ante una fuga eventual (auditoría QA del 12 de julio, segunda pasada) | `api/admin-users.js` (uso real), `docs/SECURITY.md` | — | ✅ **Cerrado (13 de julio)** — sección nueva "Política de rotación de `SUPABASE_SERVICE_ROLE_KEY`" en `SECURITY.md`: confirma dónde vive la clave (solo `api/admin-users.js`, nunca el frontend), 3 casos que ameritan rotación (fuga, salida de alguien con acceso, preventiva anual), pasos concretos (Dashboard → regenerar, Vercel → actualizar en los 3 entornos, redeploy, verificar con una acción real antes de dar por cerrada). Cambio de documentación pura, no toca código ni migraciones — sin riesgo de romper nada existente |
 | **SEC-23** 🟢 | `SEC-20` (CodeQL) está desplegado pero nadie confirmó todavía su primera corrida real en GitHub Actions — no verificable desde un entorno de auditoría sin credenciales de GitHub. Un scanner instalado pero nunca revisado da una falsa sensación de cobertura (auditoría QA del 15 de julio) | `.github/workflows/codeql.yml` | 🔴 **Pendiente** — entrar a Security → Code scanning del repo, confirmar que corrió, y triar los hallazgos iniciales (es normal que la primera pasada tenga falsos positivos) |
 | **SEC-24** ✅ | La CSP de `vercel.json` es estricta (correcto) pero no tenía endpoint de reporte (`report-uri`/`report-to`) — si algo intenta violar la política en producción, el navegador lo bloqueaba en silencio y nadie del equipo se enteraba (auditoría QA del 15 de julio) | `vercel.json`, `api/csp-report.js` (nuevo) | ✅ Cerrado (15 de julio) — CSP con `report-to csp-endpoint; report-uri /api/csp-report` (ambos, por compatibilidad: `report-to` es Chromium-only, `report-uri` es universal pero deprecado) + header `Reporting-Endpoints`. Nuevo endpoint público (sin auth, es lo esperado — el propio navegador de cualquier visitante lo llama, incluso antes del login) que inserta en `audit_logs` vía REST con Service Role Key directo (no vía `log_audit_event`: esa RPC exige `auth.uid()` de sesión autenticada, no aplica a un reporte anónimo del navegador). Mitigaciones de abuso: tope de tamaño de body (20 KB), validación de forma del reporte, y rate limit de 20 req/min por IP — **best-effort en memoria del proceso, no persistente ni global entre instancias serverless** (documentado explícitamente en el propio archivo; una defensa dura requeriría una RPC contadora en Postgres, mismo patrón que `SEC-16`, fuera de alcance de este fix). 8 tests nuevos en `api/csp-report.test.js`. Cambio 100% aditivo — ninguna regla existente de la CSP se tocó |
+| **SEC-25** ✅ | Primera corrida real de CodeQL (cierre de `SEC-23`) detectó 2 alertas High, ambas "DOM text reinterpreted as HTML": `ReporteAsistencias/exportPDF.js:18` y `PlanillaImprimibleBase.jsx:56` (ambas vía `document.write()` de una ventana emergente). Se investigó cada una por separado, no se asumió que ambas fueran del mismo tipo | `ReporteAsistencias/exportPDF.js`, `asistencias/PlanillaImprimibleBase.jsx` | ✅ Cerrado (15 de julio) — **veredictos distintos, no calcados**: `exportPDF.js` era un **falso positivo parcial** (mismo patrón que `SEC-2`/`SEC-14`) — CodeQL no puede rastrear que cada interpolación ya pasaba por el `ESC()` local del archivo; se revisó una por una y todas lo tenían salvo `programa` en `exportarPDFDiario`, que solo puede venir de un `<select>` con opciones fijas (`DEFAULT_PROGRAMAS`), nunca texto libre — no explotable en la práctica, pero se escapó igual por defensa en profundidad. `PlanillaImprimibleBase.jsx` era **una vulnerabilidad real**: el archivo no tenía ningún `ESC()`, y `programaActual`, `getDocName(rd)`, `c.materia` y `c.seccion` (todos datos reales de `horarios`, cargados por Excel vía `useUpload.js`/`parseClase`) se interpolaban sin escapar en el HTML de `document.write()` — un nombre de docente/materia con HTML/script cargado por error o a propósito se habría ejecutado en el origen autenticado de la app al imprimir la planilla (XSS almacenado de segundo orden). Se agregó el mismo helper `ESC()` local y se escaparon los 4 valores. 2 tests nuevos (`PlanillaImprimibleBase.security.test.jsx`, `exportPDF.security.test.js`) que confirman que un payload tipo `<script>`/`<img onerror>` llega escapado al HTML impreso |
 
 ## 🔎 Filtrado de datos por permiso/programa
 
@@ -434,6 +435,26 @@ el "cómo" completo — verificación, comandos corridos, resultados).
   entrega apareció un commit nuevo en paralelo (`0217fd4`, cierra
   `UX-23`) que toca este mismo archivo en otra sección — sin conflicto
   real, reaplicado sobre esa versión antes de entregar.
+- **15 de julio, verificación de `SEC-23` + `SEC-25` (mismo día,
+  sesión separada):** LS confirmó por screenshot de GitHub
+  ("Security and quality → Code scanning") que CodeQL corrió y está
+  activo — cierra `SEC-23`. Esa corrida real detectó 2 alertas High,
+  ambas "DOM text reinterpreted as HTML", que se investigaron por
+  separado en vez de asumir que compartían veredicto: `exportPDF.js`
+  resultó falso positivo parcial (mismo patrón que `SEC-2`/`SEC-14`,
+  ya escapaba casi todo, se corrigió el único valor sin `ESC()` por
+  defensa en profundidad aunque no era explotable);
+  `PlanillaImprimibleBase.jsx` resultó una vulnerabilidad real — XSS
+  almacenado de segundo orden vía nombres de docente/materia/programa
+  cargados por Excel, sin ningún escapado — corregida con el mismo
+  patrón `ESC()`. Clonado fresco contra HEAD `93f1338`; en el `git
+  fetch` previo a la entrega apareció un commit nuevo en paralelo
+  (`a174cc3`, cierra `UX-14`) que también toca este archivo en otra
+  sección — sin conflicto real, reaplicado igual que la vez anterior.
+  2 tests de regresión nuevos. 181/181 tests reales, `eslint .` 0
+  errores/33 warnings (mismos preexistentes), build limpio. Ver detalle
+  completo en `SEC-25` arriba.
+
 
 ## 🔁 Tabla de equivalencias (IDs antiguos → nuevos)
 
