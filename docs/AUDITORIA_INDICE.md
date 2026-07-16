@@ -41,27 +41,20 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ## 🔴 Hallazgos realmente abiertos
 
-Todo lo demás en este documento está cerrado. Solo 2 IDs siguen pendientes:
+Todo lo demás en este documento está cerrado. Solo queda 1 ID pendiente:
 
 1. **`SEC-23`** 🔴 — `SEC-20` (job de CodeQL) está desplegado pero nadie
    confirmó su primera corrida real en GitHub Actions (no verificable sin
    credenciales de GitHub). **Acción:** entrar a Security → Code scanning
    del repo, confirmar que corrió, triar los falsos positivos de la primera
    pasada (normal que existan).
-2. **`UX-11`** 🟡 — Infraestructura de regresión visual (Playwright, 3
-   pantallas × 3 breakpoints) funcionando: `9 passed` confirmado en CI real
-   (13 de julio), sin diffs falsos. **Único pendiente:** correr el job 2-3
-   veces más sin diffs falsos (descartar flakiness de fuentes/antialiasing)
-   antes de sacar `continue-on-error: true` de `ci.yml`. Detalle del mock de
-   sesión en `tests/visual/mockSupabase.js`.
 
 Todo lo demás (`SEC-1`–`SEC-22`, `SEC-24`, `ARCH-*`, `PERM-*`, `OFF-*`,
-`UX-1`–`UX-10`, `UX-12`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-*`) está ✅
-cerrado y verificado contra el HEAD real (181/181 tests, `vite build`
-limpio — 16 de julio). `UX-13` (modo oscuro) está ⛔ revertido a pedido
-explícito de LS ("no la veo necesaria") — decisión de producto confirmada
-de nuevo el 16 de julio al cerrar `UX-17`/`UX-18`, no un hallazgo
-pendiente.
+`UX-1`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-*`) está ✅ cerrado y verificado
+contra el HEAD real (181/181 tests, `vite build` limpio — 16 de julio).
+`UX-13` (modo oscuro) está ⛔ revertido a pedido explícito de LS ("no la veo
+necesaria") — decisión de producto confirmada de nuevo el 16 de julio, no un
+hallazgo pendiente.
 
 ---
 
@@ -191,7 +184,7 @@ Esquema `UX-N` (antes `U-N` + `A3` de inline styles).
 | **UX-8** | `LoginFormNormal.jsx`, `LoginOfflinePinPanel.jsx`, `ModalActivarPIN.jsx` (extraídos al cerrar `ARCH-13`): `<label>` sin `htmlFor`/`id` — regresión de `UX-4` | `src/components/login/*.jsx` | ✅ Cerrado (11 jul) — mismo patrón `useId()` que `Campo.jsx` |
 | **UX-9** | Solo 4/29 CSS con media queries; `HorariosView.css`/`QRProyeccion.css` sin ninguna | `HorariosView.css`, `QRProyeccion.css` | ✅ Cerrado (12 jul) — falso positivo parcial en la mitad de `QRProyeccion.css` (el responsive real ya vivía en `index.css`, luego movido en `UX-12`); `HorariosView.css` sí carecía de adaptación en la barra de filtros — `@media (max-width: 640px)` agregado |
 | **UX-10** | "Panel QR" aparecía con fondo azul oscuro y título invisible — parecía regresión de un fix reciente | `AdminQRPanel.jsx`/`.css`, `QRProyeccion.jsx`/`.css` | ✅ Cerrado (12 jul) — colisión de nombres de clase preexistente (`.qrp-root` etc. duplicado entre 2 CSS con temas incompatibles, agrupados en el mismo chunk Vite). `AdminQRPanel` renombrado a prefijo `qap-` |
-| **UX-11** 🟡 | Ver § Hallazgos abiertos arriba | 24 `.css`, `ci.yml`, `playwright.config.js`, `tests/visual/` | 🟡 **Pendiente** — solo faltan corridas de CI estables |
+| **UX-11** | 24/30 archivos CSS sin `@media` — solo cobertura manual/heurística, sin regresión visual automatizada | 24 `.css`, `ci.yml`, `playwright.config.js`, `tests/visual/` | ✅ **Cerrado (16 jul)** — infraestructura Playwright (3 pantallas × 3 breakpoints) venía en `9 passed` desde el 13 jul; se confirmaron **7 corridas reales más en CI** (15–16 jul, distintos commits) todas `success`, sin ningún diff falso. Retirado `continue-on-error: true` de `ci.yml` — el job ahora bloquea el check si una imagen difiere de la base. Mock de sesión en `tests/visual/mockSupabase.js` |
 | **UX-12** | Deuda cosmética de `UX-9`: reglas responsive de `.qrp-*` vivían en `index.css` en vez de `QRProyeccion.css` | `src/index.css`, `QRProyeccion.css` | ✅ Cerrado (13 jul) — ~44 líneas movidas tal cual, sin cambiar reglas |
 | **UX-13** ⛔ | Sin `prefers-color-scheme` (modo oscuro) — preferencia de producto, no defecto | tokens `--color-*`/`--brand-*`, 9 `.css` de componentes | ⛔ **Revertido a pedido explícito de LS (14 jul)** — reportó menús/reportes rotos en asistencias, confirmó "no la veo necesaria". Reverso total salvo excepción quirúrgica en `ModuleSelector.css` (preservó el rediseño de `ADMIN-5`, solo revirtió el hunk del modo oscuro). Si se retoma: rehacer desde cero con verificación visual real en navegador |
 | **UX-14** | `HorariosView.jsx` recibía `modoConsulta` pero no la usaba — el permiso `puedeEditarHorarios` no tenía funcionalidad real detrás (no existía edición in-line) | `HorariosView.jsx`, `TurnoGrid.jsx`, `ModalEditarClase.jsx` (nuevo), `horarioEditing.js` (nuevo) | ✅ Cerrado (15 jul) — specs de LS: edición por formulario modal (no drag-and-drop), día/bloque/aula/docente/materia + eliminar, con confirmación. Reescribe también la columna `clase` (texto crudo) para no desincronizar 6 pantallas que la leen directo sin pasar por el join. Gating de permisos separado del banner: `puedeEditar`/`puedeBorrar` independientes |
@@ -398,7 +391,10 @@ párrafos de verificación de cada hallazgo ✅ cerrado a causa raíz + fix en
 una línea (migraciones, archivos e IDs intactos); se recortó el historial
 narrativo (ya duplicado en las tablas) a un resumen por fecha. En esa misma
 pasada se cerraron `UX-17` y `UX-18` (ambos cosméticos, sin tocar `UX-13` —
-LS confirmó de nuevo que el modo oscuro no se retoma). Último estado real:
-181/181 tests, `vite build` limpio. Última reorganización de fondo: 14 de
-julio de 2026 (normalización de IDs a 8 prefijos únicos). Para el índice de
-migraciones SQL y el esquema de BD, ver `ESQUEMA_Y_MIGRACIONES.md`.*
+LS confirmó de nuevo que el modo oscuro no se retoma) y, más tarde el mismo
+día, `UX-11` (7 corridas reales de CI sin diffs desde el 13 de julio,
+`continue-on-error` retirado de `ci.yml`). Único pendiente real: `SEC-23`.
+Último estado real: 181/181 tests, `vite build` limpio. Última
+reorganización de fondo: 14 de julio de 2026 (normalización de IDs a 8
+prefijos únicos). Para el índice de migraciones SQL y el esquema de BD, ver
+`ESQUEMA_Y_MIGRACIONES.md`.*
