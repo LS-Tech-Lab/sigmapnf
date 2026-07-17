@@ -83,14 +83,14 @@ export default function TurnoGrid({
                     return (
                       <td key={day} rowSpan={span} className={`tg-cell-data tg-cell-data--span-${span}`}>
                         <div className="tg-cell-inner">
-                        {entries.map((e, i) => {
+                        {entries.map((e) => {
                           const { materia: rawMateria, docente: docenteParseado } = parseClase(e.clase);
                           const rawDoc = e.docentes?.nombre_raw || docenteParseado;
                           const materia = getMateriaName(rawMateria), docente = getDocName(rawDoc);
                           const toggleExpand = () => setExpandedCell(isExp ? null : cellKey);
                           return (
                             <div
-                              key={i}
+                              key={e.id}
                               role="button"
                               tabIndex={0}
                               aria-expanded={isExp}

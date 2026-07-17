@@ -48,7 +48,7 @@ import useFocusTrap from "../hooks/useFocusTrap";
 import "./ModalEditarClase.css";
 
 // Un solo select combinado DIURNO+VESPERTINO — el turno se deriva de cuál
-// bloque se elige, no hace falta pedirlo aparte.
+// bloque de inicio se elige, no hace falta pedirlo aparte.
 const OPCIONES_BLOQUE = [
   ...BLOQUES_DIURNO.map(b => ({ ...b, turno: "DIURNO" })),
   ...BLOQUES_VESPERTINO.map(b => ({ ...b, turno: "VESPERTINO" })),
@@ -58,13 +58,32 @@ const NUEVO = "__nuevo__";
 
 function bloqueValue(b) { return `${b.inicio}|${b.fin}`; }
 
+// Lista de bloques de 45 min del mismo turno que `bloqueRef`, en orden — se
+// usa tanto para poblar el select de inicio (todo el turno) como para
+// limitar las opciones válidas de fin (solo desde el bloque de inicio en
+// adelante, dentro del mismo turno).
+function bloquesDelTurno(turno) {
+  return OPCIONES_BLOQUE.filter(b => b.turno === turno);
+}
+
 // Encuentra, entre los bloques de 45 min, cuál coincide con el inicio real
 // del registro (`entry.hora` puede venir como "7:30AM-8:15AM" o abarcar
-// varios bloques si la clase dura más de 45 min — acá solo se ofrece
-// reubicar al bloque de inicio; la duración original no se edita).
+// varios bloques si la clase dura más de 45 min).
 function bloqueInicialDe(entry) {
   const inicio = (entry?.hora || "").split(/[-–]/)[0]?.trim().replace(/\s+/g, "").toUpperCase();
   return OPCIONES_BLOQUE.find(b => b.inicio.toUpperCase() === inicio) || OPCIONES_BLOQUE[0];
+}
+
+// Encuentra, dentro del turno del bloque de inicio, cuál bloque coincide con
+// el FIN real del registro (`entry.hora` puede abarcar varios bloques de 45
+// min si la clase dura más — ej. 1:00pm-3:15pm son 3 bloques). Si no hay
+// coincidencia exacta (dato importado con formato irregular) cae de vuelta
+// al bloque de inicio, preservando el comportamiento previo (45 min) en vez
+// de fallar.
+function bloqueFinalDe(entry, bloqueInicio) {
+  const fin = (entry?.hora || "").split(/[-–]/)[1]?.trim().replace(/\s+/g, "").toUpperCase();
+  const delTurno = bloquesDelTurno(bloqueInicio.turno);
+  return delTurno.find(b => b.fin.toUpperCase() === fin) || bloqueInicio;
 }
 
 export default function ModalEditarClase({
@@ -75,7 +94,8 @@ export default function ModalEditarClase({
   useFocusTrap(dialogRef, open);
 
   const [dia, setDia] = useState(DAYS[0]);
-  const [bloqueSel, setBloqueSel] = useState(bloqueValue(OPCIONES_BLOQUE[0]));
+  const [bloqueInicioSel, setBloqueInicioSel] = useState(bloqueValue(OPCIONES_BLOQUE[0]));
+  const [bloqueFinSel, setBloqueFinSel] = useState(bloqueValue(OPCIONES_BLOQUE[0]));
   const [aula, setAula] = useState("");
   const [docenteId, setDocenteId] = useState("");
   const [materiaId, setMateriaId] = useState("");
@@ -92,7 +112,9 @@ export default function ModalEditarClase({
     if (!open || !entry) return;
     setError("");
     setDia(entry.dia || DAYS[0]);
-    setBloqueSel(bloqueValue(bloqueInicialDe(entry)));
+    const bIni = bloqueInicialDe(entry);
+    setBloqueInicioSel(bloqueValue(bIni));
+    setBloqueFinSel(bloqueValue(bloqueFinalDe(entry, bIni)));
     setAula(entry.aula || "");
     setDocenteId(entry.docente_id ? String(entry.docente_id) : "");
     setMateriaId(entry.materia_id ? String(entry.materia_id) : "");
@@ -117,12 +139,30 @@ export default function ModalEditarClase({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
-  // Texto crudo actual (fallback cuando la fila no tiene docente_id/materia_id
-  // resueltos aún) — solo para mostrarlo como referencia en el formulario.
   const { materia: materiaRawActual, docente: docenteRawActual } = useMemo(
     () => parseClase(entry?.clase || ""),
     [entry]
   );
+
+  const bloqueInicioObj = useMemo(
+    () => OPCIONES_BLOQUE.find(b => bloqueValue(b) === bloqueInicioSel) || OPCIONES_BLOQUE[0],
+    [bloqueInicioSel]
+  );
+  const opcionesFin = useMemo(() => {
+    const delTurno = bloquesDelTurno(bloqueInicioObj.turno);
+    const idxInicio = delTurno.findIndex(b => bloqueValue(b) === bloqueValue(bloqueInicioObj));
+    return delTurno.slice(Math.max(idxInicio, 0));
+  }, [bloqueInicioObj]);
+
+  // Si el bloque de inicio cambia (otro horario, u otro turno) y el bloque
+  // de fin elegido queda antes del inicio o en un turno distinto, lo
+  // reajustamos al propio bloque de inicio (duración mínima de 45 min) en
+  // vez de dejar una combinación inválida (fin < inicio).
+  useEffect(() => {
+    if (!opcionesFin.some(b => bloqueValue(b) === bloqueFinSel)) {
+      setBloqueFinSel(bloqueValue(bloqueInicioObj));
+    }
+  }, [opcionesFin, bloqueInicioObj, bloqueFinSel]);
 
   if (!open || !entry) return null;
 
@@ -133,7 +173,10 @@ export default function ModalEditarClase({
     if (docenteId === NUEVO) { if (!nuevoDocenteNombre.trim()) return setError("Escribe el nombre del nuevo docente."); }
     else if (!docenteId) return setError("Selecciona un docente.");
 
-    const bloque = OPCIONES_BLOQUE.find(b => bloqueValue(b) === bloqueSel);
+    const bloqueFinObj = OPCIONES_BLOQUE.find(b => bloqueValue(b) === bloqueFinSel) || bloqueInicioObj;
+    const rangoLabel = bloqueValue(bloqueFinObj) === bloqueValue(bloqueInicioObj)
+      ? bloqueInicioObj.label
+      : `${bloqueInicioObj.inicio.replace(/(\d)(AM|PM)/i, "$1 $2")} – ${bloqueFinObj.fin.replace(/(\d)(AM|PM)/i, "$1 $2")}`;
     const materiaLabel = materiaId === NUEVO ? `${nuevaMateriaNombre.trim()} (materia nueva)` : (() => {
       const m = materias.find(x => String(x.id) === materiaId);
       return m.nombre_display || m.nombre_raw;
@@ -145,7 +188,7 @@ export default function ModalEditarClase({
 
     openConfirm({
       title: "Guardar cambios",
-      message: `Se moverá a ${dia.charAt(0) + dia.slice(1).toLowerCase()}, ${bloque.label}${aula.trim() ? `, aula ${aula.trim()}` : ""}: ${materiaLabel} — ${docenteLabel}. ¿Confirmas?`,
+      message: `Se moverá a ${dia.charAt(0) + dia.slice(1).toLowerCase()}, ${rangoLabel}${aula.trim() ? `, aula ${aula.trim()}` : ""}: ${materiaLabel} — ${docenteLabel}. ¿Confirmas?`,
       confirmLabel: "Guardar",
       danger: false,
       onConfirm: async () => {
@@ -180,7 +223,7 @@ export default function ModalEditarClase({
 
         const payload = {
           dia,
-          hora: `${bloque.inicio}-${bloque.fin}`,
+          hora: `${bloqueInicioObj.inicio}-${bloqueFinObj.fin}`,
           aula: aula.trim() || null,
           docente_id: docenteRow.id,
           materia_id: materiaRow.id,
@@ -228,16 +271,23 @@ export default function ModalEditarClase({
         </div>
 
         <div className="mec-field">
-          <label htmlFor="mec-bloque">Bloque de hora</label>
-          <select id="mec-bloque" className="s-select s-select--full" value={bloqueSel} onChange={e => setBloqueSel(e.target.value)} disabled={!puedeEditar}>
+          <label htmlFor="mec-bloque-inicio">Hora inicio</label>
+          <select id="mec-bloque-inicio" className="s-select s-select--full" value={bloqueInicioSel} onChange={e => setBloqueInicioSel(e.target.value)} disabled={!puedeEditar}>
             <optgroup label="Diurno">
-              {BLOQUES_DIURNO.map(b => <option key={bloqueValue(b)} value={bloqueValue(b)}>{b.label}</option>)}
+              {BLOQUES_DIURNO.map(b => <option key={bloqueValue(b)} value={bloqueValue({ ...b, turno: "DIURNO" })}>{b.inicio}</option>)}
             </optgroup>
             <optgroup label="Vespertino">
-              {BLOQUES_VESPERTINO.map(b => <option key={bloqueValue(b)} value={bloqueValue(b)}>{b.label}</option>)}
+              {BLOQUES_VESPERTINO.map(b => <option key={bloqueValue(b)} value={bloqueValue({ ...b, turno: "VESPERTINO" })}>{b.inicio}</option>)}
             </optgroup>
           </select>
-          <p className="mec-hint">Solo reubica el bloque de inicio (45 min). Si la clase original abarca más de un bloque, la duración no cambia automáticamente.</p>
+        </div>
+
+        <div className="mec-field">
+          <label htmlFor="mec-bloque-fin">Hora fin</label>
+          <select id="mec-bloque-fin" className="s-select s-select--full" value={bloqueFinSel} onChange={e => setBloqueFinSel(e.target.value)} disabled={!puedeEditar}>
+            {opcionesFin.map(b => <option key={bloqueValue(b)} value={bloqueValue(b)}>{b.fin}</option>)}
+          </select>
+          <p className="mec-hint">Solo se puede elegir un fin dentro del mismo turno que la hora de inicio.</p>
         </div>
 
         <div className="mec-field">
