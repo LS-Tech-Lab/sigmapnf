@@ -44,13 +44,14 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 **Ninguno, por ahora.** `SEC-23` se cerró el 16 de julio: la primera
 corrida real de CodeQL flageó 2 alertas High, ambas triadas y resueltas —
 ver `SEC-25`. El 1 de agosto se sumaron 3 hallazgos de rendimiento en el
-módulo de reportes (`ARCH-26`–`ARCH-28`), cerrados el mismo día. Con eso,
-los 69 IDs de este índice (`SEC-1`–`SEC-25`, `ARCH-1`–`ARCH-28`, `PERM-*`,
-`OFF-*`, `UX-1`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-*`) están ✅ cerrados y
-verificados contra el HEAD real (185/185 tests, `vite build` limpio — 1
-de agosto). `UX-13` (modo oscuro) está ⛔ revertido a pedido explícito de
-LS ("no la veo necesaria") — decisión de producto, no un hallazgo
-pendiente.
+módulo de reportes (`ARCH-26`–`ARCH-28`) y una falla de `npm audit` en CI
+(`SEC-26`), todos cerrados el mismo día. Con eso, los 70 IDs de este
+índice (`SEC-1`–`SEC-26`, `ARCH-1`–`ARCH-28`, `PERM-*`, `OFF-*`,
+`UX-1`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-*`) están ✅ cerrados y
+verificados contra el HEAD real (185/185 tests, `vite build` limpio, `npm
+audit --omit=dev --audit-level=high` en 0 — 1 de agosto). `UX-13` (modo
+oscuro) está ⛔ revertido a pedido explícito de LS ("no la veo
+necesaria") — decisión de producto, no un hallazgo pendiente.
 
 Esto no significa que no vaya a aparecer nada nuevo — CodeQL corre en cada
 push/PR y semanalmente por cron (`SEC-20`), así que conviene revisar
@@ -91,6 +92,7 @@ Esquema `SEC-N`. Fusiona lo que antes eran 4 esquemas paralelos (`S-N`,
 | **SEC-23** | Ver detalle en `SEC-25` — la corrida real de CodeQL que faltaba confirmar ya ocurrió | `.github/workflows/codeql.yml` | — | ✅ Cerrado (16 jul) — primera corrida real de CodeQL flageó 2 alertas High ("DOM text reinterpreted as HTML" vía `document.write()`), ambas triadas y resueltas — ver `SEC-25` |
 | **SEC-24** | La CSP de `vercel.json` es estricta pero no tenía endpoint de reporte (`report-uri`/`report-to`) | `vercel.json`, `api/csp-report.js` | — | ✅ Cerrado (15 jul) — endpoint público sin auth (inserta en `audit_logs` vía Service Role), rate limit 20 req/min por IP (best-effort en memoria, no persistente entre instancias serverless), 8 tests nuevos |
 | **SEC-25** | Las 2 alertas High de la primera corrida real de CodeQL (`SEC-23`), ambas "DOM text reinterpreted as HTML" vía `document.write()`, investigadas por separado en vez de asumir un veredicto compartido | `exportPDF.js`, `PlanillaImprimibleBase.jsx` | — | ✅ Cerrado (16 jul) — **`exportPDF.js`: falso positivo parcial** (mismo patrón que `SEC-2`/`SEC-14`): ya escapaba casi todo con su `ESC()` local; el único hueco (`programa` en `exportarPDFDiario`) solo puede venir de un `<select>` de opciones fijas, nunca texto libre — no explotable en la práctica, pero se escapó igual por defensa en profundidad. **`PlanillaImprimibleBase.jsx`: vulnerabilidad real** — sin ningún escapado; docente/materia/sección/programa (datos reales de cargas masivas de Excel vía `useUpload.js`) se interpolaban crudos en el HTML de `document.write()` — XSS almacenado de segundo orden explotable con un nombre de docente/materia cargado con HTML/script. Mismo helper `ESC()` agregado, las 4 interpolaciones escapadas. 2 tests de regresión nuevos confirmando que un payload `<script>`/`<img onerror>` llega escapado al HTML impreso. 181/181 tests, 0 errores de lint, build limpio |
+| **SEC-26** | `npm audit --omit=dev --audit-level=high` en CI fallaba con 3 vulnerabilidades (2 High: `brace-expansion` DoS, `svgo` `removeScripts` incompleto; 1 Moderate: `tar` recursión no acotada) | `package.json`, `package-lock.json` | — | ✅ Cerrado (1 ago) — ninguna de las 3 viene de una dependencia real del proyecto: las tres son transitivas de `svgtofont` (herramienta de build interna de `@tabler/icons-webfont`, declarada como `dependencies` de ese paquete, no `devDependencies`). Verificado que sigmapnf **no usa el paquete npm en absoluto** — los íconos se sirven desde `public/fonts/tabler-icons.min.css`/`.woff2`, archivos estáticos ya generados y versionados en git, enlazados directo desde `index.html` (`grep` exhaustivo fuera de `node_modules`: cero referencias en JS/CSS/scripts de build). El paquete quedó en `dependencies` desde que se usó una vez para generar esos archivos. Fix: `npm uninstall @tabler/icons-webfont`. `npm audit --omit=dev --audit-level=high` → 0 vulnerabilidades, exit 0. 185/185 tests, 0 errores de lint, build idéntico (mismo `dist/`, mismo precache de PWA) |
 
 ## 🔎 Filtrado de datos por permiso/programa
 
@@ -273,6 +275,7 @@ Solo hitos — el "cómo" completo vive en las tablas de arriba.
 - **16 jul, primera corrida real de CodeQL (cierra `SEC-23`):** 2 alertas High, "DOM text reinterpreted as HTML" vía `document.write()`. `exportPDF.js` — falso positivo parcial (mismo patrón que `SEC-2`/`SEC-14`), escapado igual por defensa en profundidad. `PlanillaImprimibleBase.jsx` — vulnerabilidad real (XSS almacenado de segundo orden vía nombres de docente/materia cargados por Excel), corregida y con 2 tests de regresión nuevos (`SEC-25`). 181/181 tests.
 - **16 jul, cierre de `UX-17`/`UX-18` y `UX-11`:** `UX-17` sin acción de código (misma decisión de producto que `UX-13`, LS confirmó no retomar modo oscuro); `UX-18` comentario obsoleto reescrito en `ModuleSelector.css`. `UX-11` cerrado tras confirmar 7 corridas reales de CI sin diffs desde el 13 de julio; `continue-on-error` retirado de `ci.yml`. Con esto, 0 hallazgos abiertos en el índice.
 - **1 ago, rendimiento/UX en módulo de reportes:** clonado fresco contra `2b36c46` (sin hallazgos abiertos previos). Pedido explícito de LS: 3 hallazgos nuevos de rendimiento (`ARCH-26`–`ARCH-28`), cerrados en la misma sesión. `ARCH-26` (fetch condicional en `VistaAusentes`) y `ARCH-28` (memoización) sin migración. `ARCH-27` (agregación server-side para Reporte por Rango) sí — migración `0055`, RPC `SECURITY INVOKER` sobre `asistencias_diarias`, sin cambios de superficie de seguridad respecto al SELECT directo que reemplaza. Como efecto colateral de `ARCH-27`, desaparece el problema de "sin feedback de progreso durante paginación larga" — ya no hay paginación cliente que mostrar progreso de. 185/185 tests (4 nuevos), `vite build` limpio.
+- **1 ago, `npm audit` fallando en CI (`SEC-26`):** LS reportó la salida de `npm audit --omit=dev --audit-level=high` (3 vulnerabilidades, exit 1). Rastreadas hasta `svgtofont`, dependencia de build interna de `@tabler/icons-webfont` — paquete confirmado sin ningún uso real en el proyecto (los íconos se sirven desde `public/fonts/`, estáticos y versionados). `npm uninstall @tabler/icons-webfont` → 0 vulnerabilidades. Sin impacto en build/tests (185/185, build idéntico).
 
 ## 🔁 Tabla de equivalencias (IDs antiguos → nuevos)
 
