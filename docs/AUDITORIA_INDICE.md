@@ -43,12 +43,14 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 **Ninguno, por ahora.** `SEC-23` se cerró el 16 de julio: la primera
 corrida real de CodeQL flageó 2 alertas High, ambas triadas y resueltas —
-ver `SEC-25`. Con eso, los 66 IDs de este índice (`SEC-1`–`SEC-25`,
-`ARCH-*`, `PERM-*`, `OFF-*`, `UX-1`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-*`)
-están ✅ cerrados y verificados contra el HEAD real (181/181 tests, `vite
-build` limpio — 16 de julio). `UX-13` (modo oscuro) está ⛔ revertido a
-pedido explícito de LS ("no la veo necesaria") — decisión de producto, no
-un hallazgo pendiente.
+ver `SEC-25`. El 1 de agosto se sumaron 3 hallazgos de rendimiento en el
+módulo de reportes (`ARCH-26`–`ARCH-28`), cerrados el mismo día. Con eso,
+los 69 IDs de este índice (`SEC-1`–`SEC-25`, `ARCH-1`–`ARCH-28`, `PERM-*`,
+`OFF-*`, `UX-1`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-*`) están ✅ cerrados y
+verificados contra el HEAD real (185/185 tests, `vite build` limpio — 1
+de agosto). `UX-13` (modo oscuro) está ⛔ revertido a pedido explícito de
+LS ("no la veo necesaria") — decisión de producto, no un hallazgo
+pendiente.
 
 Esto no significa que no vaya a aparecer nada nuevo — CodeQL corre en cada
 push/PR y semanalmente por cron (`SEC-20`), así que conviene revisar
@@ -156,6 +158,9 @@ equivalencias al final.
 | **ARCH-23** | `DocenteScan/index.jsx` a 525 líneas — mismo problema ya corregido 3 veces antes, nunca aplicado aquí | `asistencias/DocenteScan/index.jsx` | ✅ Cerrado (15 jul) — dividido en orquestador (342 líneas) + `PasoValidacionCedula.jsx` + `PasoRegistro.jsx`, mismo patrón que `ARCH-13`/`ARCH-18` |
 | **ARCH-24** | Chunk principal creció de 74.47 KB a 134.61 KB desde `ARCH-21`, sin que nadie lo revisara tras `ADMIN-3/4/5` | `vite.config.js`, `src/App.jsx` | ✅ Cerrado (15 jul) — corrección de premisa: ninguno de los 3 módulos raíz era `lazy()` (no solo `AdminModulo` como decía el hallazgo). `AsistenciasModulo`/`AdminModulo` convertidos a `lazy()`; `HorariosLayout` estático a propósito (entrada por defecto). 134.75→128.76 KB (~4.4%) |
 | **ARCH-25** | `ReporteRango.jsx` (el mismo componente del bug real `UX-15`), `AdminModulo.jsx`/`ModuleSelector.jsx` (deciden qué módulos ve cada rol) sin tests dedicados | `ReporteRango.jsx`, `AdminModulo.jsx`, `ModuleSelector.jsx` | ✅ Cerrado (15 jul) — 18 tests de integración nuevos (render real con `@testing-library/react`) |
+| **ARCH-26** | `VistaAusentes.jsx` pedía siempre el catálogo completo de `docentes` como fallback de resolución de nombre, aunque el 100% de las clases ya tuvieran `docente_id` vinculado (el fallback es el caso raro, no el común) | `ReporteAsistencias/VistaAusentes.jsx` | ✅ Cerrado (1 ago) — el catálogo solo se pide si `clases.some(c => !c.docente_id)`. 3 tests de integración nuevos cubriendo ambas ramas (con/sin fallback) y el filtrado de presentes |
+| **ARCH-27** | `ReporteRango.jsx` paginaba hasta 20.000 filas crudas de `asistencias_diarias` (bloques de 1000) y agrupaba por docente en el cliente — mucho tráfico de red y varias idas y vueltas sin feedback de progreso para el usuario | `ReporteRango.jsx`, migración `0055` (RPC `reporte_asistencias_rango_agregado`) | ✅ Cerrado (1 ago) — agregación `GROUP BY cedula_docente` server-side (`SECURITY INVOKER`, respeta el RLS de `SEC-11` sin cambios de superficie de seguridad). Elimina también el límite de 20.000 filas y el aviso de "resultado truncado" (ya no aplica: no se transfieren filas individuales). Conteo liviano (`head: true`) agregado aparte solo para el texto del modal de borrado, que sigue operando sobre registros individuales. **Nota:** el índice de auditoría ya referenciaba una migración "0055" (pg_cron de `SEC-21`) sin archivo en el repo — verificar contra la BD real antes de aplicar, ver comentario en la migración |
+| **ARCH-28** | `filtrados`/`diasHabiles` (`ReporteRango.jsx`) y `filtrados` (`ReporteAsistencias/index.jsx`) se recalculaban en cada render sin memoizar, aunque sus dependencias reales no cambiaran | `ReporteAsistencias/index.jsx`, `ReporteRango.jsx` | ✅ Cerrado (1 ago) — `useMemo` con las dependencias reales en los 3 casos |
 
 ## 🔧 CI/CD y automatización
 
@@ -267,6 +272,7 @@ Solo hitos — el "cómo" completo vive en las tablas de arriba.
 - **15 jul, sesión de implementación:** clonado fresco contra `8637053` (14 commits por delante). Cierra `ARCH-23`, `ARCH-24`, `ARCH-25`, `SEC-24`, `UX-23`. No toca `SEC-23` (requiere verificación manual de LS en GitHub) ni `UX-11`/`UX-17`/`UX-18` (esperando corridas de CI / diferidos sin acción dedicada). 179/179 tests reales.
 - **16 jul, primera corrida real de CodeQL (cierra `SEC-23`):** 2 alertas High, "DOM text reinterpreted as HTML" vía `document.write()`. `exportPDF.js` — falso positivo parcial (mismo patrón que `SEC-2`/`SEC-14`), escapado igual por defensa en profundidad. `PlanillaImprimibleBase.jsx` — vulnerabilidad real (XSS almacenado de segundo orden vía nombres de docente/materia cargados por Excel), corregida y con 2 tests de regresión nuevos (`SEC-25`). 181/181 tests.
 - **16 jul, cierre de `UX-17`/`UX-18` y `UX-11`:** `UX-17` sin acción de código (misma decisión de producto que `UX-13`, LS confirmó no retomar modo oscuro); `UX-18` comentario obsoleto reescrito en `ModuleSelector.css`. `UX-11` cerrado tras confirmar 7 corridas reales de CI sin diffs desde el 13 de julio; `continue-on-error` retirado de `ci.yml`. Con esto, 0 hallazgos abiertos en el índice.
+- **1 ago, rendimiento/UX en módulo de reportes:** clonado fresco contra `2b36c46` (sin hallazgos abiertos previos). Pedido explícito de LS: 3 hallazgos nuevos de rendimiento (`ARCH-26`–`ARCH-28`), cerrados en la misma sesión. `ARCH-26` (fetch condicional en `VistaAusentes`) y `ARCH-28` (memoización) sin migración. `ARCH-27` (agregación server-side para Reporte por Rango) sí — migración `0055`, RPC `SECURITY INVOKER` sobre `asistencias_diarias`, sin cambios de superficie de seguridad respecto al SELECT directo que reemplaza. Como efecto colateral de `ARCH-27`, desaparece el problema de "sin feedback de progreso durante paginación larga" — ya no hay paginación cliente que mostrar progreso de. 185/185 tests (4 nuevos), `vite build` limpio.
 
 ## 🔁 Tabla de equivalencias (IDs antiguos → nuevos)
 

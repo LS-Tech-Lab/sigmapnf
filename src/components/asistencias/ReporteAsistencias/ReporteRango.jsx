@@ -19,12 +19,17 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
   const [fin,      setFin]      = useState(hoy);
   const [turno,    setTurno]    = useState("DIURNO");
   const [programa, setPrograma] = useState("");
-  const [rows,     setRows]     = useState([]);
+  // ARCH-27 (auditoría 1 ago): `docentes` ya viene agregado por docente
+  // desde el servidor (ver reporte_asistencias_rango_agregado, migración
+  // 0055) — ya no se guardan las filas crudas de asistencia en el cliente.
+  // `totalRegistros` es solo el conteo (sin transferir filas) usado en el
+  // modal de borrado, que sí opera sobre registros individuales.
+  const [docentes,       setDocentes]       = useState([]);
+  const [totalRegistros, setTotalRegistros] = useState(0);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [isOffline, setIsOffline] = useState(false);
-  const [truncado, setTruncado] = useState(false);
 
   // ADMIN-2: borrado de reportes de asistencia por rango (solo admin,
   // permiso puedeBorrarReportes). Usa exactamente los mismos filtros que
@@ -42,13 +47,14 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
   // de un rango/turno que ya no es el seleccionado.
   const abortControllerRef = useRef(null);
 
-  // ARCH-2: paginación por cursor (mismo patrón que useDataSync) para evitar
-  // que el límite por defecto de Supabase (1000 filas) trunque el reporte
-  // sin avisar. RANGO_PAGE_SIZE controla el tamaño de cada página y
-  // RANGO_MAX_FILAS es un tope de seguridad para no cargar rangos absurdos.
-  const RANGO_PAGE_SIZE = 1000;
-  const RANGO_MAX_FILAS = 20000;
-
+  // ARCH-27 (auditoría 1 ago): la paginación por offset de hasta 20.000
+  // filas crudas (ver historial de ARCH-2/UX-15 en AUDITORIA_INDICE.md) se
+  // reemplaza por una sola llamada a reporte_asistencias_rango_agregado
+  // (migración 0055), que agrupa por docente en el servidor. Ya no hay
+  // límite de filas que truncar ni múltiples idas y vueltas de red que
+  // necesiten un indicador de progreso — el problema que motivaba ambas
+  // cosas (transferir filas individuales) desaparece con la agregación
+  // server-side.
   const fetchRango = useCallback(async () => {
     if (!inicio || !fin || inicio > fin) return;
 
@@ -61,67 +67,63 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
     // Sin red: no ejecutar — mostrar aviso
     if (!navigator.onLine) {
       setIsOffline(true);
-      setRows([]);
+      setDocentes([]);
+      setTotalRegistros(0);
       setLoading(false);
       return;
     }
 
     setIsOffline(false);
-    setTruncado(false);
     setLoading(true); setError(null);
 
     try {
-      const todasLasFilas = [];
-      // Fix (14 de julio): `asistencias_diarias.id` es UUID (ver migración
-      // 0006_modulo_asistencias_qr.sql), no un entero autoincremental. La
-      // paginación por cursor `.gt("id", cursor)` partía de `cursor = 0` y
-      // Postgres rechaza comparar una columna uuid contra el entero 0 —
-      // "invalid input syntax for type uuid: 0" en la primera página, antes
-      // de que llegara ningún dato real. Los UUID tampoco tienen un orden
-      // secuencial útil, así que un cursor por `id` no aplica aquí (a
-      // diferencia de `horarios.id`, que sí es INTEGER — ver
-      // useDataSync.js/PlanillaQR.jsx). Se pagina por offset, ordenando por
-      // `hora_registro` (con `id` como desempate estable) en vez de por
-      // cursor.
-      let offset = 0;
-      let hayMas = true;
+      const rpcCall = supabase
+        .rpc("reporte_asistencias_rango_agregado", {
+          p_fecha_desde: inicio,
+          p_fecha_hasta: fin,
+          p_turno:       turno,
+          p_programa:    programa || null,
+        })
+        .abortSignal(signal);
 
-      while (hayMas) {
-        let q = supabase
-          .from("asistencias_diarias")
-          .select("id, cedula_docente, nombre_docente, fecha, programa")
-          .gte("fecha", inicio).lte("fecha", fin).eq("turno", turno)
-          .order("hora_registro", { ascending: true })
-          .order("id", { ascending: true })
-          .range(offset, offset + RANGO_PAGE_SIZE - 1)
-          .abortSignal(signal);
-        if (programa) q = q.eq("programa", programa);
+      // Conteo liviano (head: sin transferir filas) — solo para el texto
+      // del modal de borrado, que opera sobre registros individuales, no
+      // sobre docentes agregados.
+      let countQuery = supabase
+        .from("asistencias_diarias")
+        .select("id", { count: "exact", head: true })
+        .gte("fecha", inicio).lte("fecha", fin).eq("turno", turno)
+        .abortSignal(signal);
+      if (programa) countQuery = countQuery.eq("programa", programa);
 
-        const { data, error: err } = await q;
-        // ARCH-4: si este fetch ya fue superado por uno más nuevo, descartar
-        // el resultado en silencio en vez de pisar la tabla actual.
-        if (signal.aborted) return;
-        if (err) { setError(err.message); setRows([]); setLoading(false); return; }
+      const [{ data, error: err }, { count, error: countErr }] = await Promise.all([rpcCall, countQuery]);
 
-        const filas = data || [];
-        todasLasFilas.push(...filas);
-
-        if (filas.length < RANGO_PAGE_SIZE) {
-          hayMas = false;
-        } else if (todasLasFilas.length >= RANGO_MAX_FILAS) {
-          // Guardia de tope: avisar que hay más datos que no se cargaron.
-          setTruncado(true);
-          hayMas = false;
-        } else {
-          offset += RANGO_PAGE_SIZE;
-        }
+      // ARCH-4: si este fetch ya fue superado por uno más nuevo, descartar
+      // el resultado en silencio en vez de pisar la tabla actual.
+      if (signal.aborted) return;
+      if (err || countErr) {
+        setError((err || countErr).message);
+        setDocentes([]);
+        setTotalRegistros(0);
+        setLoading(false);
+        return;
       }
 
-      setRows(todasLasFilas);
+      const agregados = (data || []).map(d => ({
+        cedula: d.cedula_docente,
+        nombre: d.nombre_docente,
+        diasAsistidos: Number(d.dias_asistidos),
+        horasEstimadas: Number(d.dias_asistidos) * (turno === "NOCTURNO" ? 3 : 4),
+        programas: (d.programas || []).map(p => p.replace("PNF ", "")),
+      }));
+
+      setDocentes(agregados);
+      setTotalRegistros(count ?? 0);
     } catch (e) {
       if (signal.aborted || e.name === "AbortError") return;
       setError(e.message || "Error al cargar el reporte.");
-      setRows([]);
+      setDocentes([]);
+      setTotalRegistros(0);
     }
     setLoading(false);
   }, [inicio, fin, turno, programa]);
@@ -146,12 +148,13 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
     }
   };
 
+
   // ARCH-4: abortar el fetch en curso al desmontar el componente.
   useEffect(() => () => { if (abortControllerRef.current) abortControllerRef.current.abort(); }, []);
 
   useEffect(() => {
     const handleOnline  = () => { setIsOffline(false); fetchRango(); };
-    const handleOffline = () => { setIsOffline(true); setRows([]); };
+    const handleOffline = () => { setIsOffline(true); setDocentes([]); setTotalRegistros(0); };
     window.addEventListener('online',  handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
@@ -160,25 +163,16 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
     };
   }, [fetchRango]);
 
-  const docentes = useMemo(() => {
-    const map = {};
-    rows.forEach(r => {
-      if (!map[r.cedula_docente]) map[r.cedula_docente] = { cedula: r.cedula_docente, nombre: r.nombre_docente, diasSet: new Set(), programas: new Set() };
-      const d = map[r.cedula_docente];
-      d.diasSet.add(r.fecha);
-      if (r.programa) d.programas.add(r.programa.replace("PNF ", ""));
-      d.nombre = r.nombre_docente;
-    });
-    return Object.values(map).map(d => ({
-      cedula: d.cedula, nombre: d.nombre,
-      diasAsistidos: d.diasSet.size,
-      horasEstimadas: d.diasSet.size * (turno === "NOCTURNO" ? 3 : 4),
-      programas: [...d.programas],
-    })).sort((a, b) => b.diasAsistidos - a.diasAsistidos);
-  }, [rows, turno]);
-
-  const filtrados   = docentes.filter(d => !busqueda || d.cedula.includes(busqueda) || d.nombre.toLowerCase().includes(busqueda.toLowerCase()));
-  const diasHabiles = rangoFechas(inicio, fin).length;
+  // ARCH-28 (auditoría 1 ago): ambos se recalculaban en cada render aunque
+  // sus dependencias reales no hubieran cambiado (ej. al reabrir el modal
+  // de borrado). `docentes` ya viene ordenado y agregado desde
+  // reporte_asistencias_rango_agregado (ARCH-27), así que aquí solo queda
+  // filtrar por búsqueda.
+  const filtrados   = useMemo(
+    () => docentes.filter(d => !busqueda || d.cedula.includes(busqueda) || d.nombre.toLowerCase().includes(busqueda.toLowerCase())),
+    [docentes, busqueda]
+  );
+  const diasHabiles = useMemo(() => rangoFechas(inicio, fin).length, [inicio, fin]);
 
   return (
     <div className="ra-root">
@@ -206,8 +200,8 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
           {permisos.puedeBorrarReportes && (
             <button
               onClick={() => setConfirmBorrar(true)}
-              disabled={rows.length === 0}
-              className={`ra-btn ra-btn--sm ra-btn-borrar-rango${rows.length === 0 ? ' ra-btn-borrar-rango--disabled' : ''}`}
+              disabled={totalRegistros === 0}
+              className={`ra-btn ra-btn--sm ra-btn-borrar-rango${totalRegistros === 0 ? ' ra-btn-borrar-rango--disabled' : ''}`}
             >
               <i className="ti ti-trash ra-btn-icon" aria-hidden="true" />
               Borrar rango
@@ -261,15 +255,6 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
           <i className="ti ti-wifi-off ra-warn-icon" aria-hidden="true" />
           <div>
             <strong>Sin conexión.</strong> El reporte por rango requiere red para calcularse. Vuelve a intentarlo cuando se restablezca la conexión.
-          </div>
-        </div>
-      )}
-
-      {truncado && (
-        <div className="ra-warn-banner" role="alert">
-          <i className="ti ti-alert-triangle ra-warn-icon" aria-hidden="true" />
-          <div>
-            <strong>Resultado truncado.</strong> Se alcanzó el límite de {RANGO_MAX_FILAS.toLocaleString("es")} registros para este rango. Reduce el rango de fechas para ver todos los datos.
           </div>
         </div>
       )}
@@ -328,7 +313,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
       {confirmBorrar && (
         <ModalConfirm
           titulo="¿Borrar reporte de asistencia?"
-          mensaje={`Se borrarán ${rows.length} registro${rows.length !== 1 ? "s" : ""} de asistencia entre ${inicio} y ${fin}${turno ? ` (turno ${turno})` : ""}${programa ? `, programa ${programa.replace("PNF ", "")}` : ""}. Esta acción no se puede deshacer.`}
+          mensaje={`Se borrarán ${totalRegistros} registro${totalRegistros !== 1 ? "s" : ""} de asistencia entre ${inicio} y ${fin}${turno ? ` (turno ${turno})` : ""}${programa ? `, programa ${programa.replace("PNF ", "")}` : ""}. Esta acción no se puede deshacer.`}
           onConfirm={borrando ? undefined : handleBorrarRango}
           onCancel={borrando ? undefined : () => setConfirmBorrar(false)}
           peligro

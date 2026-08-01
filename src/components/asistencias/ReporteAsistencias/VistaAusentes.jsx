@@ -67,15 +67,24 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
         return;
       }
 
-      // Catálogo de nombres completos (nombre_raw), usado únicamente como
-      // fallback para resolver el nombre de horarios sin docente_id.
-      const { data: docentesCatalogo } = await supabase
-        .from("docentes")
-        .select("nombre_raw, cedula");
+      // ARCH-26 (auditoría 1 ago): el catálogo completo de `docentes` solo
+      // se usa como fallback para clases sin `docente_id` vinculado (ver
+      // comentario arriba). Antes se traía siempre, aunque el 100% de las
+      // clases ya tuvieran `docente_id` — un SELECT completo desperdiciado
+      // en cada apertura de la pestaña. Ahora solo se pide si realmente
+      // hace falta.
+      const necesitaCatalogo = clases.some(c => !c.docente_id);
 
-      const catalogoDocentes = (docentesCatalogo || []).map(d => d.nombre_raw).filter(Boolean);
-      const cedulaPorNombre = {};
-      (docentesCatalogo || []).forEach(d => { if (d.cedula) cedulaPorNombre[d.nombre_raw] = d.cedula; });
+      let catalogoDocentes = [];
+      let cedulaPorNombre = {};
+      if (necesitaCatalogo) {
+        const { data: docentesCatalogo } = await supabase
+          .from("docentes")
+          .select("nombre_raw, cedula");
+
+        catalogoDocentes = (docentesCatalogo || []).map(d => d.nombre_raw).filter(Boolean);
+        (docentesCatalogo || []).forEach(d => { if (d.cedula) cedulaPorNombre[d.nombre_raw] = d.cedula; });
+      }
 
       const porDocente = {};
       clases.forEach(c => {

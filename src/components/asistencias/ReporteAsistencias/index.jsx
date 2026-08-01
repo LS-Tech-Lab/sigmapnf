@@ -116,11 +116,14 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
 
   const docentesAgrupados = useMemo(() => agruparPorDocente(rows), [rows]);
 
-  const filtrados = docentesAgrupados.filter(d => {
+  // ARCH-28 (auditoría 1 ago): antes se recalculaba en cada render (ej. al
+  // cambiar de pestaña Presentes/Ausentes) aunque docentesAgrupados/busqueda
+  // no hubieran cambiado. Memoizado con las mismas dependencias reales.
+  const filtrados = useMemo(() => docentesAgrupados.filter(d => {
     if (!busqueda) return true;
     const q = busqueda.toLowerCase();
     return d.cedula?.toLowerCase().includes(q) || d.nombre?.toLowerCase().includes(q);
-  });
+  }), [docentesAgrupados, busqueda]);
 
   const cedulasPresentes = useMemo(
     () => new Set(docentesAgrupados.map(d => d.cedula)),
