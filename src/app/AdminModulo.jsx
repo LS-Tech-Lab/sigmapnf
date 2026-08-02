@@ -7,6 +7,7 @@ import { useAppDataContext } from "../context/AppDataContext";
 const UsuariosView  = lazy(() => import("../components/usuarios"));
 const LogsView       = lazy(() => import("../components/LogsView"));
 const HistorialView  = lazy(() => import("../components/HistorialView"));
+const ConfiguracionReportes = lazy(() => import("../components/ConfiguracionReportes"));
 
 const AdminFallback = () => (
   <div className="lazy-fallback">
@@ -75,6 +76,12 @@ export default function AdminModulo({
       : []),
     ...(permisos.puedeVerLogs
       ? [{ id: "logs", icon: "ti-shield-lock", label: "Registros" }]
+      : []),
+    // ADMIN-6 (1 ago): personalización del membrete de los reportes
+    // imprimibles — gateada por su propio permiso granular
+    // (puedeConfigurarReportes), no por pertenecer a este módulo.
+    ...(permisos.puedeConfigurarReportes
+      ? [{ id: "reportes", icon: "ti-palette", label: "Reportes" }]
       : []),
     { id: "historial", icon: "ti-archive", label: "Historial" },
   ];
@@ -147,6 +154,10 @@ export default function AdminModulo({
 
             {tab === "logs" && permisos.puedeVerLogs && (
               <LogsView permisos={permisos} showToast={appData.showToast} />
+            )}
+
+            {tab === "reportes" && permisos.puedeConfigurarReportes && (
+              <ConfiguracionReportes showToast={appData.showToast} logAudit={appData.logAudit} />
             )}
 
             {tab === "historial" && (

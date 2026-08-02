@@ -1,0 +1,75 @@
+/* ConfiguracionReportes.css — ADMIN-6 (1 ago 2026)
+   Reutiliza las clases globales s-input/s-btn/s-card (ver ModalRol.css para
+   el mismo criterio). Los swatches de color son clases fijas, NO
+   style={{background}} inline — mismo motivo que roleColorClass() en
+   constants/index.js: el CSP style-src 'self' de la app no tiene
+   'unsafe-inline', así que un color libre inline quedaría bloqueado. Los 6
+   hex de acá son intencionalmente los mismos que .rp-color--* en
+   public/reporte-print.css (archivo aparte: ese lo sirve el CSP como
+   estático para la ventana de impresión, este lo empaqueta Vite para la
+   app) — si se agrega un color nuevo, replicar en ambos lugares. */
+
+.cr-root { max-width: 900px; margin: 0 auto; padding: 20px; }
+.cr-header { margin-bottom: 20px; }
+.cr-title { display: flex; align-items: center; gap: 8px; font-size: 1.25rem; margin: 0 0 4px; }
+.cr-subtitle { color: var(--color-text-mid); font-size: 0.9rem; margin: 0; }
+.cr-loading { display: flex; align-items: center; gap: 8px; padding: 40px; justify-content: center; color: var(--color-text-mid); }
+
+.cr-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+@media (max-width: 800px) { .cr-layout { grid-template-columns: 1fr; } }
+
+.cr-form { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+.cr-field { display: flex; flex-direction: column; gap: 6px; }
+.cr-field-label { font-weight: 600; font-size: 0.85rem; color: var(--color-text-primary); }
+.cr-field-hint { font-size: 0.75rem; color: var(--color-text-mid); margin: 0; }
+
+/* Logo */
+.cr-logo-row { display: flex; align-items: center; gap: 16px; }
+.cr-logo-preview {
+  width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--color-border, #E5E7EB); background: #fff; overflow: hidden;
+}
+.cr-logo-img { width: 100%; height: 100%; object-fit: contain; }
+.cr-logo-placeholder {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background: var(--brand-600, #1E3A8A); color: #fff; font-size: 1.4rem; font-weight: 900;
+}
+.cr-logo-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.cr-logo-actions-row { display: flex; gap: 8px; }
+.cr-file-input { display: none; }
+
+/* Color */
+.cr-color-row { display: flex; gap: 10px; }
+.cr-color-swatch {
+  width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
+  border: 3px solid transparent; box-sizing: border-box;
+  background: var(--cr-swatch-color, #888);
+  display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.cr-color-swatch--active { border-color: var(--color-text-primary); }
+.cr-swatch--azul   { --cr-swatch-color: #1E3A8A; }
+.cr-swatch--verde  { --cr-swatch-color: #065F46; }
+.cr-swatch--teal   { --cr-swatch-color: #0F766E; }
+.cr-swatch--morado { --cr-swatch-color: #581C87; }
+.cr-swatch--rojo   { --cr-swatch-color: #9F1239; }
+.cr-swatch--ambar  { --cr-swatch-color: #92400E; }
+
+.cr-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
+.cr-btn-guardar {
+  padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer;
+  background: var(--brand-600, #1E3A8A); color: #fff; font-weight: 600; font-size: var(--font-size-13, 13px);
+}
+.cr-btn-guardar:disabled { opacity: 0.5; cursor: default; }
+.cr-error { color: var(--color-danger, #DC2626); font-size: 0.85rem; }
+
+/* ── Vista previa ── */
+.cr-preview { position: sticky; top: 20px; }
+.cr-preview-label { font-weight: 600; font-size: 0.8rem; color: var(--color-text-mid); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
+.cr-preview-card { padding: 16px; }
+.cr-preview-membrete { display: flex; align-items: center; gap: 10px; border-bottom: 3px solid var(--cr-swatch-color, #1E3A8A); padding-bottom: 10px; margin-bottom: 10px; }
+.cr-preview-logo { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--cr-swatch-color, #1E3A8A); color: #fff; font-weight: 900; }
+.cr-preview-logo img { width: 100%; height: 100%; object-fit: contain; }
+.cr-preview-nombre { font-weight: 700; font-size: 0.95rem; color: var(--cr-swatch-color, #1E3A8A); }
+.cr-preview-sub { font-size: 0.75rem; color: var(--color-text-mid); }
+.cr-preview-pie { font-size: 0.7rem; color: var(--color-text-mid); margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border, #E5E7EB); }

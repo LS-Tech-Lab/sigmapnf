@@ -44,13 +44,14 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 **Ninguno, por ahora.** `SEC-23` se cerró el 16 de julio: la primera
 corrida real de CodeQL flageó 2 alertas High, ambas triadas y resueltas —
 ver `SEC-25`. El 1 de agosto se sumaron 3 hallazgos de rendimiento en el
-módulo de reportes (`ARCH-26`–`ARCH-28`) y una falla de `npm audit` en CI
-(`SEC-26`), todos cerrados el mismo día. Con eso, los 70 IDs de este
-índice (`SEC-1`–`SEC-26`, `ARCH-1`–`ARCH-28`, `PERM-*`, `OFF-*`,
-`UX-1`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-*`) están ✅ cerrados y
-verificados contra el HEAD real (185/185 tests, `vite build` limpio, `npm
-audit --omit=dev --audit-level=high` en 0 — 1 de agosto). `UX-13` (modo
-oscuro) está ⛔ revertido a pedido explícito de LS ("no la veo
+módulo de reportes (`ARCH-26`–`ARCH-28`), una falla de `npm audit` en CI
+(`SEC-26`) y un módulo nuevo de personalización de reportes (`ADMIN-6`,
+pedido explícito de LS), todos cerrados el mismo día. Con eso, los 71 IDs
+de este índice (`SEC-1`–`SEC-26`, `ARCH-1`–`ARCH-28`, `PERM-*`, `OFF-*`,
+`UX-1`–`UX-23`, `DESIGN-*`, `CI-*`, `ADMIN-1`–`ADMIN-6`) están ✅ cerrados
+y verificados contra el HEAD real (205/205 tests, `vite build` limpio,
+`npm audit --omit=dev --audit-level=high` en 0 — 1 de agosto). `UX-13`
+(modo oscuro) está ⛔ revertido a pedido explícito de LS ("no la veo
 necesaria") — decisión de producto, no un hallazgo pendiente.
 
 Esto no significa que no vaya a aparecer nada nuevo — CodeQL corre en cada
@@ -233,6 +234,7 @@ se incluye aquí porque el código ya usa el mismo formato de comentario.
 | **ADMIN-3** | Sacar "Usuarios y Roles"/"Registros"/"Historial" a un módulo propio, visible solo con permiso admin | `AdminModulo.jsx` (nuevo), `buildNavGroups.js`, `HorariosLayout.jsx` | — | ✅ Cerrado (10 jul) — nombre visible: "Sistema" (no "Administración", ya usado en el dropdown del sidebar). Historial pasa a exigir permiso admin (antes lo veía cualquiera con acceso a Horarios) |
 | **ADMIN-4** | La jerarquía admin (`SEC-15`) ya bloqueaba en servidor crear/editar admins sin serlo, pero la UI no lo reflejaba | `usuarios/{index,PestanaUsuarios,ModalUsuario}.jsx` | — | ✅ Cerrado (10 jul) — `esActorAdmin` propagado; oculta "admin" del selector y bloquea edición sobre filas admin si el actor no lo es |
 | **ADMIN-5** | Las 3 tarjetas del selector de módulo no caían en una fila en desktop; pedido general de optimización visual | `ModuleSelector.{jsx,css}` | — | ✅ Cerrado (12-13 jul, 3 pasadas) — Grid `auto-fit`/`minmax` en vez de `flexbox` de ancho fijo; rediseño compacto a layout horizontal tipo fila (180px→72px de alto); fix de `var(--color-text-primary)` que UX-13 (modo oscuro, en paralelo) habría roto en el fondo del splash |
+| **ADMIN-6** | Pedido explícito de LS: personalizar el membrete de los 3 documentos imprimibles (logo, color, textos institucionales) — antes "UNERMB"/una "U" hardcodeados por separado en `exportPDF.js`, y `PlanillaImprimibleBase.jsx` sin membrete en absoluto | `configuracion_reportes` (migración `0056`), `reportePlantilla.js` (nuevo, compartido), `useReporteConfig.js` (nuevo), `ConfiguracionReportes.{jsx,css}` (nuevo, pestaña "Reportes" en Sistema), `exportPDF.js`, `PlanillaImprimibleBase.jsx`, `reporte-print.css` | `0056` | ✅ Cerrado (1 ago) — permiso granular nuevo `puedeConfigurarReportes`. Logo guardado como data URI en la fila (no Storage: el CSP `img-src 'self' data: blob:` ya lo permite sin abrir dominio nuevo; `CHECK` limita tipo a png/jpeg/webp — SVG excluido a propósito — y tamaño ~1.5MB). Color NO es hex libre: 6 clases CSS preset (`rp-color--*`), mismo criterio que `COLORES_PRESET`/`SEC-3` — el CSP `style-src 'self'` sin `unsafe-inline` bloquea tanto `style=""` en la ventana de impresión como en la app React normal (confirmado con los swatches del formulario, que también son clases, no `style={{background}}`). Unificar `exportPDF.js` y `PlanillaImprimibleBase.jsx` sobre la misma plantilla (`reportePlantilla.js`) corrigió de paso un bug latente nunca reportado: el `<style>` inline de `PlanillaImprimibleBase` casi con certeza estaba bloqueado en silencio por el mismo CSP que forzó externalizar `reporte-print.css` el 14 de julio. `ESC()` de la plantilla compartida ahora también escapa comillas (el logo va dentro de un atributo `src="..."`, no solo texto). 20 tests nuevos (`reportePlantilla.test.js`, `ConfiguracionReportes.integration.test.jsx`, casos nuevos en `AdminModulo.integration.test.jsx`) |
 
 ---
 
@@ -276,6 +278,7 @@ Solo hitos — el "cómo" completo vive en las tablas de arriba.
 - **16 jul, cierre de `UX-17`/`UX-18` y `UX-11`:** `UX-17` sin acción de código (misma decisión de producto que `UX-13`, LS confirmó no retomar modo oscuro); `UX-18` comentario obsoleto reescrito en `ModuleSelector.css`. `UX-11` cerrado tras confirmar 7 corridas reales de CI sin diffs desde el 13 de julio; `continue-on-error` retirado de `ci.yml`. Con esto, 0 hallazgos abiertos en el índice.
 - **1 ago, rendimiento/UX en módulo de reportes:** clonado fresco contra `2b36c46` (sin hallazgos abiertos previos). Pedido explícito de LS: 3 hallazgos nuevos de rendimiento (`ARCH-26`–`ARCH-28`), cerrados en la misma sesión. `ARCH-26` (fetch condicional en `VistaAusentes`) y `ARCH-28` (memoización) sin migración. `ARCH-27` (agregación server-side para Reporte por Rango) sí — migración `0055`, RPC `SECURITY INVOKER` sobre `asistencias_diarias`, sin cambios de superficie de seguridad respecto al SELECT directo que reemplaza. Como efecto colateral de `ARCH-27`, desaparece el problema de "sin feedback de progreso durante paginación larga" — ya no hay paginación cliente que mostrar progreso de. 185/185 tests (4 nuevos), `vite build` limpio.
 - **1 ago, `npm audit` fallando en CI (`SEC-26`):** LS reportó la salida de `npm audit --omit=dev --audit-level=high` (3 vulnerabilidades, exit 1). Rastreadas hasta `svgtofont`, dependencia de build interna de `@tabler/icons-webfont` — paquete confirmado sin ningún uso real en el proyecto (los íconos se sirven desde `public/fonts/`, estáticos y versionados). `npm uninstall @tabler/icons-webfont` → 0 vulnerabilidades. Sin impacto en build/tests (185/185, build idéntico).
+- **1 ago, personalización de reportes (`ADMIN-6`):** pedido explícito de LS ("mejorar visualmente los reportes, agregarle formato, encabezados, logos"), resuelto en el nivel más completo de 3 opciones consultadas (módulo completo con logo subido, colores, textos y vista previa; aplicado a los 3 documentos imprimibles; admin-only). Detectado durante el diseño: `ADMIN-5` ya estaba tomado (grid del selector de módulos, 12-13 jul) — la búsqueda inicial de IDs no lo incluyó, se corrigió a `ADMIN-6` antes de entregar. Unificar `exportPDF.js`/`PlanillaImprimibleBase.jsx` sobre `reportePlantilla.js` corrigió de paso un bug de CSS inline en `PlanillaImprimibleBase` nunca reportado (ver detalle en la fila `ADMIN-6`). 205/205 tests (20 nuevos), 0 errores de lint, build limpio (chunk `ConfiguracionReportes` separado por code-splitting, 6.54 KB).
 
 ## 🔁 Tabla de equivalencias (IDs antiguos → nuevos)
 

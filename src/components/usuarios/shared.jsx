@@ -55,6 +55,7 @@ export const GRUPOS_PERMISOS = [
       { key: "puedeGestionarRoles",    label: "Gestionar roles",    desc: "Crear/editar roles y definir sus permisos" },
       { key: "puedeVerLogs",           label: "Ver registros",      desc: "Consultar el historial de acciones del sistema" },
       { key: "puedeVerAuditoria",      label: "Ver auditoría",      desc: "Ver quién hizo qué y cuándo" },
+      { key: "puedeConfigurarReportes", label: "Configurar reportes", desc: "Personalizar logo, colores y textos del membrete de los reportes imprimibles" },
     ],
   },
 ];

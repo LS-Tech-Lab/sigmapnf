@@ -33,6 +33,9 @@ vi.mock("../components/HistorialView", () => ({
     <div data-testid="view-historial">Historial — modoConsulta: {String(modoConsulta)}</div>
   ),
 }));
+vi.mock("../components/ConfiguracionReportes", () => ({
+  default: () => <div data-testid="view-reportes">Configuración de Reportes</div>,
+}));
 
 import AdminModulo from "./AdminModulo";
 import { AppDataProvider } from "../context/AppDataContext";
@@ -95,6 +98,19 @@ describe("AdminModulo — armado de pestañas según permisos efectivos", () => 
 
     expect(screen.getByText("Usuarios y Roles")).toBeTruthy();
     expect(screen.getByText("Registros")).toBeTruthy();
+  });
+
+  it("sin puedeConfigurarReportes, no muestra la pestaña Reportes (ADMIN-6)", async () => {
+    renderAdminModulo({ permisos: { puedeGestionarUsuarios: true } });
+    expect(screen.queryByText("Reportes")).toBeNull();
+  });
+
+  it("con puedeConfigurarReportes, agrega la pestaña Reportes y monta ConfiguracionReportes al seleccionarla (ADMIN-6)", async () => {
+    renderAdminModulo({ permisos: { puedeConfigurarReportes: true } });
+
+    expect(screen.getByText("Reportes")).toBeTruthy();
+    fireEvent.click(screen.getByText("Reportes"));
+    await waitFor(() => expect(screen.getByTestId("view-reportes")).toBeTruthy());
   });
 
   it("cambiar de pestaña desmonta la sub-vista anterior y monta la nueva", async () => {

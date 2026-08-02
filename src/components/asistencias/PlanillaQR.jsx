@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { suscribirCambiosRemotos } from '../../lib/realtime';
 import { getCurrentLapso, getLapsosDisponibles, formatLapso } from '../../utils/lapso';
+import { useReporteConfig } from '../../hooks/useReporteConfig';
 import PlanillaImprimibleBase from './PlanillaImprimibleBase';
 
 const PAGE_SIZE = 500;
@@ -25,6 +26,8 @@ export default function PlanillaQR({ permisos = {}, profile }) {
   const [materiaNames, setMateriaNames] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // ADMIN-6: branding del membrete impreso — ver useReporteConfig.js.
+  const { config: reporteConfig } = useReporteConfig();
 
   const getDocName = useCallback((raw) => docenteNames[raw] || raw, [docenteNames]);
   const getMateriaName = useCallback((raw) => materiaNames[raw] || raw, [materiaNames]);
@@ -172,6 +175,7 @@ export default function PlanillaQR({ permisos = {}, profile }) {
           getMateriaName={getMateriaName}
           catalogoDocentes={catalogoDocentes}
           lapso={lapso}
+          reporteConfig={reporteConfig}
         />
       )}
     </div>

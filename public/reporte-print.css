@@ -10,6 +10,22 @@
    externo desde el mismo origen, `style-src 'self'` sí lo permite.
    ⚠️ NO volver a inlinear este bloque dentro de exportPDF.js. */
 
+/* ADMIN-6 (1 ago): el "color de marca" de configuracion_reportes NO se
+   inyecta como style="--rp-primario:#..." inline — el mismo CSP de arriba
+   lo bloquearía (style-src 'self' también cubre atributos style=""). En
+   vez de eso, cada preset es una clase .rp-color--* definida acá, aplicada
+   sobre <body> desde reportePlantilla.js (mismo criterio ya usado para
+   COLORES_PRESET/roleColorClass en el resto de la app — ver shared.jsx).
+   --rp-primario cae a #1E3A8A si por lo que sea no hay clase de color
+   aplicada (fila de configuración aún no cargada, etc). */
+:root { --rp-primario: #1E3A8A; --rp-primario-claro: #EFF6FF; }
+.rp-color--azul   { --rp-primario: #1E3A8A; --rp-primario-claro: #EFF6FF; }
+.rp-color--verde  { --rp-primario: #065F46; --rp-primario-claro: #ECFDF5; }
+.rp-color--teal   { --rp-primario: #0F766E; --rp-primario-claro: #F0FDFA; }
+.rp-color--morado { --rp-primario: #581C87; --rp-primario-claro: #FAF5FF; }
+.rp-color--rojo   { --rp-primario: #9F1239; --rp-primario-claro: #FFF1F2; }
+.rp-color--ambar  { --rp-primario: #92400E; --rp-primario-claro: #FFFBEB; }
+
 @page { size: A4 landscape; margin: 14mm 12mm; }
 * { box-sizing: border-box; }
 body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1a1a1a; margin: 0; }
@@ -17,24 +33,30 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1a1a
 /* ── Membrete ── */
 .membrete {
   display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 3px solid #1E3A8A; padding-bottom: 10px; margin-bottom: 12px;
+  border-bottom: 3px solid var(--rp-primario); padding-bottom: 10px; margin-bottom: 12px;
 }
 .membrete-izq { display: flex; align-items: center; gap: 14px; }
 .membrete-logo {
   width: 52px; height: 52px; border-radius: 50%;
-  background: linear-gradient(135deg, #1E3A8A, #2563EB);
+  background: var(--rp-primario);
   display: flex; align-items: center; justify-content: center;
   font-size: 22pt; font-weight: 900; color: #fff; flex-shrink: 0;
 }
-.membrete-texto h1 { margin: 0; font-size: 13pt; color: #1E3A8A; }
+/* Logo real (imagen subida por el admin) en vez del placeholder de letra —
+   mismo círculo/tamaño, object-fit para no deformar logos no cuadrados. */
+.membrete-logo-img {
+  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+  object-fit: contain; background: #fff; border: 1px solid #E5E7EB;
+}
+.membrete-texto h1 { margin: 0; font-size: 13pt; color: var(--rp-primario); }
 .membrete-texto p  { margin: 2px 0 0; font-size: 8.5pt; color: #555; }
 .membrete-der { text-align: right; font-size: 8.5pt; color: #555; line-height: 1.6; }
 
 /* ── Subtítulo del reporte ── */
 .subtitulo {
-  background: #EFF6FF; border-left: 4px solid #2563EB;
+  background: var(--rp-primario-claro); border-left: 4px solid var(--rp-primario);
   padding: 7px 12px; border-radius: 0 6px 6px 0;
-  font-size: 10pt; font-weight: 700; color: #1D4ED8;
+  font-size: 10pt; font-weight: 700; color: var(--rp-primario);
   margin-bottom: 14px;
 }
 
@@ -47,7 +69,7 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1a1a
 
 /* ── Tablas ── */
 table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 6px; }
-th { background: #1E3A8A; color: #fff; padding: 5px 8px; text-align: left; font-weight: 700; }
+th { background: var(--rp-primario); color: #fff; padding: 5px 8px; text-align: left; font-weight: 700; }
 td { padding: 4px 8px; border-bottom: 1px solid #E5E7EB; vertical-align: middle; }
 tr:nth-child(even) td { background: #F8FAFC; }
 .badge-completo  { background: #DCFCE7; color: #166534; padding: 1px 6px; border-radius: 4px; font-size: 7.5pt; font-weight: 700; }
@@ -79,9 +101,14 @@ tr:nth-child(even) td { background: #F8FAFC; }
    atributos style, no solo los bloques <style>, así que no basta con sacar
    el <style> del <head>: cada color/peso puntual tiene que ser una clase
    de aquí. */
-.pdf-subtitulo-valor  { font-weight: 700; color: #1E3A8A; }
+.pdf-subtitulo-valor  { font-weight: 700; color: var(--rp-primario); }
 .pdf-firma-label      { font-size: 8pt; color: #374151; }
 
+/* Nota: estos 4 colores (azul/verde/ámbar/rojo) son de ESTADO (presente,
+   completo, ausente…), no del color de marca institucional — se dejan
+   fijos a propósito, independientes de --rp-primario, para no perder el
+   significado semántico verde=OK/rojo=alerta sin importar qué color de
+   marca elija el admin. */
 .stat-num--azul   { color: #2563EB; }
 .stat-num--verde  { color: #059669; }
 .stat-num--ambar  { color: #D97706; }
@@ -102,4 +129,10 @@ tr:nth-child(even) td { background: #F8FAFC; }
 .td-pct--media      { color: #D97706; }
 .td-pct--baja       { color: #DC2626; }
 .td-empty           { text-align: center; color: #888; padding: 16px; }
+
+/* ── Planilla Imprimible (ADMIN-6, unificada con la misma plantilla) ── */
+.docente-name-cell { font-weight: 700; }
+.firma-box { width: 120px; height: 45px; border: 1px solid #999; margin: 0 auto; }
+
+
 

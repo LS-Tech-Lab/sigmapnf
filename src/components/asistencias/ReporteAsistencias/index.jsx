@@ -16,6 +16,7 @@ import VistaAusentes from "./VistaAusentes";
 import AlertaSinVincular from "./AlertaSinVincular";
 import ReporteRango from "./ReporteRango";
 import { guardarReporteEnIDB, cargarReporteDeIDB } from "../../../utils/reporteCache";
+import { useReporteConfig } from "../../../hooks/useReporteConfig";
 import "./index.css";
 
 export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showToast }) {
@@ -32,6 +33,10 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
   const [ausentesParaPDF, setAusentesParaPDF] = useState([]);
   const [modoOffline,     setModoOffline]     = useState(false);
   const [fechaCache,      setFechaCache]      = useState(null);
+  // ADMIN-6: config de branding para el membrete del PDF (logo, textos,
+  // color institucional) — carga con fallback seguro a los valores por
+  // defecto, ver useReporteConfig.js.
+  const { config: reporteConfig } = useReporteConfig();
 
   const fetchAsistencias = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -168,7 +173,7 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
             Vista semanal / rango
           </button>
           <button
-            onClick={() => exportarPDFDiario(filtrados, fecha, turno, programa, ausentesParaPDF)}
+            onClick={() => exportarPDFDiario(filtrados, fecha, turno, programa, ausentesParaPDF, reporteConfig)}
             disabled={filtrados.length === 0}
             className={`ra-btn ra-btn-pdf${filtrados.length === 0 ? ' ra-btn-pdf--disabled' : ''}`}
           >

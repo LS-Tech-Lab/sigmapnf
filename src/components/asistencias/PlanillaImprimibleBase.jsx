@@ -12,6 +12,7 @@ import { getTurnoDeRegistro } from '../../utils/turno';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../../utils/time';
 import { parseClase } from '../../utils/parsing';
 import { getCurrentLapso } from '../../utils/lapso';
+import { plantillaReporte, abrirVentanaImpresion } from '../../utils/reportePlantilla';
 import Avatar from '../Avatar';
 import './PlanillaImprimibleBase.css';
 
@@ -28,10 +29,20 @@ import './PlanillaImprimibleBase.css';
 // imprimir esta planilla — XSS almacenado de segundo orden, no un falso
 // positivo (a diferencia del hallazgo hermano en exportPDF.js, ver nota
 // ahí). Mismo helper `ESC()` que ya usa exportPDF.js.
+//
+// ADMIN-6 (1 ago): este componente tenía su propia plantilla HTML con un
+// <style> INLINE en el <head> del documento impreso — el mismo CSP
+// `style-src 'self'` (sin unsafe-inline) que forzó externalizar
+// reporte-print.css el 14 de julio casi con certeza bloqueaba ese bloque
+// en silencio también acá (bug latente nunca reportado, encontrado al
+// unificar). Ahora usa la misma plantilla compartida que exportPDF.js
+// (reportePlantilla.js), con CSS externo — y de paso gana el membrete
+// institucional configurable (antes esta planilla no tenía logo/nombre
+// de institución en absoluto).
 const ESC = s => String(s ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-export default function PlanillaImprimibleBase({ data, getDocName, getMateriaName, catalogoDocentes = [], lapso }) {
+export default function PlanillaImprimibleBase({ data, getDocName, getMateriaName, catalogoDocentes = [], lapso, reporteConfig }) {
   const lapsoActual = lapso || getCurrentLapso();
   const [turno, setTurno] = useState("DIURNO"), [selectedDay, setSelectedDay] = useState(DAYS[0]);
 
@@ -66,10 +77,40 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
   }, [data, turno, selectedDay, getDocName, getMateriaName]);
 
   const handlePrint = () => {
-    const win = window.open("", "_blank");
-    if (!win) { alert("El navegador bloqueó la ventana emergente."); return; }
-    const html = `<!DOCTYPE html><html><head><title>Asistencia</title><style>*{margin:0;padding:0}body{font-family:Arial;font-size:12px}.page{padding:20px}h1{font-size:16px}.subtitle{font-size:12px;color:#555;margin-bottom:16px}table{width:100%;border-collapse:collapse}th{background:#f0f0f0;border:1px solid #ccc;padding:8px;font-size:11px;font-weight:bold}td{border:1px solid #ccc;padding:8px;font-size:12px}.docente-name{font-weight:bold}.firma-box{width:120px;height:45px;border:1px solid #999}</style></head><body><div class="page"><h1>Control de Asistencia Docentes</h1><div class="subtitle">${ESC(programaActual)} · ${selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: ${turno==="DIURNO"?"Diurno":"Vespertino"} · Trimestre ${lapsoActual}</div><table><thead><tr><th>N°</th><th>Docente</th><th>Materia(s) / Sección(es)</th><th>Horario</th><th>Entrada</th><th>Salida</th><th>Firma</th></tr></thead><tbody>${docentesDelDia.map(([rd, info], idx) => `<tr><td>${idx+1}</td><td class="docente-name">${ESC(getDocName(rd))}</td><td>${info.clases.map(c => `${ESC(c.materia)} — ${ESC(c.seccion)}`).join("<br>")}</td><td>${info.clases.map(c => ESC(c.hora)).join("<br>")}</td><td><div class="firma-box"></div></td><td><div class="firma-box"></div></td><td><div class="firma-box"></div></td></tr>`).join("")}</tbody></table></div></body></html>`;
-    win.document.write(html); win.document.close(); win.focus(); setTimeout(() => win.print(), 400);
+    const turnoLabel = turno === "DIURNO" ? "Diurno" : "Vespertino";
+    const diaLabel = selectedDay.charAt(0) + selectedDay.slice(1).toLowerCase();
+
+    const filas = docentesDelDia.map(([rd, info], idx) => `<tr>
+      <td class="td-center">${idx + 1}</td>
+      <td class="docente-name-cell">${ESC(getDocName(rd))}</td>
+      <td>${info.clases.map(c => `${ESC(c.materia)} — ${ESC(c.seccion)}`).join("<br>")}</td>
+      <td>${info.clases.map(c => ESC(c.hora)).join("<br>")}</td>
+      <td class="td-center"><div class="firma-box"></div></td>
+      <td class="td-center"><div class="firma-box"></div></td>
+      <td class="td-center"><div class="firma-box"></div></td>
+    </tr>`).join("");
+
+    const seccionesHtml = `
+      <div class="subtitulo">${ESC(programaActual)} · ${ESC(diaLabel)} · Turno: ${ESC(turnoLabel)} · Trimestre ${ESC(lapsoActual)}</div>
+      <table>
+        <thead><tr>
+          <th>N°</th><th>Docente</th><th>Materia(s) / Sección(es)</th>
+          <th>Horario</th><th>Entrada</th><th>Salida</th><th>Firma</th>
+        </tr></thead>
+        <tbody>${filas || `<tr><td colspan="7" class="td-empty">Sin docentes registrados</td></tr>`}</tbody>
+      </table>`;
+
+    const html = plantillaReporte({
+      config: reporteConfig,
+      titulo: "Control de Asistencia Docentes",
+      subtitulo: `${diaLabel} · ${turnoLabel}`,
+      seccionesHtml,
+      pie: `Total docentes: ${docentesDelDia.length} · Total clases: ${docentesDelDia.reduce((a, [, v]) => a + v.clases.length, 0)}`,
+    });
+
+    if (!abrirVentanaImpresion(html, { autoPrint: true })) {
+      alert("El navegador bloqueó la ventana emergente.");
+    }
   };
 
   return (

@@ -2,17 +2,25 @@
 // Sin librerías externas: abre ventana nueva con HTML/CSS y window.print().
 //
 // Nota SEC-25 (CodeQL, 15 de julio — "DOM text reinterpreted as HTML"):
-// CodeQL marca `abrirVentanaPDF`/`document.write(html)` como sink de XSS
-// porque no puede rastrear que cada valor dinámico ya pasó por `ESC()`
+// CodeQL marca `abrirVentanaImpresion`/`document.write(html)` como sink de
+// XSS porque no puede rastrear que cada valor dinámico ya pasó por ESC()
 // antes de llegar ahí. Falso positivo parcial: se revisó interpolación
-// por interpolación y todas ya tenían `ESC()` salvo `programa` en
-// `exportarPDFDiario` — ese valor solo puede venir de un `<select>` con
+// por interpolación y todas ya tenían ESC() salvo `programa` en
+// `exportarPDFDiario` — ese valor solo puede venir de un <select> con
 // opciones fijas (`DEFAULT_PROGRAMAS`, ver ReporteAsistencias/index.jsx),
 // nunca texto libre, así que no era explotable en la práctica. Se
 // escapó de todos modos por consistencia/defensa en profundidad (no
-// depender para siempre de que ese `<select>` nunca cambie a texto
+// depender para siempre de que ese <select> nunca cambie a texto
 // libre). Contraste con el hallazgo hermano en `PlanillaImprimibleBase.jsx`,
 // que sí era una vulnerabilidad real.
+//
+// ADMIN-6 (1 ago): el membrete (antes "UNERMB"/una "U" hardcodeados acá
+// mismo) se movió a reportePlantilla.js, parametrizado por
+// configuracion_reportes. Este archivo ahora solo arma las secciones
+// específicas de cada reporte (stats, tablas) y le pasa `config` recibida
+// del caller — ver useReporteConfig().
+
+import { plantillaReporte, abrirVentanaImpresion } from "../../../utils/reportePlantilla";
 
 const ESC = s => String(s ?? "—")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -26,62 +34,7 @@ const FMT_HORA = iso => iso
   ? new Date(iso).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" })
   : "—";
 
-function abrirVentanaPDF(html) {
-  const w = window.open("", "_blank");
-  if (w) { w.document.write(html); w.document.close(); }
-}
-
-function plantilla({ titulo, subtitulo, seccionesHtml, pie }) {
-  const ahora = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
-  // Fix (14 de julio): el <style>/<script> de esta plantilla iban inline.
-  // El CSP del proyecto usa `script-src 'self'` y `style-src 'self'` (sin
-  // 'unsafe-inline' — ver SEC-3/UX-5 en AUDITORIA_INDICE.md), y esta ventana
-  // emergente (about:blank del mismo origen, ver abrirVentanaPDF) hereda
-  // ese CSP. El navegador bloqueaba ambos bloques en silencio: el reporte
-  // se veía como HTML sin estilos (texto plano) y no se disparaba la
-  // impresión automática. Servidos como archivos externos desde
-  // `public/` (mismo origen), `'self'` sí los permite — ver
-  // reporte-print.css / reporte-print.js. NO volver a inlinearlos aquí.
-  return `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8"/>
-  <title>${ESC(titulo)}</title>
-  <link rel="stylesheet" href="/reporte-print.css"/>
-</head>
-<body>
-  <div class="membrete">
-    <div class="membrete-izq">
-      <div class="membrete-logo">U</div>
-      <div class="membrete-texto">
-        <h1>UNERMB</h1>
-        <p>Programas Nacionales de Formación</p>
-        <p>Control de Asistencia Docente</p>
-      </div>
-    </div>
-    <div class="membrete-der">
-      <div>${ESC(titulo)}</div>
-      <div class="pdf-subtitulo-valor">${ESC(subtitulo)}</div>
-      <div>Generado: ${ahora}</div>
-    </div>
-  </div>
-
-  ${seccionesHtml}
-
-  <div class="pie">
-    <div>${ESC(pie)}</div>
-    <div class="firma-bloque">
-      <div class="firma-linea"></div>
-      <div class="pdf-firma-label">Firma y sello del Coordinador(a)</div>
-    </div>
-  </div>
-
-  <script src="/reporte-print.js"></script>
-</body>
-</html>`;
-}
-
-export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, ausentes = []) {
+export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, ausentes = [], config) {
   const turnoLabel = turno === "TODOS" ? "Todos los turnos" : turno.charAt(0) + turno.slice(1).toLowerCase();
   const conSalida  = docentesAgrupados.filter(d => d.estado === "completo").length;
   const soloEntrad = docentesAgrupados.filter(d => d.estado === "solo_entrada").length;
@@ -148,7 +101,8 @@ export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, aus
     ${tablaPresentes}
     ${tablaAusentes}`;
 
-  abrirVentanaPDF(plantilla({
+  abrirVentanaImpresion(plantillaReporte({
+    config,
     titulo:       "Reporte Diario de Asistencia",
     subtitulo:    `${turnoLabel} · ${FMT_FECHA(fecha)}`,
     seccionesHtml,
@@ -156,7 +110,7 @@ export function exportarPDFDiario(docentesAgrupados, fecha, turno, programa, aus
   }));
 }
 
-export function exportarPDFRango(docentes, inicio, fin, turno, diasHabiles) {
+export function exportarPDFRango(docentes, inicio, fin, turno, diasHabiles, config) {
   const turnoLabel = turno === "TODOS" ? "Todos los turnos" : turno.charAt(0) + turno.slice(1).toLowerCase();
 
   const filas = docentes.map(d => {
@@ -184,7 +138,8 @@ export function exportarPDFRango(docentes, inicio, fin, turno, diasHabiles) {
       <tbody>${filas || `<tr><td colspan="7" class="td-empty">Sin registros</td></tr>`}</tbody>
     </table>`;
 
-  abrirVentanaPDF(plantilla({
+  abrirVentanaImpresion(plantillaReporte({
+    config,
     titulo:       "Reporte de Asistencia por Rango",
     subtitulo:    `${turnoLabel} · ${FMT_FECHA(inicio)} al ${FMT_FECHA(fin)}`,
     seccionesHtml,

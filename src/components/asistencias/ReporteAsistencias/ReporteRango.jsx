@@ -6,6 +6,7 @@ import { rangoFechas } from "./helpers";
 import { exportarPDFRango } from "./exportPDF";
 import { exportarCSVRango } from "./exportCSV";
 import { ModalConfirm } from "../../usuarios/shared";
+import { useReporteConfig } from "../../../hooks/useReporteConfig";
 import "./index.css";
 
 function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
@@ -30,6 +31,9 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
   const [error,    setError]    = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [isOffline, setIsOffline] = useState(false);
+  // ADMIN-6: mismo hook de branding que ReporteAsistencias/index.jsx —
+  // ReporteRango es una vista hermana (no anidada), se carga aparte.
+  const { config: reporteConfig } = useReporteConfig();
 
   // ADMIN-2: borrado de reportes de asistencia por rango (solo admin,
   // permiso puedeBorrarReportes). Usa exactamente los mismos filtros que
@@ -193,7 +197,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
             <i className="ti ti-download ra-btn-icon" aria-hidden="true" />
             CSV
           </button>
-          <button onClick={() => exportarPDFRango(filtrados, inicio, fin, turno, diasHabiles)} disabled={filtrados.length === 0} className={`ra-btn ra-btn-pdf${filtrados.length === 0 ? ' ra-btn-pdf--disabled' : ''}`}>
+          <button onClick={() => exportarPDFRango(filtrados, inicio, fin, turno, diasHabiles, reporteConfig)} disabled={filtrados.length === 0} className={`ra-btn ra-btn-pdf${filtrados.length === 0 ? ' ra-btn-pdf--disabled' : ''}`}>
             <i className="ti ti-printer ra-btn-icon" aria-hidden="true" />
             PDF
           </button>
