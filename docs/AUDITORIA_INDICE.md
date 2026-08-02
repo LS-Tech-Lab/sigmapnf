@@ -41,14 +41,19 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ## 🔴 Hallazgos realmente abiertos
 
-**0 abiertos**, de los 4 encontrados el 2 de agosto en una auditoría de
-estrés operacional pre-producción (simulación deliberada de concurrencia
-masiva, entradas maliciosas, fallos de red y fatiga de usuario — no solo
-revisión estática). Los 2 bloqueantes de producción (`ARCH-29`, `UX-24`)
-se cerraron el mismo día en un solo commit — ver sus filas para el
-detalle real del fix (columna `updated_at` + trigger server-side +
-bloqueo optimista en `saveClase()`, migración `0057`, 209/209 tests).
-`ARCH-30` y `SEC-27` (ninguno bloqueante) se cerraron el mismo día.
+**2 abiertos, ninguno bloqueante**, de una segunda pasada de verificación
+cruzada código↔BD real sobre la misma auditoría de estrés operacional del
+2 de agosto (simulación deliberada de concurrencia masiva, entradas
+maliciosas, fallos de red y fatiga de usuario — no solo revisión estática,
+y no solo lectura de este índice). Esa segunda pasada encontró que
+`ARCH-29`/`UX-24` se habían marcado ✅ **sin que la migración `0057` que
+citaban existiera en el repo** — el bloqueo optimista estaba escrito en el
+cliente pero nunca se activaba en producción porque `horarios` no tenía
+columna `updated_at`. Reabierto como `ARCH-31`, migración `0057` subida y
+verificada contra la BD real (`pg_trigger`: el trigger propaga al padre y
+a las 7 particiones), cerrado el mismo día. `ARCH-30` y `SEC-27` (ninguno
+bloqueante) sí estaban correctamente cerrados. La misma pasada dejó 2
+hallazgos nuevos, no bloqueantes, documentados abajo.
 
 | Prioridad | ID | Descripción corta | Estado |
 |---|---|---|---|
@@ -56,6 +61,9 @@ bloqueo optimista en `saveClase()`, migración `0057`, 209/209 tests).
 | ~~2~~ | ~~🔴 **UX-24**~~ | ~~Sin aviso de conflicto de edición al usuario~~ | ✅ Cerrado (2 ago) |
 | ~~1~~ | ~~🟡 **ARCH-30**~~ | ~~`HorariosLayout` sin `ErrorBoundary` propio~~ | ✅ Cerrado (2 ago) |
 | ~~2~~ | ~~🟢 **SEC-27**~~ | ~~Validación de Excel solo por extensión, sin magic bytes~~ | ✅ Cerrado (2 ago) |
+| — | ~~🔴 **ARCH-31**~~ | ~~Migración `0057` citada por `ARCH-29` no existía en el repo/BD~~ | ✅ Cerrado (2 ago) |
+| 1 | 🟢 **ARCH-32** | Rate limit fijo de `registrar_asistencia()` sin backoff exponencial | 🟢 Abierto (no bloqueante) |
+| 2 | 🟢 **UX-25** | `DocenteScan` sin contador visible de cola offline pendiente | 🟢 Abierto (no bloqueante) |
 
 `UX-13` (modo oscuro) sigue ⛔ revertido a pedido de LS — decisión de
 producto, no hallazgo pendiente.
@@ -183,6 +191,8 @@ equivalencias al final.
      — texto idéntico al de esa versión, no reescrito ni resumido. -->
 
 | **ARCH-30** 🟡 | `HorariosLayout.jsx` (shell de los módulos resumen/horarios/secciones/docentes/materias/asistencias) no tenía `ErrorBoundary` propio — un crash de render en cualquiera de esas vistas escalaba hasta el `ErrorBoundary` global de `main.jsx`, tumbando toda la app (sidebar y topbar incluidos) en vez de quedar contenido en el área de contenido | `src/app/HorariosLayout.jsx` | ✅ Cerrado (2 ago) — mismo patrón ya usado en `AsistenciasModulo.jsx`/`AdminModulo.jsx`: `ErrorBoundary` local envolviendo el `<main className="hl-main">`, no el layout completo. Sidebar/topbar siguen operativos aunque una vista crashee. 211/211 tests preexistentes sin romper, 0 errores de lint, build limpio |
+| **ARCH-31** 🔴 | Reabre `ARCH-29`/`UX-24`: el bloqueo optimista de `saveClase()` (`horarioEditing.js`) condiciona el `UPDATE` a `.eq("updated_at", expectedUpdatedAt)`, pero la migración `0057` que ese fix citaba (columna `updated_at` + trigger server-side en `horarios`) nunca se había subido al repo — `entry.updated_at` llegaba `undefined` en producción y el guard se degradaba siempre a "sin condición extra", el mismo comportamiento inseguro que `ARCH-29` describía como bloqueante | `docs/supabase/migrations/0057_arch29_bloqueo_optimista_horarios.sql` (nueva) | ✅ Cerrado (2 ago) — migración subida: `ALTER TABLE horarios ADD COLUMN updated_at` + función/trigger `set_updated_at()` `BEFORE UPDATE` sobre el padre (Postgres 11+ propaga triggers `FOR EACH ROW` de una tabla particionada declarativa a todas sus particiones automáticamente, sin loop). Verificado contra la BD real, no asumido: `SELECT tgrelid::regclass, tgname FROM pg_trigger WHERE tgname = 'trg_horarios_set_updated_at'` devuelve 8 filas — el padre `horarios` + las 7 particiones reales (`horarios_lapso_1_2026`...`horarios_lapso_default`). Confirmado también que `useDataSync.js` usa `select("*, ...")` en el fetch que puebla `ModalEditarClase`, así que `entry.updated_at` llega poblado al cliente. 211/211 tests, 0 errores de lint, build limpio |
+| **ARCH-32** 🟢 | `registrar_asistencia()` (`SEC-13`/migración `0039`) usa un límite fijo (10 intentos/hora por `device_fingerprint`) sin backoff exponencial — un dispositivo legítimo con mala señal que reintenta agresivamente en un operativo real puede auto-bloquearse antes de llegar al límite por abuso genuino | `scan_rate_limit`, RPC `registrar_asistencia` | 🟢 Abierto (no bloqueante) — evaluar backoff exponencial o ventana deslizante en vez de contador fijo |
 
 <!-- Nota de recuperación (2 ago, continuación): las 6 secciones que siguen
      (CI/CD, UI y estilos, Identidad visual, Funcionalidad nueva, Esquema
@@ -235,6 +245,7 @@ Esquema `UX-N` (antes `U-N` + `A3` de inline styles).
 | **UX-21** | Estado de conexión solo visible dentro de un dropdown, a diferencia de la caja de trimestre siempre visible | `HorariosSidebar.jsx`, `AdminMenu.jsx`, `index.css` | ✅ Cerrado (14 jul) — `.hl-status-box` nueva en sidebar (mismo trato que `hl-lapso-box`), quitado el bloque equivalente del dropdown |
 | **UX-22** | Reportado por LS desde móvil: dropdown de Administración no cerraba al tocar el botón de nuevo (condición de carrera con el listener de "clic afuera") | `AdminMenu.jsx` | ✅ Cerrado (14 jul) — listener ignora clics sobre `.hl-admin-btn`, el botón es la única fuente de verdad de su toggle |
 | **UX-23** | Reportado por LS: contador de permisos del admin mostraba "17/15" | `usuarios/shared.jsx` | ✅ Cerrado (15 jul) — `GRUPOS_PERMISOS` (catálogo de UI) le faltaban `puedeBorrarSesiones`/`puedeBorrarReportes`, ya funcionales en código pero sin checkbox en el editor de roles |
+| **UX-25** 🟢 | `DocenteScan` encola registros en IndexedDB cuando no hay red (`OFF-7`), pero no muestra un contador visible de cuántos quedan pendientes de sincronizar — un operador de QR en un operativo real con conexión inestable y fila de docentes no tiene forma de saber si sus escaneos ya se confirmaron contra el servidor | `asistencias/DocenteScan/index.jsx` | 🟢 Abierto (no bloqueante) — agregar badge `role="status" aria-live="polite"` con el conteo de la cola pendiente |
 
 ## 🎨 Identidad visual y sistema de diseño
 
