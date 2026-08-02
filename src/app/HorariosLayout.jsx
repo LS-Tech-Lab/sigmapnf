@@ -6,6 +6,15 @@ import HorariosTopbar from "./HorariosTopbar";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import ModalCambiarPassword from "../components/ModalCambiarPassword";
+// ARCH-30 (auditoría 2 de agosto): antes solo existía el ErrorBoundary
+// global de main.jsx envolviendo <App/> — un crash de render en cualquier
+// vista de este layout (resumen, horarios, secciones, docentes, materias,
+// asistencias) escalaba hasta ahí, tumbando TODO el árbol de React
+// incluidos el sidebar y el topbar, en vez de quedar contenido en el área
+// de contenido. Mismo patrón ya usado en AsistenciasModulo.jsx y
+// AdminModulo.jsx: boundary local envolviendo el <main>, no el layout
+// completo — el sidebar/topbar siguen navegables aunque una vista crashee.
+import ErrorBoundary from "../components/ErrorBoundary";
 // Fix ARCH-10/UX-7 (auditoría 9 de julio): ResumenView se mantiene con import
 // estático a propósito — es la vista por defecto (`useState("resumen")` en
 // App.jsx), la que ve todo el mundo justo después de iniciar sesión.
@@ -192,6 +201,9 @@ export default function HorariosLayout({
 
         {/* Vistas */}
         <main className="hl-main">
+          {/* ARCH-30: boundary local — un crash en cualquiera de las vistas
+              de abajo se contiene acá, sidebar y topbar siguen operativos */}
+          <ErrorBoundary>
           {view === "resumen" && (
             <ResumenView
               stats={appData.stats} data={appData.data}
@@ -285,6 +297,7 @@ export default function HorariosLayout({
               />
             </Suspense>
           )}
+          </ErrorBoundary>
         </main>
       </div>
     </div>
