@@ -54,6 +54,57 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".xlsx", ".xls"];
 const UPLOAD_TIMEOUT_MS  = 60_000;
 
+// ── SEC-27 (auditoría 2 de agosto): validación de contenido real ───────────
+// Antes solo se validaba la extensión/mimetype del navegador (fácilmente
+// falsificable — un archivo renombrado a .xlsx sin serlo llegaba hasta
+// XLSX.read()). Sin RCE ni explotabilidad real (SheetJS falla de forma
+// controlada ante contenido inválido), pero el error que el usuario
+// terminaba viendo era un mensaje técnico crudo del parser, bajo presión
+// de tiempo en una carga masiva. Fix: chequeo de "magic bytes" — la firma
+// binaria real del archivo — antes de invocar el parser:
+//   .xlsx → formato OOXML, es un ZIP: firma `PK\x03\x04` (50 4B 03 04).
+//     Se aceptan también `PK\x05\x06`/`PK\x07\x08`, variantes válidas de
+//     ZIP vacío/spanned que algunas herramientas generan.
+//   .xls  → formato legado OLE2/CFB: firma `D0 CF 11 E0 A1 B1 1A E1`.
+// Solo se leen los primeros 8 bytes vía file.slice() — no el archivo
+// completo — así que el costo es despreciable incluso en el límite de 10 MB.
+const ZIP_SIGNATURES = [
+  [0x50, 0x4B, 0x03, 0x04],
+  [0x50, 0x4B, 0x05, 0x06],
+  [0x50, 0x4B, 0x07, 0x08],
+];
+const OLE2_SIGNATURE = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+
+function coincideFirma(header, firma) {
+  return firma.every((byte, i) => header[i] === byte);
+}
+
+// Nota: se usa FileReader (igual que leerWorkbookRaw más abajo) en vez de
+// `file.slice(0, 8).arrayBuffer()` — el método `.arrayBuffer()` sobre un
+// Blob resultante de `.slice()` no está soportado de forma consistente en
+// todos los entornos (incluido jsdom, usado en los tests), mientras que
+// FileReader.readAsArrayBuffer() sí lo está de forma universal.
+function leerPrimerosBytes(file, cantidad) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = (e) => resolve(new Uint8Array(e.target.result));
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    reader.readAsArrayBuffer(file.slice(0, cantidad));
+  });
+}
+
+async function tieneContenidoExcelValido(file) {
+  const header = await leerPrimerosBytes(file, 8);
+  const nameLower = (file.name || "").toLowerCase();
+
+  // .xlsx no termina en ".xls" (termina en "xlsx"), así que este check
+  // distingue ambas extensiones sin falsos positivos entre sí.
+  if (nameLower.endsWith(".xls")) {
+    return coincideFirma(header, OLE2_SIGNATURE);
+  }
+  return ZIP_SIGNATURES.some(firma => coincideFirma(header, firma));
+}
+
 // ── UX-3: Mapeo de errores técnicos del parser a mensajes accionables ────────
 // Traduce mensajes que llegarían crudos al Toast/setError en texto que el
 // usuario pueda entender y actuar sobre él sin conocimiento técnico del sistema.
@@ -155,6 +206,25 @@ export default function useUpload({
       const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
       setError(`El archivo es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 10 MB.`);
       showToast(`Archivo demasiado grande (${sizeMB} MB). Máximo permitido: 10 MB.`, "error");
+      return;
+    }
+
+    // SEC-27: la extensión ya se validó arriba, pero eso no garantiza que
+    // el contenido sea real — verificar la firma binaria antes de gastar
+    // el import dinámico de "xlsx" y de pasarle el archivo al parser.
+    let contenidoValido;
+    try {
+      contenidoValido = await tieneContenidoExcelValido(file);
+    } catch (err) {
+      logger.error("Error al leer la firma del archivo:", err);
+      setError("No se pudo leer el archivo. Verifica que no esté dañado.");
+      showToast("No se pudo leer el archivo. Verifica que no esté dañado.", "error");
+      return;
+    }
+    if (!contenidoValido) {
+      const msg = "El archivo no es un Excel válido: su contenido no coincide con la extensión. Verifica que no esté corrupto o haya sido renombrado.";
+      setError(msg);
+      showToast(msg, "error");
       return;
     }
 
