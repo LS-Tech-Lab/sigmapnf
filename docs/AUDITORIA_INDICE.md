@@ -41,31 +41,24 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ## 🔴 Hallazgos realmente abiertos
 
-**4 abiertos**, encontrados el 2 de agosto en una auditoría de estrés
-operacional pre-producción (simulación deliberada de concurrencia masiva,
-entradas maliciosas, fallos de red y fatiga de usuario — no solo revisión
-estática). Clonado fresco contra HEAD posterior a `ADMIN-6`/`SEC-26`; los
-71 IDs previos se re-verificaron sin reabrir nada (205/205 tests reales,
-`npm audit --omit=dev --audit-level=high` en 0, RLS de `horarios`
-confirmada en política SQL real, CSP y `api/admin-users.js` confirmados
-en código, no solo en comentario). `UX-13` (modo oscuro) sigue ⛔
-revertido a pedido de LS — decisión de producto, no hallazgo pendiente.
+**2 abiertos**, de los 4 encontrados el 2 de agosto en una auditoría de
+estrés operacional pre-producción (simulación deliberada de concurrencia
+masiva, entradas maliciosas, fallos de red y fatiga de usuario — no solo
+revisión estática). Los 2 bloqueantes de producción (`ARCH-29`, `UX-24`)
+se cerraron el mismo día en un solo commit — ver sus filas para el
+detalle real del fix (columna `updated_at` + trigger server-side +
+bloqueo optimista en `saveClase()`, migración `0057`, 209/209 tests).
+Quedan `ARCH-30` y `SEC-27`, ninguno bloqueante.
 
-**Orden de prioridad de despliegue** (bloqueantes primero; `ARCH-29` y
-`UX-24` comparten PR porque son el mismo fix visto desde backend/frontend):
-
-| Prioridad | ID | Descripción corta | Impacto si se despliega sin corregir |
+| Prioridad | ID | Descripción corta | Estado |
 |---|---|---|---|
-| 1 | 🔴 **ARCH-29** | Edición de horarios sin bloqueo optimista | Corrupción de datos silenciosa (last-write-wins) en cierre de actas con varios operadores |
-| 2 | 🔴 **UX-24** | Sin aviso de conflicto de edición al usuario | El operador cree que su cambio se guardó cuando en realidad se perdió (depende del fix de `ARCH-29`) |
-| 3 | 🟡 **ARCH-30** | `HorariosLayout` sin `ErrorBoundary` propio | Un crash en `TurnoGrid` tira toda la SPA en vez de aislarse al módulo de Horarios |
-| 4 | 🟢 **SEC-27** | Validación de Excel solo por extensión, sin magic bytes | Mensaje de error confuso ante archivo mal formado; sin RCE, sin explotabilidad real |
+| ~~1~~ | ~~🔴 **ARCH-29**~~ | ~~Edición de horarios sin bloqueo optimista~~ | ✅ Cerrado (2 ago) |
+| ~~2~~ | ~~🔴 **UX-24**~~ | ~~Sin aviso de conflicto de edición al usuario~~ | ✅ Cerrado (2 ago) |
+| 1 | 🟡 **ARCH-30** | `HorariosLayout` sin `ErrorBoundary` propio | ⬜ Abierto |
+| 2 | 🟢 **SEC-27** | Validación de Excel solo por extensión, sin magic bytes | ⬜ Abierto |
 
-`ARCH-29`/`UX-24` se consideran **bloqueantes de producción** dado que
-Sigma PNF produce actas académicas oficiales y el sistema ya tiene
-`puedeEditarHorarios` habilitado para más de un operador a la vez (ver
-`UX-14`). `ARCH-30` y `SEC-27` no bloquean el primer despliegue pero se
-recomienda resolverlos en el mismo ciclo.
+`UX-13` (modo oscuro) sigue ⛔ revertido a pedido de LS — decisión de
+producto, no hallazgo pendiente.
 
 Esto no significa que no vaya a aparecer nada nuevo — CodeQL corre en cada
 push/PR y semanalmente por cron (`SEC-20`), así que conviene revisar
@@ -170,4 +163,6 @@ equivalencias al final.
 | **ARCH-18** | `AdminQRPanel.jsx` volvió a crecer a 685 líneas | `AdminQRPanel.jsx`, `adminQR/HistorialSesiones.jsx`, `adminQR/ConfirmBorrarSesionModal.jsx` | ✅ Cerrado — mismo patrón que `ARCH-11`/`ARCH-13`: 685→543 líneas |
 | **ARCH-19** | Sin ESLint ni Prettier configurados, sin paso de lint en CI | `eslint.config.mjs`, `package.json`, `ci.yml` | ✅ Cerrado (12 jul) — flat config, 3 plugins mínimos (`@eslint/js`, `react-hooks` solo 2 reglas, `react-refresh`). 31 errores reales corregidos (código muerto/imports), 33 warnings no bloqueantes quedan a propósito. `npm run lint` bloqueante en CI. 2 inconsistencias de comportamiento encontradas en la limpieza **no se tocaron** aquí — derivaron en `ARCH-22` y `UX-14` |
 | **ARCH-20** | Cero uso de PropTypes/TypeScript | 8 componentes más reutilizados (`QRDisplay`, `Avatar`, `ModalUsuario`, etc.) | ✅ Cerrado — `propTypes` agregado, cada `shape` verificado contra call sites reales, no adivinado |
-| **ARCH-21** | Chunk principal (446 KB) pes
+| **ARCH-21** | Chunk principal (446 KB) pesado incluso solo para ver el login | `useAppData/useUpload.js`, `vite.config.js` | ✅ Cerrado (13 jul) — medido con `rollup-plugin-visualizer`: culpable real era `xlsx`/SheetJS (750 KB) importado estático, no `@tabler/icons-webfont` como se sospechaba. Cambiado a `import()` dinámico en los 2 puntos de uso real. 447→74 KB (-83%) |
+| **ARCH-22** | `UploadPreviewModal.jsx`: el toggle "mostrar X más" no hacía nada — la agrupación real usaba `rows` completo, no `visible` (no es bug de linting, por eso no se tocó junto a `ARCH-19`) | `UploadPreviewModal.jsx`, `.css` | ✅ Cerrado (13 jul) — decisión de LS: retirado `expanded`/`hasMore`/`visible` y el botón muerto, en vez de arreglar un límite que nunca se pidió |
+| **ARCH-23** | `DocenteScan/index.jsx` a 525 líneas — mis
