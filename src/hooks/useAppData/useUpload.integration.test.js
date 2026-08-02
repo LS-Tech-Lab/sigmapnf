@@ -294,3 +294,48 @@ describe("useUpload — flujo de carga con TODAS las filas duplicadas", () => {
     });
   });
 });
+
+// ── SEC-27 (auditoría 2 de agosto): un archivo renombrado a .xlsx sin
+// serlo debe rechazarse por firma binaria ANTES de tocar el parser —
+// nunca debe llegar a parseHojaDocentes/parseExcelFile.
+describe("useUpload — SEC-27: validación de contenido real (magic bytes)", () => {
+  it("rechaza un archivo .xlsx cuyo contenido no es un ZIP real, sin invocar al parser", async () => {
+    const archivoFalso = new File(
+      [new TextEncoder().encode("esto no es un excel, es texto plano")],
+      "horarios.xlsx",
+      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+    );
+
+    const { result, showToast, setError } = renderUseUpload();
+
+    await act(async () => {
+      await result.current.handleFileUpload(archivoFalso);
+    });
+
+    expect(setError).toHaveBeenCalledWith(expect.stringContaining("no es un Excel válido"));
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("no es un Excel válido"), "error");
+    expect(parseHojaDocentes).not.toHaveBeenCalled();
+    expect(parseExcelFile).not.toHaveBeenCalled();
+    expect(result.current.uploading).toBe(false);
+  });
+
+  it("acepta un .xlsx real (firma ZIP válida) y continúa el flujo normal", async () => {
+    parseHojaDocentes.mockReturnValue([docenteSinCedula]);
+    parseHojaMalla.mockReturnValue([materiaFixture]);
+    parseExcelFile.mockResolvedValue({ rows: [filaExcel], advertencias: [] });
+    supabase.from = makeFromMock({
+      horarios: { select: { data: [] }, insert: { error: null } },
+      docentes: { upsert: { error: null } },
+      materias: { upsert: { error: null } },
+    });
+
+    const { result } = renderUseUpload();
+
+    await act(async () => {
+      await result.current.handleFileUpload(archivoExcelMinimo());
+    });
+
+    await waitFor(() => expect(result.current.previewData).not.toBe(null));
+    expect(parseExcelFile).toHaveBeenCalled();
+  });
+});
