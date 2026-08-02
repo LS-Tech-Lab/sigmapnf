@@ -20,13 +20,50 @@ export function createHorarioEditingActions({ logAudit, showToast, fetchHorarios
   // ConflictosView, historialUtils, SeccionesView) queden consistentes con
   // el docente/materia elegidos en el modal, sin tener que tocar esas 6
   // pantallas.
-  const saveClase = async (id, payload) => {
+  //
+  // Fix ARCH-29 (auditoría 2 ago): `expectedUpdatedAt` es el valor de
+  // `updated_at` con el que ModalEditarClase cargó el formulario (viene de
+  // la fila `entry` ya en memoria, no de una consulta nueva). Si se pasa,
+  // el UPDATE se condiciona a que nadie más haya tocado la fila desde
+  // entonces (`.eq("updated_at", expectedUpdatedAt)`) — bloqueo optimista,
+  // sin locks ni tablas nuevas. La columna la refresca un trigger
+  // server-side (migración 0057), el cliente nunca la escribe.
+  //
+  // Si `expectedUpdatedAt` no llega (undefined/null — ej. una fila cargada
+  // antes de que `updated_at` existiera en caché, o un caller futuro que
+  // todavía no lo pasa) se degrada al comportamiento anterior: UPDATE sin
+  // condición extra, para no bloquear guardados legítimos por un dato que
+  // no se tiene. El guard es una mejora incremental, no un requisito duro.
+  const saveClase = async (id, payload, expectedUpdatedAt) => {
     try {
-      const { error } = await supabase.from("horarios").update(payload).eq("id", id);
+      let query = supabase.from("horarios").update(payload).eq("id", id);
+      if (expectedUpdatedAt) {
+        query = query.eq("updated_at", expectedUpdatedAt);
+      }
+      // .select("id") obliga a la consulta a devolver las filas realmente
+      // afectadas por el UPDATE — es lo que permite distinguir "se guardó"
+      // de "el WHERE no matcheó ninguna fila" (0 filas ≠ error en Postgres/
+      // PostgREST: un UPDATE que no toca nada no es un error).
+      const { data, error } = await query.select("id");
+
       if (error) {
         showToast("Error al guardar: " + error.message, "error");
         return { success: false };
       }
+
+      // Con guard activo (expectedUpdatedAt) y 0 filas devueltas: alguien
+      // más editó (o borró) esta fila entre que se abrió el formulario y
+      // se confirmó el guardado. En vez de sobreescribir en silencio,
+      // se avisa y se recarga con el estado real — ver UX-24.
+      if (expectedUpdatedAt && (!data || data.length === 0)) {
+        showToast(
+          "Otro usuario modificó esta clase mientras la editabas. Se recargó con los datos más recientes — tu cambio no se guardó, intenta de nuevo.",
+          "warning"
+        );
+        await fetchHorarios(selectedPrograma);
+        return { success: false, conflict: true };
+      }
+
       showToast("Clase actualizada.", "success");
       logAudit?.({
         accion: "EDITAR_HORARIO",
