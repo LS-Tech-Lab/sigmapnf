@@ -4,10 +4,17 @@
 //
 // Fix OFF-2: TTL de 48 h para evitar crecimiento indefinido.
 // Los registros más viejos se purgan automáticamente al abrir la cola.
+//
+// Fix UX-25 (auditoría 2 ago): se agrega un evento DOM liviano
+// ('sigma:cola-offline-cambio') disparado cada vez que la cola cambia de
+// tamaño (encolar, eliminar, purgar). No lleva payload — cualquier UI
+// interesada (ver Shell.jsx en DocenteScan) simplemente vuelve a leer
+// contarPendientes() al recibirlo, en vez de hacer polling constante.
 
 import { abrirDBCompartida } from './idb';
 
 const STORE = 'asistencias_pendientes';
+const EVENTO_CAMBIO = 'sigma:cola-offline-cambio';
 
 // 48 horas en ms — registros más antiguos se purgan automáticamente
 const TTL_MS = 48 * 60 * 60 * 1000;
@@ -19,14 +26,25 @@ function abrirDB() {
   return abrirDBCompartida();
 }
 
+function notificarCambio() {
+  try {
+    window.dispatchEvent(new CustomEvent(EVENTO_CAMBIO));
+  } catch {
+    // dispatchEvent no disponible (ej. entorno de test sin window real
+    // configurado) — no es crítico, la UI que dependa de esto simplemente
+    // no se refresca en tiempo real, sin romper el resto del flujo.
+  }
+}
+
 export async function encolarAsistencia(payload) {
   const db = await abrirDB();
   const tx = db.transaction(STORE, 'readwrite');
   tx.objectStore(STORE).add({ ...payload, creadoEn: Date.now() });
-  return new Promise((res, rej) => {
+  await new Promise((res, rej) => {
     tx.oncomplete = res;
     tx.onerror    = rej;
   });
+  notificarCambio();
 }
 
 export async function obtenerPendientes() {
@@ -43,10 +61,11 @@ export async function eliminarPendiente(id) {
   const db = await abrirDB();
   const tx = db.transaction(STORE, 'readwrite');
   tx.objectStore(STORE).delete(id);
-  return new Promise((res, rej) => {
+  await new Promise((res, rej) => {
     tx.oncomplete = res;
     tx.onerror    = rej;
   });
+  notificarCambio();
 }
 
 export async function contarPendientes() {
@@ -66,19 +85,21 @@ export async function purgarExpirados() {
   const tx = db.transaction(STORE, 'readwrite');
   const store = tx.objectStore(STORE);
   const cutoff = Date.now() - TTL_MS;
-  return new Promise((res, rej) => {
+  const purgados = await new Promise((res, rej) => {
     const req = store.getAll();
     req.onsuccess = () => {
-      let purgados = 0;
+      let n = 0;
       req.result.forEach(item => {
         if (item.creadoEn && item.creadoEn < cutoff) {
           store.delete(item.id);
-          purgados++;
+          n++;
         }
       });
-      tx.oncomplete = () => res(purgados);
+      tx.oncomplete = () => res(n);
       tx.onerror    = () => rej(tx.error);
     };
     req.onerror = () => rej(req.error);
   });
+  if (purgados > 0) notificarCambio();
+  return purgados;
 }
