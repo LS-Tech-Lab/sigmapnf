@@ -32,7 +32,11 @@
  *                              distinto de puedeEditarHorarios)
  *   puedeCrearMaterias {boolean} — mismo caso para "+ Nueva materia"
  *                              (puedeEditarMaterias O puedeImportarExcel)
- *   onSave        {fn(id, payload) => Promise<{success}>}
+ *   onSave        {fn(id, payload, expectedUpdatedAt) => Promise<{success, conflict?}>}
+ *                              — expectedUpdatedAt (Fix ARCH-29) es
+ *                              entry.updated_at; permite detectar si otro
+ *                              usuario editó la fila mientras el modal
+ *                              estaba abierto (bloqueo optimista)
  *   onDelete      {fn(id, resumen) => Promise<{success}>}
  *   onClose       {fn}
  *   openConfirm   {fn}      — appData.openConfirm
@@ -230,9 +234,21 @@ export default function ModalEditarClase({
           clase: `${materiaRow.nombre_raw}\nProf. ${docenteRow.nombre_raw}`,
         };
 
-        const res = await onSave(entry.id, payload);
+        // ARCH-29: entry.updated_at es el valor con el que se cargó este
+        // formulario (fila en memoria, no una consulta nueva) — onSave lo
+        // usa para detectar si alguien más editó la fila mientras el
+        // modal estaba abierto.
+        const res = await onSave(entry.id, payload, entry.updated_at);
         setSaving(false);
-        if (res.success) onClose();
+        // Se cierra tanto en éxito como en conflicto (res.conflict): la
+        // prop `entry` de este modal es la referencia con la que se abrió
+        // (estado local de TurnoGrid, no se refresca sola cuando
+        // fetchHorarios trae datos nuevos). Si se dejara abierto tras un
+        // conflicto, un reintento repetiría el mismo entry.updated_at ya
+        // obsoleto y volvería a fallar — bucle de conflicto en vez de
+        // recuperación. onSave ya mostró el aviso y recargó la grilla;
+        // el usuario reabre la celda (ya con datos frescos) para reintentar.
+        if (res.success || res.conflict) onClose();
       },
     });
   };
