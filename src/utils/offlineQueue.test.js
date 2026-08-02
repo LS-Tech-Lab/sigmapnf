@@ -225,3 +225,44 @@ describe("purgarExpirados", () => {
     expect(await contarPendientes()).toBe(1);
   });
 });
+
+// ── Evento 'sigma:cola-offline-cambio' (Fix UX-25) ──────────────────
+// El badge de DocenteScan/Shell.jsx depende de este evento para
+// refrescarse sin hacer polling. Si alguna de las 3 funciones deja de
+// dispararlo, el badge queda desactualizado en producción sin que
+// ningún test lo detecte — de ahí que se cubra explícitamente acá.
+describe("evento sigma:cola-offline-cambio", () => {
+  function esperarEvento() {
+    return new Promise(resolve => {
+      window.addEventListener("sigma:cola-offline-cambio", resolve, { once: true });
+    });
+  }
+
+  it("se dispara al encolar un registro", async () => {
+    const evento = esperarEvento();
+    await encolarAsistencia(makeAsistencia());
+    await expect(evento).resolves.toBeDefined();
+  });
+
+  it("se dispara al eliminar un registro", async () => {
+    await encolarAsistencia(makeAsistencia());
+    const [item] = await obtenerPendientes();
+
+    const evento = esperarEvento();
+    await eliminarPendiente(item.id);
+    await expect(evento).resolves.toBeDefined();
+  });
+
+  it("se dispara al purgar expirados solo si algo se purgó", async () => {
+    await encolarAsistencia(makeAsistencia());
+
+    let disparado = false;
+    const listener = () => { disparado = true; };
+    window.addEventListener("sigma:cola-offline-cambio", listener);
+
+    await purgarExpirados(); // nada expirado todavía — no debería disparar
+    expect(disparado).toBe(false);
+
+    window.removeEventListener("sigma:cola-offline-cambio", listener);
+  });
+});
