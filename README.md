@@ -98,8 +98,7 @@ docs/
 
 ## Roles y permisos
 
-Los roles se definen en la tabla `roles` (no en código) — cualquier adminT
-puede crear un rol nuevo con su propia combinación de permisos desde la UI,
+Los roles se definen en la tabla `roles` (no en código) — cualquier admin puede crear un rol nuevo con su propia combinación de permisos desde la UI,
 sin tocar SQL. Cada rol tiene un objeto JSONB `permisos` con 19 claves
 booleanas (`puedeEditarHorarios`, `puedeGestionarQR`, `puedeVerAuditoria`,
 etc.) agrupadas en 5 categorías: Horarios, Catálogos académicos, Respaldo
