@@ -21,19 +21,25 @@ asistencia docente, desarrollado para los Programas Nacionales de Formación
   auditoría (`audit_logs`, `session_logs`, `login_attempts`).
 - **Historial por trimestre académico** con comparación entre lapsos y filtro
   por programa para usuarios con restricción de acceso.
+- **Reportes personalizables**: logo, color institucional (6 presets) y
+  textos de membrete configurables desde la UI, aplicados a los 3 documentos
+  imprimibles.
 - **Seguridad**: timeout de inactividad por rol (30 min admin / 60 min resto),
-  rate limiting en `/scan` (10 intentos/hora por dispositivo), re-autenticación
-  obligatoria para cambio de contraseña y correo.
+  rate limiting en `/scan` con backoff progresivo (base 10 intentos/hora por
+  dispositivo), bloqueo por fuerza bruta en login, bloqueo optimista al
+  editar horarios concurrentemente, re-autenticación obligatoria para cambio
+  de contraseña y correo.
 
 ## Stack técnico
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | React 18 + Vite 5 (code splitting por módulo) |
+| Frontend | React 18 + Vite 7 (code splitting por módulo) |
 | Backend / BD | [Supabase](https://supabase.com) (PostgreSQL + Auth + Realtime) |
 | Hosting | Vercel |
-| Procesamiento de planillas | [xlsx](https://www.npmjs.com/package/xlsx) |
+| Procesamiento de planillas | [xlsx](https://sheetjs.com) (SheetJS, vendorizado en `vendor/`, no vía CDN ni npm registry) |
 | API serverless | Vercel Functions (`api/admin-users.js`) |
+| Testing | Vitest (unidad/integración, co-ubicados en `src/`) + Playwright (regresión visual) |
 
 ## Estructura del repositorio
 
@@ -63,29 +69,38 @@ src/
 ├── constants/                 # Programas, trayectos, horarios de turno
 └── utils/                     # parsing.js, conflictos, lapso, cache
 
-supabase/
-└── migrations/                # SQL secuencial (0005 → 0046)
-
 api/
 └── admin-users.js             # Vercel Function: crear/resetear usuarios
                                 # (reemplaza una Edge Function de Supabase
                                 # que ya no forma parte del repo)
 
+scripts/
+├── check-env.js                # Valida variables de entorno antes del build
+└── rls-smoke-test.mjs          # Smoke test de políticas RLS contra Supabase real
+
+tests/
+└── visual/                     # Baselines de regresión visual (Playwright)
+
+vendor/
+└── xlsx-0.20.3.tgz             # Paquete SheetJS vendorizado (ver D-6/D-7 en AUDITORIA_INDICE.md)
+
 docs/
-├── SECURITY.md                # Roles, RLS y su historial de hallazgos
-├── AUDITORIA_FRONTEND.md      # Auditoría de componentes frontend
-├── AUDITORIA_INDICE.md        # Índice de todos los hallazgos de auditoría
-├── ESQUEMA_Y_MIGRACIONES.md   # Esquema de BD e índice de migraciones
-├── MATRIZ_PERMISOS.md         # Catálogo completo de permisos (RBAC)
-├── ARQUITECTURA.md            # Decisiones de arquitectura y sus motivos
-└── FLUJO_ASISTENCIAS_QR.md    # Flujo end-to-end del módulo QR
+├── SECURITY.md                 # Roles, RLS y su historial de hallazgos
+├── AUDITORIA_INDICE.md         # Índice de todos los hallazgos de auditoría
+├── ESQUEMA_Y_MIGRACIONES.md    # Esquema de BD e índice de migraciones
+├── MATRIZ_PERMISOS.md          # Catálogo completo de permisos (RBAC)
+├── ARQUITECTURA.md             # Decisiones de arquitectura y sus motivos
+├── FLUJO_ASISTENCIAS_QR.md     # Flujo end-to-end del módulo QR
+├── MANUAL_USUARIO.md           # Manual de usuario final, con mockups SVG
+└── supabase/
+    └── migrations/              # SQL secuencial (0005 → 0060)
 ```
 
 ## Roles y permisos
 
-Los roles se definen en la tabla `roles` (no en código) — cualquier admin
+Los roles se definen en la tabla `roles` (no en código) — cualquier adminT
 puede crear un rol nuevo con su propia combinación de permisos desde la UI,
-sin tocar SQL. Cada rol tiene un objeto JSONB `permisos` con 16 claves
+sin tocar SQL. Cada rol tiene un objeto JSONB `permisos` con 19 claves
 booleanas (`puedeEditarHorarios`, `puedeGestionarQR`, `puedeVerAuditoria`,
 etc.) agrupadas en 5 categorías: Horarios, Catálogos académicos, Respaldo
 de datos, Módulo QR y Administración.
@@ -133,7 +148,7 @@ Una vista previa (`UploadPreviewModal`) muestra los datos antes del insert.
 git clone https://github.com/LS-Tech-Lab/sigmapnf.git
 cd sigmapnf
 npm install
-cp .env.example .env   # completar con credenciales de Supabase
+cp env.example .env   # completar con credenciales de Supabase
 npm run dev
 ```
 
@@ -142,17 +157,25 @@ npm run dev
 | Comando | Descripción |
 |---|---|
 | `npm run dev` | Servidor de desarrollo con recarga en caliente |
-| `npm run build` | Build de producción en `dist/` |
+| `npm run build` | Valida variables de entorno (`scripts/check-env.js`) y genera el build de producción en `dist/` |
 | `npm run preview` | Sirve localmente el build de producción |
+| `npm run lint` | ESLint sobre todo el repo |
+| `npm test` | Suite de unidad/integración (Vitest) |
+| `npm run test:watch` | Vitest en modo watch |
+| `npm run test:visual` | Regresión visual (Playwright) contra baselines en `tests/visual/` |
+| `npm run test:visual:update` | Regenera las baselines de regresión visual |
+| `npm run rls:smoke-test` | Smoke test de políticas RLS (`scripts/rls-smoke-test.mjs`) contra un proyecto Supabase real |
 
 ## Base de datos
 
-El esquema vive en `supabase/migrations/`, numerado secuencialmente (`0005` →
-`0046`). Para un entorno nuevo, ejecutar las migraciones en orden desde el SQL
-Editor de Supabase o con la CLI:
+El esquema vive en `docs/supabase/migrations/`, numerado secuencialmente
+(`0005` → `0060`). Para un entorno nuevo, ejecutar los archivos en orden
+desde el SQL Editor de Supabase. Si se prefiere la CLI, el repo no tiene
+un `supabase/config.toml` en la raíz (la carpeta vive bajo `docs/`), así
+que hay que apuntarla explícitamente:
 
 ```bash
-supabase db push
+supabase db push --db-url <connection-string> --workdir docs
 ```
 
 La arquitectura de seguridad (RLS, `tiene_permiso()`, tablas de auditoría)
