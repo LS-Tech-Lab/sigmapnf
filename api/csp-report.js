@@ -19,8 +19,8 @@
 //   · Justamente por ser público, la superficie de abuso es mayor que la
 //     de admin-users.js (cualquiera puede mandar POSTs falsos). Se
 //     mitiga con: (a) límite de tamaño de payload, (b) validación mínima
-//     de forma del reporte, (c) rate limit best-effort por IP en memoria
-//     del proceso — ver nota de limitación en `chequearRateLimit`.
+//     de forma del reporte, (c) rate limit persistente por IP — ver
+//     `chequearRateLimitPersistente`.
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -30,33 +30,43 @@ const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // no es un reporte legítimo del navegador.
 const MAX_BODY_BYTES = 20_000;
 
-// ── Rate limit best-effort por IP ─────────────────────────────────────
-// Nota de limitación (documentar, no ocultar): esto vive en memoria del
-// proceso de la función serverless. Vercel puede levantar múltiples
-// instancias en paralelo y reciclarlas entre invocaciones (cold start),
-// así que NO es un límite global ni persistente — es una mitigación
-// barata contra un mismo visitante/bot machacando el endpoint dentro de
-// una misma instancia caliente, no una defensa dura contra abuso
-// distribuido. Para eso se necesitaría una RPC contadora en Postgres
-// (mismo patrón que `registrar_admin_action_rate_limit`, SEC-16), fuera
-// de alcance de este fix porque implica una migración nueva — ver nota
-// en AUDITORIA_INDICE.md.
-const RATE_LIMIT_MAX = 20;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const hits = new Map(); // ip -> [timestamps]
-
-function chequearRateLimit(ip) {
-  const ahora = Date.now();
-  const previas = (hits.get(ip) || []).filter(t => ahora - t < RATE_LIMIT_WINDOW_MS);
-  previas.push(ahora);
-  hits.set(ip, previas);
-  // Poda ocasional para no acumular IPs viejas indefinidamente en memoria.
-  if (hits.size > 5000) {
-    for (const [k, arr] of hits) {
-      if (arr.every(t => ahora - t >= RATE_LIMIT_WINDOW_MS)) hits.delete(k);
-    }
+// ── Rate limit persistente por IP (Fix OFF-9) ─────────────────────────
+// Reemplaza el Map() en memoria del proceso que tenía SEC-24: Vercel
+// levanta múltiples instancias serverless en paralelo, cada una con su
+// propio contador en memoria en cero, así que ese límite era eludible
+// repartiendo requests entre instancias. Ahora el contador vive en la
+// tabla `csp_report_rate_limit` vía la RPC `registrar_csp_report_rate_limit`
+// (migración 0060) — mismo patrón que `registrar_admin_action_rate_limit`
+// (SEC-16) para api/admin-users.js. Mantiene el mismo límite nominal
+// (20 req/min por IP) que tenía la versión en memoria.
+async function chequearRateLimitPersistente(ip) {
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    // Sin conexión a Supabase no hay dónde persistir el contador. Fallar
+    // "abierto" (permitir) en vez de "cerrado": la prioridad de este
+    // endpoint es nunca romper el reporte del navegador por un problema
+    // nuestro de configuración, igual criterio que el resto del archivo.
+    return true;
   }
-  return previas.length <= RATE_LIMIT_MAX;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/registrar_csp_report_rate_limit`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        apikey: SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_ip: ip }),
+    });
+    if (!res.ok) {
+      console.error("[api/csp-report] RPC de rate limit falló, se permite por defecto:", await res.text());
+      return true;
+    }
+    const data = await res.json();
+    return data?.permitido !== false;
+  } catch (err) {
+    console.error("[api/csp-report] Error llamando RPC de rate limit, se permite por defecto:", err);
+    return true;
+  }
 }
 
 function truncar(str, max) {
@@ -138,7 +148,7 @@ async function handleRequest(req, res) {
   }
 
   const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket?.remoteAddress || "desconocida";
-  if (!chequearRateLimit(ip)) {
+  if (!(await chequearRateLimitPersistente(ip))) {
     return res.status(204).end();
   }
 

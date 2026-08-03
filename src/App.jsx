@@ -118,6 +118,7 @@ export default function App() {
 
   // ── Datos ─────────────────────────────────────────────────────────────────
   const appData = useAppData(lapso, logAudit, user?.id);
+  const { setSelectedPrograma } = appData;
 
   // ── Sesión QR — vive aquí para no perderse al cambiar sub-vista ──────────
   const qrSession = useQRSession();
@@ -126,6 +127,12 @@ export default function App() {
   // showToast se pasa para que useAppShell pueda lanzar el toast de
   // confirmación de cambio de correo una vez que appData esté disponible.
   const shell = useAppShell({ user, showToast: appData.showToast });
+  // Setters de shell desestructurados: `shell` es un objeto nuevo en cada
+  // render (useAppShell no lo memoiza), pero los setters de useState que
+  // contiene sí son estables — se usan por nombre propio en vez de
+  // `shell.setX` para poder listarlos en deps de efectos sin causar
+  // reruns de más.
+  const { setAdminOpen, setUserMenuOpen } = shell;
 
   // ── Módulo activo + auto-selección por permisos ───────────────────────────
   const {
@@ -150,11 +157,11 @@ export default function App() {
       setModuloActivo(null);
       setDocenteNav(null);
       setMateriaNav(null);
-      shell.setAdminOpen(false);
-      shell.setUserMenuOpen(false);
+      setAdminOpen(false);
+      setUserMenuOpen(false);
     }
     prevUserIdRef.current = currentId;
-  }, [user?.id]);
+  }, [user?.id, setModuloActivo, setAdminOpen, setUserMenuOpen]);
 
   // ── Modo consulta histórica ───────────────────────────────────────────────
   useEffect(() => {
@@ -172,11 +179,12 @@ export default function App() {
   // Restringir programa para secretarios
   useEffect(() => {
     if (efectivePermisos.puedeVerSoloSuPrograma && efectivePermisos.programaRestringido) {
-      appData.setSelectedPrograma(efectivePermisos.programaRestringido);
+      setSelectedPrograma(efectivePermisos.programaRestringido);
     }
-  }, [efectivePermisos.puedeVerSoloSuPrograma, efectivePermisos.programaRestringido]);
+  }, [efectivePermisos.puedeVerSoloSuPrograma, efectivePermisos.programaRestringido, setSelectedPrograma]);
 
   const horariosFilters = useHorariosFilters(appData.data);
+  const { resetFilters } = horariosFilters;
 
   // ── Callbacks ─────────────────────────────────────────────────────────────
   const handleCambiarLapso = useCallback((nuevo) => {
@@ -184,8 +192,8 @@ export default function App() {
     setView("resumen");
     // ARCH-4: resetear filtros al cambiar lapso — evita que quede una
     // sección/trayecto del lapso anterior que no exista en el nuevo.
-    horariosFilters.resetFilters();
-  }, [horariosFilters.resetFilters]);
+    resetFilters();
+  }, [resetFilters]);
 
   const handleFileUploadAuditado = async (file) => {
     await appData.handleFileUpload(file);

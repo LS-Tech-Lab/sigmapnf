@@ -56,11 +56,10 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
       setHuerfanos([]);
     }
     setLoading(false);
-  }, []);
+  }, [toast]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  // ── Acciones ───────────────────────────────────────────────────────────────
   const toggleActivo = async (u, nuevoActivo) => {
     try {
       const { error } = await supabase.rpc("admin_toggle_user_activo", {

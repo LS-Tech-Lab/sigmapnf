@@ -21,7 +21,13 @@ export default function ComparadorPanel({ trimestres, detalles }) {
   useEffect(() => {
     if (cerrados.length >= 2 && !selA) setSelA(cerrados[0].lapso);
     if (cerrados.length >= 2 && !selB) setSelB(cerrados[1]?.lapso || "");
-  }, [cerrados.length]);
+    // `cerrados` es un array nuevo en cada render (.filter() sin memoizar);
+    // se trackea por `.length` a propósito para no re-disparar este efecto
+    // en cada render del padre. `selA`/`selB` sí están en las deps: los
+    // guards `!selA`/`!selB` de arriba evitan cualquier bucle una vez
+    // asignados.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cerrados.length, selA, selB]);
 
   const dA = detalles[selA];
   const dB = detalles[selB];

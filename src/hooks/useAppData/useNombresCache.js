@@ -92,7 +92,7 @@ export default function useNombresCache(userId = null, showToast = null) {
         if (cachedCedulas) setDocenteCedulas(cachedCedulas);
       }
     }
-  }, [userId]);
+  }, [userId, showToast]);
 
   const fetchMateriaNames = useCallback(async () => {
     const cachedMaterias = cargarDeCache(CACHE_KEYS.materias, userId, { offlineMode: !navigator.onLine });

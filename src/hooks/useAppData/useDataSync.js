@@ -160,7 +160,7 @@ export default function useDataSync({
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
-  }, [selectedPrograma, fetchHorarios, showToast]);
+  }, [selectedPrograma, fetchHorarios, showToast, fetchDocenteNames, fetchMateriaNames]);
 
   // Suscripción realtime: verificar sesión activa con getSession() en lugar de
   // mantener un useState(user) propio que duplicaba el listener de useAuth.
@@ -190,7 +190,7 @@ export default function useDataSync({
       });
     });
     return () => cancelar();
-  }, [lapso, selectedPrograma, fetchHorarios, fetchDocenteNames, fetchMateriaNames, showToast]);
+  }, [lapso, selectedPrograma, fetchHorarios, fetchDocenteNames, fetchMateriaNames, showToast, userId, setConflictsRefreshKey]);
 
   const byDocente = useMemo(() => {
     const m = {};

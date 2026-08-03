@@ -76,6 +76,51 @@ abiertos es un estado permanente.
 
 ---
 
+## 🔴 Fixes de la pasada de implementación (2 de agosto, mismo día)
+
+Los 4 hallazgos abajo salieron de la auditoría de estrés operacional externa
+del 2 de agosto (ver sección anterior) y se implementaron y verificaron
+el mismo día, en orden de prioridad de despliegue.
+
+| Prioridad | ID | Descripción corta | Archivo(s) clave | Migración | Estado |
+|---|---|---|---|---|---|
+| 1 (bloqueante) | 🔴 **ARCH-33** | Condición de carrera real en `registrar_asistencia()`: `0058` reemplazó el UPSERT atómico de `0039` por `SELECT FOR UPDATE` + `INSERT` suelto — dos llamadas concurrentes del mismo `device_fingerprint` sin fila previa chocan por PK y una de las dos levanta una excepción no controlada en vez de JSON | `registrar_asistencia` | `0059` | ✅ Cerrado — **reproducido contra Postgres 16 real** (2 sesiones concurrentes, mismo fingerprint fresco → `duplicate key value violates unique constraint "scan_rate_limit_pkey"`), corregido con un único `INSERT ... ON CONFLICT DO UPDATE` (vuelve al patrón de `0039`) + una segunda UPDATE por PK segura bajo concurrencia para el disparo del bloqueo. Reverificado: 10 llamadas concurrentes sin fila previa → 0 errores, `intentos=10`; 15 concurrentes → 5 bloqueadas, `veces_bloqueado=1`, ~2 min; reincidencia tras expirar → `veces_bloqueado=2`, ~4 min (escalada correcta, igual bajo concurrencia real) |
+| 2 | 🟢 **OFF-9** | Rate limit de `api/csp-report.js` (`SEC-24`) vivía en un `Map()` en memoria del proceso — no persiste entre instancias serverless de Vercel, eludible repartiendo requests | `api/csp-report.js` | `0060` | ✅ Cerrado — contador movido a tabla `csp_report_rate_limit` vía RPC `registrar_csp_report_rate_limit()` (mismo patrón que `admin_actions_rate_limit`, SEC-16), mismo límite nominal (20/min por IP). Verificado contra Postgres real: 20/21 llamadas → `permitido:true`, la 21ª → `false`. Diseño fail-open: si la RPC falla (red/Supabase caído), permite el reporte en vez de romper el navegador reportante. 3 tests nuevos, 2 tests existentes actualizados (el índice de la llamada a `fetch` cambia porque ahora hay 2 llamadas: RPC + insert) |
+| 3 | 🟢 **ARCH-34** | Sin guardia de CI que impidiera reintroducir herramientas de build-time (causa raíz de `SEC-26`, `@tabler/icons-webfont`) como `dependencies` en vez de `devDependencies` | `.github/workflows/ci.yml` | — | ✅ Cerrado — paso nuevo en el job `test-and-build` que falla si `@tabler/icons-webfont` o `svgtofont` aparecen en `dependencies`. Verificado contra `package.json` actual: pasa |
+| 4 | 🟢 **UX-26** | `useDataSync.js`: `useEffect` de la suscripción realtime sin `userId`/`setConflictsRefreshKey` en deps — un cambio de usuario dejaba el closure de `limpiarCache(userId)`/`limpiarCacheNombres(userId)` con el id viejo, y el badge de pendientes podía no reflejar cambios sin recargar | `src/hooks/useAppData/useDataSync.js` | — | ✅ Cerrado — deps agregadas (`setConflictsRefreshKey` es un setter de `useState`, estable, no genera resuscripciones de más). 0 warnings de `exhaustive-deps` nuevos en este archivo para ese efecto (queda 1 warning preexistente sin relación, en el listener de online/offline, fuera de alcance de `UX-26`) |
+
+**Verificación empírica de esta pasada:** 221/221 tests (24 archivos, +2 desde
+la última corrida por los tests nuevos de `OFF-9`), `eslint .` → 0 errores,
+`vite build` → limpio. Las migraciones `0059`/`0060` se probaron contra una
+instancia real de Postgres 16 (no Supabase, pero mismo motor y semántica de
+`ON CONFLICT`/locks de fila), incluida una reproducción deliberada de
+concurrencia real con sesiones `psql` paralelas — no solo lectura de código.
+Pendiente (no verificable desde este entorno): aplicar `0059`/`0060` contra
+Supabase real y confirmar ahí también antes de tráfico de producción.
+
+---
+
+## 🔴 Fixes de la pasada de implementación (2 de agosto, mismo día) — continuación
+
+**Hallazgo adicional, no listado en la tabla original — encontrado al investigar un test que fallaba durante esta misma pasada:**
+
+| Prioridad | ID | Descripción corta | Archivo | Estado |
+|---|---|---|---|---|
+| 1 (bloqueante, silencioso) | 🔴 **UX-27** | Recurrencia del bug `fecha-hoy-timezone` (ver `utils/time.js`): `ReporteRango.jsx` calculaba el "lunes de esta semana" (default del filtro "Desde") con `new Date()` crudo (timezone del runtime, efectivamente UTC en producción) mientras `fin` ya usaba `fechaHoyVE()` (Venezuela). Entre 8pm y medianoche hora VE, UTC ya cambió de día — `inicio` podía quedar por delante de `fin`, `fetchRango()` nunca llamaba a la RPC, y el reporte quedaba vacío ("No hay asistencias en este rango") **sin ningún error visible**, todas las noches, en esa ventana de ~4h | `src/components/asistencias/ReporteAsistencias/ReporteRango.jsx` | ✅ Cerrado — encontrado porque el test `ReporteRango.integration.test.jsx` empezó a fallar de forma reproducible (no flaky) exactamente en esta ventana horaria real; se confirmó la causa raíz reproduciéndolo de forma aislada, y se corrigió derivando "lunes" de la misma fecha VE que "hoy" (aritmética en UTC para no reintroducir el problema por otra vía). Barrido de `grep` confirmó que era la única ocurrencia restante de este patrón en `src/`. Reverificado contra el reloj real del momento (dentro de la ventana de riesgo): `lunes ≤ hoy` ✓, y el test que fallaba ahora pasa |
+
+**6 warnings de `react-hooks/exhaustive-deps` revisados y corregidos** (cada uno evaluado individualmente por riesgo de bucle antes de tocarlo — no fue un `--fix` automático):
+- `useDataSync.js` (listener online/offline): agregadas `fetchDocenteNames`/`fetchMateriaNames` (estables, `useCallback`).
+- `useNombresCache.js`: agregada `showToast` (estable, `useCallback` con deps `[]`).
+- `PestanaRoles.jsx` / `PestanaUsuarios.jsx`: agregada `toast` a `cargar` (estable vía `showToastProp` memoizado). *Nota: en el primer intento sobre `PestanaUsuarios.jsx` se borró por accidente la línea `useEffect(() => { cargar(); }, [cargar]);` — detectado por 2 tests que empezaron a fallar en el mismo checkpoint, y restaurado antes de continuar.*
+- `VistaAusentes.jsx`: agregado `onAusentesChange` (es `setAusentesParaPDF`, un setter de estado — estable).
+- `PlanillaImprimibleBase.jsx`: agregado `catalogoDocentes` al `useMemo` de `docentesDelDia` — pero como el prop llegaba sin memoizar desde `PlanillaQR.jsx` (`Object.keys(docenteNames)` recalculado cada render), primero se memoizó ahí con `useMemo(..., [docenteNames])` para no invalidar el memo en cada render.
+- `App.jsx`: 3 warnings — el patrón repetido era depender de `objeto.metodo` en vez del método ya desestructurado. Se destructuraron `setAdminOpen`/`setUserMenuOpen` (de `shell`) y `setSelectedPrograma` (de `appData`), ambos setters de `useState` estables aunque los objetos contenedores (`shell`, `appData`) sean nuevos en cada render. Para `horariosFilters.resetFilters`, la causa raíz era que `resetFilters`/`handleSetTrayecto` en `useHorariosFilters.js` nunca estuvieron envueltos en `useCallback` — se corrigió ahí, no solo en el consumidor.
+- `ComparadorPanel.jsx`: `cerrados` es un array recalculado cada render (`.filter()` sin memoizar) — se mantiene trackeado por `.length` a propósito (documentado con comentario + `eslint-disable-next-line` bien targeteado, no un multi-línea que rompía el alcance de la directiva como en el primer intento).
+
+**Verificación final de esta pasada:** 221/221 tests (incluye el fix de `UX-27`, verificado empíricamente y no solo por inspección), 0 errores de lint (22 warnings restantes, todos `react-refresh/only-export-components`, cosméticos — requieren separar archivos, fuera de alcance por instrucción explícita de no crear archivos/programas nuevos en esta pasada), `vite build` limpio.
+
+---
+
 ## 🔐 Seguridad y RLS
 
 Esquema `SEC-N`. Fusiona lo que antes eran 4 esquemas paralelos (`S-N`,

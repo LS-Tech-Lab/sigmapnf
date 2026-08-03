@@ -6,7 +6,7 @@
 // vive dentro de AppDataContext (ese contexto es exclusivo de
 // HorariosLayout), así que esta pestaña se autoabastece con su propio
 // fetch a Supabase en vez de depender de él.
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { suscribirCambiosRemotos } from '../../lib/realtime';
 import { getCurrentLapso, getLapsosDisponibles, formatLapso } from '../../utils/lapso';
@@ -34,7 +34,7 @@ export default function PlanillaQR({ permisos = {}, profile }) {
 
   // Lista de nombre_raw conocidos, para el fallback fuzzy de parseClase()
   // cuando una fila de horarios aún no tiene docente_id vinculado.
-  const catalogoDocentes = Object.keys(docenteNames);
+  const catalogoDocentes = useMemo(() => Object.keys(docenteNames), [docenteNames]);
 
   // Se incrementa cuando llega un evento remoto de horarios (otro usuario
   // importó/editó el Excel) para forzar el refetch de la tabla horarios.

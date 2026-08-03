@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 
 /**
  * Mejora 11: hook que encapsula el estado de filtros y la celda expandida
@@ -22,20 +22,24 @@ export default function useHorariosFilters(data = []) {
     );
   }, [selectedTrayecto, data]);
 
-  const handleSetTrayecto = (t) => {
+  // useCallback (no solo función inline): setSelectedTrayecto/setSelectedSeccion
+  // son setters de useState (estables), así que handleSetTrayecto queda con
+  // referencia estable — consumidores externos (ej. App.jsx) pueden
+  // depender de ella sin recrearla en cada render.
+  const handleSetTrayecto = useCallback((t) => {
     setSelectedTrayecto(t);
     setSelectedSeccion("all"); // resetear sección al cambiar trayecto
-  };
+  }, []);
 
   // ARCH-4: al cambiar lapso desde App.jsx, los filtros del lapso anterior
   // pueden no existir en el nuevo lapso → resetear todo para evitar
   // que `filtered` quede vacío sin aviso al usuario.
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setSelectedTrayecto("all");
     setSelectedSeccion("all");
     setActiveDay("all");
     setExpandedCell(null);
-  };
+  }, []);
 
   return {
     selectedTrayecto, setSelectedTrayecto: handleSetTrayecto,

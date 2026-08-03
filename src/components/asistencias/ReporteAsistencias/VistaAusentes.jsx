@@ -130,7 +130,7 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
     };
 
     fetch();
-  }, [fecha, programa, dia, cedulasPresentes]);
+  }, [fecha, programa, dia, cedulasPresentes, onAusentesChange]);
 
   if (modoOffline && !fechaCache && (dia !== "SÁBADO" && dia !== "DOMINGO")) {
     return (

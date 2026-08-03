@@ -37,7 +37,10 @@ describe("api/csp-report — parseo y persistencia de reportes CSP", () => {
     vi.resetModules();
     process.env.VITE_SUPABASE_URL = "https://proyecto.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-test-key";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, text: async () => "" }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, text: async () => "", json: async () => ({ permitido: true }) })
+    );
     ({ default: handler } = await import("./csp-report.js"));
   });
 
@@ -77,7 +80,8 @@ describe("api/csp-report — parseo y persistencia de reportes CSP", () => {
         }),
       })
     );
-    const sentBody = JSON.parse(fetch.mock.calls[0][1].body);
+    const llamadaAuditLogs = fetch.mock.calls.find(([url]) => String(url).includes("/audit_logs"));
+    const sentBody = JSON.parse(llamadaAuditLogs[1].body);
     expect(sentBody.accion).toBe("CSP_VIOLATION");
     expect(sentBody.entidad).toBe("csp_report");
     expect(sentBody.entidad_id).toBe("https://sigmapnf.vercel.app/login");
@@ -102,19 +106,25 @@ describe("api/csp-report — parseo y persistencia de reportes CSP", () => {
     await handler(req, res);
 
     expect(res.statusCode).toBe(204);
-    const sentBody = JSON.parse(fetch.mock.calls[0][1].body);
+    const llamadaAuditLogs = fetch.mock.calls.find(([url]) => String(url).includes("/audit_logs"));
+    const sentBody = JSON.parse(llamadaAuditLogs[1].body);
     expect(sentBody.resumen).toContain("style-src");
     expect(sentBody.resumen).toContain("inline");
   });
 
-  it("descarta silenciosamente (204) un payload con forma desconocida, sin insertar nada", async () => {
+  it("descarta silenciosamente (204) un payload con forma desconocida, sin insertar nada en audit_logs", async () => {
     const req = makeReq({ bodyChunks: [JSON.stringify({ algo: "no es un reporte CSP" })] });
     const res = makeRes();
 
     await handler(req, res);
 
     expect(res.statusCode).toBe(204);
-    expect(fetch).not.toHaveBeenCalled();
+    // La RPC de rate limit (Fix OFF-9) sí se consulta antes de leer el body,
+    // pero nunca debe llegar a insertar en audit_logs un payload inválido.
+    expect(fetch).not.toHaveBeenCalledWith(
+      "https://proyecto.supabase.co/rest/v1/audit_logs",
+      expect.anything()
+    );
   });
 
   it("descarta silenciosamente un body no-JSON en vez de romper", async () => {
@@ -124,7 +134,10 @@ describe("api/csp-report — parseo y persistencia de reportes CSP", () => {
     await handler(req, res);
 
     expect(res.statusCode).toBe(204);
-    expect(fetch).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalledWith(
+      "https://proyecto.supabase.co/rest/v1/audit_logs",
+      expect.anything()
+    );
   });
 
   it("rechaza (204, sin insertar) si el Origin no coincide con el host", async () => {
@@ -141,26 +154,72 @@ describe("api/csp-report — parseo y persistencia de reportes CSP", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("aplica rate limit best-effort por IP: la request número 21 en la ventana se descarta", async () => {
+  it("Fix OFF-9: consulta la RPC persistente de rate limit con la IP correcta antes de insertar", async () => {
+    fetch.mockImplementation(async (url) => {
+      if (String(url).includes("/rpc/registrar_csp_report_rate_limit")) {
+        return { ok: true, json: async () => ({ permitido: true }), text: async () => "" };
+      }
+      return { ok: true, text: async () => "" };
+    });
+
     const reporte = { "csp-report": { "violated-directive": "script-src", "blocked-uri": "x" } };
+    const req = makeReq({ headers: { "x-forwarded-for": "9.9.9.9" }, bodyChunks: [JSON.stringify(reporte)] });
+    await handler(req, makeRes());
 
-    for (let i = 0; i < 20; i++) {
-      const req = makeReq({ headers: { "x-forwarded-for": "9.9.9.9" }, bodyChunks: [JSON.stringify(reporte)] });
-      await handler(req, makeRes());
-    }
-    expect(fetch).toHaveBeenCalledTimes(20);
+    expect(fetch).toHaveBeenCalledWith(
+      "https://proyecto.supabase.co/rest/v1/rpc/registrar_csp_report_rate_limit",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({ Authorization: "Bearer service-role-test-key" }),
+        body: JSON.stringify({ p_ip: "9.9.9.9" }),
+      })
+    );
+    // También insertó en audit_logs (la RPC permitió el reporte).
+    expect(fetch).toHaveBeenCalledWith(
+      "https://proyecto.supabase.co/rest/v1/audit_logs",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
 
-    const req21 = makeReq({ headers: { "x-forwarded-for": "9.9.9.9" }, bodyChunks: [JSON.stringify(reporte)] });
-    const res21 = makeRes();
-    await handler(req21, res21);
+  it("Fix OFF-9: si la RPC de rate limit devuelve permitido:false, descarta (204) sin insertar en audit_logs", async () => {
+    fetch.mockImplementation(async (url) => {
+      if (String(url).includes("/rpc/registrar_csp_report_rate_limit")) {
+        return { ok: true, json: async () => ({ permitido: false }), text: async () => "" };
+      }
+      return { ok: true, text: async () => "" };
+    });
 
-    expect(res21.statusCode).toBe(204);
-    expect(fetch).toHaveBeenCalledTimes(20); // no creció: la 21ª no llegó a insertar
+    const reporte = { "csp-report": { "violated-directive": "script-src", "blocked-uri": "x" } };
+    const req = makeReq({ headers: { "x-forwarded-for": "9.9.9.9" }, bodyChunks: [JSON.stringify(reporte)] });
+    const res = makeRes();
+    await handler(req, res);
 
-    // Una IP distinta no comparte el contador.
-    const reqOtraIp = makeReq({ headers: { "x-forwarded-for": "8.8.8.8" }, bodyChunks: [JSON.stringify(reporte)] });
-    await handler(reqOtraIp, makeRes());
-    expect(fetch).toHaveBeenCalledTimes(21);
+    expect(res.statusCode).toBe(204);
+    expect(fetch).not.toHaveBeenCalledWith(
+      "https://proyecto.supabase.co/rest/v1/audit_logs",
+      expect.anything()
+    );
+  });
+
+  it("Fix OFF-9: si la RPC de rate limit falla (red/5xx), permite por defecto en vez de romper el reporte", async () => {
+    fetch.mockImplementation(async (url) => {
+      if (String(url).includes("/rpc/registrar_csp_report_rate_limit")) {
+        throw new Error("network down");
+      }
+      return { ok: true, text: async () => "" };
+    });
+
+    const reporte = { "csp-report": { "violated-directive": "script-src", "blocked-uri": "x" } };
+    const req = makeReq({ bodyChunks: [JSON.stringify(reporte)] });
+    const res = makeRes();
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(204);
+    // Falló abierto: sí llegó a intentar insertar en audit_logs.
+    expect(fetch).toHaveBeenCalledWith(
+      "https://proyecto.supabase.co/rest/v1/audit_logs",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 
   it("si faltan las variables de entorno de Supabase, responde 204 sin lanzar (no rompe el navegador reportante)", async () => {

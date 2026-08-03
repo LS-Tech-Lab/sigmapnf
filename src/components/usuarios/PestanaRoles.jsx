@@ -42,7 +42,7 @@ export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged
       toast(`Error: ${e.message}`);
     }
     setLoading(false);
-  }, [onRolesChanged]);
+  }, [onRolesChanged, toast]);
 
   useEffect(() => { cargar(); }, [cargar]);
 

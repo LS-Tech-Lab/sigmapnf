@@ -11,9 +11,14 @@ import "./index.css";
 
 function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
   const hoy   = fechaHoyVE();
+  // Fix (recurrencia de fecha-hoy-timezone, ver utils/time.js): se deriva
+  // del mismo `hoy` anclado a Venezuela, no de `new Date()` crudo (que usa
+  // el timezone del runtime — en producción, UTC). Aritmética en UTC para
+  // no reintroducir el mismo desfase por otra vía.
   const lunes = (() => {
-    const d = new Date(); const day = d.getDay();
-    d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+    const d = new Date(`${hoy}T00:00:00Z`);
+    const day = d.getUTCDay();
+    d.setUTCDate(d.getUTCDate() - (day === 0 ? 6 : day - 1));
     return d.toISOString().slice(0, 10);
   })();
   const [inicio,   setInicio]   = useState(lunes);

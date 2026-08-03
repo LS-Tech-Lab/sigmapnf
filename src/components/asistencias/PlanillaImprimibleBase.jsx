@@ -74,7 +74,7 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
     });
     Object.values(map).forEach(v => { v.clases.sort((a, b) => a.horaMin - b.horaMin); });
     return Object.entries(map).sort((a, b) => getDocName(a[0]).localeCompare(getDocName(b[0])));
-  }, [data, turno, selectedDay, getDocName, getMateriaName]);
+  }, [data, turno, selectedDay, getDocName, getMateriaName, catalogoDocentes]);
 
   const handlePrint = () => {
     const turnoLabel = turno === "DIURNO" ? "Diurno" : "Vespertino";
