@@ -23,7 +23,7 @@
 | `src/hooks/useAuth.js` | Hook central de auth: roles, permisos, login, logout, logAudit |
 | `src/components/UsuariosView.jsx` | Panel de gestión de usuarios (solo admin) |
 | `src/components/LogsView.jsx` | Vista de logs de sesión y auditoría |
-| `src/supabase/migrations/0006_seguridad_roles_logs.sql` | Migración completa de BD |
+| `docs/supabase/migrations/0006_seguridad_roles_logs.sql` | Migración completa de BD |
 
 ### Archivos modificados
 | Archivo | Cambio |
@@ -62,7 +62,7 @@
 ### 1. Ejecutar la migración SQL
 En el Dashboard de Supabase → **SQL Editor**, ejecutar el archivo:
 ```
-src/supabase/migrations/0006_seguridad_roles_logs.sql
+docs/supabase/migrations/0006_seguridad_roles_logs.sql
 ```
 
 ### 2. Crear el primer usuario administrador
@@ -132,7 +132,7 @@ En **Authentication → Settings**:
 
 **Patrón recurrente a vigilar:** varias de estas causas raíz son *drift* entre
 cambios hechos directo en el dashboard de Supabase y lo que queda versionado
-en `supabase/migrations/`. Antes de dar por buena una política con solo leer
+en `docs/supabase/migrations/`. Antes de dar por buena una política con solo leer
 la migración, verificar contra la base real:
 
 ```sql
