@@ -33,7 +33,6 @@ migración otorgó esto — la explicación más probable es un
 en el SQL Editor en algún momento (típico intento de resolver un error de
 "permission denied for function"), que revirtió el endurecimiento de varias
 funciones a la vez sin quedar registrado en ningún lado.
-ev
 
 | Función | Debía ser solo | Impacto real si quedaba abierta |
 |---|---|---|
