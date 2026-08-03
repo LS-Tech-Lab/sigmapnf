@@ -33,6 +33,7 @@ migración otorgó esto — la explicación más probable es un
 en el SQL Editor en algún momento (típico intento de resolver un error de
 "permission denied for function"), que revirtió el endurecimiento de varias
 funciones a la vez sin quedar registrado en ningún lado.
+ev
 
 | Función | Debía ser solo | Impacto real si quedaba abierta |
 |---|---|---|
@@ -327,6 +328,17 @@ depende de datos "estáticos" de estas tablas, tenerlo en cuenta.
 | 0047 | `bloqueo_login_fuerza_bruta.sql` | **SEC-7** |
 | 0048 | `cerrar_insert_directo_login_attempts.sql` | **SEC-8** |
 | 0049 | `cerrar_grants_anon_excesivos.sql` | **SEC-9** |
+| 0050 | `sec10_jerarquia_rol_admin.sql` | **SEC-10** — escalada de privilegios en gestión de usuarios |
+| 0051 | `sec11_rate_limit_admin_users.sql` | **SEC-11** — rate limit propio en `api/admin-users.js` |
+| 0052 | `sec9_cerrar_grants_anon_utilitarias.sql` | **SEC-9** (continuación) — grants `anon` sobre funciones utilitarias |
+| 0053 | `limpieza_sesiones_expiradas.sql` | Limpieza periódica de `session_logs` expirados |
+| 0054 | `permisos_borrado_sesiones_reportes.sql` | Permisos granulares de borrado sobre sesiones y reportes |
+| 0055 | `reporte_rango_agregado_perf.sql` | **ARCH-27** — agregación server-side para "Reporte por Rango" |
+| 0056 | `config_reportes_branding.sql` | **ADMIN-6** — tabla singleton de identidad visual/branding para reportes |
+| 0057 | `arch29_bloqueo_optimista_horarios.sql` | **ARCH-29/ARCH-31** — columna `updated_at` + trigger `set_updated_at()` en `horarios` para bloqueo optimista |
+| 0058 | `arch32_backoff_progresivo_scan.sql` | **ARCH-32** — backoff progresivo en `registrar_asistencia()` |
+| 0059 | `arch33_fix_race_condition_rate_limit.sql` | **ARCH-33** — condición de carrera real en `registrar_asistencia()`, verificada contra Postgres real |
+| 0060 | `off9_rate_limit_persistente_csp_report.sql` | **OFF-9** — rate limit persistente (antes `Map()` en memoria) para `api/csp-report.js` |
 
 ---
 
