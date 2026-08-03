@@ -4,7 +4,7 @@ Catálogo completo de permisos del sistema, dónde se define cada uno, y —lo
 más importante para auditoría— **dónde se hace cumplir realmente** (RLS,
 RPC, o solo la interfaz). Construido a partir de `src/components/usuarios/shared.jsx`
 (fuente de verdad del catálogo oficial) y verificado contra cada punto de
-uso en `src/` y `supabase/migrations/`.
+uso en `src/` y `docs/supabase/migrations/`.
 
 > **El modelo no es de roles fijos.** `SECURITY.md` describe una tabla de 4
 > roles como si fueran las únicas opciones — eso era cierto en el diseño
@@ -47,6 +47,8 @@ uso en `src/` y `supabase/migrations/`.
 |---|---|---|
 | `puedeGestionarQR` | Abrir/cerrar sesiones QR, ver proyección | RLS + RPC `crear_qr_session` (`0035`, `0036`) |
 | `puedeVerReporteAsistencias` | Consultar/exportar historial de asistencias | RLS (`asistencias_diarias`, `0036`) |
+| `puedeBorrarSesiones` | Eliminar sesiones QR ya cerradas del historial | RLS/RPC (`0054`) |
+| `puedeBorrarReportes` | Eliminar registros de asistencia en el reporte por rango | RLS/RPC (`0054`) |
 
 ### Administración
 | Permiso | Qué habilita | Enforcement real |
@@ -55,6 +57,7 @@ uso en `src/` y `supabase/migrations/`.
 | `puedeGestionarRoles` | Crear/editar roles y sus permisos | RPC (`0021`) |
 | `puedeVerLogs` | Historial de acciones del sistema | RPC (`0024`, `0031`–`0033`) |
 | `puedeVerAuditoria` | Ver quién hizo qué y cuándo | RPC `get_audit_logs` (`0024`) |
+| `puedeConfigurarReportes` | Personalizar logo, colores y textos del membrete de los 3 documentos imprimibles | Tabla `configuracion_reportes` (`0056`, **ADMIN-6**) |
 
 ---
 
@@ -72,7 +75,7 @@ puedeVerSoloSuPrograma: !!rolInfo.restringe_programa
 
 No es un bug — es el diseño correcto para ese caso (no tiene sentido que sea
 editable independientemente en la UI de permisos, ya vive junto al rol). Lo
-documento aquí explícitamente porque, a diferencia de los otros 16, grepear
+documento aquí explícitamente porque, a diferencia de los otros 19, grepear
 `roles.permisos` por esta clave no la va a encontrar — y sin esta nota, la
 próxima persona que audite el sistema de permisos puede asumir que falta.
 
@@ -149,8 +152,8 @@ WHERE jsonb_object_keys(permisos) NOT IN (
   'puedeVerTodo','puedeEditarHorarios','puedeBorrarHorarios','puedeGestionarTrimestres',
   'puedeEditarDocentes','puedeEditarMaterias','puedeImportarExcel',
   'puedeHacerBackup','puedeRestaurarBackup',
-  'puedeGestionarQR','puedeVerReporteAsistencias',
-  'puedeGestionarUsuarios','puedeGestionarRoles','puedeVerLogs','puedeVerAuditoria'
+  'puedeGestionarQR','puedeVerReporteAsistencias','puedeBorrarSesiones','puedeBorrarReportes',
+  'puedeGestionarUsuarios','puedeGestionarRoles','puedeVerLogs','puedeVerAuditoria','puedeConfigurarReportes'
 );
 ```
 
@@ -165,4 +168,4 @@ RPC — no solo un `if (permisos.x)` en el componente, como ya se ve en
 
 ---
 
-*Última actualización: julio 2026.*
+*Última actualización: agosto 2026.*
