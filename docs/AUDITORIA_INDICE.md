@@ -119,6 +119,13 @@ Supabase real y confirmar ahí también antes de tráfico de producción.
 
 **Verificación final de esta pasada:** 221/221 tests (incluye el fix de `UX-27`, verificado empíricamente y no solo por inspección), 0 errores de lint (22 warnings restantes, todos `react-refresh/only-export-components`, cosméticos — requieren separar archivos, fuera de alcance por instrucción explícita de no crear archivos/programas nuevos en esta pasada), `vite build` limpio.
 
+**Deuda técnica cerrada en esta misma pasada:**
+- `vite` `6.4.3` → `7.3.6` (SEC-14 lo dejaba pendiente "hasta que los plugins lo soporten"). El bloqueo era `vite-plugin-pwa@0.21.x`, cuyo rango de peer dependency tope era `vite@^6`. Ya llegó a la versión `1.x`, con soporte declarado para `vite@^7||^8`. Se probó primero en una copia aislada del repo antes de tocar el real: instalación limpia, 221/221 tests, 0 errores de lint, `vite build` (genera PWA v1.3.0, mismo precache de 68 entradas), y arranque del dev server con HMR — los 4 verificados, no solo asumidos. `@vitejs/plugin-react@4.7.0` y `vitest@3.2.7` ya soportaban `vite@^7` sin cambios. Se dejó en `^7.3.6` (no `^8.x`) de forma conservadora — v8 es más reciente y no se probó.
+
+**Pendientes que quedan fuera del alcance de este entorno de trabajo (confirmado, no solo asumido — `curl` a `supabase.com` devuelve 403 por la política de red de este sandbox):**
+- Aplicar `0059`/`0060` contra el proyecto Supabase real (solo se probaron contra Postgres 16 local).
+- Confirmar en el dashboard de Supabase: `pg_cron` activo (`SEC-21`) y rate limiting nativo de Auth activo (`SEC-7`).
+
 ---
 
 ## 🔐 Seguridad y RLS
