@@ -89,6 +89,22 @@ export function calcularPermisos(profile) {
 const IDLE_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
 const ACTIVIDAD_KEY = "sigma_ultima_actividad";
 
+// Lee una marca de tiempo persistida y devuelve cuánto ha pasado desde
+// entonces (ms), o null si no hay marca o localStorage no está disponible.
+// Compartido entre el pre-chequeo de sesión inicial (evita el "flash" de
+// login) y los propios hooks de idle-timeout / time-box más abajo, para
+// no duplicar la lectura de localStorage en dos sitios distintos.
+function tiempoTranscurridoDesde(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const marca = Number(raw);
+    return Number.isFinite(marca) ? Date.now() - marca : null;
+  } catch {
+    return null; // localStorage no disponible (modo privado agresivo, etc.)
+  }
+}
+
 function useIdleTimeout(timeoutMs, onTimeout, enabled) {
   const timerRef = useRef(null);
   const onTimeoutRef = useRef(onTimeout);
@@ -119,22 +135,27 @@ function useIdleTimeout(timeoutMs, onTimeout, enabled) {
 
     // Al montar (incluye reabrir la pestaña/navegador): comparar contra
     // la última actividad persistida en vez de arrancar el timer a ciegas.
-    let ultimaActividad = null;
-    try {
-      const raw = localStorage.getItem(ACTIVIDAD_KEY);
-      ultimaActividad = raw ? Number(raw) : null;
-    } catch { /* no-op */ }
+    //
+    // Nota: en el caso normal, esto ya NO dispara el logout — el
+    // pre-chequeo en el efecto de sesión inicial (más abajo) lo hace
+    // antes, mientras `user` sigue en `undefined` (pantalla "Verificando
+    // sesión…"), para no mostrar la app ya autenticada y expulsar un
+    // instante después (el "micro refresh" reportado por LS 3-ago-2026).
+    // Este chequeo se deja como red de respaldo para el caso borde en que
+    // el umbral correcto por rol (admin: 30 min) es más corto que el
+    // umbral conservador usado en el pre-chequeo (60 min) — un admin
+    // inactivo entre 30 y 60 min solo se detecta aquí, una vez que el
+    // perfil (y por tanto su rol) ya cargó.
+    const transcurrido = tiempoTranscurridoDesde(ACTIVIDAD_KEY);
 
-    const transcurrido = ultimaActividad ? Date.now() - ultimaActividad : 0;
-
-    if (ultimaActividad && transcurrido >= timeoutMs) {
+    if (transcurrido !== null && transcurrido >= timeoutMs) {
       // Ya se venció el plazo mientras la pestaña estaba cerrada o en
       // background: cerrar sesión ya, sin esperar otro ciclo completo.
       onTimeoutRef.current();
     } else {
       ultimaEscrituraRef.current = Date.now();
       try { localStorage.setItem(ACTIVIDAD_KEY, String(Date.now())); } catch { /* no-op */ }
-      const restante = ultimaActividad ? Math.max(timeoutMs - transcurrido, 0) : timeoutMs;
+      const restante = transcurrido !== null ? Math.max(timeoutMs - transcurrido, 0) : timeoutMs;
       timerRef.current = setTimeout(() => onTimeoutRef.current(), restante);
     }
 
@@ -163,20 +184,18 @@ function useTimeBox(timeBoxMs, onTimeout, enabled) {
   useEffect(() => {
     if (!enabled) return;
 
-    let inicio = null;
-    try {
-      const raw = localStorage.getItem(SESSION_START_KEY);
-      inicio = raw ? Number(raw) : null;
-    } catch { /* no-op */ }
+    // Igual que en useIdleTimeout: el caso común (sesión vencida mientras
+    // la pestaña estaba cerrada) ya lo intercepta el pre-chequeo del
+    // efecto de sesión inicial, antes de mostrar la app. Esto queda como
+    // respaldo.
+    let transcurrido = tiempoTranscurridoDesde(SESSION_START_KEY);
 
     // Sin marca de inicio persistida (login nuevo en este navegador):
     // se establece ahora.
-    if (!inicio) {
-      inicio = Date.now();
-      try { localStorage.setItem(SESSION_START_KEY, String(inicio)); } catch { /* no-op */ }
+    if (transcurrido === null) {
+      try { localStorage.setItem(SESSION_START_KEY, String(Date.now())); } catch { /* no-op */ }
+      transcurrido = 0;
     }
-
-    const transcurrido = Date.now() - inicio;
 
     if (transcurrido >= timeBoxMs) {
       onTimeoutRef.current();
@@ -241,13 +260,61 @@ export default function useAuth() {
     // casi simultáneamente con getSession(). En móvil (mayor latencia), la
     // duplicación causaba el ciclo undefined→null→user que dejaba pantalla negra.
     let initialHandled = false;
+    let cancelado = false;
+
+    // Fix "micro refresh" en login (LS, 3-ago-2026): antes, cuando la
+    // sesión persistida ya había superado el idle-timeout o el time-box
+    // (SEC-21) mientras la pestaña estaba cerrada, la app igual pasaba
+    // por `setUser(authUser)` con la sesión "viva" — el usuario veía un
+    // instante de UI autenticada (o el spinner de perfil) antes de que
+    // useIdleTimeout/useTimeBox reaccionaran y forzaran handleLogout(),
+    // lo que se percibía como un parpadeo/refresh seguido de vuelta al
+    // login. Ahora ese vencimiento se resuelve AQUÍ, antes de exponer
+    // ningún estado autenticado: mientras se resuelve, `user` se queda en
+    // `undefined` (pantalla "Verificando sesión…"), así que si la sesión
+    // ya venció, jamás se llega a pintar la app — se cierra sesión en
+    // silencio y se va directo al login, sin flash intermedio.
+    //
+    // Usa el umbral MÁS LARGO (IDLE_DEFAULT_MS, 60 min) porque el rol
+    // (que decide si el umbral real es de 30 o 60 min) todavía no se
+    // conoce — el perfil no ha cargado. Esto cubre el caso común (horas
+    // o días con la pestaña cerrada) sin falsos positivos. El caso borde
+    // de un admin inactivo entre 30 y 60 min lo sigue atrapando
+    // useIdleTimeout una vez que el perfil (y su rol) ya están disponibles.
+    async function resolverSesionInicial(authUser) {
+      if (initialHandled) return;
+      initialHandled = true;
+
+      if (authUser) {
+        const transcurridoActividad = tiempoTranscurridoDesde(ACTIVIDAD_KEY);
+        const transcurridoSesion    = tiempoTranscurridoDesde(SESSION_START_KEY);
+        const expirada =
+          (transcurridoActividad !== null && transcurridoActividad >= IDLE_DEFAULT_MS) ||
+          (transcurridoSesion    !== null && transcurridoSesion    >= TIME_BOX_MS);
+
+        if (expirada) {
+          try {
+            localStorage.removeItem(ACTIVIDAD_KEY);
+            localStorage.removeItem(SESSION_START_KEY);
+          } catch { /* no-op */ }
+          try { await supabase.auth.signOut(); } catch { /* no-op: igual limpiamos el estado local */ }
+          if (!cancelado) {
+            setUser(null);
+            setProfile(null);
+            setLoadingProfile(false);
+          }
+          return;
+        }
+      }
+
+      if (!cancelado) {
+        setUser(authUser);
+        cargarProfile(authUser);
+      }
+    }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!initialHandled) {
-        initialHandled = true;
-        setUser(session?.user ?? null);
-        cargarProfile(session?.user ?? null);
-      }
+      resolverSesionInicial(session?.user ?? null);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -258,11 +325,7 @@ export default function useAuth() {
         // Si getSession ya procesó la sesión inicial, ignoramos este evento
         // para no relanzar cargarProfile innecesariamente y evitar pantalla negra.
         if (event === "INITIAL_SESSION") {
-          if (!initialHandled) {
-            initialHandled = true;
-            setUser(authUser);
-            cargarProfile(authUser);
-          }
+          await resolverSesionInicial(authUser);
           return;
         }
 
@@ -330,7 +393,10 @@ export default function useAuth() {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelado = true;
+      subscription.unsubscribe();
+    };
   }, [cargarProfile]);
 
   // Fix B (auditoría Junio 2026): handleLogin() eliminado — era código muerto.
