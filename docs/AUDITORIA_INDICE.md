@@ -41,30 +41,16 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ## 🔴 Hallazgos realmente abiertos
 
-**0 abiertos**, de una segunda pasada de verificación cruzada código↔BD
-real sobre la misma auditoría de estrés operacional del 2 de agosto
-(simulación deliberada de concurrencia masiva, entradas maliciosas,
-fallos de red y fatiga de usuario — no solo revisión estática, y no solo
-lectura de este índice). Esa segunda pasada encontró que `ARCH-29`/`UX-24`
-se habían marcado ✅ **sin que la migración `0057` que citaban existiera
-en el repo** — el bloqueo optimista estaba escrito en el cliente pero
-nunca se activaba en producción porque `horarios` no tenía columna
-`updated_at`. Reabierto como `ARCH-31`, migración `0057` subida y
-verificada contra la BD real (`pg_trigger`: el trigger propaga al padre y
-a las 7 particiones), cerrado el mismo día. `ARCH-30` y `SEC-27` (ninguno
-bloqueante) sí estaban correctamente cerrados. Los 2 hallazgos no
-bloqueantes que esa misma pasada dejó abiertos (`ARCH-32`, `UX-25`) se
-implementaron y cerraron también el mismo día — ver sus filas.
-
-| Prioridad | ID | Descripción corta | Estado |
-|---|---|---|---|
-| ~~1~~ | ~~🔴 **ARCH-29**~~ | ~~Edición de horarios sin bloqueo optimista~~ | ✅ Cerrado (2 ago) |
-| ~~2~~ | ~~🔴 **UX-24**~~ | ~~Sin aviso de conflicto de edición al usuario~~ | ✅ Cerrado (2 ago) |
-| ~~1~~ | ~~🟡 **ARCH-30**~~ | ~~`HorariosLayout` sin `ErrorBoundary` propio~~ | ✅ Cerrado (2 ago) |
-| ~~2~~ | ~~🟢 **SEC-27**~~ | ~~Validación de Excel solo por extensión, sin magic bytes~~ | ✅ Cerrado (2 ago) |
-| — | ~~🔴 **ARCH-31**~~ | ~~Migración `0057` citada por `ARCH-29` no existía en el repo/BD~~ | ✅ Cerrado (2 ago) |
-| ~~1~~ | ~~🟢 **ARCH-32**~~ | ~~Rate limit fijo de `registrar_asistencia()` sin backoff exponencial~~ | ✅ Cerrado (2 ago) |
-| ~~2~~ | ~~🟢 **UX-25**~~ | ~~`DocenteScan` sin contador visible de cola offline pendiente~~ | ✅ Cerrado (2 ago) |
+**0 abiertos.** Última verificación cruzada código↔BD real: 2 de agosto
+(auditoría de estrés operacional + pasada de implementación + fix
+reportado por LS). Esa pasada encontró que `ARCH-29`/`UX-24` se habían
+marcado ✅ **sin que la migración `0057` que citaban existiera en el
+repo** — reabierto y cerrado el mismo día como `ARCH-31` (ver tabla
+`ARCH-N`). El resto de hallazgos de esa fecha (`ARCH-30`, `SEC-27`,
+`ARCH-32`–`34`, `OFF-9`, `UX-25`–`28`) están detallados en sus tablas por
+prefijo abajo, no repetidos acá — ver también § Historial de auditorías
+para el resumen cronológico. Verificación final de esa fecha: 224/224
+tests, 0 errores de lint, build limpio.
 
 `UX-13` (modo oscuro) sigue ⛔ revertido a pedido de LS — decisión de
 producto, no hallazgo pendiente.
@@ -74,73 +60,11 @@ push/PR y semanalmente por cron (`SEC-20`), así que conviene revisar
 Security → Code scanning periódicamente en vez de asumir que 0 hallazgos
 abiertos es un estado permanente.
 
----
-
-## 🔴 Fixes de la pasada de implementación (2 de agosto, mismo día)
-
-Los 4 hallazgos abajo salieron de la auditoría de estrés operacional externa
-del 2 de agosto (ver sección anterior) y se implementaron y verificaron
-el mismo día, en orden de prioridad de despliegue.
-
-| Prioridad | ID | Descripción corta | Archivo(s) clave | Migración | Estado |
-|---|---|---|---|---|---|
-| 1 (bloqueante) | 🔴 **ARCH-33** | Condición de carrera real en `registrar_asistencia()`: `0058` reemplazó el UPSERT atómico de `0039` por `SELECT FOR UPDATE` + `INSERT` suelto — dos llamadas concurrentes del mismo `device_fingerprint` sin fila previa chocan por PK y una de las dos levanta una excepción no controlada en vez de JSON | `registrar_asistencia` | `0059` | ✅ Cerrado — **reproducido contra Postgres 16 real** (2 sesiones concurrentes, mismo fingerprint fresco → `duplicate key value violates unique constraint "scan_rate_limit_pkey"`), corregido con un único `INSERT ... ON CONFLICT DO UPDATE` (vuelve al patrón de `0039`) + una segunda UPDATE por PK segura bajo concurrencia para el disparo del bloqueo. Reverificado: 10 llamadas concurrentes sin fila previa → 0 errores, `intentos=10`; 15 concurrentes → 5 bloqueadas, `veces_bloqueado=1`, ~2 min; reincidencia tras expirar → `veces_bloqueado=2`, ~4 min (escalada correcta, igual bajo concurrencia real) |
-| 2 | 🟢 **OFF-9** | Rate limit de `api/csp-report.js` (`SEC-24`) vivía en un `Map()` en memoria del proceso — no persiste entre instancias serverless de Vercel, eludible repartiendo requests | `api/csp-report.js` | `0060` | ✅ Cerrado — contador movido a tabla `csp_report_rate_limit` vía RPC `registrar_csp_report_rate_limit()` (mismo patrón que `admin_actions_rate_limit`, SEC-16), mismo límite nominal (20/min por IP). Verificado contra Postgres real: 20/21 llamadas → `permitido:true`, la 21ª → `false`. Diseño fail-open: si la RPC falla (red/Supabase caído), permite el reporte en vez de romper el navegador reportante. 3 tests nuevos, 2 tests existentes actualizados (el índice de la llamada a `fetch` cambia porque ahora hay 2 llamadas: RPC + insert) |
-| 3 | 🟢 **ARCH-34** | Sin guardia de CI que impidiera reintroducir herramientas de build-time (causa raíz de `SEC-26`, `@tabler/icons-webfont`) como `dependencies` en vez de `devDependencies` | `.github/workflows/ci.yml` | — | ✅ Cerrado — paso nuevo en el job `test-and-build` que falla si `@tabler/icons-webfont` o `svgtofont` aparecen en `dependencies`. Verificado contra `package.json` actual: pasa |
-| 4 | 🟢 **UX-26** | `useDataSync.js`: `useEffect` de la suscripción realtime sin `userId`/`setConflictsRefreshKey` en deps — un cambio de usuario dejaba el closure de `limpiarCache(userId)`/`limpiarCacheNombres(userId)` con el id viejo, y el badge de pendientes podía no reflejar cambios sin recargar | `src/hooks/useAppData/useDataSync.js` | — | ✅ Cerrado — deps agregadas (`setConflictsRefreshKey` es un setter de `useState`, estable, no genera resuscripciones de más). 0 warnings de `exhaustive-deps` nuevos en este archivo para ese efecto (queda 1 warning preexistente sin relación, en el listener de online/offline, fuera de alcance de `UX-26`) |
-
-**Verificación empírica de esta pasada:** 221/221 tests (24 archivos, +2 desde
-la última corrida por los tests nuevos de `OFF-9`), `eslint .` → 0 errores,
-`vite build` → limpio. Las migraciones `0059`/`0060` se probaron contra una
-instancia real de Postgres 16 (no Supabase, pero mismo motor y semántica de
-`ON CONFLICT`/locks de fila), incluida una reproducción deliberada de
-concurrencia real con sesiones `psql` paralelas — no solo lectura de código.
-Pendiente (no verificable desde este entorno): aplicar `0059`/`0060` contra
-Supabase real y confirmar ahí también antes de tráfico de producción.
-
----
-
-## 🔴 Fix reportado por el usuario (mismo día) — edición de horarios
-
-**`UX-28`: editar una clase podía hacer "desaparecer" o "aparecer de golpe" a otra clase distinta, sin que ninguna de las dos se moviera realmente en la base de datos.**
-
-Síntoma reportado tal cual: *"probé a editar una clase y la siguiente se movía al lugar de la que edité, y cuando probé a agregarla nuevamente a la hora original, no apareció"* — módulo Horarios, menú Horarios.
-
-**Causa raíz (confirmada con una reproducción sintética antes de tocar código, no solo teorizada):** `TurnoGrid.jsx` arma la grilla marcando como "ocupados" los bloques de 45 min cubiertos por el `rowSpan` de una clase, y **descartaba en silencio** (`map[day][bi] = "skip"`) cualquier OTRA clase distinta que empezara justo en uno de esos bloques — aunque siguiera intacta en `horarios`. Esto pasa en la práctica en cuanto dos clases distintas terminan compartiendo un bloque tras una edición (ej. alargar la duración de una hasta pisar el inicio de la siguiente):
-- La clase tapada desaparecía de la grilla sin ningún aviso (= "no apareció" al intentar restaurarla).
-- Si esa clase larga ya llevaba tapando a otra desde antes, acortarla/editarla hacía que la tapada "apareciera de golpe" justo donde se estaba editando (= "la siguiente se movió al lugar de la que edité").
-
-**Fix:** en vez de descartar esas clases, se fusionan dentro de la celda que las tapa y la celda se marca visualmente como conflicto de horario (aviso ⚠️ + fondo `--color-danger-bg`, mismas variables que ya usa `ConflictosView.css`) — ninguna clase vuelve a desaparecer, y el choque de horario real en los datos queda visible para que el staff lo corrija en el origen, en vez de quedar oculto por el diseño de la grilla. Archivos: `TurnoGrid.jsx`, `TurnoGrid.css`. Test nuevo: `TurnoGrid.test.jsx` (3 casos — choque real muestra ambas clases + aviso, sin choque no aparece ningún aviso, clase larga sin choque sigue con su `rowSpan` normal).
-
-**Verificado:** 224/224 tests (3 nuevos), 0 errores de lint, build limpio.
-
----
-
-## 🔴 Fixes de la pasada de implementación (2 de agosto, mismo día) — continuación
-
-**Hallazgo adicional, no listado en la tabla original — encontrado al investigar un test que fallaba durante esta misma pasada:**
-
-| Prioridad | ID | Descripción corta | Archivo | Estado |
-|---|---|---|---|---|
-| 1 (bloqueante, silencioso) | 🔴 **UX-27** | Recurrencia del bug `fecha-hoy-timezone` (ver `utils/time.js`): `ReporteRango.jsx` calculaba el "lunes de esta semana" (default del filtro "Desde") con `new Date()` crudo (timezone del runtime, efectivamente UTC en producción) mientras `fin` ya usaba `fechaHoyVE()` (Venezuela). Entre 8pm y medianoche hora VE, UTC ya cambió de día — `inicio` podía quedar por delante de `fin`, `fetchRango()` nunca llamaba a la RPC, y el reporte quedaba vacío ("No hay asistencias en este rango") **sin ningún error visible**, todas las noches, en esa ventana de ~4h | `src/components/asistencias/ReporteAsistencias/ReporteRango.jsx` | ✅ Cerrado — encontrado porque el test `ReporteRango.integration.test.jsx` empezó a fallar de forma reproducible (no flaky) exactamente en esta ventana horaria real; se confirmó la causa raíz reproduciéndolo de forma aislada, y se corrigió derivando "lunes" de la misma fecha VE que "hoy" (aritmética en UTC para no reintroducir el problema por otra vía). Barrido de `grep` confirmó que era la única ocurrencia restante de este patrón en `src/`. Reverificado contra el reloj real del momento (dentro de la ventana de riesgo): `lunes ≤ hoy` ✓, y el test que fallaba ahora pasa |
-
-**6 warnings de `react-hooks/exhaustive-deps` revisados y corregidos** (cada uno evaluado individualmente por riesgo de bucle antes de tocarlo — no fue un `--fix` automático):
-- `useDataSync.js` (listener online/offline): agregadas `fetchDocenteNames`/`fetchMateriaNames` (estables, `useCallback`).
-- `useNombresCache.js`: agregada `showToast` (estable, `useCallback` con deps `[]`).
-- `PestanaRoles.jsx` / `PestanaUsuarios.jsx`: agregada `toast` a `cargar` (estable vía `showToastProp` memoizado). *Nota: en el primer intento sobre `PestanaUsuarios.jsx` se borró por accidente la línea `useEffect(() => { cargar(); }, [cargar]);` — detectado por 2 tests que empezaron a fallar en el mismo checkpoint, y restaurado antes de continuar.*
-- `VistaAusentes.jsx`: agregado `onAusentesChange` (es `setAusentesParaPDF`, un setter de estado — estable).
-- `PlanillaImprimibleBase.jsx`: agregado `catalogoDocentes` al `useMemo` de `docentesDelDia` — pero como el prop llegaba sin memoizar desde `PlanillaQR.jsx` (`Object.keys(docenteNames)` recalculado cada render), primero se memoizó ahí con `useMemo(..., [docenteNames])` para no invalidar el memo en cada render.
-- `App.jsx`: 3 warnings — el patrón repetido era depender de `objeto.metodo` en vez del método ya desestructurado. Se destructuraron `setAdminOpen`/`setUserMenuOpen` (de `shell`) y `setSelectedPrograma` (de `appData`), ambos setters de `useState` estables aunque los objetos contenedores (`shell`, `appData`) sean nuevos en cada render. Para `horariosFilters.resetFilters`, la causa raíz era que `resetFilters`/`handleSetTrayecto` en `useHorariosFilters.js` nunca estuvieron envueltos en `useCallback` — se corrigió ahí, no solo en el consumidor.
-- `ComparadorPanel.jsx`: `cerrados` es un array recalculado cada render (`.filter()` sin memoizar) — se mantiene trackeado por `.length` a propósito (documentado con comentario + `eslint-disable-next-line` bien targeteado, no un multi-línea que rompía el alcance de la directiva como en el primer intento).
-
-**Verificación final de esta pasada:** 221/221 tests (incluye el fix de `UX-27`, verificado empíricamente y no solo por inspección), 0 errores de lint (22 warnings restantes, todos `react-refresh/only-export-components`, cosméticos — requieren separar archivos, fuera de alcance por instrucción explícita de no crear archivos/programas nuevos en esta pasada), `vite build` limpio.
-
-**Deuda técnica cerrada en esta misma pasada:**
-- `vite` `6.4.3` → `7.3.6` (SEC-14 lo dejaba pendiente "hasta que los plugins lo soporten"). El bloqueo era `vite-plugin-pwa@0.21.x`, cuyo rango de peer dependency tope era `vite@^6`. Ya llegó a la versión `1.x`, con soporte declarado para `vite@^7||^8`. Se probó primero en una copia aislada del repo antes de tocar el real: instalación limpia, 221/221 tests, 0 errores de lint, `vite build` (genera PWA v1.3.0, mismo precache de 68 entradas), y arranque del dev server con HMR — los 4 verificados, no solo asumidos. `@vitejs/plugin-react@4.7.0` y `vitest@3.2.7` ya soportaban `vite@^7` sin cambios. Se dejó en `^7.3.6` (no `^8.x`) de forma conservadora — v8 es más reciente y no se probó.
-
-**Pendientes que quedan fuera del alcance de este entorno de trabajo (confirmado, no solo asumido — `curl` a `supabase.com` devuelve 403 por la política de red de este sandbox):**
-- Aplicar `0059`/`0060` contra el proyecto Supabase real (solo se probaron contra Postgres 16 local).
-- Confirmar en el dashboard de Supabase: `pg_cron` activo (`SEC-21`) y rate limiting nativo de Auth activo (`SEC-7`).
+Pendiente (no verificable desde este entorno, `curl` a `supabase.com`
+devuelve 403 por la política de red del sandbox): aplicar `0059`/`0060`
+contra el proyecto Supabase real, y confirmar en el dashboard que
+`pg_cron` (`SEC-21`) y el rate limiting nativo de Auth (`SEC-7`) siguen
+activos.
 
 ---
 
@@ -204,6 +128,7 @@ Esquema `OFF-N` (antes `O-N`/`P-N`).
 | **OFF-6** | Lockout de PIN en `localStorage` no resistía pestañas privadas | `LoginScreen.jsx` | ✅ Cerrado (migrado a IndexedDB) |
 | **OFF-7** | `DocenteScan` sin manejo offline | `DocenteScan/index.jsx` | ✅ Cerrado (encola en IndexedDB, confirmación optimista) |
 | **OFF-8** | Validación de token sin timeout — spinner infinito sin red | `DocenteScan/index.jsx` | ✅ Cerrado (timeout 3s) |
+| **OFF-9** 🟢 | Rate limit de `api/csp-report.js` (`SEC-24`) vivía en `Map()` en memoria del proceso — no persiste entre instancias serverless de Vercel, eludible repartiendo requests | `api/csp-report.js`, migración `0060` | ✅ Cerrado (2 ago) — contador movido a tabla `csp_report_rate_limit` vía RPC (mismo patrón que `SEC-16`), fail-open si la RPC falla. Verificado contra Postgres real: 20/21 llamadas → `true`, la 21ª → `false` |
 
 ## 🏗️ Arquitectura, testing y concurrencia
 
@@ -249,30 +174,24 @@ equivalencias al final.
 | **ARCH-27** | `ReporteRango.jsx` paginaba hasta 20.000 filas crudas de `asistencias_diarias` (bloques de 1000) y agrupaba por docente en el cliente — mucho tráfico de red y varias idas y vueltas sin feedback de progreso para el usuario | `ReporteRango.jsx`, migración `0055` (RPC `reporte_asistencias_rango_agregado`) | ✅ Cerrado (1 ago) — agregación `GROUP BY cedula_docente` server-side (`SECURITY INVOKER`, respeta el RLS de `SEC-11` sin cambios de superficie de seguridad). Elimina también el límite de 20.000 filas y el aviso de "resultado truncado" (ya no aplica: no se transfieren filas individuales). Conteo liviano (`head: true`) agregado aparte solo para el texto del modal de borrado, que sigue operando sobre registros individuales. **Nota:** el índice de auditoría ya referenciaba una migración "0055" (pg_cron de `SEC-21`) sin archivo en el repo — verificar contra la BD real antes de aplicar, ver comentario en la migración |
 | **ARCH-28** | `filtrados`/`diasHabiles` (`ReporteRango.jsx`) y `filtrados` (`ReporteAsistencias/index.jsx`) se recalculaban en cada render sin memoizar, aunque sus dependencias reales no cambiaran | `ReporteAsistencias/index.jsx`, `ReporteRango.jsx` | ✅ Cerrado (1 ago) — `useMemo` con las dependencias reales en los 3 casos |
 
-<!-- Nota de recuperación (2 ago): las filas de ARCH-23 a ARCH-28 se habían
-     perdido por completo del archivo desde el commit 4d9ca67 ("Revise audit
-     index with new findings and priorities") — ese commit truncó el archivo
-     a mitad de la fila de ARCH-21, cortando todo lo que venía después. El
-     commit siguiente (fa450ea, HEAD antes de esta sesión) intentó reponer
-     ARCH-23 pero el paste también quedó cortado a mitad de frase ("... a 525
-     líneas — mis"). Reconstruido acá contra el último commit donde el
-     archivo SÍ estaba completo (92d1fd3, `git show 92d1fd3:docs/AUDITORIA_INDICE.md`)
-     — texto idéntico al de esa versión, no reescrito ni resumido. -->
+<!-- Nota de recuperación (2 ago): ARCH-23–ARCH-28 se habían perdido en el
+     commit 4d9ca67 (truncó el archivo a mitad de ARCH-21) y el intento de
+     reponerlas en fa450ea también quedó cortado a mitad de frase.
+     Reconstruidas aquí contra 92d1fd3, último commit con el archivo íntegro
+     — texto idéntico, no reescrito. -->
 
 | **ARCH-30** 🟡 | `HorariosLayout.jsx` (shell de los módulos resumen/horarios/secciones/docentes/materias/asistencias) no tenía `ErrorBoundary` propio — un crash de render en cualquiera de esas vistas escalaba hasta el `ErrorBoundary` global de `main.jsx`, tumbando toda la app (sidebar y topbar incluidos) en vez de quedar contenido en el área de contenido | `src/app/HorariosLayout.jsx` | ✅ Cerrado (2 ago) — mismo patrón ya usado en `AsistenciasModulo.jsx`/`AdminModulo.jsx`: `ErrorBoundary` local envolviendo el `<main className="hl-main">`, no el layout completo. Sidebar/topbar siguen operativos aunque una vista crashee. 211/211 tests preexistentes sin romper, 0 errores de lint, build limpio |
 | **ARCH-31** 🔴 | Reabre `ARCH-29`/`UX-24`: el bloqueo optimista de `saveClase()` (`horarioEditing.js`) condiciona el `UPDATE` a `.eq("updated_at", expectedUpdatedAt)`, pero la migración `0057` que ese fix citaba (columna `updated_at` + trigger server-side en `horarios`) nunca se había subido al repo — `entry.updated_at` llegaba `undefined` en producción y el guard se degradaba siempre a "sin condición extra", el mismo comportamiento inseguro que `ARCH-29` describía como bloqueante | `docs/supabase/migrations/0057_arch29_bloqueo_optimista_horarios.sql` (nueva) | ✅ Cerrado (2 ago) — migración subida: `ALTER TABLE horarios ADD COLUMN updated_at` + función/trigger `set_updated_at()` `BEFORE UPDATE` sobre el padre (Postgres 11+ propaga triggers `FOR EACH ROW` de una tabla particionada declarativa a todas sus particiones automáticamente, sin loop). Verificado contra la BD real, no asumido: `SELECT tgrelid::regclass, tgname FROM pg_trigger WHERE tgname = 'trg_horarios_set_updated_at'` devuelve 8 filas — el padre `horarios` + las 7 particiones reales (`horarios_lapso_1_2026`...`horarios_lapso_default`). Confirmado también que `useDataSync.js` usa `select("*, ...")` en el fetch que puebla `ModalEditarClase`, así que `entry.updated_at` llega poblado al cliente. 211/211 tests, 0 errores de lint, build limpio |
-| **ARCH-32** 🟢 | `registrar_asistencia()` (`SEC-13`/migración `0039`) usa un límite fijo (10 intentos/hora por `device_fingerprint`) sin backoff exponencial — un dispositivo legítimo con mala señal que reintenta agresivamente en un operativo real puede auto-bloquearse antes de llegar al límite por abuso genuino | `scan_rate_limit`, RPC `registrar_asistencia`, migración `0058` | ✅ Cerrado (2 ago) — backoff progresivo: la primera vez que un dispositivo supera el límite recibe un bloqueo corto (2 min); si reincide después de que ese bloqueo expira, el bloqueo se duplica (4, 8, 16... techo de 60 min, el mismo límite que antes aplicaba parejo a todos los casos). `veces_bloqueado` decae a 0 tras 24h sin bloqueos nuevos. El conteo de intentos en la ventana de 60 min no cambia (sigue contando éxitos y fallos por igual, a propósito — evita enumeración de cédulas); lo que cambia es la duración del bloqueo una vez disparado. **No se pudo probar contra una instancia Supabase real desde este entorno** (mismo patrón que `SEC-9`/`SEC-17`) — la migración incluye el escenario de verificación manual (11 llamadas seguidas con el mismo `device_fingerprint`) para confirmar antes de dar por cerrado con datos reales |
+| **ARCH-32** 🟢 | `registrar_asistencia()` (`SEC-13`/migración `0039`) usa un límite fijo (10 intentos/hora por `device_fingerprint`) sin backoff exponencial — un dispositivo legítimo con mala señal que reintenta agresivamente en un operativo real puede auto-bloquearse antes de llegar al límite por abuso genuino | `scan_rate_limit`, RPC `registrar_asistencia`, migración `0058` | ✅ Cerrado (2 ago) — backoff progresivo: la primera vez que un dispositivo supera el límite recibe un bloqueo corto (2 min); si reincide después de que ese bloqueo expira, el bloqueo se duplica (4, 8, 16... techo de 60 min). `veces_bloqueado` decae a 0 tras 24h sin bloqueos nuevos. **No se pudo probar contra Supabase real desde este entorno** (mismo patrón que `SEC-9`/`SEC-17`) — migración incluye escenario de verificación manual |
+| **ARCH-33** 🔴 | Migración `0058` (de `ARCH-32`) reemplazó el UPSERT atómico de `0039` por `SELECT FOR UPDATE`+`INSERT` suelto en `registrar_asistencia()` — condición de carrera real: 2 llamadas concurrentes del mismo `device_fingerprint` sin fila previa chocan por PK | RPC `registrar_asistencia`, migración `0059` | ✅ Cerrado (2 ago) — reproducido contra Postgres 16 real (`duplicate key value violates unique constraint "scan_rate_limit_pkey"`), corregido con `INSERT ... ON CONFLICT DO UPDATE` (vuelve al patrón de `0039`). Reverificado bajo concurrencia real: 15 llamadas → 5 bloqueadas, escalada de `veces_bloqueado` correcta |
+| **ARCH-34** 🟢 | Sin guardia de CI que impidiera reintroducir herramientas de build-time (causa raíz de `SEC-26`) como `dependencies` en vez de `devDependencies` | `.github/workflows/ci.yml` | ✅ Cerrado (2 ago) — paso nuevo en `test-and-build` que falla si `@tabler/icons-webfont`/`svgtofont` aparecen en `dependencies` |
 
-<!-- Nota de recuperación (2 ago, continuación): las 6 secciones que siguen
-     (CI/CD, UI y estilos, Identidad visual, Funcionalidad nueva, Esquema
-     retirado, Historial de auditorías, Tabla de equivalencias) también se
-     habían perdido por completo en el mismo commit `4d9ca67` — no solo
-     `ARCH-23`-`ARCH-28`. Restauradas textualmente contra `92d1fd3`, el
-     último commit donde el archivo estaba íntegro (420 líneas). El
-     contenido narrativo de estas secciones (conteos de tests, "X hallazgos
-     abiertos", etc.) refleja el estado del proyecto al 1 de agosto, cuando
-     se escribió — no el estado actual; ver las secciones de arriba para el
-     estado real de hoy. -->
+<!-- Nota de recuperación (2 ago, cont.): las 6 secciones siguientes (CI/CD,
+     UI, Identidad visual, Funcionalidad nueva, Esquema retirado, Historial,
+     Tabla de equivalencias) también se perdieron en el mismo commit
+     4d9ca67; restauradas contra 92d1fd3. Su contenido narrativo (conteos de
+     tests, etc.) refleja el estado al 1 de agosto, no el actual — ver
+     tablas de arriba para el estado real de hoy. -->
 
 ## 🔧 CI/CD y automatización
 
@@ -315,6 +234,9 @@ Esquema `UX-N` (antes `U-N` + `A3` de inline styles).
 | **UX-22** | Reportado por LS desde móvil: dropdown de Administración no cerraba al tocar el botón de nuevo (condición de carrera con el listener de "clic afuera") | `AdminMenu.jsx` | ✅ Cerrado (14 jul) — listener ignora clics sobre `.hl-admin-btn`, el botón es la única fuente de verdad de su toggle |
 | **UX-23** | Reportado por LS: contador de permisos del admin mostraba "17/15" | `usuarios/shared.jsx` | ✅ Cerrado (15 jul) — `GRUPOS_PERMISOS` (catálogo de UI) le faltaban `puedeBorrarSesiones`/`puedeBorrarReportes`, ya funcionales en código pero sin checkbox en el editor de roles |
 | **UX-25** 🟢 | `DocenteScan` encola registros en IndexedDB cuando no hay red (`OFF-7`), pero no muestra un contador visible de cuántos quedan pendientes de sincronizar — un operador de QR en un operativo real con conexión inestable y fila de docentes no tiene forma de saber si sus escaneos ya se confirmaron contra el servidor | `asistencias/DocenteScan/index.jsx`, `Shell.jsx`, `utils/offlineQueue.js` | ✅ Cerrado (2 ago) — badge `role="status" aria-live="polite"` agregado en `Shell.jsx` (el único wrapper común a las ~10 pantallas de `DocenteScan`, evita enhebrar la prop por cada call-site). Autocontenido: lee `contarPendientes()` al montar y se refresca sin polling escuchando un evento DOM nuevo (`sigma:cola-offline-cambio`) que `offlineQueue.js` dispara en `encolarAsistencia()`/`eliminarPendiente()`/`purgarExpirados()`, más `online`/`offline` como respaldo. 8 tests nuevos (5 de integración sobre `Shell`, 3 de regresión sobre el evento). 219/219 tests, 0 errores de lint, build limpio |
+| **UX-26** 🟢 | `useDataSync.js`: `useEffect` de la suscripción realtime sin `userId`/`setConflictsRefreshKey` en deps — un cambio de usuario dejaba el closure de `limpiarCache(userId)`/`limpiarCacheNombres(userId)` con el id viejo | `src/hooks/useAppData/useDataSync.js` | ✅ Cerrado (2 ago) — deps agregadas (`setConflictsRefreshKey` es un setter de `useState`, estable). 0 warnings nuevos de `exhaustive-deps` en ese efecto |
+| **UX-27** 🔴 | Recurrencia del bug `fecha-hoy-timezone` (ver `utils/time.js`): `ReporteRango.jsx` calculaba el "lunes de esta semana" con `new Date()` crudo (UTC en producción) mientras `fin` ya usaba `fechaHoyVE()` — entre 8pm y medianoche hora VE, el reporte quedaba vacío sin ningún error visible, todas las noches, en esa ventana de ~4h | `ReporteAsistencias/ReporteRango.jsx` | ✅ Cerrado (2 ago) — encontrado porque `ReporteRango.integration.test.jsx` empezó a fallar de forma reproducible exactamente en esa ventana; corregido derivando "lunes" de la misma fecha VE que "hoy". `grep` confirmó que era la única ocurrencia restante del patrón en `src/` |
+| **UX-28** 🔴 | Reportado por LS: *"probé a editar una clase y la siguiente se movía al lugar de la que edité, y cuando probé a agregarla nuevamente a la hora original, no apareció"* — `TurnoGrid.jsx` marcaba como "ocupados" los bloques cubiertos por el `rowSpan` de una clase y descartaba en silencio cualquier OTRA clase que empezara en uno de esos bloques, aunque siguiera intacta en `horarios` | `TurnoGrid.jsx`, `TurnoGrid.css` | ✅ Cerrado (2 ago) — reproducido sintéticamente antes de tocar código. Fix: las clases tapadas se fusionan en la celda que las tapa, marcada visualmente como conflicto (⚠️ + `--color-danger-bg`, mismas variables que `ConflictosView.css`) en vez de desaparecer. 3 tests nuevos (`TurnoGrid.test.jsx`). 224/224 tests, 0 errores de lint, build limpio |
 
 ## 🎨 Identidad visual y sistema de diseño
 
@@ -389,6 +311,7 @@ Solo hitos — el "cómo" completo vive en las tablas de arriba.
 - **1 ago, rendimiento/UX en módulo de reportes:** clonado fresco contra `2b36c46` (sin hallazgos abiertos previos). Pedido explícito de LS: 3 hallazgos nuevos de rendimiento (`ARCH-26`–`ARCH-28`), cerrados en la misma sesión. `ARCH-26` (fetch condicional en `VistaAusentes`) y `ARCH-28` (memoización) sin migración. `ARCH-27` (agregación server-side para Reporte por Rango) sí — migración `0055`, RPC `SECURITY INVOKER` sobre `asistencias_diarias`, sin cambios de superficie de seguridad respecto al SELECT directo que reemplaza. Como efecto colateral de `ARCH-27`, desaparece el problema de "sin feedback de progreso durante paginación larga" — ya no hay paginación cliente que mostrar progreso de. 185/185 tests (4 nuevos), `vite build` limpio.
 - **1 ago, `npm audit` fallando en CI (`SEC-26`):** LS reportó la salida de `npm audit --omit=dev --audit-level=high` (3 vulnerabilidades, exit 1). Rastreadas hasta `svgtofont`, dependencia de build interna de `@tabler/icons-webfont` — paquete confirmado sin ningún uso real en el proyecto (los íconos se sirven desde `public/fonts/`, estáticos y versionados). `npm uninstall @tabler/icons-webfont` → 0 vulnerabilidades. Sin impacto en build/tests (185/185, build idéntico).
 - **1 ago, personalización de reportes (`ADMIN-6`):** pedido explícito de LS ("mejorar visualmente los reportes, agregarle formato, encabezados, logos"), resuelto en el nivel más completo de 3 opciones consultadas (módulo completo con logo subido, colores, textos y vista previa; aplicado a los 3 documentos imprimibles; admin-only). Detectado durante el diseño: `ADMIN-5` ya estaba tomado (grid del selector de módulos, 12-13 jul) — la búsqueda inicial de IDs no lo incluyó, se corrigió a `ADMIN-6` antes de entregar. Unificar `exportPDF.js`/`PlanillaImprimibleBase.jsx` sobre `reportePlantilla.js` corrigió de paso un bug de CSS inline en `PlanillaImprimibleBase` nunca reportado (ver detalle en la fila `ADMIN-6`). 205/205 tests (20 nuevos), 0 errores de lint, build limpio (chunk `ConfiguracionReportes` separado por code-splitting, 6.54 KB).
+- **2 ago, auditoría de estrés operacional + pasada de implementación:** aporta `ARCH-29`/`UX-24` (reabiertos como `ARCH-31` al detectar que la migración `0057` citada no existía), `ARCH-30`, `SEC-27`, `ARCH-32`–`34`, `OFF-9`, `UX-25`, `UX-26`. Deuda técnica cerrada en la misma pasada, sin ID propio: 6 warnings de `react-hooks/exhaustive-deps` corregidos uno por uno (`useDataSync.js`, `useNombresCache.js`, `PestanaRoles/PestanaUsuarios.jsx`, `VistaAusentes.jsx`, `PlanillaImprimibleBase.jsx`, `App.jsx`, `ComparadorPanel.jsx`), y `vite` `6.4.3`→`7.3.6` (bloqueado antes por `vite-plugin-pwa`, ya soporta `^7`). Investigando un test que empezó a fallar en esta misma pasada se encontró `UX-27` (bug de timezone en `ReporteRango.jsx`). Mismo día, LS reportó por separado un bug de edición de horarios (clases que "desaparecían"/"aparecían de golpe" en `TurnoGrid.jsx`), cerrado como `UX-28`. Verificación final: 224/224 tests, 0 errores de lint, build limpio.
 
 ## 🔁 Tabla de equivalencias (IDs antiguos → nuevos)
 
@@ -510,21 +433,19 @@ dice `Fix S1`, es el mismo hallazgo que esta tabla mapea a `SEC-1`.
 
 ---
 
-*Optimizado el 16 de julio de 2026: de 601 a ~400 líneas. Se condensaron los
-párrafos de verificación de cada hallazgo ✅ cerrado a causa raíz + fix en
-una línea (migraciones, archivos e IDs intactos); se recortó el historial
-narrativo (ya duplicado en las tablas) a un resumen por fecha. En esa misma
-pasada se cerraron `UX-17` y `UX-18` (ambos cosméticos, sin tocar `UX-13` —
-LS confirmó de nuevo que el modo oscuro no se retoma) y, más tarde el mismo
-día, `UX-11` (7 corridas reales de CI sin diffs desde el 13 de julio,
-`continue-on-error` retirado de `ci.yml`). **Nota de recuperación:** un
-commit de LS (`44b25f6`, mismo día) había agregado `SEC-25` y cerrado
-`SEC-23` en el índice original, pero un `git push` posterior con esta
-versión optimizada lo sobrescribió sin querer (el archivo optimizado se
-generó antes de ese commit). Reconstruido acá a partir del diff real de
-`44b25f6` — sin pérdida de información, solo de orden de commits. Con
-`SEC-23` cerrado, el índice queda en **0 hallazgos abiertos**. Último
-estado real: 181/181 tests, `vite build` limpio. Última reorganización de
-fondo: 14 de julio de 2026 (normalización de IDs a 8 prefijos únicos). Para
-el índice de migraciones SQL y el esquema de BD, ver
-`ESQUEMA_Y_MIGRACIONES.md`.*
+*Optimizaciones de este documento — **16 jul** (601→~400 líneas): párrafos
+de verificación de cada hallazgo ✅ cerrado condensados a causa raíz + fix
+en una línea (migraciones/archivos/IDs intactos); historial narrativo
+recortado a resumen por fecha. Incluyó una recuperación de contenido
+(commit `44b25f6` con `SEC-25`/cierre de `SEC-23`, sobrescrito sin querer
+por un push con la versión optimizada — reconstruido del diff real, sin
+pérdida de información). **3 ago** (530→~450 líneas): mismo criterio
+aplicado a las 4 secciones narrativas del "2 de agosto" que habían vuelto
+a crecer arriba del archivo — replegadas a sus filas en las tablas por
+prefijo (`ARCH-32`–`34`, `OFF-9`, `UX-25`–`28`) y a una línea en §
+Historial; las 2 notas de recuperación de contenido perdido (commit
+`4d9ca67`) se condensaron sin perder la referencia a los commits
+involucrados. Nada se eliminó sin migrarlo antes a su tabla permanente.
+Última reorganización de fondo (normalización de IDs a 8 prefijos únicos):
+14 de julio de 2026. Para el índice de migraciones SQL y el esquema de BD,
+ver `ESQUEMA_Y_MIGRACIONES.md`.*
