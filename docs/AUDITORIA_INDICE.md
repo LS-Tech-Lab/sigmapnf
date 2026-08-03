@@ -100,6 +100,22 @@ Supabase real y confirmar ahí también antes de tráfico de producción.
 
 ---
 
+## 🔴 Fix reportado por el usuario (mismo día) — edición de horarios
+
+**`UX-28`: editar una clase podía hacer "desaparecer" o "aparecer de golpe" a otra clase distinta, sin que ninguna de las dos se moviera realmente en la base de datos.**
+
+Síntoma reportado tal cual: *"probé a editar una clase y la siguiente se movía al lugar de la que edité, y cuando probé a agregarla nuevamente a la hora original, no apareció"* — módulo Horarios, menú Horarios.
+
+**Causa raíz (confirmada con una reproducción sintética antes de tocar código, no solo teorizada):** `TurnoGrid.jsx` arma la grilla marcando como "ocupados" los bloques de 45 min cubiertos por el `rowSpan` de una clase, y **descartaba en silencio** (`map[day][bi] = "skip"`) cualquier OTRA clase distinta que empezara justo en uno de esos bloques — aunque siguiera intacta en `horarios`. Esto pasa en la práctica en cuanto dos clases distintas terminan compartiendo un bloque tras una edición (ej. alargar la duración de una hasta pisar el inicio de la siguiente):
+- La clase tapada desaparecía de la grilla sin ningún aviso (= "no apareció" al intentar restaurarla).
+- Si esa clase larga ya llevaba tapando a otra desde antes, acortarla/editarla hacía que la tapada "apareciera de golpe" justo donde se estaba editando (= "la siguiente se movió al lugar de la que edité").
+
+**Fix:** en vez de descartar esas clases, se fusionan dentro de la celda que las tapa y la celda se marca visualmente como conflicto de horario (aviso ⚠️ + fondo `--color-danger-bg`, mismas variables que ya usa `ConflictosView.css`) — ninguna clase vuelve a desaparecer, y el choque de horario real en los datos queda visible para que el staff lo corrija en el origen, en vez de quedar oculto por el diseño de la grilla. Archivos: `TurnoGrid.jsx`, `TurnoGrid.css`. Test nuevo: `TurnoGrid.test.jsx` (3 casos — choque real muestra ambas clases + aviso, sin choque no aparece ningún aviso, clase larga sin choque sigue con su `rowSpan` normal).
+
+**Verificado:** 224/224 tests (3 nuevos), 0 errores de lint, build limpio.
+
+---
+
 ## 🔴 Fixes de la pasada de implementación (2 de agosto, mismo día) — continuación
 
 **Hallazgo adicional, no listado en la tabla original — encontrado al investigar un test que fallaba durante esta misma pasada:**

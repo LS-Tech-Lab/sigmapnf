@@ -20,16 +20,46 @@ export default function TurnoGrid({
     const map = {};
     days.forEach(day => {
       map[day] = {};
-      const occupied = {};
+      // `owner[bi] = biDueño` — qué celda (identificada por su propio bi de
+      // inicio) cubre el bloque `bi` mediante su rowSpan. Antes se guardaba
+      // solo un booleano `occupied[bi]`, y cualquier clase que EMPEZARA en
+      // un bloque ya cubierto por el rowSpan de una clase anterior se
+      // descartaba en silencio (`map[day][bi] = "skip"; return;`) sin
+      // aparecer en ningún lado — aunque siguiera intacta en la base de
+      // datos. Esto es lo que producía el bug reportado: editar una clase
+      // (ej. alargar su duración) podía "tapar" y hacer desaparecer una
+      // clase distinta que empezaba en el bloque siguiente; y al revés, si
+      // una clase larga ya estaba tapando a otra desde antes, acortarla o
+      // editarla hacía que la tapada "apareciera de golpe" donde se estaba
+      // editando — dando la sensación de que "se movió", cuando en
+      // realidad siempre estuvo ahí, invisible.
+      //
+      // Fix UX-28: ahora, si un bloque ya cubierto por un rowSpan anterior
+      // tiene ADEMÁS su propia clase empezando ahí (choque real de horario
+      // en los datos, ej. dos clases distintas superpuestas en el mismo
+      // día/aula), esa clase se fusiona dentro de la celda dueña en vez de
+      // descartarse — nunca desaparece de la vista, y la celda se marca
+      // `conflicto: true` para que el staff note el choque de horario y lo
+      // corrija en el origen (no es algo que la grilla deba resolver sola).
+      const owner = {};
       bloques.forEach((bloque, bi) => {
-        if (occupied[bi]) { map[day][bi] = "skip"; return; }
-        const entries = filtered.filter(d => d.dia === day && getTurnoDeRegistro(d) === turnoLabel && findStartBlock(bloques, d.hora) === bi);
-        if (!entries.length) { map[day][bi] = null; return; }
+        const entriesAqui = filtered.filter(d => d.dia === day && getTurnoDeRegistro(d) === turnoLabel && findStartBlock(bloques, d.hora) === bi);
+
+        if (owner[bi] !== undefined) {
+          if (entriesAqui.length) {
+            map[day][owner[bi]].entries.push(...entriesAqui);
+            map[day][owner[bi]].conflicto = true;
+          }
+          map[day][bi] = "skip";
+          return;
+        }
+
+        if (!entriesAqui.length) { map[day][bi] = null; return; }
         let span = 1;
-        entries.forEach(e => { const s = countBlocks(e.hora); if (s > span) span = s; });
+        entriesAqui.forEach(e => { const s = countBlocks(e.hora); if (s > span) span = s; });
         span = Math.min(span, bloques.length - bi);
-        map[day][bi] = { entries, span };
-        for (let k = bi + 1; k < bi + span; k++) occupied[k] = true;
+        map[day][bi] = { entries: entriesAqui, span };
+        for (let k = bi + 1; k < bi + span; k++) owner[k] = bi;
       });
     });
     return map;
@@ -79,10 +109,19 @@ export default function TurnoGrid({
                     if (cell.skip) return null;
                     const cellKey = `${turnoLabel}__${bi}__${day}`, isExp = expandedCell === cellKey;
                     if (cell.empty) return <td key={day} className="tg-cell-empty" />;
-                    const { entries, span } = cell.data;
+                    const { entries, span, conflicto } = cell.data;
                     return (
-                      <td key={day} rowSpan={span} className={`tg-cell-data tg-cell-data--span-${span}`}>
+                      <td
+                        key={day}
+                        rowSpan={span}
+                        className={`tg-cell-data tg-cell-data--span-${span}${conflicto ? " tg-cell-data--conflicto" : ""}`}
+                      >
                         <div className="tg-cell-inner">
+                        {conflicto && (
+                          <div className="tg-cell-conflicto-aviso" role="alert">
+                            <i className="ti ti-alert-triangle" aria-hidden="true" /> Choque de horario: hay más de una clase en este bloque.
+                          </div>
+                        )}
                         {entries.map((e) => {
                           const { materia: rawMateria, docente: docenteParseado } = parseClase(e.clase);
                           const rawDoc = e.docentes?.nombre_raw || docenteParseado;

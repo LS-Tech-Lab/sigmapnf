@@ -67,6 +67,17 @@
 .tg-cell-data--span-5 { height: 260px; }
 .tg-cell-data--span-6 { height: 312px; }
 
+/* Fix UX-28: choque de horario (dos clases distintas en el mismo bloque —
+   ver comentario en TurnoGrid.jsx sobre por qué esto puede pasar). Mismas
+   variables que ya usa ConflictosView.css para el mismo tipo de aviso, no
+   un color nuevo. */
+.tg-cell-data--conflicto { background: var(--color-danger-bg); }
+.tg-cell-conflicto-aviso {
+  display: flex; align-items: center; gap: 4px;
+  font-size: var(--font-size-11, 11px); font-weight: 600; color: var(--color-danger);
+  padding: 2px 4px 4px; line-height: 1.3;
+}
+
 .tg-clase {
   background: var(--clase-bg, #f0f0f0); border-left: 3px solid var(--clase-color, #555);
   border-radius: 6px; padding: 5px 8px; cursor: pointer; transition: all 0.15s;
