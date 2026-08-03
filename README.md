@@ -1,4 +1,4 @@
-# SIGMA — Sistema de Gestión de Horarios y Asistencias
+# SIGMA — Sistema Integrado de Gestión y Módulos Académicos
 
 Sistema web para la gestión de horarios académicos y el control automatizado de
 asistencia docente, desarrollado para los Programas Nacionales de Formación
