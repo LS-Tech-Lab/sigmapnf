@@ -18,8 +18,10 @@ aplicado en la auditoría de 2026 (throttle de rotación).
 | `src/components/asistencias/AdminQRPanel.jsx` | Panel del admin/`operador_qr`: configura turno/programa/fecha, inicia/cierra la sesión, muestra el QR, el feed de actividad y el contador de entradas/salidas. |
 | `src/components/asistencias/QRProyeccion.jsx` | Vista de solo-proyección (pantalla/proyector del aula) — el QR y las instrucciones, nada de controles administrativos. |
 | `src/components/asistencias/DocenteScan/index.jsx` | Página pública que abre el docente al escanear (`/scan?token=...`). Sin sesión Supabase, acceso anónimo. |
-| `supabase/migrations/0006_modulo_asistencias_qr.sql` | Esquema (`qr_sessions`, `asistencias_diarias`) y RPCs base (`crear_qr_session`, `renovar_qr_token`, `registrar_asistencia`). |
-| `supabase/migrations/0039_rate_limit_scan.sql` | Rate limiting por `device_fingerprint` sobre `registrar_asistencia`. |
+| `docs/supabase/migrations/0006_modulo_asistencias_qr.sql` | Esquema (`qr_sessions`, `asistencias_diarias`) y RPCs base (`crear_qr_session`, `renovar_qr_token`, `registrar_asistencia`). |
+| `docs/supabase/migrations/0039_rate_limit_scan.sql` | Rate limiting por `device_fingerprint` sobre `registrar_asistencia`. |
+| `docs/supabase/migrations/0058_arch32_backoff_progresivo_scan.sql` | Backoff progresivo (**ARCH-32**) sobre el mismo rate limit. |
+| `docs/supabase/migrations/0059_arch33_fix_race_condition_rate_limit.sql` | Fix de condición de carrera real (**ARCH-33**) en `registrar_asistencia`. |
 
 ---
 
