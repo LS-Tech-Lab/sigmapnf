@@ -337,6 +337,20 @@ export default function useAuth() {
         // error PGRST201 del fix #3). El setTimeout anterior no
         // garantizaba esto — solo añadía un delay arbitrario.
         if (event === "SIGNED_IN" && authUser) {
+          // Fix "refresh a los segundos de loguear" (LS, 3-ago-2026):
+          // handleLogout() limpia ACTIVIDAD_KEY/SESSION_START_KEY, pero un
+          // login nuevo vía LoginScreen (signInWithPassword) llega aquí
+          // directo, sin pasar por handleLogout. Si la sesión anterior
+          // terminó sin logout explícito (pestaña cerrada, crash), esas
+          // marcas quedaban viejas en localStorage — y en cuanto
+          // useIdleTimeout se activaba (segundos después, al terminar de
+          // cargar el perfil), las leía, las veía vencidas, y cerraba la
+          // sesión recién iniciada. Un login fresco siempre debe arrancar
+          // el reloj de inactividad/time-box desde cero.
+          try {
+            localStorage.removeItem(ACTIVIDAD_KEY);
+            localStorage.removeItem(SESSION_START_KEY);
+          } catch { /* no-op */ }
           setSessionStart(new Date());
           cargarProfile(authUser).then(() => {
             (async () => {
