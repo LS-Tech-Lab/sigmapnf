@@ -1,8 +1,8 @@
-# SIGMA — Sistema Integrado de Gestión y Módulos Académicos
+# SIGMA: Sistema Integrado de Gestión y Módulos Académicos
 
 Sistema web para la gestión de horarios académicos y el control automatizado de
 asistencia docente, desarrollado para los Programas Nacionales de Formación
-(PNF) de UNERMB, sede Cabimas.
+(PNF) de la UNERMB.
 
 ## Características
 
