@@ -21,7 +21,7 @@ import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import TurnoGrid from "./TurnoGrid";
-import { BLOQUES_DIURNO, DAYS } from "../constants";
+import { BLOQUES_DIURNO, BLOQUES_MIXTO, DAYS } from "../constants";
 
 afterEach(() => {
   cleanup();
@@ -141,5 +141,78 @@ describe("TurnoGrid — Fix UX-28: choque de horario no debe ocultar clases", ()
     expect(screen.queryByText(/Choque de horario/i)).toBeNull();
     const celdaLarga = container.querySelector(".tg-cell-data--span-2");
     expect(celdaLarga).toBeTruthy();
+  });
+});
+
+// =====================================================================
+// Caso particular PNF Agroalimentación — grilla dinámica (turno "MIXTO")
+// Reproduce datos reales del Excel estándar de Agroalimentación: una
+// clase que cruza el mediodía (11:30am-1:45pm, 3 bloques de 45 min) y
+// otra que arranca antes del primer bloque base (7:00am, base son 7:00-
+// 7:45 pero solo si la data lo pide). Antes de este fix, esas clases se
+// truncaban o directamente no se veían.
+// =====================================================================
+describe("TurnoGrid — caso Agroalimentación: grilla dinámica para turno MIXTO", () => {
+  it("una clase que cruza el mediodía (11:30am-1:45pm, 2h15) rinde con su rowSpan completo, sin truncarse", () => {
+    const filtered = [
+      entry({ id: 1, dia: "LUNES", hora: "11:30AM-1:45PM", materia: "Química Aplicada", docente: "Brito", turno: "MIXTO" }),
+    ];
+
+    const { container } = render(
+      <TurnoGrid
+        bloques={BLOQUES_MIXTO}
+        turnoLabel="MIXTO"
+        filtered={filtered}
+        days={DAYS}
+        expandedCell={null}
+        setExpandedCell={noop}
+        getDocName={getDocName}
+        getMateriaName={getMateriaName}
+        puedeEditar={false}
+        puedeBorrar={false}
+        puedeCrearDocentes={false}
+        puedeCrearMaterias={false}
+        onSaveClase={vi.fn()}
+        onDeleteClase={vi.fn()}
+        openConfirm={vi.fn()}
+        closeConfirm={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Química Aplicada")).toBeTruthy();
+    // 11:30am-1:45pm son 3 bloques de 45 min (11:30-12:15, 12:15-1:00, 1:00-1:45).
+    const celda = container.querySelector(".tg-cell-data--span-3");
+    expect(celda).toBeTruthy();
+  });
+
+  it("una clase de 4h30 (Proyecto Formativo, 7:00am-11:30am) rinde con span=6, no se pierde ni se corta", () => {
+    const filtered = [
+      entry({ id: 1, dia: "LUNES", hora: "7:00AM-11:30AM", materia: "Proyecto Formativo I", docente: "Viloria", turno: "MIXTO" }),
+    ];
+
+    const { container } = render(
+      <TurnoGrid
+        bloques={BLOQUES_MIXTO}
+        turnoLabel="MIXTO"
+        filtered={filtered}
+        days={DAYS}
+        expandedCell={null}
+        setExpandedCell={noop}
+        getDocName={getDocName}
+        getMateriaName={getMateriaName}
+        puedeEditar={false}
+        puedeBorrar={false}
+        puedeCrearDocentes={false}
+        puedeCrearMaterias={false}
+        onSaveClase={vi.fn()}
+        onDeleteClase={vi.fn()}
+        openConfirm={vi.fn()}
+        closeConfirm={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Proyecto Formativo I")).toBeTruthy();
+    const celda = container.querySelector(".tg-cell-data--span-6");
+    expect(celda).toBeTruthy();
   });
 });

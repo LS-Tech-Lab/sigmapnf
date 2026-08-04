@@ -113,6 +113,21 @@ describe("partesHoraNormalizadas — Fix formato de hora compartido", () => {
   });
 });
 
+describe("partesHoraNormalizadas — Fix 2: formato compartido cruzando el mediodía (caso MIXTO)", () => {
+  it("'11:30 - 12:15 PM' se lee como 11:30 AM (no 11:30 PM) — bloque MIXTO que cruza el mediodía", () => {
+    expect(partesHoraNormalizadas("11:30 - 12:15 PM")).toEqual(["11:30AM", "12:15 PM"]);
+  });
+
+  it("'11:30 - 1:45 PM' (clase mergeada que cruza el mediodía) también se lee con inicio AM", () => {
+    expect(partesHoraNormalizadas("11:30 - 1:45 PM")).toEqual(["11:30AM", "1:45 PM"]);
+  });
+
+  it("sigue funcionando igual que antes para rangos que NO cruzan el mediodía", () => {
+    expect(partesHoraNormalizadas("3:15-5:30PM")).toEqual(["3:15PM", "5:30PM"]);
+    expect(partesHoraNormalizadas("07:00 - 11:30 AM")).toEqual(["07:00AM", "11:30 AM"]);
+  });
+});
+
 describe("findStartBlock — Fix formato de hora compartido", () => {
   it("con formato compartido ('3:15-5:30PM'), encuentra el bloque real (3:15), no el bloque 0", () => {
     // BLOQUES_VESPERTINO[3] = 3:15PM-4:00PM
@@ -132,5 +147,82 @@ describe("countBlocks — Fix formato de hora compartido", () => {
 
   it("con formato explícito, da el mismo resultado que con formato compartido", () => {
     expect(countBlocks("3:15PM-5:30PM")).toBe(countBlocks("3:15-5:30PM"));
+  });
+});
+
+// =====================================================================
+// Caso particular PNF Agroalimentación — turno "MIXTO" y grilla dinámica
+// =====================================================================
+import { normalizeTurno as _normalizeTurno, getTurnoDeRegistro, buildBloquesDinamicos, countBlocksEnBloques } from "./turno";
+import { BLOQUES_DIURNO, BLOQUES_MIXTO } from "../constants";
+
+describe("normalizeTurno — turno MIXTO", () => {
+  it("reconoce 'MIXTO' (mayúsculas o minúsculas)", () => {
+    expect(_normalizeTurno("MIXTO")).toBe("MIXTO");
+    expect(_normalizeTurno("mixto")).toBe("MIXTO");
+    expect(_normalizeTurno("  Mixto  ")).toBe("MIXTO");
+  });
+});
+
+describe("getTurnoDeRegistro — respeta MIXTO explícito", () => {
+  it("usa d.turno='MIXTO' aunque la hora caiga en el rango típico de DIURNO", () => {
+    expect(getTurnoDeRegistro({ turno: "MIXTO", hora: "7:00AM-7:45AM", sheet: "1-1 (11)" })).toBe("MIXTO");
+  });
+
+  it("usa d.turno='MIXTO' aunque la hora caiga en el rango típico de VESPERTINO", () => {
+    expect(getTurnoDeRegistro({ turno: "MIXTO", hora: "1:45PM-2:30PM", sheet: "1-1 (11)" })).toBe("MIXTO");
+  });
+});
+
+describe("buildBloquesDinamicos — caso Agroalimentación (bloques irregulares)", () => {
+  it("con datos ya alineados a bloquesBase, produce exactamente los mismos límites inicio/fin (sin cambios para programas estándar)", () => {
+    const filtered = [
+      { turno: "DIURNO", dia: "LUNES", hora: "7:30AM-8:15AM" },
+      { turno: "DIURNO", dia: "LUNES", hora: "8:15AM-9:00AM" },
+    ];
+    const dinamicos = buildBloquesDinamicos(BLOQUES_DIURNO, filtered, "DIURNO");
+    // No se compara `.label` (formato cosmético, no se renderiza en TurnoGrid,
+    // que arma su propio display a partir de `.inicio`/`.fin`) — solo los
+    // límites reales de cada bloque, que son lo que determina la grilla.
+    expect(dinamicos.map(b => [b.inicio, b.fin])).toEqual(BLOQUES_DIURNO.map(b => [b.inicio, b.fin]));
+  });
+
+  it("agrega un bloque más temprano si la data empieza antes que bloquesBase (Agro arranca 7:00, no 7:30)", () => {
+    const filtered = [
+      { turno: "MIXTO", dia: "LUNES", hora: "7:00AM-7:45AM" },
+    ];
+    const dinamicos = buildBloquesDinamicos(BLOQUES_MIXTO, filtered, "MIXTO");
+    expect(dinamicos[0]).toEqual({ inicio: "7:00AM", fin: "7:45AM", label: "7:00AM – 7:45AM" });
+  });
+
+  it("una clase de varios bloques (ej. Proyecto Formativo 7:00am-11:30am, 4h30) no se trunca: el fin real queda como límite exacto", () => {
+    const filtered = [
+      { turno: "MIXTO", dia: "LUNES", hora: "7:00AM-11:30AM" },
+    ];
+    const dinamicos = buildBloquesDinamicos(BLOQUES_MIXTO, filtered, "MIXTO");
+    const finesMin = dinamicos.map(b => b.fin);
+    expect(finesMin).toContain("11:30AM");
+  });
+
+  it("ignora entradas de otro turno al construir los límites", () => {
+    const filtered = [
+      { turno: "VESPERTINO", dia: "LUNES", hora: "1:00PM-3:15PM" }, // no debería afectar la grilla MIXTO
+    ];
+    const dinamicos = buildBloquesDinamicos(BLOQUES_MIXTO, filtered, "MIXTO");
+    expect(dinamicos.map(b => [b.inicio, b.fin])).toEqual(BLOQUES_MIXTO.map(b => [b.inicio, b.fin]));
+  });
+});
+
+describe("countBlocksEnBloques — span real sobre bloques dinámicos", () => {
+  it("una clase de 2h15 (11:30am-1:45pm, 3 bloques de 45 min) da span=3, no se trunca a 1", () => {
+    const filtered = [{ turno: "MIXTO", dia: "LUNES", hora: "11:30AM-1:45PM" }];
+    const dinamicos = buildBloquesDinamicos(BLOQUES_MIXTO, filtered, "MIXTO");
+    expect(countBlocksEnBloques(dinamicos, "11:30AM-1:45PM")).toBe(3);
+  });
+
+  it("una clase de 4h30 (Proyecto Formativo, 07:00-11:30am) da span=6", () => {
+    const filtered = [{ turno: "MIXTO", dia: "LUNES", hora: "7:00AM-11:30AM" }];
+    const dinamicos = buildBloquesDinamicos(BLOQUES_MIXTO, filtered, "MIXTO");
+    expect(countBlocksEnBloques(dinamicos, "7:00AM-11:30AM")).toBe(6);
   });
 });

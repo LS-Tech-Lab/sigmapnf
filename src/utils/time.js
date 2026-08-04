@@ -23,6 +23,20 @@ export function timeToMin(s) {
 // primera fila, aunque su horario real fuera correcto y no hubiera
 // cambiado — el bug no era de la clase movida, era de cómo se posicionaba
 // la clase con formato de hora irregular que quedaba al lado.
+// Fix 2 (caso PNF Agroalimentación, turno "MIXTO"): el atajo de arriba
+// asume que inicio y fin caen en el MISMO AM/PM — cierto siempre en
+// DIURNO/VESPERTINO porque esos turnos se cortan justo en 12:00/1:00 y
+// ningún bloque cruza el mediodía. El turno MIXTO es continuo (7:00am-
+// 4:00pm) y SÍ tiene un bloque que cruza el mediodía ("11:30 - 12:15 PM",
+// el mismo formato compartido que usa la plantilla institucional para
+// TODOS los demás bloques) — con el atajo ciego, "11:30" heredaba el "PM"
+// del fin y se leía como 11:30 PM (¡casi medianoche!), mandando la clase
+// fuera de la grilla entera. Mismo problema para cualquier rango
+// mergeado que cruce el mediodía (ej. "11:30 - 1:45 PM").
+//
+// Ahora se valida el resultado: el atajo solo se usa si arma un inicio
+// ANTES del fin (duración positiva); si no, el inicio real está en el
+// AM/PM contrario al del fin.
 export function partesHoraNormalizadas(horaStr) {
   if (!horaStr) return ["", ""];
   const parts = horaStr.trim().split(/[-–]/);
@@ -31,7 +45,15 @@ export function partesHoraNormalizadas(horaStr) {
   const fin = parts[1].trim();
   if (!/AM|PM/i.test(inicio)) {
     const sufijo = fin.match(/AM|PM/i)?.[0];
-    if (sufijo) inicio = `${inicio}${sufijo}`;
+    if (sufijo) {
+      const candidato = `${inicio}${sufijo}`;
+      if (timeToMin(candidato) < timeToMin(fin)) {
+        inicio = candidato;
+      } else {
+        const opuesto = sufijo.toUpperCase() === "PM" ? "AM" : "PM";
+        inicio = `${inicio}${opuesto}`;
+      }
+    }
   }
   return [inicio, fin];
 }
@@ -69,6 +91,20 @@ export function countBlocks(horaStr) {
   const finMin = timeToMin(finStr);
   if (!finMin || finMin <= inicioMin) return 1;
   return Math.max(1, Math.ceil((finMin - inicioMin) / 45));
+}
+
+// Inverso de timeToMin: minutos desde medianoche -> "7:00AM" / "12:15PM"
+// (mismo formato compacto que usan BLOQUES_DIURNO/VESPERTINO/MIXTO). Se
+// usa para construir filas de grilla dinámicas a partir de horas reales
+// (ver buildBloquesDinamicos en turno.js), no solo desde los bloques fijos.
+export function minToTime(min) {
+  const total = ((min % 1440) + 1440) % 1440; // por si acaso llega negativo
+  let hh = Math.floor(total / 60);
+  const mi = total % 60;
+  const ap = hh >= 12 ? "PM" : "AM";
+  hh = hh % 12;
+  if (hh === 0) hh = 12;
+  return `${hh}:${String(mi).padStart(2, "0")}${ap}`;
 }
 
 export function getHoraDisplayDeRegistro(d) {

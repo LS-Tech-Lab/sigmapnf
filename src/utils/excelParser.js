@@ -373,9 +373,21 @@ export async function parseExcelFile(fileOrWorkbook, { lapso = null, selectedPro
           ? normalizarPrograma(programaMeta) || programaMeta
           : "Sin programa";
 
+    // Fix (caso PNF Agroalimentación, turno "MIXTO"): antes se probaba
+    // getTurnoByCodigo(sheetName) primero. Eso asumía que el nombre de la
+    // hoja ES el código de sección (cierto en plantillas v1 viejas), pero
+    // en la plantilla v2 el nombre de hoja es una etiqueta legible como
+    // "1-1 (11)" — sus dígitos ("1111") coinciden por pura casualidad con
+    // el patrón de getTurnoByCodigo y devuelven "DIURNO" SIEMPRE, pisando
+    // en silencio el turno real declarado en la celda TURNO de la hoja
+    // (ej. "MIXTO"). El campo explícito meta.turno ahora tiene prioridad;
+    // getTurnoByCodigo queda como respaldo (probando primero el código de
+    // SECCIÓN real, y solo si falta, el nombre de la hoja) para plantillas
+    // viejas que no traen la celda TURNO.
     const turnoFinal =
-      getTurnoByCodigo(sheetName) ||
-      normalizeTurno(meta.turno)  ||
+      normalizeTurno(meta.turno)        ||
+      getTurnoByCodigo(meta.seccion)    ||
+      getTurnoByCodigo(sheetName)       ||
       meta.turno;
 
     const processedMerges = new Set();

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { trayectoClass } from '../constants';
-import { getTurnoDeRegistro, findStartBlock } from '../utils/turno';
-import { countBlocks, getHoraDisplayDeRegistro } from '../utils/time';
+import { trayectoClass, TURNOS_CONFIG } from '../constants';
+import { getTurnoDeRegistro, findStartBlock, buildBloquesDinamicos, countBlocksEnBloques } from '../utils/turno';
+import { getHoraDisplayDeRegistro } from '../utils/time';
 import { parseClase } from '../utils/parsing';
 import ModalEditarClase from './ModalEditarClase';
 import './TurnoGrid.css';
@@ -15,8 +15,20 @@ export default function TurnoGrid({
   puedeEditar, puedeBorrar, puedeCrearDocentes, puedeCrearMaterias, onSaveClase, onDeleteClase, openConfirm, closeConfirm,
 }) {
   const [editingEntry, setEditingEntry] = useState(null);
+
+  // Caso particular PNF Agroalimentación (turno "MIXTO", ver constants/
+  // turno.js): en vez de una tabla de bloques fija por turno, se parte de
+  // `bloques` (el esqueleto DIURNO/VESPERTINO/MIXTO) y se le agregan los
+  // límites reales que traigan los datos cargados — así un programa con
+  // horas estándar renderiza exactamente igual que antes, y uno con horas
+  // distintas (o que cambian de trimestre a trimestre) se ajusta solo.
+  const bloquesDinamicos = useMemo(
+    () => buildBloquesDinamicos(bloques, filtered, turnoLabel),
+    [bloques, filtered, turnoLabel]
+  );
+
   const cellMap = useMemo(() => {
-    if (!days || !bloques || !filtered) return {};
+    if (!days || !bloquesDinamicos || !filtered) return {};
     const map = {};
     days.forEach(day => {
       map[day] = {};
@@ -42,8 +54,8 @@ export default function TurnoGrid({
       // `conflicto: true` para que el staff note el choque de horario y lo
       // corrija en el origen (no es algo que la grilla deba resolver sola).
       const owner = {};
-      bloques.forEach((bloque, bi) => {
-        const entriesAqui = filtered.filter(d => d.dia === day && getTurnoDeRegistro(d) === turnoLabel && findStartBlock(bloques, d.hora) === bi);
+      bloquesDinamicos.forEach((bloque, bi) => {
+        const entriesAqui = filtered.filter(d => d.dia === day && getTurnoDeRegistro(d) === turnoLabel && findStartBlock(bloquesDinamicos, d.hora) === bi);
 
         if (owner[bi] !== undefined) {
           if (entriesAqui.length) {
@@ -56,27 +68,33 @@ export default function TurnoGrid({
 
         if (!entriesAqui.length) { map[day][bi] = null; return; }
         let span = 1;
-        entriesAqui.forEach(e => { const s = countBlocks(e.hora); if (s > span) span = s; });
-        span = Math.min(span, bloques.length - bi);
+        entriesAqui.forEach(e => { const s = countBlocksEnBloques(bloquesDinamicos, e.hora, bi); if (s > span) span = s; });
+        span = Math.min(span, bloquesDinamicos.length - bi);
         map[day][bi] = { entries: entriesAqui, span };
         for (let k = bi + 1; k < bi + span; k++) owner[k] = bi;
       });
     });
     return map;
-  }, [bloques, days, filtered, turnoLabel]);
+  }, [bloquesDinamicos, days, filtered, turnoLabel]);
 
-  if (!days || !bloques || !filtered) {
+  if (!days || !bloquesDinamicos || !filtered) {
     return <div className="tg-loading">Cargando grilla...</div>;
   }
 
-  const esVespertino = turnoLabel !== "DIURNO";
+  const turnoConfig = TURNOS_CONFIG.find(t => t.id === turnoLabel);
+  const esVespertino = turnoLabel === "VESPERTINO" || turnoLabel === "NOCTURNO";
+  const primerBloque = bloquesDinamicos[0];
+  const ultimoBloque = bloquesDinamicos[bloquesDinamicos.length - 1];
+  const subtitulo = primerBloque && ultimoBloque
+    ? `${primerBloque.inicio.replace(/(\d)(AM|PM)/gi, '$1 $2')} – ${ultimoBloque.fin.replace(/(\d)(AM|PM)/gi, '$1 $2')}`
+    : (turnoConfig?.hora || "");
 
   return (
     <div className="s-card tg-card">
       <div className={`tg-header${esVespertino ? " tg-header--vespertino" : ""}`}>
-        <i className={`ti ${turnoLabel === "DIURNO" ? "ti-sun-high" : "ti-moon-stars"} tg-header-icon`} aria-hidden="true" />
-        <span className="tg-header-title">{turnoLabel === "DIURNO" ? "Turno Diurno" : "Turno Vespertino"}</span>
-        <span className="tg-header-subtitle">{turnoLabel === "DIURNO" ? "7:30 AM – 12:00 PM" : "1:00 PM – 5:30 PM"}</span>
+        <i className={`ti ${esVespertino ? "ti-moon-stars" : "ti-sun-high"} tg-header-icon`} aria-hidden="true" />
+        <span className="tg-header-title">Turno {turnoConfig?.label || turnoLabel}</span>
+        <span className="tg-header-subtitle">{subtitulo}</span>
       </div>
       <div className="turno-grid-wrapper">
         <table className="turno-grid-table">
@@ -91,7 +109,7 @@ export default function TurnoGrid({
             </tr>
           </thead>
           <tbody>
-            {bloques.map((bloque, bi) => {
+            {bloquesDinamicos.map((bloque, bi) => {
               const cells = days.map(day => {
                 const cell = cellMap[day]?.[bi];
                 if (cell === "skip") return { skip: true };

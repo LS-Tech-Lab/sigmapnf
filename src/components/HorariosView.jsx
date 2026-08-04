@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DAYS, BLOQUES_DIURNO, BLOQUES_VESPERTINO } from '../constants';
+import { DAYS, BLOQUES_DIURNO, BLOQUES_VESPERTINO, BLOQUES_MIXTO } from '../constants';
 import { getTurnoDeRegistro } from '../utils/turno';
 import TurnoGrid from './TurnoGrid';
 import ConflictosView from './ConflictosView';
@@ -38,6 +38,9 @@ export default function HorariosView({
   const days = activeDay === "all" ? DAYS : [activeDay];
   const fd = filtered.filter(d => getTurnoDeRegistro(d) === "DIURNO");
   const fv = filtered.filter(d => getTurnoDeRegistro(d) === "VESPERTINO");
+  // Caso particular PNF Agroalimentación (Cabimas): turno "MIXTO" continuo
+  // (7:00 AM – 4:00 PM), ver src/utils/turno.js y src/constants/index.js.
+  const fm = filtered.filter(d => getTurnoDeRegistro(d) === "MIXTO");
 
   const TABS = [
     { id: 'horarios', icon: 'ti-calendar-event', label: 'Horarios' },
@@ -99,7 +102,8 @@ export default function HorariosView({
           <>
             {fd.length > 0 && <TurnoGrid bloques={BLOQUES_DIURNO} turnoLabel="DIURNO" filtered={fd} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} puedeCrearDocentes={puedeCrearDocentes} puedeCrearMaterias={puedeCrearMaterias} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
             {fv.length > 0 && <TurnoGrid bloques={BLOQUES_VESPERTINO} turnoLabel="VESPERTINO" filtered={fv} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} puedeCrearDocentes={puedeCrearDocentes} puedeCrearMaterias={puedeCrearMaterias} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
-            {(filtered.length === 0 || (fd.length === 0 && fv.length === 0)) && <div className="s-card s-empty-state">No hay clases para los filtros seleccionados.</div>}
+            {fm.length > 0 && <TurnoGrid bloques={BLOQUES_MIXTO} turnoLabel="MIXTO" filtered={fm} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} puedeCrearDocentes={puedeCrearDocentes} puedeCrearMaterias={puedeCrearMaterias} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
+            {(filtered.length === 0 || (fd.length === 0 && fv.length === 0 && fm.length === 0)) && <div className="s-card s-empty-state">No hay clases para los filtros seleccionados.</div>}
           </>
         )}
         {tab === 'conflictos' && (

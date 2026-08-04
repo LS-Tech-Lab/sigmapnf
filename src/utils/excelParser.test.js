@@ -200,9 +200,32 @@ describe("parseExcelFile — hojas sin encabezado reconocible", () => {
 });
 
 describe("parseExcelFile — turno", () => {
-  it("prioriza el turno detectado por el código de la hoja sobre el metadato de texto", async () => {
+  // Fix (caso PNF Agroalimentación, turno "MIXTO"): antes, el código
+  // adivinado del NOMBRE DE HOJA ("SEC21" → dígito penúltimo '2' →
+  // VESPERTINO) ganaba SIEMPRE sobre el metadato de texto TURNO, aunque
+  // ese metadato viniera explícito y correcto. Eso funcionaba mientras el
+  // nombre de hoja fuera literalmente un código de sección (convención
+  // vieja), pero en la plantilla v2 el nombre de hoja es una etiqueta
+  // legible como "1-1 (11)" — sus dígitos coinciden por pura casualidad
+  // con el patrón y producían un turno equivocado, pisando en silencio
+  // el turno real (ej. "MIXTO", que ni siquiera tiene equivalente en el
+  // esquema DIURNO/VESPERTINO de códigos). El metadato de texto explícito
+  // ahora tiene prioridad; el código de hoja queda como respaldo solo
+  // para plantillas viejas que no traen la celda TURNO (ver siguiente
+  // test y el describe "caso Agroalimentación" más abajo).
+  it("prioriza el metadato de texto TURNO sobre el turno adivinado del nombre de la hoja", async () => {
     const aoa = [
       ["Turno", "Diurno"],
+      ["HORA", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"],
+      ["7:00AM - 7:45AM", "Materia Prof. Juan Pérez", "", "", "", ""],
+    ];
+    const file = construirArchivoExcel(aoa, [], "SEC21");
+    const { rows } = await parseExcelFile(file, { selectedPrograma: "todos" });
+    expect(rows[0].turno).toBe("DIURNO");
+  });
+
+  it("usa el código de la hoja si no hay metadato de texto TURNO", async () => {
+    const aoa = [
       ["HORA", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"],
       ["7:00AM - 7:45AM", "Materia Prof. Juan Pérez", "", "", "", ""],
     ];
@@ -220,6 +243,28 @@ describe("parseExcelFile — turno", () => {
     const file = construirArchivoExcel(aoa, [], "HOJASINCODIGO");
     const { rows } = await parseExcelFile(file, { selectedPrograma: "todos" });
     expect(rows[0].turno).toBe("VESPERTINO");
+  });
+
+  // Caso real: plantilla estándar de PNF Agroalimentación (Cabimas). El
+  // nombre de hoja "1-1 (11)" es una etiqueta de trayecto-sección legible,
+  // NO un código — pero sus dígitos ("1111") coinciden con el patrón de
+  // getTurnoByCodigo (penúltimo dígito '1' → DIURNO), igual que el código
+  // de SECCIÓN real (4411111, penúltimo dígito también '1'). Sin la
+  // prioridad correcta, el turno real "MIXTO" (continuo 7:00am-4:00pm,
+  // declarado explícito en la celda TURNO) se perdía y todo terminaba en
+  // DIURNO — truncando cualquier clase que cruzara mediodía o cayera de
+  // tarde.
+  it("caso Agroalimentación: reconoce el turno MIXTO explícito aunque el nombre de hoja y la sección adivinen DIURNO", async () => {
+    const aoa = [
+      ["PROGRAMA", "PNF EN AGROALIMENTACIÓN", "", "PERIODO", "2-2026"],
+      ["TRAYECTO", "1-1", "", "SECCIÓN", "4411111"],
+      ["SEDE", "CABIMAS", "", "TURNO", "MIXTO"],
+      ["HORA", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"],
+      ["11:30 - 12:15 PM", "Química Aplicada\nProf. Lisbeth Brito", "", "", "", ""],
+    ];
+    const file = construirArchivoExcel(aoa, [], "1-1 (11)");
+    const { rows } = await parseExcelFile(file, { selectedPrograma: "todos" });
+    expect(rows[0].turno).toBe("MIXTO");
   });
 });
 

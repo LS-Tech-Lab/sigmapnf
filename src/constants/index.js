@@ -69,6 +69,28 @@ export const BLOQUES_VESPERTINO = [
   { inicio: "4:45PM", fin: "5:30PM", label: "4:45 – 5:30 PM" },
 ];
 
+// Caso particular PNF Agroalimentación (Cabimas): turno "MIXTO", continuo
+// de 7:00 AM a 4:00 PM (12 bloques de 45 min, sin el corte 12:00-1:00 pm
+// que separa DIURNO/VESPERTINO en el resto de los PNF). Viene del Excel
+// estándar de la institución (hoja CONFIGURACIÓN > TURNOS DISPONIBLES).
+// Sirve como esqueleto inicial de la grilla — buildBloquesDinamicos()
+// (src/utils/turno.js) la ajusta con los horarios reales cargados, por si
+// la institución reajusta las horas en un trimestre futuro.
+export const BLOQUES_MIXTO = [
+  { inicio: "7:00AM", fin: "7:45AM", label: "7:00 – 7:45 AM" },
+  { inicio: "7:45AM", fin: "8:30AM", label: "7:45 – 8:30 AM" },
+  { inicio: "8:30AM", fin: "9:15AM", label: "8:30 – 9:15 AM" },
+  { inicio: "9:15AM", fin: "10:00AM", label: "9:15 – 10:00 AM" },
+  { inicio: "10:00AM", fin: "10:45AM", label: "10:00 – 10:45 AM" },
+  { inicio: "10:45AM", fin: "11:30AM", label: "10:45 – 11:30 AM" },
+  { inicio: "11:30AM", fin: "12:15PM", label: "11:30 AM – 12:15 PM" },
+  { inicio: "12:15PM", fin: "1:00PM", label: "12:15 – 1:00 PM" },
+  { inicio: "1:00PM", fin: "1:45PM", label: "1:00 – 1:45 PM" },
+  { inicio: "1:45PM", fin: "2:30PM", label: "1:45 – 2:30 PM" },
+  { inicio: "2:30PM", fin: "3:15PM", label: "2:30 – 3:15 PM" },
+  { inicio: "3:15PM", fin: "4:00PM", label: "3:15 – 4:00 PM" },
+];
+
 export const ROL_SIDEBAR = {
   admin:          { label: "Administrador",  color: "#A78BFA" },
   coordinador:    { label: "Coordinador",    color: "#60A5FA" },
@@ -163,6 +185,14 @@ export const TURNOS_CONFIG = [
     inicioMin:  780,   // 13:00
     finMin:     1050,  // 17:30
     habilitado: true,
+  },
+  {
+    id:         "MIXTO",
+    label:      "Mixto",
+    hora:       "7:00 AM – 4:00 PM",
+    inicioMin:  420,   // 7:00
+    finMin:     960,   // 16:00
+    habilitado: true,  // PNF Agroalimentación (Cabimas) usa este turno
   },
   {
     id:         "NOCTURNO",

@@ -46,21 +46,31 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import PropTypes from "prop-types";
 import { supabase } from "../lib/supabase";
-import { DAYS, BLOQUES_DIURNO, BLOQUES_VESPERTINO } from "../constants";
+import { DAYS, BLOQUES_DIURNO, BLOQUES_VESPERTINO, BLOQUES_MIXTO } from "../constants";
 import { parseClase } from "../utils/parsing";
+import { getTurnoDeRegistro } from "../utils/turno";
 import useFocusTrap from "../hooks/useFocusTrap";
 import "./ModalEditarClase.css";
 
-// Un solo select combinado DIURNO+VESPERTINO — el turno se deriva de cuál
-// bloque de inicio se elige, no hace falta pedirlo aparte.
+// Un solo select combinado DIURNO+VESPERTINO+MIXTO — el turno se deriva de
+// cuál bloque de inicio se elige, no hace falta pedirlo aparte. MIXTO es el
+// caso particular de PNF Agroalimentación (turno continuo 7:00am-4:00pm,
+// ver src/utils/turno.js).
 const OPCIONES_BLOQUE = [
   ...BLOQUES_DIURNO.map(b => ({ ...b, turno: "DIURNO" })),
   ...BLOQUES_VESPERTINO.map(b => ({ ...b, turno: "VESPERTINO" })),
+  ...BLOQUES_MIXTO.map(b => ({ ...b, turno: "MIXTO" })),
 ];
 
 const NUEVO = "__nuevo__";
 
-function bloqueValue(b) { return `${b.inicio}|${b.fin}`; }
+// Fix (caso MIXTO): antes solo era `${inicio}|${fin}`. Los últimos 4
+// bloques de MIXTO (1:00pm–4:00pm) tienen el MISMO horario que los primeros
+// 4 de VESPERTINO — sin el turno en la clave, las dos <option> del <select>
+// terminaban con el mismo `value`, y elegir la de "Mixto" en realidad
+// seleccionaba (en silencio) la de "Vespertino" por ser la primera en
+// aparecer en OPCIONES_BLOQUE.
+function bloqueValue(b) { return `${b.turno || ""}|${b.inicio}|${b.fin}`; }
 
 // Lista de bloques de 45 min del mismo turno que `bloqueRef`, en orden — se
 // usa tanto para poblar el select de inicio (todo el turno) como para
@@ -73,8 +83,21 @@ function bloquesDelTurno(turno) {
 // Encuentra, entre los bloques de 45 min, cuál coincide con el inicio real
 // del registro (`entry.hora` puede venir como "7:30AM-8:15AM" o abarcar
 // varios bloques si la clase dura más de 45 min).
+//
+// Fix (caso MIXTO): los últimos 4 bloques de MIXTO (1:00pm–4:00pm) tienen
+// el mismo horario de inicio que los primeros 4 de VESPERTINO, así que
+// buscar solo por hora de inicio es ambiguo para esos 4 casos. Se usa
+// primero el turno real del registro (getTurnoDeRegistro, la misma lógica
+// que ya clasifica las celdas en la grilla) para desambiguar; si por algo
+// no hay bloque en ese turno con ese inicio exacto, cae al comportamiento
+// anterior (buscar en todos los turnos) para no romper datos atípicos.
 function bloqueInicialDe(entry) {
   const inicio = (entry?.hora || "").split(/[-–]/)[0]?.trim().replace(/\s+/g, "").toUpperCase();
+  const turnoReal = entry ? getTurnoDeRegistro(entry) : null;
+  if (turnoReal) {
+    const enSuTurno = OPCIONES_BLOQUE.find(b => b.turno === turnoReal && b.inicio.toUpperCase() === inicio);
+    if (enSuTurno) return enSuTurno;
+  }
   return OPCIONES_BLOQUE.find(b => b.inicio.toUpperCase() === inicio) || OPCIONES_BLOQUE[0];
 }
 
@@ -228,6 +251,14 @@ export default function ModalEditarClase({
         const payload = {
           dia,
           hora: `${bloqueInicioObj.inicio}-${bloqueFinObj.fin}`,
+          // Fix (sync turno-hora): antes no se enviaba `turno` — si alguien
+          // cambiaba el bloque de inicio a otro turno (ej. de un bloque
+          // MIXTO a uno VESPERTINO que no comparte el mismo horario), la
+          // columna `turno` de la fila quedaba con el valor viejo,
+          // desincronizada de la `hora` recién guardada. Se deriva del
+          // mismo bloque de inicio elegido (bloqueInicioObj.turno), la
+          // misma fuente que ya usa bloquesDelTurno()/opcionesFin.
+          turno: bloqueInicioObj.turno,
           aula: aula.trim() || null,
           docente_id: docenteRow.id,
           materia_id: materiaRow.id,
@@ -294,6 +325,9 @@ export default function ModalEditarClase({
             </optgroup>
             <optgroup label="Vespertino">
               {BLOQUES_VESPERTINO.map(b => <option key={bloqueValue(b)} value={bloqueValue({ ...b, turno: "VESPERTINO" })}>{b.inicio}</option>)}
+            </optgroup>
+            <optgroup label="Mixto (Agroalimentación)">
+              {BLOQUES_MIXTO.map(b => <option key={bloqueValue(b)} value={bloqueValue({ ...b, turno: "MIXTO" })}>{b.inicio}</option>)}
             </optgroup>
           </select>
         </div>
