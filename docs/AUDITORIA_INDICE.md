@@ -41,16 +41,31 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ## 🔴 Hallazgos realmente abiertos
 
-**0 abiertos.** Última verificación cruzada código↔BD real: 2 de agosto
-(auditoría de estrés operacional + pasada de implementación + fix
-reportado por LS). Esa pasada encontró que `ARCH-29`/`UX-24` se habían
-marcado ✅ **sin que la migración `0057` que citaban existiera en el
-repo** — reabierto y cerrado el mismo día como `ARCH-31` (ver tabla
-`ARCH-N`). El resto de hallazgos de esa fecha (`ARCH-30`, `SEC-27`,
-`ARCH-32`–`34`, `OFF-9`, `UX-25`–`28`) están detallados en sus tablas por
-prefijo abajo, no repetidos acá — ver también § Historial de auditorías
-para el resumen cronológico. Verificación final de esa fecha: 224/224
-tests, 0 errores de lint, build limpio.
+**0 abiertos.** Última verificación cruzada código↔BD real: 3 de agosto
+(fix `UX-29` + reapertura/cierre de `ARCH-35`, verificados sobre el HEAD
+real del repo tras confirmar 14 commits en paralelo — ver nota abajo).
+Antes de esa fecha: 2 de agosto (auditoría de estrés operacional + pasada
+de implementación + fix reportado por LS). Esa pasada encontró que
+`ARCH-29`/`UX-24` se habían marcado ✅ **sin que la migración `0057` que
+citaban existiera en el repo** — reabierto y cerrado el mismo día como
+`ARCH-31` (ver tabla `ARCH-N`). El resto de hallazgos de esa fecha
+(`ARCH-30`, `SEC-27`, `ARCH-32`–`34`, `OFF-9`, `UX-25`–`28`) están
+detallados en sus tablas por prefijo abajo, no repetidos acá — ver también
+§ Historial de auditorías para el resumen cronológico. Verificación final
+del 3 de agosto: 232/232 tests, 0 errores de lint, build limpio.
+
+**Nota de proceso (3 de agosto):** antes de aplicar `UX-29`, se detectaron
+14 commits en paralelo no hechos en esta sesión — incluyendo un fix
+legítimo de `useAuth.js` ("Improve session management on user sign-in",
+bug de "micro refresh" al loguear, de LS) y, más importante, que `ARCH-34`
+se había marcado ✅ cerrado en este índice **sin que el guard llegara al
+`ci.yml` real del repo** — mismo patrón que `ARCH-29`/`ARCH-31`. Se
+verificó archivo por archivo cuáles de los 5 archivos que toca `UX-29`
+(`time.js`, `turno.js`, `conflictos.js` + sus tests) habían sido tocados
+por los commits en paralelo (ninguno lo fue — confirmado con
+`git log -- <archivo>`) antes de aplicar el fix sobre el HEAD real, y se
+corrió la suite completa junto con el `useAuth.js` nuevo para confirmar
+que conviven sin fricción.
 
 `UX-13` (modo oscuro) sigue ⛔ revertido a pedido de LS — decisión de
 producto, no hallazgo pendiente.
@@ -184,7 +199,8 @@ equivalencias al final.
 | **ARCH-31** 🔴 | Reabre `ARCH-29`/`UX-24`: el bloqueo optimista de `saveClase()` (`horarioEditing.js`) condiciona el `UPDATE` a `.eq("updated_at", expectedUpdatedAt)`, pero la migración `0057` que ese fix citaba (columna `updated_at` + trigger server-side en `horarios`) nunca se había subido al repo — `entry.updated_at` llegaba `undefined` en producción y el guard se degradaba siempre a "sin condición extra", el mismo comportamiento inseguro que `ARCH-29` describía como bloqueante | `docs/supabase/migrations/0057_arch29_bloqueo_optimista_horarios.sql` (nueva) | ✅ Cerrado (2 ago) — migración subida: `ALTER TABLE horarios ADD COLUMN updated_at` + función/trigger `set_updated_at()` `BEFORE UPDATE` sobre el padre (Postgres 11+ propaga triggers `FOR EACH ROW` de una tabla particionada declarativa a todas sus particiones automáticamente, sin loop). Verificado contra la BD real, no asumido: `SELECT tgrelid::regclass, tgname FROM pg_trigger WHERE tgname = 'trg_horarios_set_updated_at'` devuelve 8 filas — el padre `horarios` + las 7 particiones reales (`horarios_lapso_1_2026`...`horarios_lapso_default`). Confirmado también que `useDataSync.js` usa `select("*, ...")` en el fetch que puebla `ModalEditarClase`, así que `entry.updated_at` llega poblado al cliente. 211/211 tests, 0 errores de lint, build limpio |
 | **ARCH-32** 🟢 | `registrar_asistencia()` (`SEC-13`/migración `0039`) usa un límite fijo (10 intentos/hora por `device_fingerprint`) sin backoff exponencial — un dispositivo legítimo con mala señal que reintenta agresivamente en un operativo real puede auto-bloquearse antes de llegar al límite por abuso genuino | `scan_rate_limit`, RPC `registrar_asistencia`, migración `0058` | ✅ Cerrado (2 ago) — backoff progresivo: la primera vez que un dispositivo supera el límite recibe un bloqueo corto (2 min); si reincide después de que ese bloqueo expira, el bloqueo se duplica (4, 8, 16... techo de 60 min). `veces_bloqueado` decae a 0 tras 24h sin bloqueos nuevos. **No se pudo probar contra Supabase real desde este entorno** (mismo patrón que `SEC-9`/`SEC-17`) — migración incluye escenario de verificación manual |
 | **ARCH-33** 🔴 | Migración `0058` (de `ARCH-32`) reemplazó el UPSERT atómico de `0039` por `SELECT FOR UPDATE`+`INSERT` suelto en `registrar_asistencia()` — condición de carrera real: 2 llamadas concurrentes del mismo `device_fingerprint` sin fila previa chocan por PK | RPC `registrar_asistencia`, migración `0059` | ✅ Cerrado (2 ago) — reproducido contra Postgres 16 real (`duplicate key value violates unique constraint "scan_rate_limit_pkey"`), corregido con `INSERT ... ON CONFLICT DO UPDATE` (vuelve al patrón de `0039`). Reverificado bajo concurrencia real: 15 llamadas → 5 bloqueadas, escalada de `veces_bloqueado` correcta |
-| **ARCH-34** 🟢 | Sin guardia de CI que impidiera reintroducir herramientas de build-time (causa raíz de `SEC-26`) como `dependencies` en vez de `devDependencies` | `.github/workflows/ci.yml` | ✅ Cerrado (2 ago) — paso nuevo en `test-and-build` que falla si `@tabler/icons-webfont`/`svgtofont` aparecen en `dependencies` |
+| **ARCH-34** 🟢 | Sin guardia de CI que impidiera reintroducir herramientas de build-time (causa raíz de `SEC-26`) como `dependencies` en vez de `devDependencies` | `.github/workflows/ci.yml` | 🔴 Reabierto como `ARCH-35` (3 ago) — se había marcado ✅ cerrado sin que el guard llegara realmente al `ci.yml` del repo |
+| **ARCH-35** 🟢 | Reabre `ARCH-34`: mismo patrón que `ARCH-29`→`ARCH-31` (hallazgo cerrado en el índice, nunca aplicado al código real) — verificado esta vez contra el archivo, no solo el índice | `.github/workflows/ci.yml` | ✅ Cerrado (3 ago) — guard reaplicado y confirmado presente en el archivo real; `node -e` de verificación corrido contra el `package.json` actual: pasa |
 
 <!-- Nota de recuperación (2 ago, cont.): las 6 secciones siguientes (CI/CD,
      UI, Identidad visual, Funcionalidad nueva, Esquema retirado, Historial,
@@ -237,6 +253,7 @@ Esquema `UX-N` (antes `U-N` + `A3` de inline styles).
 | **UX-26** 🟢 | `useDataSync.js`: `useEffect` de la suscripción realtime sin `userId`/`setConflictsRefreshKey` en deps — un cambio de usuario dejaba el closure de `limpiarCache(userId)`/`limpiarCacheNombres(userId)` con el id viejo | `src/hooks/useAppData/useDataSync.js` | ✅ Cerrado (2 ago) — deps agregadas (`setConflictsRefreshKey` es un setter de `useState`, estable). 0 warnings nuevos de `exhaustive-deps` en ese efecto |
 | **UX-27** 🔴 | Recurrencia del bug `fecha-hoy-timezone` (ver `utils/time.js`): `ReporteRango.jsx` calculaba el "lunes de esta semana" con `new Date()` crudo (UTC en producción) mientras `fin` ya usaba `fechaHoyVE()` — entre 8pm y medianoche hora VE, el reporte quedaba vacío sin ningún error visible, todas las noches, en esa ventana de ~4h | `ReporteAsistencias/ReporteRango.jsx` | ✅ Cerrado (2 ago) — encontrado porque `ReporteRango.integration.test.jsx` empezó a fallar de forma reproducible exactamente en esa ventana; corregido derivando "lunes" de la misma fecha VE que "hoy". `grep` confirmó que era la única ocurrencia restante del patrón en `src/` |
 | **UX-28** 🔴 | Reportado por LS: *"probé a editar una clase y la siguiente se movía al lugar de la que edité, y cuando probé a agregarla nuevamente a la hora original, no apareció"* — `TurnoGrid.jsx` marcaba como "ocupados" los bloques cubiertos por el `rowSpan` de una clase y descartaba en silencio cualquier OTRA clase que empezara en uno de esos bloques, aunque siguiera intacta en `horarios` | `TurnoGrid.jsx`, `TurnoGrid.css` | ✅ Cerrado (2 ago) — reproducido sintéticamente antes de tocar código. Fix: las clases tapadas se fusionan en la celda que las tapa, marcada visualmente como conflicto (⚠️ + `--color-danger-bg`, mismas variables que `ConflictosView.css`) en vez de desaparecer. 3 tests nuevos (`TurnoGrid.test.jsx`). 224/224 tests, 0 errores de lint, build limpio |
+| **UX-29** 🔴 | Reportado por LS tras `UX-28` (con screenshot): el bug persistía en un caso distinto — al mover una clase de día, la clase VECINA (con `hora` en formato compartido, ej. `"3:15-5:30PM"` sin AM/PM en el inicio — atajo común en carga manual) se veía "subir" a ocupar toda la columna desde la primera fila del turno, aunque su horario real no había cambiado | `utils/time.js`, `utils/turno.js`, `utils/conflictos.js` | ✅ Cerrado (3 ago) — causa raíz real: `timeToMin("3:15")` (sin sufijo) no matchea el regex y devuelve `0` en silencio; ese `0` se usaba tal cual en `findStartBlock`/`countBlocks`, posicionando la clase en el primer bloque del turno con un `span` estirado a toda la grilla. Nueva función `partesHoraNormalizadas()` (hereda el AM/PM del final si el inicio no trae el suyo) usada en las 5 funciones que antes duplicaban el mismo parseo por separado, incluyendo `parseRango` (`conflictos.js`) — que ya se protegía de este caso descartándolo (`if inicio===0 return null`), así que estos conflictos tampoco se detectaban en la pestaña Conflictos hasta este fix. Reproducido el caso exacto del screenshot de LS (mismos nombres/horas) antes y después del fix. 9 tests nuevos (`turno.test.js`, `conflictos.test.js`). 232/232 tests, 0 errores de lint, build limpio |
 
 ## 🎨 Identidad visual y sistema de diseño
 

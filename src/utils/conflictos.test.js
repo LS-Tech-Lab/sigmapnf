@@ -37,6 +37,11 @@ describe("parseRango", () => {
   it("si la hora de fin es anterior o igual al inicio, usa 45 minutos por defecto", () => {
     expect(parseRango("7:00AM - 6:00AM")).toEqual({ inicio: 420, fin: 465 });
   });
+
+  it("Fix formato de hora compartido: '3:15-5:30PM' (sin AM/PM en el inicio) se parsea igual que '3:15PM-5:30PM', antes se descartaba como null", () => {
+    expect(parseRango("3:15-5:30PM")).toEqual(parseRango("3:15PM-5:30PM"));
+    expect(parseRango("3:15-5:30PM")).not.toBeNull();
+  });
 });
 
 describe("solapan", () => {

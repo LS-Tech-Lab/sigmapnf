@@ -1,4 +1,4 @@
-import { timeToMin } from './time';
+import { timeToMin, partesHoraNormalizadas } from './time';
 import { BLOQUES_DIURNO, BLOQUES_VESPERTINO } from '../constants';
 
 export function getTurnoByCodigo(sheetName) {
@@ -20,8 +20,8 @@ export function normalizeTurno(t) {
 }
 
 export function getTurnoFromHora(horaStr) {
-  const raw = horaStr ? horaStr.replace(/\s/g, "").split(/[-–]/)[0] : "";
-  const min = timeToMin(raw);
+  const [inicioStr] = partesHoraNormalizadas(horaStr);
+  const min = timeToMin(inicioStr);
   if (min >= timeToMin("7:00AM") && min <= timeToMin("12:00PM")) return "DIURNO";
   if (min >= timeToMin("1:00PM") && min <= timeToMin("5:30PM")) return "VESPERTINO";
   return null;
@@ -38,8 +38,8 @@ export function getBloquesForTurno(turno) {
 }
 
 export function findStartBlock(bloques, horaStr) {
-  const raw = horaStr ? horaStr.replace(/\s/g, "").split(/[-–]/)[0] : "";
-  const min = timeToMin(raw);
+  const [inicioStr] = partesHoraNormalizadas(horaStr);
+  const min = timeToMin(inicioStr);
   let best = 0, bestDiff = Infinity;
   bloques.forEach((b, i) => {
     const diff = Math.abs(timeToMin(b.inicio) - min);

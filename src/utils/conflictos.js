@@ -13,7 +13,7 @@
 // =====================================================================
 
 import { DAYS } from "../constants";
-import { timeToMin } from "./time";
+import { timeToMin, partesHoraNormalizadas } from "./time";
 import { parseClase } from "./parsing";
 
 /**
@@ -26,10 +26,10 @@ import { parseClase } from "./parsing";
  */
 export function parseRango(hora) {
   if (!hora) return null;
-  const parts  = hora.trim().split(/[-–]/);
-  const inicio = timeToMin(parts[0]?.trim());
+  const [inicioStr, finStr] = partesHoraNormalizadas(hora);
+  const inicio = timeToMin(inicioStr);
   if (inicio === 0) return null;
-  const fin = parts[1] ? timeToMin(parts[1]?.trim()) : inicio + 45;
+  const fin = finStr ? timeToMin(finStr) : inicio + 45;
   return { inicio, fin: fin > inicio ? fin : inicio + 45 };
 }
 

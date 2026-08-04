@@ -9,6 +9,33 @@ export function timeToMin(s) {
   return hh * 60 + mi;
 }
 
+// Fix (bug preexistente, encontrado al investigar un reporte de la grilla
+// de Horarios): separa un `hora` tipo "3:15PM-5:30PM" en sus dos partes,
+// pero primero corrige el formato compartido "3:15-5:30PM" (sin AM/PM en
+// el inicio — atajo común cuando ambas horas caen en el mismo AM/PM,
+// típico de carga manual/Excel). Sin esto, `timeToMin("3:15")` no matchea
+// el regex (que exige el sufijo AM/PM) y devuelve 0 EN SILENCIO — ese 0 se
+// usaba tal cual en countBlocks/findStartBlock, lo que posicionaba la
+// clase en el primer bloque del turno (el más "cercano" a medianoche) con
+// un span estirado hasta cubrir toda la grilla. Síntoma real reportado:
+// al editar y mover UNA clase de día, la clase SIGUIENTE (con este
+// formato de hora) se veía "subir" a ocupar toda la columna desde la
+// primera fila, aunque su horario real fuera correcto y no hubiera
+// cambiado — el bug no era de la clase movida, era de cómo se posicionaba
+// la clase con formato de hora irregular que quedaba al lado.
+export function partesHoraNormalizadas(horaStr) {
+  if (!horaStr) return ["", ""];
+  const parts = horaStr.trim().split(/[-–]/);
+  if (parts.length < 2) return [parts[0]?.trim() || "", ""];
+  let inicio = parts[0].trim();
+  const fin = parts[1].trim();
+  if (!/AM|PM/i.test(inicio)) {
+    const sufijo = fin.match(/AM|PM/i)?.[0];
+    if (sufijo) inicio = `${inicio}${sufijo}`;
+  }
+  return [inicio, fin];
+}
+
 // FIX (fecha-hoy-timezone):
 // Varios archivos calculaban "hoy" con `new Date().toISOString().slice(0,10)`,
 // que da la fecha en UTC, NO en hora de Venezuela (America/Caracas, UTC-4).
@@ -36,10 +63,10 @@ export function fechaHoyVE() {
 
 export function countBlocks(horaStr) {
   if (!horaStr) return 1;
-  const parts = horaStr.trim().split(/[-–]/);
-  if (parts.length < 2) return 1;
-  const inicioMin = timeToMin(parts[0].trim());
-  const finMin = timeToMin(parts[1].trim());
+  const [inicioStr, finStr] = partesHoraNormalizadas(horaStr);
+  if (!finStr) return 1;
+  const inicioMin = timeToMin(inicioStr);
+  const finMin = timeToMin(finStr);
   if (!finMin || finMin <= inicioMin) return 1;
   return Math.max(1, Math.ceil((finMin - inicioMin) / 45));
 }
@@ -58,5 +85,6 @@ export function getHoraDisplayDeRegistro(d) {
 
 export function getHoraMin(d) {
   if (!d || !d.hora) return 0;
-  return timeToMin(d.hora.trim().split(/[-–]/)[0].trim());
+  const [inicioStr] = partesHoraNormalizadas(d.hora.trim());
+  return timeToMin(inicioStr);
 }
