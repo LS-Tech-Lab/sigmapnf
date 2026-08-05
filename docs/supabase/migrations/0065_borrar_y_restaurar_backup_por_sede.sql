@@ -32,6 +32,27 @@
 
 
 -- ── 1. borrar_horarios — acotado a la sede del actor ─────────────────────────
+-- FIX (post-error 42725, mismo patrón que 0064): esta firma cambia
+-- respecto a la versión previa (agrega p_sede_id). CREATE OR REPLACE no
+-- reemplaza una función cuando cambia la lista de parámetros -- crea un
+-- segundo overload y cualquier referencia sin lista de argumentos
+-- (como el COMMENT ON FUNCTION de más abajo) queda ambigua. Se sueltan
+-- dinámicamente todos los overloads existentes en vez de adivinar la
+-- firma vieja.
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'borrar_horarios'
+  LOOP
+    EXECUTE format('DROP FUNCTION %s', r.sig);
+  END LOOP;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.borrar_horarios(
   p_lapso    text DEFAULT NULL,
   p_programa text DEFAULT NULL,
@@ -79,13 +100,30 @@ $$;
 REVOKE ALL    ON FUNCTION public.borrar_horarios(text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.borrar_horarios(text, text, text) TO authenticated;
 
-COMMENT ON FUNCTION public.borrar_horarios IS
+COMMENT ON FUNCTION public.borrar_horarios(text, text, text) IS
   'SEDE-5: agrega p_sede_id. Cada DELETE queda acotado a sede_id = la '
   'sede efectiva del actor — antes borraba horarios de TODAS las sedes '
   'cuando p_lapso/p_programa venían NULL (SECURITY DEFINER, sin RLS).';
 
 
 -- ── 2. restaurar_backup — acotado a la sede del actor ────────────────────────
+-- FIX (mismo patrón que borrar_horarios más arriba): su firma también
+-- cambia (agrega p_sede_id) -- se sueltan los overloads existentes antes
+-- de recrearla.
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'restaurar_backup'
+  LOOP
+    EXECUTE format('DROP FUNCTION %s', r.sig);
+  END LOOP;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.restaurar_backup(
   p_lapso        text,
   p_horarios     jsonb,
@@ -224,7 +262,7 @@ $$;
 REVOKE ALL    ON FUNCTION public.restaurar_backup(text, jsonb, jsonb, jsonb, jsonb, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.restaurar_backup(text, jsonb, jsonb, jsonb, jsonb, text) TO authenticated;
 
-COMMENT ON FUNCTION public.restaurar_backup IS
+COMMENT ON FUNCTION public.restaurar_backup(text, jsonb, jsonb, jsonb, jsonb, text) IS
   'SEDE-5: agrega p_sede_id. TODO el borrado/reinserción (horarios, '
   'docentes, materias, asistencias_diarias) queda acotado a la sede '
   'efectiva del actor. Antes de esta migración, "DELETE FROM docentes '
