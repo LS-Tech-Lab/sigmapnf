@@ -5,18 +5,18 @@
 -- CONTEXTO
 -- --------
 -- SEDE-3. Hasta 0061/0062 las columnas `sede_id` existen pero no se
--- exigían — cualquier usuario autenticado seguía viendo/editando el
+-- exigían -- cualquier usuario autenticado seguía viendo/editando el
 -- catálogo completo de todas las sedes. Esta migración cierra ese hueco
 -- para `docentes`, `materias` y `horarios`.
 --
--- DECISIÓN DE DISEÑO — por qué un TRIGGER y no solo RLS en el INSERT
+-- DECISIÓN DE DISEÑO -- por qué un TRIGGER y no solo RLS en el INSERT
 -- --------------------------------------------------------------------
 -- El catálogo `docentes`/`materias` se llena hoy desde varios puntos del
 -- frontend (edición manual, importación de Excel, restauración de
--- backup, creación inline desde TurnoGrid — UX-14) y NINGUNO de esos
+-- backup, creación inline desde TurnoGrid -- UX-14) y NINGUNO de esos
 -- puntos manda `sede_id` todavía porque no existía hasta 0061. Si esta
 -- migración exigiera `sede_id` correcto en el `WITH CHECK` del INSERT
--- sin más, cada INSERT que no lo mande fallaría en cuanto se aplique —
+-- sin más, cada INSERT que no lo mande fallaría en cuanto se aplique --
 -- Excel import, edición de docentes/materias y creación inline
 -- quedarían rotos hasta reescribir cada call site (eso es SEDE-5,
 -- deliberadamente no resuelto en este mismo paso, ver 0061).
@@ -36,16 +36,13 @@
 --
 -- UPDATE no necesita este trigger: `sede_id` ya quedó fijado al crear
 -- la fila, y una edición normal (renombrar, corregir cédula, etc.) no
--- debe poder mover una fila a otra sede — por eso el `WITH CHECK` de
+-- debe poder mover una fila a otra sede -- por eso el `WITH CHECK` de
 -- UPDATE exige que la sede de la fila (antes Y después del cambio) sea
 -- una que el actor puede ver, sin autocompletar nada.
 -- ============================================================================
 
 
--- ── 1. Helper: ¿el usuario actual puede ver/operar sobre esta sede? ─────────
--- Mismo estilo que tiene_permiso() (0044): SQL, STABLE, SECURITY DEFINER,
--- exige perfil activo. true si tiene puedeVerTodasLasSedes, o si la sede
--- de la fila coincide con la sede fija de su perfil.
+-- -- 1. Helper: ¿el usuario actual puede ver/operar sobre esta sede? --------
 CREATE OR REPLACE FUNCTION public.usuario_puede_ver_sede(p_sede_id text)
 RETURNS boolean
 LANGUAGE sql
@@ -69,7 +66,7 @@ COMMENT ON FUNCTION public.usuario_puede_ver_sede IS
   'Mismo patrón que tiene_permiso(): SQL/STABLE/SECURITY DEFINER, exige activo=true.';
 
 
--- ── 2. Trigger: autocompletar sede_id en INSERT si el cliente no la manda ───
+-- -- 2. Trigger: autocompletar sede_id en INSERT si el cliente no la manda --
 CREATE OR REPLACE FUNCTION public._autocompletar_sede_id()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -112,13 +109,7 @@ CREATE TRIGGER trg_autocompletar_sede_materias
   FOR EACH ROW EXECUTE FUNCTION public._autocompletar_sede_id();
 
 
--- ── 3. docentes — RLS sede-aware ─────────────────────────────────────────────
--- SELECT deja de ser público: el autocompletado anónimo de /scan pasa a
--- una RPC nueva (buscar_docente_scan, ver 0064) que resuelve la sede
--- desde el token en vez de leer la tabla directo. Sin ese cambio en el
--- mismo despliegue, /scan quedaría sin autocompletado (degradación
--- suave: el docente igual puede escribir su nombre a mano), pero aplicar
--- 0064 junto con esta migración es lo esperado.
+-- -- 3. docentes -- RLS sede-aware -------------------------------------------
 DROP POLICY IF EXISTS "lectura_publica_docentes" ON public.docentes;
 
 CREATE POLICY "lee_docentes_por_sede"
@@ -166,7 +157,7 @@ CREATE POLICY "borra_docentes_por_permiso"
   );
 
 
--- ── 4. materias — mismo patrón que docentes ──────────────────────────────────
+-- -- 4. materias -- mismo patrón que docentes ---------------------------------
 DROP POLICY IF EXISTS "lectura_publica_materias" ON public.materias;
 
 CREATE POLICY "lee_materias_por_sede"
@@ -214,17 +205,7 @@ CREATE POLICY "borra_materias_por_permiso"
   );
 
 
--- ── 5. horarios — redefinir _aplicar_rls_horarios() y reaplicarla ───────────
--- Igual que 0045: esta función es la única fuente de verdad para las
--- políticas de `horarios` y se reinvoca sobre el padre y cada partición
--- (y automáticamente sobre cualquier partición nueva que cree
--- `_crear_particion_lapso` a futuro — no hace falta tocar esa función,
--- ya llama a `_aplicar_rls_horarios` internamente).
---
--- SELECT deja de ser público (`TO public`) y pasa a `TO authenticated`
--- con chequeo de sede — confirmado que ningún flujo anónimo lee
--- `horarios` directo (grep sobre src/: todos los callers están en
--- módulos que ya requieren sesión).
+-- -- 5. horarios -- redefinir _aplicar_rls_horarios() y reaplicarla ----------
 CREATE OR REPLACE FUNCTION public._aplicar_rls_horarios(p_table_name text)
 RETURNS void
 LANGUAGE plpgsql
@@ -232,7 +213,6 @@ AS $function$
 BEGIN
   EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', p_table_name);
 
-  -- SELECT: SEDE-3 — ya no es público, exige sede
   EXECUTE format(
     'DROP POLICY IF EXISTS %I ON public.%I',
     'Lectura pública', p_table_name
@@ -252,8 +232,6 @@ BEGIN
     'Escritura autenticada', p_table_name
   );
 
-  -- INSERT: permiso + sede (sede_id se autocompleta vía trigger si el
-  -- cliente no la manda — ver _autocompletar_sede_id más arriba)
   EXECUTE format(
     'DROP POLICY IF EXISTS %I ON public.%I',
     'Permitir todo a horarios', p_table_name
@@ -269,7 +247,6 @@ BEGIN
     'Inserción con permiso', p_table_name
   );
 
-  -- UPDATE: permiso + sede
   EXECUTE format(
     'DROP POLICY IF EXISTS %I ON public.%I',
     'Actualización con permiso', p_table_name
@@ -283,7 +260,6 @@ BEGIN
     'Actualización con permiso', p_table_name
   );
 
-  -- DELETE: permiso + sede
   EXECUTE format(
     'DROP POLICY IF EXISTS %I ON public.%I',
     'Enable delete for all users', p_table_name
@@ -299,27 +275,37 @@ BEGIN
     'Borrado con permiso', p_table_name
   );
 
-  -- Trigger de autocompletado — igual que docentes/materias. Se dropea/
-  -- recrea por nombre fijo en cada tabla (padre + cada partición).
-  EXECUTE format(
-    'DROP TRIGGER IF EXISTS trg_autocompletar_sede ON public.%I', p_table_name
-  );
-  EXECUTE format(
-    'CREATE TRIGGER trg_autocompletar_sede BEFORE INSERT ON public.%I '
-    'FOR EACH ROW EXECUTE FUNCTION public._autocompletar_sede_id()',
-    p_table_name
-  );
+  -- Trigger de autocompletado -- SOLO sobre la tabla padre 'horarios'.
+  -- FIX (post-error 2BP01): con particionamiento declarativo, un trigger
+  -- creado en la tabla padre se clona automáticamente en todas las
+  -- particiones (actuales y futuras). Postgres rechaza dropear/crear ese
+  -- trigger clonado directo en una partición ("cannot drop trigger ...
+  -- because trigger ... on table horarios requires it" -- exactamente el
+  -- error obtenido al correr esto contra 'horarios_lapso_1_2026'). Por
+  -- eso este bloque actúa solo cuando p_table_name = 'horarios': crearlo
+  -- ahí ya alcanza a las 7 particiones sin tocarlas una por una.
+  IF p_table_name = 'horarios' THEN
+    EXECUTE format(
+      'DROP TRIGGER IF EXISTS trg_autocompletar_sede ON public.%I', p_table_name
+    );
+    EXECUTE format(
+      'CREATE TRIGGER trg_autocompletar_sede BEFORE INSERT ON public.%I '
+      'FOR EACH ROW EXECUTE FUNCTION public._autocompletar_sede_id()',
+      p_table_name
+    );
+  END IF;
 END;
 $function$;
 
 COMMENT ON FUNCTION public._aplicar_rls_horarios IS
   'SEDE-3: SELECT/INSERT/UPDATE/DELETE exigen usuario_puede_ver_sede(sede_id) '
-  'además del permiso granular correspondiente. INSERT autocompleta sede_id '
-  'vía trigger si el cliente no la manda. Debe aplicarse tanto a la tabla '
-  'padre como a cada partición — no se hereda solo.';
+  'además del permiso granular correspondiente. Las políticas RLS deben '
+  'aplicarse tanto a la tabla padre como a cada partición -- no se heredan '
+  'solas. El trigger de autocompletado de sede_id es la excepción: se crea '
+  'una sola vez sobre la tabla padre y Postgres lo clona solo a las '
+  'particiones (declarative partitioning), por eso esta función solo lo '
+  'toca cuando p_table_name = ''horarios''.';
 
--- Reaplicar sobre el padre y las 7 particiones reales (mismo listado que
--- ESQUEMA_Y_MIGRACIONES.md §horarios).
 SELECT public._aplicar_rls_horarios('horarios');
 SELECT public._aplicar_rls_horarios('horarios_lapso_1_2026');
 SELECT public._aplicar_rls_horarios('horarios_lapso_2_2026');
@@ -335,10 +321,9 @@ SELECT public._aplicar_rls_horarios('horarios_lapso_default');
 -- ============================================================================
 -- 1. Como usuario de sede 'cabimas' (todo el dato actual): SELECT * FROM
 --    docentes/materias/horarios debe seguir devolviendo exactamente lo
---    mismo que antes de esta migración (nada cambia visualmente hoy,
---    porque hoy solo existe la sede cabimas).
+--    mismo que antes de esta migración.
 -- 2. Insertar manualmente una segunda sede de prueba y un docente con
---    sede_id de esa sede — un usuario de 'cabimas' NO debe poder verlo
+--    sede_id de esa sede -- un usuario de 'cabimas' NO debe poder verlo
 --    ni editarlo; un usuario con puedeVerTodasLasSedes sí.
 -- 3. Insertar un docente SIN mandar sede_id desde un usuario con sede
 --    fija -> debe quedar con sede_id = la del usuario (trigger).
@@ -346,7 +331,7 @@ SELECT public._aplicar_rls_horarios('horarios_lapso_default');
 --    puedeVerTodasLasSedes y sin sede fija en el perfil -> debe
 --    RECHAZAR con el mensaje del trigger, no insertar con NULL.
 -- 5. SELECT policyname, cmd, roles FROM pg_policies WHERE tablename IN
---    ('docentes','materias','horarios', ...particiones...) — confirmar
+--    ('docentes','materias','horarios', ...particiones...) -- confirmar
 --    que ya no queda ninguna política 'TO public'/'TO {public}' en
 --    ninguna de estas tablas.
 -- 6. Confirmar el trigger en las 8 tablas de horarios (padre + 7):
