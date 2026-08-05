@@ -131,33 +131,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS materias_sede_nombre_raw_unique
 -- `horarios.sede` (texto libre, viene del Excel) se conserva tal cual —
 -- sigue siendo el dato "crudo" de importación. `sede_id` es la columna
 -- normalizada que va a usar el frontend/RLS para filtrar (SEDE-3).
--- Se agrega en la tabla padre Y se propaga a cada partición real, porque
--- (igual que RLS, ver ESQUEMA_Y_MIGRACIONES.md sobre 0045) Postgres no
--- hereda columnas nuevas automáticamente en particiones ya creadas.
+--
+-- FIX (post-error de aplicación): `horarios` usa particionamiento
+-- DECLARATIVO real (PARTITION OF), no herencia simple. Con particionamiento
+-- declarativo, Postgres RECHAZA `ALTER TABLE <particion> ADD COLUMN`
+-- directo (error 42809 "cannot add column to a partition") — la única
+-- forma válida es alterar la tabla padre, y la columna se propaga sola a
+-- las 7 particiones. El bloque `DO $$ ... FOR particion IN pg_inherits`
+-- que había acá antes intentaba alterar cada partición a mano (patrón
+-- correcto para herencia simple, pero inválido para particionamiento
+-- declarativo) y es justo lo que producía el error. El UPDATE de abajo
+-- también se propaga solo: un UPDATE sobre la tabla padre sin filtro de
+-- partición enruta el trabajo a cada partición automáticamente.
 ALTER TABLE public.horarios
   ADD COLUMN IF NOT EXISTS sede_id text REFERENCES public.sedes(id);
 
 UPDATE public.horarios SET sede_id = 'cabimas' WHERE sede_id IS NULL;
-
-DO $$
-DECLARE
-  particion text;
-BEGIN
-  FOR particion IN
-    SELECT inhrelid::regclass::text
-    FROM pg_inherits
-    WHERE inhparent = 'public.horarios'::regclass
-  LOOP
-    EXECUTE format(
-      'ALTER TABLE %s ADD COLUMN IF NOT EXISTS sede_id text REFERENCES public.sedes(id);',
-      particion
-    );
-    EXECUTE format(
-      'UPDATE %s SET sede_id = ''cabimas'' WHERE sede_id IS NULL;',
-      particion
-    );
-  END LOOP;
-END $$;
 
 CREATE INDEX IF NOT EXISTS idx_horarios_sede_lapso ON public.horarios (sede_id, lapso);
 
