@@ -75,6 +75,30 @@ COMMENT ON POLICY "lee_asistencias_por_permiso" ON public.asistencias_diarias IS
 
 
 -- ── 3. crear_qr_session — resolver sede, no pisar sesiones de otra sede ─────
+-- FIX (post-error 42725 "function name ... is not unique"): la versión
+-- previa de esta función (sin p_sede_id) ya existía en la base con una
+-- firma distinta. CREATE OR REPLACE no la reemplaza cuando cambia la
+-- lista de parámetros -- crea un segundo overload (mismo problema que ya
+-- resolvió explícitamente 0062 con admin_upsert_user_profile vía DROP
+-- FUNCTION IF EXISTS). Acá no se conoce con certeza la firma vieja
+-- exacta desde este archivo solo, así que en vez de adivinarla se
+-- sueltan dinámicamente TODOS los overloads existentes de
+-- crear_qr_session antes de crear la versión nueva -- deja exactamente
+-- una firma viva, sin importar cuál era la anterior.
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'crear_qr_session'
+  LOOP
+    EXECUTE format('DROP FUNCTION %s', r.sig);
+  END LOOP;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.crear_qr_session(
   p_turno    TEXT,
   p_programa TEXT    DEFAULT NULL,
@@ -188,7 +212,7 @@ $$;
 REVOKE ALL    ON FUNCTION public.crear_qr_session(TEXT, TEXT, DATE, INTEGER, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.crear_qr_session(TEXT, TEXT, DATE, INTEGER, TEXT) TO authenticated;
 
-COMMENT ON FUNCTION public.crear_qr_session IS
+COMMENT ON FUNCTION public.crear_qr_session(TEXT, TEXT, DATE, INTEGER, TEXT) IS
   'SEDE-3: agrega p_sede_id. Resuelve la sede efectiva desde el perfil del '
   'caller (o desde p_sede_id si el rol ve todas las sedes); la sesión nueva '
   'y la desactivación de sesiones previas del mismo turno/programa quedan '
@@ -200,6 +224,24 @@ COMMENT ON FUNCTION public.crear_qr_session IS
 -- único DENTRO de una sede — hace falta filtrar también por sede_id o
 -- el JOIN puede traer horarios de la fila equivocada si la cédula se
 -- repite en más de una sede.
+-- FIX (mismo patrón que crear_qr_session más arriba): esta firma también
+-- cambia (agrega p_sede_id, obligatorio) respecto a la versión previa —
+-- se sueltan los overloads existentes antes de recrearla, en vez de
+-- adivinar la firma vieja.
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'horario_docente_hoy'
+  LOOP
+    EXECUTE format('DROP FUNCTION %s', r.sig);
+  END LOOP;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.horario_docente_hoy(
   p_cedula  text,
   p_dia     text,
@@ -233,7 +275,7 @@ AS $$
     AND  h.dia     = p_dia;
 $$;
 
-COMMENT ON FUNCTION public.horario_docente_hoy IS
+COMMENT ON FUNCTION public.horario_docente_hoy(text, text, text) IS
   'SEDE-3: agrega p_sede_id (obligatorio) para no cruzar horarios de otra '
   'sede cuando la misma cédula existe en más de un catálogo de docentes.';
 
@@ -503,7 +545,7 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.registrar_asistencia IS
+COMMENT ON FUNCTION public.registrar_asistencia(UUID, TEXT, TEXT, TEXT, TEXT) IS
   'SEDE-3: la fila insertada hereda sede_id de la sesión QR escaneada '
   '(v_session.sede_id), y el chequeo de ENTRADA previa para SALIDA ahora '
   'exige que sea de la misma sede. Rate limiting con backoff progresivo '
@@ -573,7 +615,7 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.buscar_docente_scan IS
+COMMENT ON FUNCTION public.buscar_docente_scan(UUID, TEXT) IS
   'SEDE-3/4. Autocompletado anónimo de nombre por cédula para /scan. '
   'Resuelve la sede desde qr_sessions.token (nunca desde un parámetro '
   'que el cliente anónimo controle). Reemplaza los SELECT directos que '
