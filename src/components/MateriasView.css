@@ -83,6 +83,7 @@
 .mv-turno-badge { border-radius: 6px; padding: 3px 10px; font-size: var(--font-size-12); font-weight: 600; }
 .mv-turno-badge--diurno { background: var(--color-background-info); color: var(--brand-500); }
 .mv-turno-badge--vespertino { background: #FDF2F8; color: #DB2777; }
+.mv-turno-badge--mixto { background: #FEF3C7; color: #B45309; }
 .mv-turno-badge-inner { display: inline-flex; align-items: center; gap: 5px; }
 
 .mv-trayecto-badge { background: var(--trayecto-bg, #f3f4f6); color: var(--trayecto-color, #555); border-radius: 6px; padding: 3px 10px; font-size: var(--font-size-12); font-weight: 600; }

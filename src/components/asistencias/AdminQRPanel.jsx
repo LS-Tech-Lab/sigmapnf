@@ -260,9 +260,25 @@ export default function AdminQRPanel({
   const hoy    = fechaHoyVE();
   const minHoy = horaActualVE();
 
-  const turnoDefault = TURNOS_VISIBLES.find(t => !t.finMin || minHoy < t.finMin)?.id
-    || TURNOS_VISIBLES[0]?.id
-    || "DIURNO";
+  // Fix (caso PNF Agroalimentación, turno MIXTO): antes se elegía el
+  // primer turno visible que no hubiera terminado, en el orden fijo de
+  // TURNOS_VISIBLES (DIURNO → VESPERTINO → MIXTO). Un coordinador de
+  // Agroalimentación (cuyo único turno real es MIXTO) que abriera el
+  // panel en la tarde se encontraba con "Vespertino" preseleccionado —
+  // VESPERTINO calza antes en la lista y MIXTO nunca se llegaba a
+  // evaluar, aunque ambos sigan "disponibles" a esa hora. Si el perfil
+  // trae su propio programa y es Agroalimentación, se prioriza MIXTO
+  // (mientras siga disponible hoy); para el resto de los programas el
+  // comportamiento no cambia.
+  const turnoDefault = (() => {
+    if (profile?.programa === "PNF Agroalimentación") {
+      const mixto = TURNOS_VISIBLES.find(t => t.id === "MIXTO");
+      if (mixto && (!mixto.finMin || minHoy < mixto.finMin)) return mixto.id;
+    }
+    return TURNOS_VISIBLES.find(t => !t.finMin || minHoy < t.finMin)?.id
+      || TURNOS_VISIBLES[0]?.id
+      || "DIURNO";
+  })();
 
   const [turno,    setTurno]    = useState(turnoDefault);
   const [programa, setPrograma] = useState(profile?.programa || "");

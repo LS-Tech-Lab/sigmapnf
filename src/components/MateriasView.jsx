@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DAYS, trayectoClass } from '../constants';
+import { DAYS, trayectoClass, TURNOS_CONFIG } from '../constants';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../utils/time';
 import { getTurnoDeRegistro } from '../utils/turno';
 import { parseClase } from '../utils/parsing';
@@ -104,13 +104,24 @@ export default function MateriasView({ byMateria, initialSel, onConsumeNav, getM
                   <tbody>
                     {asignaciones.map((e, i) => {
                       const tr = getTurnoDeRegistro(e);
+                      // Fix (caso PNF Agroalimentación, turno MIXTO): antes
+                      // era un ternario binario DIURNO/VESPERTINO — cualquier
+                      // otro turno (ej. MIXTO) caía por defecto en
+                      // "Vespertino" con ícono de luna, aunque corra casi
+                      // todo el día. El label sale de TURNOS_CONFIG (una
+                      // sola fuente de verdad); el ícono/color siguen un
+                      // mapeo explícito porque sí necesitan una clase CSS
+                      // concreta por turno (ver .mv-turno-badge--mixto).
+                      const turnoLabelBadge = TURNOS_CONFIG.find(t => t.id === tr)?.label || tr;
+                      const turnoModBadge   = tr === "DIURNO" ? "diurno" : tr === "MIXTO" ? "mixto" : "vespertino";
+                      const turnoIconBadge  = tr === "VESPERTINO" ? "ti-moon-stars" : "ti-sun-high";
                       const { docente: docenteParseado } = parseClase(e.clase);
                       const rd = e.docentes?.nombre_raw || docenteParseado;
                       return (
                         <tr key={i}>
                           <td className="s-td mv-td-dia">{e.dia.charAt(0)+e.dia.slice(1).toLowerCase()}</td>
                           <td className="s-td mv-td-hora">{getHoraDisplayDeRegistro(e)}</td>
-                          <td className="s-td"><span className={`mv-turno-badge${tr === "DIURNO" ? ' mv-turno-badge--diurno' : ' mv-turno-badge--vespertino'}`}><span className="mv-turno-badge-inner"><i className={`ti ${tr === "DIURNO" ? "ti-sun-high" : "ti-moon-stars"}`} aria-hidden="true" /> {tr === "DIURNO" ? "Diurno" : "Vespertino"}</span></span></td>
+                          <td className="s-td"><span className={`mv-turno-badge mv-turno-badge--${turnoModBadge}`}><span className="mv-turno-badge-inner"><i className={`ti ${turnoIconBadge}`} aria-hidden="true" /> {turnoLabelBadge}</span></span></td>
                           <td className="s-td mv-td-seccion">{e.sheet?.trim() || ""}</td>
                           <td className="s-td"><span className={`mv-trayecto-badge ${trayectoClass(e.trayecto)}`}>{e.trayecto}</span></td>
                           <td className="s-td mv-td-docente">{rd && getDocName ? getDocName(rd) : (rd || "—")}</td>

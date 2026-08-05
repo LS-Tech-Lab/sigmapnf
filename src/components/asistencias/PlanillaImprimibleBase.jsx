@@ -7,7 +7,7 @@
 // Horarios (AsistenciasView.jsx), eliminado por redundante: la misma
 // planilla ya es accesible desde Asistencias QR.
 import React, { useState, useMemo } from 'react';
-import { DAYS, trayectoClass } from '../../constants';
+import { DAYS, trayectoClass, TURNOS_CONFIG } from '../../constants';
 import { getTurnoDeRegistro } from '../../utils/turno';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../../utils/time';
 import { parseClase } from '../../utils/parsing';
@@ -42,9 +42,21 @@ import './PlanillaImprimibleBase.css';
 const ESC = s => String(s ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+// Fix (caso PNF Agroalimentación, turno MIXTO): antes el selector de
+// turno era un array fijo ["DIURNO", "VESPERTINO"] — un coordinador de
+// Agroalimentación no podía generar esta planilla en absoluto, porque su
+// turno (MIXTO) ni siquiera aparecía como opción. Ahora sale de
+// TURNOS_CONFIG (misma fuente que ya usan TURNOS_VISIBLES en QRDisplay.jsx
+// y TURNOS_FILTRO en el reporte) — cualquier turno nuevo que se habilite
+// a futuro aparece automáticamente, sin tocar este archivo.
+const TURNOS_PLANILLA = TURNOS_CONFIG.filter(t => t.habilitado);
+const turnoIcon = (id) => (id === "VESPERTINO" || id === "NOCTURNO") ? "ti-moon" : "ti-sun";
+
 export default function PlanillaImprimibleBase({ data, getDocName, getMateriaName, catalogoDocentes = [], lapso, reporteConfig }) {
   const lapsoActual = lapso || getCurrentLapso();
-  const [turno, setTurno] = useState("DIURNO"), [selectedDay, setSelectedDay] = useState(DAYS[0]);
+  const [turno, setTurno] = useState(TURNOS_PLANILLA[0]?.id || "DIURNO"), [selectedDay, setSelectedDay] = useState(DAYS[0]);
+  const turnoConf = TURNOS_CONFIG.find(t => t.id === turno);
+  const turnoLabel = turnoConf?.label || turno;
 
   const programaActual = useMemo(() => {
     const programas = [...new Set(data.map(d => d.programa).filter(Boolean))];
@@ -77,7 +89,6 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
   }, [data, turno, selectedDay, getDocName, getMateriaName, catalogoDocentes]);
 
   const handlePrint = () => {
-    const turnoLabel = turno === "DIURNO" ? "Diurno" : "Vespertino";
     const diaLabel = selectedDay.charAt(0) + selectedDay.slice(1).toLowerCase();
 
     const filas = docentesDelDia.map(([rd, info], idx) => `<tr>
@@ -123,10 +134,10 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
         <div>
           <div className="pib-field-label">Turno</div>
           <div className="pib-field-row">
-            {["DIURNO", "VESPERTINO"].map(t => (
-              <button key={t} onClick={() => setTurno(t)} className={`s-btn pib-turno-btn${turno === t ? ' s-btn--active' : ''}`}>
-                <i className={`${t === "DIURNO" ? "ti ti-sun" : "ti ti-moon"} pib-turno-btn-icon`} aria-hidden="true" />
-                {t === "DIURNO" ? "Diurno" : "Vespertino"}
+            {TURNOS_PLANILLA.map(t => (
+              <button key={t.id} onClick={() => setTurno(t.id)} className={`s-btn pib-turno-btn${turno === t.id ? ' s-btn--active' : ''}`}>
+                <i className={`ti ${turnoIcon(t.id)} pib-turno-btn-icon`} aria-hidden="true" />
+                {t.label}
               </button>
             ))}
           </div>
@@ -147,7 +158,7 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
       <div className="s-card">
         <div className="pib-table-header">
           <div className="pib-table-title">Control de Asistencia Docentes</div>
-          <div className="pib-table-sub">{programaActual} · {selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: {turno === "DIURNO" ? "Diurno (7:30AM – 12:00PM)" : "Vespertino (1:00PM – 5:30PM)"} · Trimestre {lapsoActual}</div>
+          <div className="pib-table-sub">{programaActual} · {selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: {turnoLabel} ({turnoConf?.hora || ""}) · Trimestre {lapsoActual}</div>
         </div>
         {!docentesDelDia.length ? <div className="pib-empty">No hay docentes registrados.</div> : (
           <table className="pib-table">

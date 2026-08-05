@@ -140,6 +140,36 @@ describe("ReporteRango — carga real del reporte por rango (ARCH-27, agregació
     );
   });
 
+  // Fix (caso PNF Agroalimentación, turno MIXTO): antes las horas
+  // estimadas usaban un ternario fijo (NOCTURNO=3, cualquier otro=4) —
+  // MIXTO (9h reales, 7:00am-4:00pm continuo) heredaba el "4" genérico y
+  // subestimaba a menos de la mitad las horas de un docente con jornada
+  // completa en Agroalimentación. Ahora sale de TURNOS_CONFIG.
+  it("con turno MIXTO, calcula ~18h (2 días × 9h reales) en vez de ~8h (el '4h' genérico que usaba antes)", async () => {
+    mockReporteYConteo();
+
+    renderReporte();
+
+    const selectTurno = screen.getByText("Turno").closest("label").querySelector("select");
+    fireEvent.change(selectTurno, { target: { value: "MIXTO" } });
+
+    setDateInput("Desde", INICIO);
+    setDateInput("Hasta", FIN);
+
+    await waitFor(() => screen.getByText("Prof. Ana Pérez"));
+    expect(screen.getByText("~18h")).toBeTruthy();
+    expect(screen.queryByText("~8h")).toBeNull();
+
+    await waitFor(() =>
+      expect(supabase.rpc).toHaveBeenCalledWith("reporte_asistencias_rango_agregado", {
+        p_fecha_desde: INICIO,
+        p_fecha_hasta: FIN,
+        p_turno:       "MIXTO",
+        p_programa:    null,
+      })
+    );
+  });
+
   it("sin el permiso puedeBorrarReportes no muestra el botón de borrado", async () => {
     mockReporteYConteo();
 

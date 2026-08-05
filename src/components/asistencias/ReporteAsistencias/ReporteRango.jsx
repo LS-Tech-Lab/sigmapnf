@@ -118,11 +118,27 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
         return;
       }
 
+      // Fix (caso PNF Agroalimentación, turno MIXTO): antes se estimaban las
+      // horas trabajadas con un ternario fijo (NOCTURNO=3, cualquier otro
+      // turno=4) — una aproximación razonable mientras solo existían
+      // DIURNO/VESPERTINO (4.5h reales cada uno, redondeadas hacia abajo).
+      // MIXTO dura 9h (7:00am-4:00pm continuo, sin el corte de mediodía),
+      // así que con el ternario viejo un docente de Agroalimentación con
+      // jornada completa aparecía con menos de la mitad de sus horas
+      // reales. Ahora se deriva de TURNOS_CONFIG (inicioMin/finMin), igual
+      // redondeado hacia abajo para no romper los números ya conocidos de
+      // DIURNO/VESPERTINO/NOCTURNO — y cualquier turno nuevo que se agregue
+      // a futuro queda cubierto automáticamente sin tocar este archivo.
+      const conf = TURNOS_CONFIG.find(t => t.id === turno);
+      const horasPorDia = (conf?.inicioMin != null && conf?.finMin != null)
+        ? Math.floor((conf.finMin - conf.inicioMin) / 60)
+        : 4; // fallback (ej. turno="" / sin filtro): mismo valor de siempre
+
       const agregados = (data || []).map(d => ({
         cedula: d.cedula_docente,
         nombre: d.nombre_docente,
         diasAsistidos: Number(d.dias_asistidos),
-        horasEstimadas: Number(d.dias_asistidos) * (turno === "NOCTURNO" ? 3 : 4),
+        horasEstimadas: Number(d.dias_asistidos) * horasPorDia,
         programas: (d.programas || []).map(p => p.replace("PNF ", "")),
       }));
 
@@ -229,7 +245,11 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
         <label className="ra-filtro-label">
           <span className="ra-filtro-label-text">Turno</span>
           <select value={turno} onChange={e => setTurno(e.target.value)} className="s-select">
-            {TURNOS_CONFIG.filter(t => t.habilitado).map(t => <option key={t.id} value={t.id}>{t.id}</option>)}
+            {/* Antes mostraba el id crudo (ej. "MIXTO") en vez de un label
+                legible — inconsistente con el resto de selects de turno de
+                la app (AdminQRPanel, ReporteAsistencias/index.jsx, etc.),
+                que sí usan TURNOS_CONFIG.label. */}
+            {TURNOS_CONFIG.filter(t => t.habilitado).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
         </label>
         <label className="ra-filtro-label">

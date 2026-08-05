@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
-import { DEFAULT_PROGRAMAS } from "../../../constants";
+import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../../constants";
 import { fechaHoyVE } from "../../../utils/time";
 
 import { TURNOS_FILTRO, POLL_FALLBACK_MS, agruparPorDocente } from "./helpers";
@@ -202,7 +202,13 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
           <select value={turno} onChange={e => setTurno(e.target.value)} className="s-select">
             {TURNOS_FILTRO.map(t => (
               <option key={t} value={t}>
-                {t === "DIURNO" ? "Diurno" : t === "VESPERTINO" ? "Vespertino" : "Todos los turnos"}
+                {/* Fix (caso PNF Agroalimentación, turno MIXTO): antes era
+                    un ternario DIURNO/VESPERTINO/(cualquier otra cosa) —
+                    "cualquier otra cosa" incluía a MIXTO, que se mostraba
+                    como "Todos los turnos", duplicando literalmente el
+                    texto de la opción "TODOS" real. Ahora el label sale de
+                    TURNOS_CONFIG (misma fuente que TURNOS_FILTRO). */}
+                {t === "TODOS" ? "Todos los turnos" : (TURNOS_CONFIG.find(c => c.id === t)?.label || t)}
               </option>
             ))}
           </select>
