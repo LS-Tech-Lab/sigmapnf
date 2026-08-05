@@ -233,7 +233,7 @@ export default function useQRSession() {
     };
   }, [sessionId, rotarPorEscaneoThrottled]);
 
-  const crearSesion = useCallback(async ({ turno, programa = null, fecha = null }) => {
+  const crearSesion = useCallback(async ({ turno, programa = null, fecha = null, sede_id = null }) => {
     setLoading(true);
     setError(null);
     limpiarIntervalos();
@@ -244,6 +244,11 @@ export default function useQRSession() {
     const params = { p_turno: turno, p_ttl_min: TTL_MINUTES };
     if (programa) params.p_programa = programa;
     if (fecha)    params.p_fecha    = fecha;
+    // SEDE-3: solo hace falta mandarla cuando el usuario puede elegir
+    // sede (AdminQRPanel siempre la manda si sedeActiva existe); si el
+    // usuario tiene sede fija, crear_qr_session la resuelve sola del
+    // perfil y este parámetro se ignora en el servidor.
+    if (sede_id)  params.p_sede_id  = sede_id;
 
     const { data, error: rpcErr } = await supabase.rpc("crear_qr_session", params);
 

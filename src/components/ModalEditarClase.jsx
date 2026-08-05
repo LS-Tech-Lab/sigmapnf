@@ -50,6 +50,7 @@ import { DAYS, BLOQUES_DIURNO, BLOQUES_VESPERTINO, BLOQUES_MIXTO } from "../cons
 import { parseClase } from "../utils/parsing";
 import { getTurnoDeRegistro } from "../utils/turno";
 import useFocusTrap from "../hooks/useFocusTrap";
+import { useSedeContext } from "../context/SedeContext";
 import "./ModalEditarClase.css";
 
 // Un solo select combinado DIURNO+VESPERTINO+MIXTO — el turno se deriva de
@@ -119,6 +120,10 @@ export default function ModalEditarClase({
 }) {
   const dialogRef = useRef(null);
   useFocusTrap(dialogRef, open);
+
+  // SEDE-5: la materia/docente creados con "+ Nuevo" quedan en la sede
+  // activa de la sesión, igual que cualquier otra fila nueva del catálogo.
+  const { sedeActiva } = useSedeContext();
 
   const [dia, setDia] = useState(DAYS[0]);
   const [bloqueInicioSel, setBloqueInicioSel] = useState(bloqueValue(OPCIONES_BLOQUE[0]));
@@ -234,7 +239,11 @@ export default function ModalEditarClase({
         if (materiaId === NUEVO) {
           const nombre = nuevaMateriaNombre.trim();
           const { data, error: insError } = await supabase
-            .from("materias").upsert({ nombre_raw: nombre, nombre_display: nombre }, { onConflict: "nombre_raw" })
+            .from("materias")
+            .upsert(
+              { nombre_raw: nombre, nombre_display: nombre, ...(sedeActiva ? { sede_id: sedeActiva } : {}) },
+              { onConflict: "sede_id,nombre_raw" }
+            )
             .select().single();
           if (insError) { setSaving(false); setError("Error al crear la materia: " + insError.message); return; }
           materiaRow = data;
@@ -242,7 +251,11 @@ export default function ModalEditarClase({
         if (docenteId === NUEVO) {
           const nombre = nuevoDocenteNombre.trim();
           const { data, error: insError } = await supabase
-            .from("docentes").upsert({ nombre_raw: nombre, nombre_display: nombre }, { onConflict: "nombre_raw" })
+            .from("docentes")
+            .upsert(
+              { nombre_raw: nombre, nombre_display: nombre, ...(sedeActiva ? { sede_id: sedeActiva } : {}) },
+              { onConflict: "sede_id,nombre_raw" }
+            )
             .select().single();
           if (insError) { setSaving(false); setError("Error al crear el docente: " + insError.message); return; }
           docenteRow = data;

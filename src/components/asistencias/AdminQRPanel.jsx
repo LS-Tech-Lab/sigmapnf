@@ -35,6 +35,7 @@ import { obtenerPendientes, eliminarPendiente, purgarExpirados } from "../../uti
 import { formatFechaVE, TURNOS_VISIBLES } from "./QRDisplay";
 // Fix ARCH-18: extraído a adminQR/ (ver nota arriba).
 import HistorialSesiones from "./adminQR/HistorialSesiones";
+import { useSedeContext } from "../../context/SedeContext";
 import "./AdminQRPanel.css";
 
 function horaActualVE() {
@@ -270,6 +271,9 @@ export default function AdminQRPanel({
   // trae su propio programa y es Agroalimentación, se prioriza MIXTO
   // (mientras siga disponible hoy); para el resto de los programas el
   // comportamiento no cambia.
+  //
+  // Restaurado tras el merge del feature de sedes (SEDE-3), que había
+  // reintroducido el bug al partir de una base anterior a este fix.
   const turnoDefault = (() => {
     if (profile?.programa === "PNF Agroalimentación") {
       const mixto = TURNOS_VISIBLES.find(t => t.id === "MIXTO");
@@ -287,6 +291,14 @@ export default function AdminQRPanel({
   const feedRegistrosRef = useRef([]);
   const { flash: feedFlash, trigger: flashTrigger } = useFlashFeed();
   const [confirmCierre, setConfirmCierre] = useState(false);
+
+  // SEDE-3: la sesión QR queda anclada a la sede activa de quien la crea
+  // (fija para la mayoría de los roles, elegida en SedeSelector para
+  // quienes tienen puedeVerTodasLasSedes — ver useSedeActiva.js). Sin
+  // esto, dos sedes generando QR el mismo turno/programa se desactivarían
+  // sesiones entre sí (crear_qr_session desactiva "la sesión previa del
+  // mismo contexto", que ahora incluye sede).
+  const { sedeActiva } = useSedeContext();
 
   const esHoy = fecha === hoy;
 
@@ -328,7 +340,7 @@ export default function AdminQRPanel({
 
   const handleIniciar = () => {
     if (esHoy && !turnoDisponible(turno)) return;
-    crearSesion({ turno, programa: programa || null, fecha });
+    crearSesion({ turno, programa: programa || null, fecha, sede_id: sedeActiva });
   };
 
   const turnoInfo     = TURNOS_VISIBLES.find(t => t.id === turno);

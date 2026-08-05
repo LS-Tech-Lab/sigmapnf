@@ -21,23 +21,31 @@ vi.mock("../../lib/supabase", () => ({
 }));
 
 import AdminQRPanel from "./AdminQRPanel";
+// SEDE-3: AdminQRPanel consume useSedeContext() (para mandar sede_id al
+// crear la sesión QR) — en producción vive dentro de HorariosLayout, que
+// App.jsx ya envuelve en <SedeProvider>. Se replica acá el mismo wrapper
+// con una sede fija de prueba para que el hook no explote por falta de
+// Provider, igual que en ModalEditarClase.test.jsx.
+import { SedeProvider } from "../../context/SedeContext";
 
 function renderPanel(profile) {
   return render(
-    <AdminQRPanel
-      profile={profile}
-      onVerReporte={vi.fn()}
-      onVerProyeccion={vi.fn()}
-      activa={false}
-      loading={false}
-      error={null}
-      sessionId={null}
-      crearSesion={vi.fn()}
-      renovarManual={vi.fn()}
-      cerrarSesion={vi.fn()}
-      permisos={{}}
-      showToast={vi.fn()}
-    />
+    <SedeProvider value={{ sedeActiva: "cabimas", sedes: [], setSedeActiva: vi.fn() }}>
+      <AdminQRPanel
+        profile={profile}
+        onVerReporte={vi.fn()}
+        onVerProyeccion={vi.fn()}
+        activa={false}
+        loading={false}
+        error={null}
+        sessionId={null}
+        crearSesion={vi.fn()}
+        renovarManual={vi.fn()}
+        cerrarSesion={vi.fn()}
+        permisos={{}}
+        showToast={vi.fn()}
+      />
+    </SedeProvider>
   );
 }
 

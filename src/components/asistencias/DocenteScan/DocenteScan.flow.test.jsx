@@ -70,6 +70,17 @@ beforeEach(() => {
   // Sin fila de docente/asistencia previa: la búsqueda de autocompletado
   // (docentes / asistencias_diarias) no encuentra nada, pero no rompe el flujo.
   supabase.from.mockImplementation(() => makeTableMock({ data: null, error: null }));
+  // SEDE-3/4: el autocompletado por cédula ahora pasa por la RPC
+  // buscar_docente_scan (antes eran SELECT directos a docentes/
+  // asistencias_diarias, ver DocenteScan/index.jsx). Se deja un default
+  // "no encontrado" acá para que dispare o no dispare el debounce de
+  // 450ms no afecte a los tests que solo les interesa registrar_asistencia
+  // — cada test que sí le importa registrar_asistencia sobreescribe esta
+  // rama con mockImplementation propio.
+  supabase.rpc.mockImplementation((fn) => {
+    if (fn === "buscar_docente_scan") return Promise.resolve({ data: { encontrado: false }, error: null });
+    return Promise.resolve({ data: null, error: null });
+  });
 });
 
 afterEach(() => {
@@ -80,15 +91,18 @@ afterEach(() => {
 describe("DocenteScan — flujo de docente nuevo", () => {
   it("registra la entrada de principio a fin y muestra el resultado exitoso", async () => {
     irA("qr-token-123");
-    supabase.rpc.mockResolvedValue({
-      data: {
-        ok: true,
-        tipo: "ENTRADA",
-        mensaje: "Entrada registrada correctamente.",
-        horario_hoy: null,
-        dia_semana: null,
-      },
-      error: null,
+    supabase.rpc.mockImplementation((fn) => {
+      if (fn === "buscar_docente_scan") return Promise.resolve({ data: { encontrado: false }, error: null });
+      return Promise.resolve({
+        data: {
+          ok: true,
+          tipo: "ENTRADA",
+          mensaje: "Entrada registrada correctamente.",
+          horario_hoy: null,
+          dia_semana: null,
+        },
+        error: null,
+      });
     });
 
     render(<DocenteScan />);
@@ -111,9 +125,12 @@ describe("DocenteScan — flujo de docente nuevo", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /confirmar y registrar mi entrada/i }));
 
-    // Paso 4: se llamó al RPC con el payload correcto (cédula normalizada)
-    await waitFor(() => expect(supabase.rpc).toHaveBeenCalledTimes(1));
-    expect(supabase.rpc).toHaveBeenCalledWith(
+    // Paso 4: se llamó al RPC con el payload correcto (cédula normalizada).
+    // No se afirma un conteo total exacto: el debounce de 450ms del
+    // autocompletado (buscar_docente_scan) puede o no haber disparado
+    // según cuánto tardó en correr el test hasta acá — lo que importa es
+    // que registrar_asistencia se llamó, y una sola vez.
+    await waitFor(() => expect(supabase.rpc).toHaveBeenCalledWith(
       "registrar_asistencia",
       expect.objectContaining({
         p_token: "qr-token-123",
@@ -121,7 +138,8 @@ describe("DocenteScan — flujo de docente nuevo", () => {
         p_nombre_docente: "Prof. Ana Pérez",
         p_tipo: "ENTRADA",
       })
-    );
+    ));
+    expect(supabase.rpc.mock.calls.filter(([fn]) => fn === "registrar_asistencia")).toHaveLength(1);
 
     // Paso 5: pantalla de resultado exitoso con el nombre del docente
     expect(await screen.findByText(/entrada registrada correctamente/i)).toBeTruthy();
@@ -191,6 +209,11 @@ describe("DocenteScan — flujo de docente recurrente con datos guardados", () =
 
     fireEvent.click(screen.getByRole("button", { name: /^confirmar mi entrada$/i }));
 
+    // A diferencia del test anterior, acá sí es seguro afirmar un conteo
+    // exacto de 1: este flujo salta directo a "confirmación" (datos ya
+    // guardados en el dispositivo) y nunca pasa por "formulario", así
+    // que el autocompletado por cédula (buscar_docente_scan) ni se
+    // dispara — el único RPC de este test es registrar_asistencia.
     await waitFor(() => expect(supabase.rpc).toHaveBeenCalledTimes(1));
     expect(supabase.rpc).toHaveBeenCalledWith(
       "registrar_asistencia",

@@ -16,11 +16,19 @@
  *   programas    — lista de programas disponibles
  *   showToast    — función de toast global (opcional; usa toast local si no se pasa)
  *   logAudit     — función de auditoría
+ *
+ * SEDE-2: `sedes` se carga acá mismo vía useSedes() en vez de recibirla
+ * como prop — a diferencia de `roles`/`programas` (que ya vienen resueltos
+ * desde AdminModulo/arriba), el catálogo de sedes no tenía antes ningún
+ * punto de carga en el árbol, así que se agrega el hook directo en el
+ * único componente que lo necesita, en vez de encadenar props nuevas por
+ * 2-3 componentes intermedios.
  */
 
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { Badge, Spinner, ModalConfirm } from "./shared";
+import useSedes from "../../hooks/useSedes";
 import "./PestanaUsuarios.css";
 import ModalUsuario from "./ModalUsuario";
 
@@ -34,6 +42,7 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
   const [modalNuevo,  setModalNuevo]  = useState(false);
   const [confirm,     setConfirm]     = useState(null);
   const [toastMsg,    setToastMsg]    = useState("");
+  const { sedes } = useSedes();
 
   const toast = useCallback((msg, type) => {
     if (showToastProp) showToastProp(msg, type);
@@ -212,20 +221,21 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
           <table className="pu-table">
             <thead>
               <tr>
-                {["Usuario", "Rol", "Programa", "Estado", ""].map((h, i) => (
-                  <th key={i} className={`s-th${i === 4 ? " pu-th--right" : ""}`}>{h}</th>
+                {["Usuario", "Rol", "Programa", "Sede", "Estado", ""].map((h, i) => (
+                  <th key={i} className={`s-th${i === 5 ? " pu-th--right" : ""}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {usuariosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="s-td pu-td-empty">
+                  <td colSpan={6} className="s-td pu-td-empty">
                     Sin resultados
                   </td>
                 </tr>
               ) : usuariosFiltrados.map(u => {
                 const rolInfo = roles.find(r => r.nombre === u.rol);
+                const sedeInfo = sedes.find(s => s.id === u.sede_id);
                 return (
                   <tr key={u.id} className={u.activo ? "" : "pu-row--inactivo"}>
                     <td className="s-td">
@@ -237,6 +247,11 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
                     </td>
                     <td className="s-td">
                       <span className="pu-programa">{u.programa || "—"}</span>
+                    </td>
+                    <td className="s-td">
+                      <span className="pu-programa">
+                        {sedeInfo?.nombre || (rolInfo?.permisos?.puedeVerTodasLasSedes ? "Todas" : "—")}
+                      </span>
                     </td>
                     <td className="s-td">
                       <span className={`s-badge ${u.activo ? "pu-badge-estado--activo" : "pu-badge-estado--inactivo"}`}>
@@ -289,6 +304,7 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
           esActorAdmin={esActorAdmin}
           roles={roles}
           programas={programas}
+          sedes={sedes}
           showToast={toast}
           logAudit={logAudit}
           onSave={() => { setModalNuevo(false); setModalEditar(null); cargar(); }}

@@ -44,6 +44,9 @@ export const PERMISOS_BASE = {
   puedeVerReporteAsistencias: false,
   puedeBorrarSesiones:       false,
   puedeBorrarReportes:       false,
+  // SEDE-1/SEDE-2: acceso a todas las sedes en vez de quedar fijo a una
+  // sola. Se asigna por rol (0062), mismo patrón dinámico que el resto.
+  puedeVerTodasLasSedes:     false,
 };
 
 // ── Permisos derivados del rol cargado desde la BD ───────────────────
@@ -53,6 +56,7 @@ export function calcularPermisos(profile) {
       ...PERMISOS_BASE,
       puedeVerSoloSuPrograma: false,
       programaRestringido:    null,
+      sedeAsignada:           null,
     };
   }
 
@@ -63,6 +67,11 @@ export function calcularPermisos(profile) {
     ...(rolInfo.permisos || {}),
     puedeVerSoloSuPrograma: !!rolInfo.restringe_programa,
     programaRestringido:    rolInfo.restringe_programa ? profile.programa : null,
+    // A diferencia de programaRestringido (depende del rol), sedeAsignada
+    // depende del usuario: cada perfil trae su propio sede_id (0061), sin
+    // importar el rol. Quien tenga puedeVerTodasLasSedes puede no tener
+    // sede_id — en ese caso queda en null y el selector le ofrece todas.
+    sedeAsignada: profile.sede_id ?? null,
   };
 }
 

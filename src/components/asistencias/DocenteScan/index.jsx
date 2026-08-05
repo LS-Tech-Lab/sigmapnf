@@ -112,9 +112,12 @@ export default function DocenteScan() {
   }, [token]);
 
   // Autocompletar nombre al escribir la cédula (solo en el formulario de
-  // primera vez). Busca primero en `docentes` (nombre canónico del catálogo
-  // de horarios) y si no está vinculado, busca en `asistencias_diarias` el
-  // nombre que el mismo docente escribió la última vez que escaneó.
+  // primera vez). SEDE-3/4: antes hacía dos SELECT directos y anónimos
+  // contra `docentes` y `asistencias_diarias`; esas tablas ya no tienen
+  // lectura pública (0063), así que ahora pasa por la RPC
+  // `buscar_docente_scan`, que resuelve la sede desde `token` (nunca
+  // desde algo que el cliente anónimo pueda elegir) y hace el mismo
+  // fallback en dos fuentes del lado del servidor.
   useEffect(() => {
     if (paso !== "formulario") return;
 
@@ -125,58 +128,39 @@ export default function DocenteScan() {
       return;
     }
 
+    // Sin token no hay forma de saber a qué sede pertenece esta cédula
+    // (el catálogo de docentes es independiente por sede) — se deja sin
+    // autocompletar y el docente escribe su nombre a mano, igual que
+    // cuando no se encuentra ninguna coincidencia.
+    if (!token) {
+      setDocenteEncontrado(false);
+      setBuscandoDocente(false);
+      return;
+    }
+
     let cancelado = false;
     setBuscandoDocente(true);
 
     const timer = setTimeout(async () => {
       try {
-        // Fuente 1: tabla docentes (catálogo de horarios, nombre canónico)
-        const { data: docente } = await supabase
-          .from("docentes")
-          .select("nombre_raw")
-          .eq("cedula", cedulaNorm)
-          .maybeSingle();
+        const { data } = await supabase.rpc("buscar_docente_scan", {
+          p_token:  token,
+          p_cedula: cedulaNorm,
+        });
 
         if (cancelado) return;
 
-        if (docente?.nombre_raw) {
+        if (data?.encontrado && data?.nombre) {
           setDocenteEncontrado(true);
           setNombre(actual => {
             if (!actual.trim() || actual === nombreAuto) {
-              setNombreAuto(docente.nombre_raw);
-              return docente.nombre_raw;
+              setNombreAuto(data.nombre);
+              return data.nombre;
             }
             return actual;
           });
         } else {
-          // Fuente 2: asistencias_diarias — el docente pudo haber marcado
-          // antes aunque su cédula no esté vinculada en el catálogo de horarios.
-          // Se toma el registro más reciente para obtener el nombre que él mismo
-          // escribió la última vez.
-          const { data: registros } = await supabase
-            .from("asistencias_diarias")
-            .select("nombre_docente")
-            .eq("cedula_docente", cedulaNorm)
-            .not("nombre_docente", "is", null)
-            .order("fecha", { ascending: false })
-            .order("hora_registro", { ascending: false })
-            .limit(1);
-
-          if (cancelado) return;
-
-          const nombrePrevio = registros?.[0]?.nombre_docente;
-          if (nombrePrevio) {
-            setDocenteEncontrado(true);
-            setNombre(actual => {
-              if (!actual.trim() || actual === nombreAuto) {
-                setNombreAuto(nombrePrevio);
-                return nombrePrevio;
-              }
-              return actual;
-            });
-          } else {
-            setDocenteEncontrado(false);
-          }
+          setDocenteEncontrado(false);
         }
       } catch {
         // Sin red o error de consulta: el docente sigue pudiendo

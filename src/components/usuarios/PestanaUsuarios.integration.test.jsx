@@ -24,7 +24,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 
 vi.mock("../../lib/supabase", () => ({
-  supabase: { rpc: vi.fn() },
+  supabase: {
+    rpc: vi.fn(),
+    // SEDE-2: PestanaUsuarios ahora usa useSedes() (supabase.from("sedes")...)
+    // para poblar el selector de sede del modal. Se mockea con una cadena
+    // encadenable que resuelve una lista vacía — ningún test de este
+    // archivo ejercita el selector de sede en sí (eso vive en
+    // ModalUsuario), esto solo evita que el hook quede sin mock y
+    // rompa el render con una unhandled rejection.
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      })),
+    })),
+  },
 }));
 
 import { supabase } from "../../lib/supabase";

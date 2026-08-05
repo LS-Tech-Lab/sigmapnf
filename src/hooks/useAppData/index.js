@@ -29,7 +29,7 @@ import { createNameEditingActions } from "./nameEditing";
 import { createHorarioEditingActions } from "./horarioEditing";
 import { createBackupActions } from "./backupActions";
 
-export default function useAppData(lapso, logAudit = null, userId = null) {
+export default function useAppData(lapso, logAudit = null, userId = null, sedeActiva = null) {
   useEffect(() => { validarVersionCache(); }, []);
 
   const [selectedPrograma, setSelectedPrograma] = useState("todos");
@@ -63,6 +63,7 @@ export default function useAppData(lapso, logAudit = null, userId = null) {
   const { saveDocenteName, saveDocenteCedula: saveDocenteCedulaBase, saveMateriaName } = createNameEditingActions({
     logAudit, showToast, selectedPrograma, setDocenteNames, setMateriaNames,
     fetchDocenteNames, fetchMateriaNames, fetchHorarios, setConflictsRefreshKey,
+    sedeActiva,
   });
 
   // Envuelve saveDocenteCedula para actualizar el estado local de cédulas
@@ -81,6 +82,9 @@ export default function useAppData(lapso, logAudit = null, userId = null) {
   }, [saveDocenteCedulaBase, setDocenteCedulas]);
 
   // UX-14: edición/borrado in-line de bloques de horario desde TurnoGrid.
+  // SEDE-3: no necesita sedeActiva — opera por UPDATE/DELETE sobre un `id`
+  // ya existente, y RLS (0063) ya excluye silenciosamente filas de otra
+  // sede vía USING(usuario_puede_ver_sede(sede_id)); no hay INSERT acá.
   const { saveClase, deleteClase } = createHorarioEditingActions({
     logAudit, showToast, fetchHorarios, selectedPrograma,
   });
@@ -89,13 +93,13 @@ export default function useAppData(lapso, logAudit = null, userId = null) {
     lapso, selectedPrograma, showToast, setError,
     fetchHorarios, fetchProgramas, fetchDocenteNames, fetchMateriaNames, invalidarCacheDocentes,
     setConflictsRefreshKey,
-    logAudit,
+    logAudit, sedeActiva,
   });
 
   const { clearAllData, exportarDatos, importarDatos: importarDatosBase } = createBackupActions({
     lapso, selectedPrograma, showToast, openConfirm, closeConfirm,
     setLoading, fetchHorarios, fetchProgramas, fetchDocenteNames, fetchMateriaNames,
-    logAudit,
+    logAudit, sedeActiva,
   });
 
   // Misma firma pública que el useAppData.js original: importarDatos(file).

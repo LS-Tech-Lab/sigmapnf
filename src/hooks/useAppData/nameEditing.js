@@ -2,6 +2,15 @@
 // Extraído de useAppData.js. No es un hook: es una fábrica de funciones que
 // recibe las dependencias (fetchers, setters, showToast, logAudit) ya
 // resueltas por useAppData/index.js.
+//
+// SEDE-5: `sedeActiva` se manda explícito en los upsert que pueden crear
+// una fila nueva (docente/materia editado que todavía no existe en el
+// catálogo). El `onConflict` pasa de "nombre_raw" a "sede_id,nombre_raw"
+// porque desde 0061 la unicidad de nombre_raw es compuesta por sede, no
+// global — sin este cambio el upsert falla en la BD apenas se aplique
+// esa migración, independientemente de RLS. Los SELECT/UPDATE/DELETE de
+// este archivo NO necesitaron tocarse: como ya filtran por nombre_raw
+// (único por sede), RLS (0063) hace la exclusión de otras sedes sola.
 
 import { supabase } from "../../lib/supabase";
 import { logger } from "../../utils/logger";
@@ -22,6 +31,7 @@ async function unifyNameLegacy(tableName, rawName, newDisplayName) {
 export function createNameEditingActions({
   logAudit, showToast, selectedPrograma, setDocenteNames, setMateriaNames,
   fetchDocenteNames, fetchMateriaNames, fetchHorarios, setConflictsRefreshKey,
+  sedeActiva,
 }) {
   const saveDocenteName = async (rawName, displayName) => {
     try {
@@ -49,7 +59,10 @@ export function createNameEditingActions({
       const unified = await unifyNameLegacy("docentes", rawName, displayName);
       // En unificación el rawName desaparece, no hace falta actualizar su entrada.
       if (unified) { showToast("Docente unificado.", "success"); logAudit?.({ accion: "UNIFICAR_DOCENTE", entidad: "docentes", resumen: `Docente unificado: "${rawName}" → "${displayName}"` }); await fetchDocenteNames(); await fetchHorarios(selectedPrograma); setConflictsRefreshKey(k => k + 1); return { success: true, targetRaw: unified.targetRaw }; }
-      await supabase.from("docentes").upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
+      await supabase.from("docentes").upsert(
+        { nombre_raw: rawName, nombre_display: displayName, ...(sedeActiva ? { sede_id: sedeActiva } : {}) },
+        { onConflict: "sede_id,nombre_raw" }
+      );
       setDocenteNames(prev => ({ ...prev, [rawName]: displayName }));
       showToast("Docente actualizado.", "success");
       logAudit?.({ accion: "EDITAR_DOCENTE", entidad: "docentes", resumen: `Docente actualizado: "${rawName}" → "${displayName}"` });
@@ -108,7 +121,10 @@ export function createNameEditingActions({
       const unified = await unifyNameLegacy("materias", rawName, displayName);
       // En unificación el rawName desaparece, no hace falta actualizar su entrada.
       if (unified) { showToast("Materia unificada.", "success"); logAudit?.({ accion: "UNIFICAR_MATERIA", entidad: "materias", resumen: `Materia unificada: "${rawName}" → "${displayName}"` }); await fetchMateriaNames(); await fetchHorarios(selectedPrograma); return { success: true, targetRaw: unified.targetRaw }; }
-      await supabase.from("materias").upsert({ nombre_raw: rawName, nombre_display: displayName }, { onConflict: "nombre_raw" });
+      await supabase.from("materias").upsert(
+        { nombre_raw: rawName, nombre_display: displayName, ...(sedeActiva ? { sede_id: sedeActiva } : {}) },
+        { onConflict: "sede_id,nombre_raw" }
+      );
       setMateriaNames(prev => ({ ...prev, [rawName]: displayName }));
       showToast("Materia actualizada.", "success");
       logAudit?.({ accion: "EDITAR_MATERIA", entidad: "materias", resumen: `Materia actualizada: "${rawName}" → "${displayName}"` });

@@ -15,6 +15,7 @@
  *                  además una segunda barrera, no la única.
  *   roles        — lista de roles disponibles
  *   programas    — lista de programas disponibles
+ *   sedes        — lista de sedes disponibles ({id, nombre}) — SEDE-2
  *   onSave       — callback tras guardar con éxito
  *   onClose      — callback para cerrar sin guardar
  *   showToast    — función de toast global
@@ -29,7 +30,7 @@ import { validarPassword } from "../../utils/password";
 import useFocusTrap from "../../hooks/useFocusTrap";
 import "./ModalUsuario.css";
 
-export default function ModalUsuario({ usuario, esActorAdmin = false, roles, programas, onSave, onClose, showToast, logAudit }) {
+export default function ModalUsuario({ usuario, esActorAdmin = false, roles, programas, sedes, onSave, onClose, showToast, logAudit }) {
   const esNuevo = !usuario?.id;
   const rolesVisibles = esActorAdmin ? roles : roles.filter(r => r.nombre !== "admin");
   const [form, setForm] = useState({
@@ -37,12 +38,17 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
     nombre:   usuario?.nombre   || "",
     rol:      usuario?.rol      || (rolesVisibles[0]?.nombre || ""),
     programa: usuario?.programa || "",
+    sede_id:  usuario?.sede_id  || "",
     password: "",
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
 
   const rolSeleccionado = roles.find(r => r.nombre === form.rol);
+  // SEDE-2: mismo criterio que restringe_programa pero a la inversa —
+  // casi todos los roles requieren sede, salvo quien tenga
+  // puedeVerTodasLasSedes (admin, coordinador general).
+  const rolVeTodasSedes = !!rolSeleccionado?.permisos?.puedeVerTodasLasSedes;
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSave = async () => {
@@ -52,6 +58,8 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
     if (!form.rol)           return setError("Selecciona un rol.");
     if (rolSeleccionado?.restringe_programa && !form.programa)
       return setError("Este rol requiere un programa asignado.");
+    if (!rolVeTodasSedes && !form.sede_id)
+      return setError("Este rol requiere una sede asignada.");
     if (esNuevo) {
       const errorPwd = validarPassword(form.password);
       if (errorPwd) return setError(errorPwd);
@@ -60,6 +68,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
     setSaving(true);
     try {
       const programa = rolSeleccionado?.restringe_programa ? form.programa : null;
+      const sedeId   = rolVeTodasSedes ? (form.sede_id || null) : form.sede_id;
 
       if (esNuevo) {
         const { data: { session } } = await supabase.auth.getSession();
@@ -76,6 +85,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
             nombre:   form.nombre.trim(),
             rol:      form.rol,
             programa: rolSeleccionado?.restringe_programa ? form.programa : null,
+            sede_id:  sedeId,
           }),
         });
         const json = await res.json();
@@ -84,7 +94,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
         await logAudit?.({
           accion:  "CREAR_USUARIO",
           entidad: "usuarios",
-          resumen: `Usuario creado: ${form.email.trim()} (${form.rol}${rolSeleccionado?.restringe_programa ? ` - ${form.programa}` : ""})`,
+          resumen: `Usuario creado: ${form.email.trim()} (${form.rol}${rolSeleccionado?.restringe_programa ? ` - ${form.programa}` : ""}${sedeId ? ` - ${sedeId}` : ""})`,
         });
         showToast?.(`Usuario ${form.email.trim()} creado.`, "success");
 
@@ -95,6 +105,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
           p_nombre:   form.nombre.trim(),
           p_rol:      form.rol,
           p_programa: programa,
+          p_sede_id:  sedeId,
         });
         if (profileError) throw new Error(profileError.message);
 
@@ -240,6 +251,23 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
               </select>
             </div>
           )}
+
+          <div>
+            <label htmlFor="usr-field-sede" className="mu-field-label">
+              {rolVeTodasSedes ? "Sede de origen (opcional)" : "Sede asignada"}
+            </label>
+            <select id="usr-field-sede" className="s-select s-select--full" value={form.sede_id} onChange={set("sede_id")}>
+              <option value="">
+                {rolVeTodasSedes ? "— Sin sede fija (ve todas) —" : "— Seleccionar sede —"}
+              </option>
+              {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+            </select>
+            <p className="mu-field-hint">
+              {rolVeTodasSedes
+                ? "Este rol tiene acceso a todas las sedes — la sede es solo informativa."
+                : "Este usuario solo verá datos de la sede seleccionada."}
+            </p>
+          </div>
         </div>
 
         {error && (
@@ -272,6 +300,9 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
 // `r.nombre`/`r.label`/`r.emoji`/`r.restringe_programa` arriba); `programas`
 // es un array de strings (nombres de PNF), confirmado contra el único
 // caller real (`PestanaUsuarios.jsx`).
+// SEDE-2: se agrega `usuario.sede_id`, `roles[].permisos` (ya lo trae
+// `admin_get_roles`, ver 0019, solo faltaba declararlo acá) y la prop
+// nueva `sedes`.
 ModalUsuario.propTypes = {
   usuario: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -279,6 +310,7 @@ ModalUsuario.propTypes = {
     nombre: PropTypes.string,
     rol: PropTypes.string,
     programa: PropTypes.string,
+    sede_id: PropTypes.string,
   }),
   esActorAdmin: PropTypes.bool,
   roles: PropTypes.arrayOf(PropTypes.shape({
@@ -286,8 +318,13 @@ ModalUsuario.propTypes = {
     label: PropTypes.string,
     emoji: PropTypes.string,
     restringe_programa: PropTypes.bool,
+    permisos: PropTypes.object,
   })).isRequired,
   programas: PropTypes.arrayOf(PropTypes.string).isRequired,
+  sedes: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    nombre: PropTypes.string.isRequired,
+  })).isRequired,
   onSave: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   showToast: PropTypes.func,

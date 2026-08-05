@@ -45,6 +45,10 @@ function calcularPermisosOffline(offlineProfile) {
     programaRestringido:    offlineProfile.rol_info?.restringe_programa
       ? offlineProfile.programa
       : null,
+    // SEDE-2: igual que programaRestringido, viene del perfil cacheado,
+    // no del rol. El acceso offline-PIN ya es de un solo dispositivo/
+    // sede en la práctica, así que no hace falta forzarlo a false.
+    sedeAsignada: offlineProfile.sede_id ?? null,
   };
 }
 

@@ -10,7 +10,7 @@ import { logger } from "../../utils/logger";
 export function createBackupActions({
   lapso, selectedPrograma, showToast, openConfirm, closeConfirm,
   setLoading, fetchHorarios, fetchProgramas, fetchDocenteNames, fetchMateriaNames,
-  logAudit,
+  logAudit, sedeActiva,
 }) {
   const clearAllData = () => {
     const scope = selectedPrograma !== "todos" ? `el programa "${selectedPrograma}"` : "TODOS los programas";
@@ -24,15 +24,22 @@ export function createBackupActions({
         setLoading(true);
 
         const programaParam = selectedPrograma !== "todos" ? selectedPrograma : null;
+        // SEDE-5: borrar_horarios es SECURITY DEFINER (bypasea RLS) — desde
+        // 0065 exige/usa sede_id explícito para no borrar horarios de otra
+        // sede. Ver 0065 para el porqué esto era crítico.
         const { error: rpcError } = await supabase.rpc("borrar_horarios", {
           p_lapso:    lapso    || null,
           p_programa: programaParam,
+          p_sede_id:  sedeActiva || null,
         });
 
         if (rpcError) {
           const noExiste = rpcError.code === "PGRST202" || rpcError.message?.includes("Could not find");
           if (noExiste) {
             logger.warn("borrar_horarios no disponible, usando DELETE directo:", rpcError.message);
+            // Fallback vía cliente: sin SECURITY DEFINER, RLS (0063) ya
+            // acota esto a la sede del actor sola — no hace falta agregar
+            // .eq("sede_id", ...) a mano acá.
             let query = supabase.from("horarios").delete();
             if (lapso) query = query.eq("lapso", lapso);
             if (selectedPrograma !== "todos") query = query.eq("programa", selectedPrograma);
@@ -182,24 +189,52 @@ export function createBackupActions({
             p_docentes:    backup.docentes,
             p_materias:    backup.materias,
             p_asistencias: asistencias,
+            p_sede_id:     sedeActiva || null,
           });
 
           if (rpcError) {
             const noExiste = rpcError.code === "PGRST202" || rpcError.message?.includes("Could not find");
             if (noExiste) {
               logger.warn("restaurar_backup no disponible, usando flujo multi-llamada:", rpcError.message);
+              // Fallback vía cliente (sin SECURITY DEFINER): RLS (0063)
+              // acota estos DELETE a la sede del actor sola, así que no
+              // hace falta agregar .eq("sede_id", ...) a mano. Lo que sí
+              // hace falta es mandar sede_id en cada INSERT/UPSERT nuevo
+              // y usar el onConflict compuesto (0061) — sin RPC no hay
+              // trigger que lo autocomplete de forma consistente con
+              // sedeActiva (el trigger de 0063 solo conoce la sede FIJA
+              // del perfil, no la sede activa elegida por un usuario con
+              // puedeVerTodasLasSedes).
               let delQuery = supabase.from("horarios").delete();
               if (lapso) delQuery = delQuery.eq("lapso", lapso);
               else delQuery = delQuery.neq("id", 0);
               await delQuery;
               await supabase.from("docentes").delete().neq("id", 0);
               await supabase.from("materias").delete().neq("id", 0);
-              if (horariosConLapso.length > 0) await supabase.from("horarios").insert(horariosConLapso);
-              if (backup.docentes.length > 0) await supabase.from("docentes").upsert(backup.docentes, { onConflict: "nombre_raw" });
-              if (backup.materias.length > 0) await supabase.from("materias").upsert(backup.materias, { onConflict: "nombre_raw" });
+              if (horariosConLapso.length > 0) {
+                const horariosConSede = sedeActiva
+                  ? horariosConLapso.map(h => ({ ...h, sede_id: sedeActiva }))
+                  : horariosConLapso;
+                await supabase.from("horarios").insert(horariosConSede);
+              }
+              if (backup.docentes.length > 0) {
+                const docentesConSede = sedeActiva
+                  ? backup.docentes.map(d => ({ ...d, sede_id: sedeActiva }))
+                  : backup.docentes;
+                await supabase.from("docentes").upsert(docentesConSede, { onConflict: "sede_id,nombre_raw" });
+              }
+              if (backup.materias.length > 0) {
+                const materiasConSede = sedeActiva
+                  ? backup.materias.map(m => ({ ...m, sede_id: sedeActiva }))
+                  : backup.materias;
+                await supabase.from("materias").upsert(materiasConSede, { onConflict: "sede_id,nombre_raw" });
+              }
               // Gap #16: restaurar asistencias en el flujo fallback
               if (asistencias.length > 0) {
-                const asistenciasSinId = asistencias.map(({ id, qr_session_id, ...rest }) => rest);
+                const asistenciasSinId = asistencias.map(({ id, qr_session_id, ...rest }) => ({
+                  ...rest,
+                  ...(sedeActiva ? { sede_id: sedeActiva } : {}),
+                }));
                 await supabase.from("asistencias_diarias").upsert(asistenciasSinId, { onConflict: "cedula_docente,fecha,tipo", ignoreDuplicates: true });
               }
             } else {

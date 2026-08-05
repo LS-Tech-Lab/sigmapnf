@@ -9,12 +9,17 @@ import useModuloActivo from "./hooks/useModuloActivo";
 import useAppShell from "./hooks/useAppShell";
 import LoginScreen from "./components/LoginScreen";
 import ModuleSelector from "./components/ModuleSelector";
+import SedeSelector from "./components/SedeSelector";
 import DocenteScan from "./components/asistencias/DocenteScan";
 import { getCurrentLapso } from "./utils/lapso";
 import { supabase, supabaseConfigError } from "./lib/supabase";
+import useSedes from "./hooks/useSedes";
+import useSedeActiva from "./hooks/useSedeActiva";
 
 // Context de datos (ARCH-8)
 import { AppDataProvider } from "./context/AppDataContext";
+// Context de sede activa (SEDE-2)
+import { SedeProvider } from "./context/SedeContext";
 
 // Layouts extraídos (P4)
 import HorariosLayout from "./app/HorariosLayout";
@@ -107,6 +112,14 @@ export default function App() {
     offlineProfile, setOfflineProfile,
   } = usePerfilEfectivo({ user, profile, permisos });
 
+  // ── Sede activa (SEDE-2) ────────────────────────────────────────────────
+  // Fija para la mayoría de los roles (efectivePermisos.sedeAsignada);
+  // seleccionable solo para quienes tienen puedeVerTodasLasSedes.
+  const { sedes, loadingSedes } = useSedes();
+  const {
+    sedeActiva, setSedeActiva, requiereSeleccion,
+  } = useSedeActiva({ userId: user?.id, efectivePermisos });
+
   // ── Navegación interna del módulo horarios ────────────────────────────────
   // Declaradas antes de useAppData porque lapso es argumento del hook.
   const [view,        setView]        = useState("resumen");
@@ -117,7 +130,7 @@ export default function App() {
   const [modoConsulta,setModoConsulta]= useState(false);
 
   // ── Datos ─────────────────────────────────────────────────────────────────
-  const appData = useAppData(lapso, logAudit, user?.id);
+  const appData = useAppData(lapso, logAudit, user?.id, sedeActiva);
   const { setSelectedPrograma } = appData;
 
   // ── Sesión QR — vive aquí para no perderse al cambiar sub-vista ──────────
@@ -286,6 +299,24 @@ export default function App() {
   if (efectiveProfile._desactivado) return <CuentaDesactivada onLogout={handleLogout} />;
   if (efectiveProfile._rolInvalido) return <SinPerfilAsignado onLogout={handleLogout} />;
 
+  // ── Selector de sede (SEDE-2) ────────────────────────────────────────────
+  // Va después de validar el perfil y antes del selector de módulo, para
+  // que todo lo que sigue (módulos, datos, RLS en SEDE-3) ya tenga una
+  // sede resuelta. Perfiles con sede fija nunca ven esta pantalla —
+  // requiereSeleccion solo es true para puedeVerTodasLasSedes sin sede
+  // activa todavía elegida en esta sesión (useSedeActiva.js).
+  if (requiereSeleccion) {
+    return (
+      <SedeSelector
+        profile={efectiveProfile}
+        sedes={sedes}
+        loadingSedes={loadingSedes}
+        onSelectSede={setSedeActiva}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   // ── Selector de módulo ────────────────────────────────────────────────────
   if (!moduloActivo) {
     // Spinner mientras el useEffect de useModuloActivo procesa la
@@ -306,42 +337,52 @@ export default function App() {
     );
   }
 
+  // SEDE-2: valor del contexto de sede para los 3 módulos de acá en
+  // adelante. Objeto simple (no useMemo) porque sedes/sedeActiva/
+  // setSedeActiva ya son estables entre renders salvo cuando cambian de
+  // verdad (useSedes/useSedeActiva no generan referencias nuevas gratis).
+  const sedeContextValue = { sedeActiva, sedes, setSedeActiva };
+
   // ── Módulo Asistencias QR ─────────────────────────────────────────────────
   if (moduloActivo === "asistencias") {
     return (
-      <Suspense fallback={<FullScreenSpinner label="Cargando módulo…" />}>
-        <AsistenciasModulo
-          profile={efectiveProfile}
-          permisos={efectivePermisos}
-          qrSession={qrSession}
-          tieneHorarios={tieneHorarios}
-          onVolverSelector={() => setModuloActivo(null)}
-          showToast={appData.showToast}
-          onLogout={handleLogout}
-          pendientesCount={pendientesCount}
-        />
-      </Suspense>
+      <SedeProvider value={sedeContextValue}>
+        <Suspense fallback={<FullScreenSpinner label="Cargando módulo…" />}>
+          <AsistenciasModulo
+            profile={efectiveProfile}
+            permisos={efectivePermisos}
+            qrSession={qrSession}
+            tieneHorarios={tieneHorarios}
+            onVolverSelector={() => setModuloActivo(null)}
+            showToast={appData.showToast}
+            onLogout={handleLogout}
+            pendientesCount={pendientesCount}
+          />
+        </Suspense>
+      </SedeProvider>
     );
   }
 
   // ── Módulo Sistema (ADMIN-3, id interno "admin") ──────────────────────────
   if (moduloActivo === "admin") {
     return (
-      <AppDataProvider value={appDataAuditada}>
-        <Suspense fallback={<FullScreenSpinner label="Cargando módulo…" />}>
-          <AdminModulo
-            profile={efectiveProfile}
-            permisos={efectivePermisos}
-            user={user}
-            lapso={lapso}
-            onCambiarLapso={handleCambiarLapso}
-            tieneHorarios={tieneHorarios}
-            tieneQR={tieneQR}
-            onVolverSelector={() => setModuloActivo(null)}
-            onLogout={handleLogout}
-          />
-        </Suspense>
-      </AppDataProvider>
+      <SedeProvider value={sedeContextValue}>
+        <AppDataProvider value={appDataAuditada}>
+          <Suspense fallback={<FullScreenSpinner label="Cargando módulo…" />}>
+            <AdminModulo
+              profile={efectiveProfile}
+              permisos={efectivePermisos}
+              user={user}
+              lapso={lapso}
+              onCambiarLapso={handleCambiarLapso}
+              tieneHorarios={tieneHorarios}
+              tieneQR={tieneQR}
+              onVolverSelector={() => setModuloActivo(null)}
+              onLogout={handleLogout}
+            />
+          </Suspense>
+        </AppDataProvider>
+      </SedeProvider>
     );
   }
 
@@ -352,6 +393,7 @@ export default function App() {
 
   return (
     <>
+      <SedeProvider value={sedeContextValue}>
       <AppDataProvider value={appDataAuditada}>
       <HorariosLayout
         // Navegación
@@ -384,6 +426,7 @@ export default function App() {
         pendientesCount={pendientesCount}
       />
       </AppDataProvider>
+      </SedeProvider>
     </>
   );
 }

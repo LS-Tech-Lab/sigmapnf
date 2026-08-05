@@ -166,7 +166,7 @@ export default function useUpload({
   lapso, selectedPrograma, showToast, setError,
   fetchHorarios, fetchProgramas, fetchDocenteNames, fetchMateriaNames, invalidarCacheDocentes,
   setConflictsRefreshKey,
-  logAudit,
+  logAudit, sedeActiva,
 }) {
   const [uploading, setUploading]         = useState(false);
   // Estado del modal de vista previa
@@ -363,7 +363,10 @@ export default function useUpload({
 
             docentesCatalogo.forEach(({ nombre_raw, nombre_display, cedula, telefono, email, observaciones }) => {
               const cedulaNorm = normCedula(cedula);
-              const entry = { nombre_raw, nombre_display };
+              // SEDE-5: cada fila del catálogo importado queda en la sede
+              // activa de quien sube el Excel — el catálogo de docentes es
+              // independiente por sede (0061), así que esto no es opcional.
+              const entry = { nombre_raw, nombre_display, ...(sedeActiva ? { sede_id: sedeActiva } : {}) };
               if (cedulaNorm)    entry.cedula        = cedulaNorm;
               if (telefono)      entry.telefono      = telefono;
               if (email)         entry.email         = email;
@@ -372,11 +375,13 @@ export default function useUpload({
               else            sinCedulaArr.push(entry);
             });
 
-            // Docentes con cédula → upsert por cédula (evita duplicados entre archivos)
+            // Docentes con cédula → upsert por (sede, cédula) — evita
+            // duplicados entre archivos de la MISMA sede. Antes de 0061 la
+            // unicidad de cédula era global; ahora es compuesta por sede.
             if (conCedula.length > 0) {
               const { error: e1 } = await supabase
                 .from("docentes")
-                .upsert(conCedula, { onConflict: "cedula" });
+                .upsert(conCedula, { onConflict: "sede_id,cedula" });
               if (e1) logger.warn("upsert DOCENTES (por cédula):", e1.message);
             }
 
@@ -391,6 +396,11 @@ export default function useUpload({
             // criterio que ya se usa en el paso 3 más abajo) contra los
             // docentes sin cédula ya existentes en BD; si hay coincidencia, el
             // upsert se redirige a esa fila existente en vez de crear una nueva.
+            //
+            // SEDE-5: el SELECT de acá abajo no necesita filtrar por sede a
+            // mano — RLS (0063) ya solo devuelve docentes de la sede de
+            // quien está subiendo el archivo, así que el fuzzy matching
+            // nunca compara contra el catálogo de otra sede.
             if (sinCedulaArr.length > 0) {
               const { data: existentesSinCedula } = await supabase
                 .from("docentes")
@@ -418,7 +428,7 @@ export default function useUpload({
 
               const { error: e2 } = await supabase
                 .from("docentes")
-                .upsert(sinCedulaDedup, { onConflict: "nombre_raw" });
+                .upsert(sinCedulaDedup, { onConflict: "sede_id,nombre_raw" });
               if (e2) logger.warn("upsert DOCENTES (sin cédula, por nombre_raw):", e2.message);
             }
           }
@@ -430,7 +440,8 @@ export default function useUpload({
             const mallaMap = new Map();
             mallaCatalogo.forEach(({ nombre_raw, nombre_display, trayecto, codigo_uc, horas_semanales, unidades_credito }) => {
               if (!mallaMap.has(nombre_raw)) {
-                const entry = { nombre_raw, nombre_display };
+                // SEDE-5: catálogo de materias independiente por sede (0061).
+                const entry = { nombre_raw, nombre_display, ...(sedeActiva ? { sede_id: sedeActiva } : {}) };
                 if (trayecto)         entry.trayecto         = trayecto;
                 if (codigo_uc)        entry.codigo_uc        = codigo_uc;
                 if (horas_semanales)  entry.horas_semanales  = horas_semanales;
@@ -441,7 +452,7 @@ export default function useUpload({
             const payload = [...mallaMap.values()];
             const { error: mallaCatError } = await supabase
               .from("materias")
-              .upsert(payload, { onConflict: "nombre_raw" });
+              .upsert(payload, { onConflict: "sede_id,nombre_raw" });
             if (mallaCatError) logger.warn("upsert catálogo MALLA:", mallaCatError.message);
           }
 
@@ -540,11 +551,14 @@ export default function useUpload({
 
           const materiaIdMap = Object.fromEntries((matsDB || []).map(m => [m.nombre_raw, m.id]));
 
-          // Construir payload limpio: solo columnas que existen en la tabla horarios
+          // Construir payload limpio: solo columnas que existen en la tabla horarios.
+          // SEDE-5: cada fila nueva queda en la sede activa de quien sube el
+          // Excel — igual que docentes/materias arriba, es independiente por sede.
           const rowsParaInsertar = newRows.map(({ docente, materia, ...rest }) => ({
             ...rest,
             docente_id: (docente && docenteIdMap[limpiarTel(docente)]) || null,
             materia_id: (materia && materiaIdMap[materia]) || null,
+            ...(sedeActiva ? { sede_id: sedeActiva } : {}),
           }));
 
           // Asegurar partición del lapso

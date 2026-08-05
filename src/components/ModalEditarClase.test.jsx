@@ -26,6 +26,7 @@ vi.mock("../lib/supabase", () => ({
 
 import { supabase } from "../lib/supabase";
 import ModalEditarClase from "./ModalEditarClase";
+import { SedeProvider } from "../context/SedeContext";
 
 const DOCENTES = [{ id: 1, nombre_raw: "Lisbeth Brito", nombre_display: "Lisbeth Brito" }];
 const MATERIAS = [{ id: 10, nombre_raw: "Quimica Aplicada", nombre_display: "Quimica Aplicada" }];
@@ -53,21 +54,28 @@ function renderModal(entry, overrides = {}) {
   const openConfirm = vi.fn((cfg) => { capturedConfirm = cfg; });
   const closeConfirm = vi.fn();
 
+  // SEDE-5: ModalEditarClase consume useSedeContext() (para mandar
+  // sede_id en la creación inline "+ Nuevo docente/materia") — en
+  // producción vive dentro de HorariosLayout, que App.jsx ya envuelve en
+  // <SedeProvider>. Se replica acá el mismo wrapper con una sede fija de
+  // prueba para que el hook no explote por falta de Provider.
   const utils = render(
-    <ModalEditarClase
-      open={true}
-      entry={entry}
-      puedeEditar={true}
-      puedeBorrar={true}
-      puedeCrearDocentes={false}
-      puedeCrearMaterias={false}
-      onSave={onSave}
-      onDelete={onDelete}
-      onClose={onClose}
-      openConfirm={openConfirm}
-      closeConfirm={closeConfirm}
-      {...overrides}
-    />
+    <SedeProvider value={{ sedeActiva: "cabimas", sedes: [], setSedeActiva: vi.fn() }}>
+      <ModalEditarClase
+        open={true}
+        entry={entry}
+        puedeEditar={true}
+        puedeBorrar={true}
+        puedeCrearDocentes={false}
+        puedeCrearMaterias={false}
+        onSave={onSave}
+        onDelete={onDelete}
+        onClose={onClose}
+        openConfirm={openConfirm}
+        closeConfirm={closeConfirm}
+        {...overrides}
+      />
+    </SedeProvider>
   );
 
   return { ...utils, onSave, onDelete, onClose, openConfirm, closeConfirm, getConfirm: () => capturedConfirm };

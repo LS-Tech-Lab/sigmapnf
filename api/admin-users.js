@@ -147,7 +147,7 @@ async function handleRequest(req, res) {
 
   // ── action: create ───────────────────────────────────────────────
   if (action === "create") {
-    const { email, password, nombre, rol, programa } = body;
+    const { email, password, nombre, rol, programa, sede_id } = body;
 
     if (!email || !password || !nombre || !rol) {
       return res.status(400).json({ error: "Faltan campos obligatorios." });
@@ -187,6 +187,7 @@ async function handleRequest(req, res) {
         nombre,
         rol,
         programa:  programa || null,
+        sede_id:   sede_id || null,
         activo:    true,
         creado_por: userData.email,
       },
