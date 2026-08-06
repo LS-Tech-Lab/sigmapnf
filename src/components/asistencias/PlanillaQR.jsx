@@ -11,12 +11,22 @@ import { supabase } from '../../lib/supabase';
 import { suscribirCambiosRemotos } from '../../lib/realtime';
 import { getCurrentLapso, getLapsosDisponibles, formatLapso } from '../../utils/lapso';
 import { useReporteConfig } from '../../hooks/useReporteConfig';
+import { useSedeContext } from '../../context/SedeContext';
 import PlanillaImprimibleBase from './PlanillaImprimibleBase';
 
 const PAGE_SIZE = 500;
 
 export default function PlanillaQR({ permisos = {}, profile }) {
   const restringidoAPrograma = permisos.puedeVerSoloSuPrograma ? profile?.programa : null;
+
+  // SEDE-15: esta pestaña se autoabastece con su propio fetch a Supabase
+  // (ver comentario de arriba) y por eso quedó fuera de la pasada SEDE-3
+  // a SEDE-14 -- nunca leía sedeActiva, así que horarios/docentes/materias
+  // de Cabimas (la única sede cargada hoy) se veían sin importar la sede
+  // activa elegida. Mismo patrón de filtrado que useDataSync.js/
+  // useNombresCache.js: .eq("sede_id", sedeActiva) cuando hay sede activa,
+  // y sedeActiva como p_sede_id en la RPC SECURITY DEFINER.
+  const { sedeActiva } = useSedeContext();
 
   const [lapso, setLapso] = useState(getCurrentLapso());
   const [programa, setPrograma] = useState(restringidoAPrograma || "todos");
@@ -45,32 +55,41 @@ export default function PlanillaQR({ permisos = {}, profile }) {
   useEffect(() => {
     if (restringidoAPrograma) return;
     (async () => {
-      const { data: rows } = await supabase
+      let query = supabase
         .from("horarios")
         .select("programa")
         .eq("lapso", lapso)
         .not("programa", "is", null);
+      if (sedeActiva) query = query.eq("sede_id", sedeActiva);
+      const { data: rows } = await query;
       const unicos = [...new Set((rows || []).map(r => r.programa).filter(Boolean))].sort();
       setProgramasDisponibles(unicos);
     })();
-  }, [lapso, restringidoAPrograma]);
+  }, [lapso, restringidoAPrograma, sedeActiva]);
 
   // Nombres de docentes y materias (display name, independiente del lapso).
   const fetchNombres = useCallback(async () => {
-    const { data: docentes, error: errDoc } = await supabase.rpc("docentes_con_cedula");
+    const { data: docentes, error: errDoc } = await supabase.rpc(
+      "docentes_con_cedula",
+      sedeActiva ? { p_sede_id: sedeActiva } : {}
+    );
     if (!errDoc && docentes) {
       setDocenteNames(Object.fromEntries(docentes.map(d => [d.nombre_raw, d.nombre_display])));
     } else {
-      const { data: docentesFallback } = await supabase.from("docentes").select("nombre_raw, nombre_display");
+      let queryDocFallback = supabase.from("docentes").select("nombre_raw, nombre_display");
+      if (sedeActiva) queryDocFallback = queryDocFallback.eq("sede_id", sedeActiva);
+      const { data: docentesFallback } = await queryDocFallback;
       if (docentesFallback) {
         setDocenteNames(Object.fromEntries(docentesFallback.map(d => [d.nombre_raw, d.nombre_display])));
       }
     }
-    const { data: materias } = await supabase.from("materias").select("nombre_raw, nombre_display");
+    let queryMaterias = supabase.from("materias").select("nombre_raw, nombre_display");
+    if (sedeActiva) queryMaterias = queryMaterias.eq("sede_id", sedeActiva);
+    const { data: materias } = await queryMaterias;
     if (materias) {
       setMateriaNames(Object.fromEntries(materias.map(m => [m.nombre_raw, m.nombre_display])));
     }
-  }, []);
+  }, [sedeActiva]);
 
   useEffect(() => { fetchNombres(); }, [fetchNombres]);
 
@@ -113,6 +132,7 @@ export default function PlanillaQR({ permisos = {}, profile }) {
             .order("id", { ascending: true })
             .limit(PAGE_SIZE);
           if (programa !== "todos") query = query.eq("programa", programa);
+          if (sedeActiva) query = query.eq("sede_id", sedeActiva);
 
           const { data: pagina, error: errPagina } = await query;
           if (errPagina) throw errPagina;
@@ -130,7 +150,7 @@ export default function PlanillaQR({ permisos = {}, profile }) {
       }
     })();
     return () => { cancelado = true; };
-  }, [lapso, programa, horariosRefreshKey]);
+  }, [lapso, programa, horariosRefreshKey, sedeActiva]);
 
   return (
     <div>
