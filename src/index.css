@@ -619,7 +619,22 @@ textarea:focus-visible,
 .ec-chip-icon { font-size: var(--font-size-12); }
 
 /* UserMenu.jsx — menú desplegable de usuario (UX-5, auditoría 2026-07-05) */
-.um-root { margin-left: auto; position: relative; }
+.um-root { margin-left: auto; position: relative; display: flex; align-items: center; gap: var(--space-2); }
+
+/* SEDE-10: badge de sede activa, siempre visible junto al trigger (no
+   requiere abrir el menú). Mismo lenguaje visual que .module-sede-badge
+   (ModuleSelector.css) para consistencia entre la pantalla de selección
+   de módulo y el resto de la app: mismo ícono, chip sutil con borde. */
+.um-sede-badge {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  padding: 4px 9px; border-radius: 8px; border: 1px solid var(--color-border-tertiary);
+  color: var(--color-text-tertiary); font-size: var(--font-size-11); font-weight: 600;
+}
+.um-sede-badge i { font-size: var(--font-size-12); opacity: 0.75; }
+/* Línea espejo dentro del dropdown (mismo estilo que .um-menu-session) —
+   único lugar donde queda visible cuando el badge compacto se oculta en
+   móvil (ver @media más abajo). */
+.um-menu-sede { margin-top: 2px; }
 
 .um-trigger-btn {
   display: flex; align-items: center; gap: 7px; cursor: pointer;
@@ -670,6 +685,13 @@ textarea:focus-visible,
 .um-item--danger:hover { background: #FFF5F5; }
 .um-item--danger .um-item-icon { color: inherit; }
 
+/* SEDE-10: en pantallas angostas el topbar ya compite por espacio
+   (hamburguesa, búsqueda, botón "Módulos") — se oculta el badge
+   compacto; la sede sigue disponible dentro del dropdown
+   (.um-menu-sede) a un toque de distancia. */
+@media (max-width: 640px) {
+  .um-sede-badge { display: none; }
+}
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
 

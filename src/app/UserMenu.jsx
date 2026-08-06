@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { roleColorClass } from "../constants";
+import { useSedeContext } from "../context/SedeContext";
 
 /**
  * Menú desplegable de usuario.
@@ -18,6 +19,23 @@ export default function UserMenu({
   sessionStart,       // Date | null — expuesto por useAuth
   variant = "horarios",
 }) {
+  // SEDE-10: badge de sede activa. UserMenu es el único elemento común a
+  // los 3 módulos (Horarios/Asistencias/Admin) — mejor ubicación lógica
+  // para un indicador que debe verse sin importar en qué módulo esté el
+  // usuario, en vez de duplicar el badge en cada topbar. Se lee del
+  // SedeContext directamente (mismo patrón que useAppDataContext() en
+  // HorariosTopbar.jsx) en lugar de agregar props nuevas a los 3
+  // llamadores: los 3 módulos ya están envueltos en <SedeProvider/> desde
+  // App.jsx, así que no hace falta prop-drilling.
+  //
+  // Se muestra para TODOS los roles, no solo quienes pueden elegir sede
+  // (puedeVerTodasLasSedes): un usuario con sede fija también se
+  // beneficia de confirmar de un vistazo en qué sede está trabajando,
+  // sobre todo ahora que sigmapnf gestiona sedes independientes con
+  // datos aislados entre sí (ver conflictos_horario_detalle, SEDE-9).
+  const { sedeActiva, sedes } = useSedeContext();
+  const sedeNombre = sedes?.find((s) => s.id === sedeActiva)?.nombre || sedeActiva || null;
+
   // Formatear tiempo transcurrido desde el login
   const tiempoSesion = (() => {
     if (!sessionStart) return null;
@@ -29,6 +47,16 @@ export default function UserMenu({
   })();
   return (
     <div className="um-root">
+      {/* Badge visible sin abrir el menú — quick-glance, no requiere clic.
+          En pantallas muy angostas se oculta (ver media query en
+          index.css) para no competir con hamburguesa/búsqueda/back-btn;
+          en ese caso sigue disponible dentro del dropdown (más abajo). */}
+      {sedeNombre && (
+        <span className="um-sede-badge" title="Sede activa">
+          <i className="ti ti-building-community" aria-hidden="true" />
+          {sedeNombre}
+        </span>
+      )}
       <button
         onClick={onToggle}
         title="Menú de usuario"
@@ -71,6 +99,12 @@ export default function UserMenu({
                 <div className="um-menu-session">
                   <i className="ti ti-clock um-icon-xs" aria-hidden="true" />
                   Sesión activa: {tiempoSesion}
+                </div>
+              )}
+              {sedeNombre && (
+                <div className="um-menu-session um-menu-sede">
+                  <i className="ti ti-building-community um-icon-xs" aria-hidden="true" />
+                  Sede: {sedeNombre}
                 </div>
               )}
             </div>

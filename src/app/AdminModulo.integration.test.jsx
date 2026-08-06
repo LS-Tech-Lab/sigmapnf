@@ -39,6 +39,7 @@ vi.mock("../components/ConfiguracionReportes", () => ({
 
 import AdminModulo from "./AdminModulo";
 import { AppDataProvider } from "../context/AppDataContext";
+import { SedeProvider } from "../context/SedeContext";
 
 const APP_DATA = {
   data: { programas: ["INFORMATICA", "ADMINISTRACION"] },
@@ -50,22 +51,35 @@ const APP_DATA = {
 
 const PROFILE = { rol_info: { label: "Coordinador", color: "#2563EB" } };
 
+// SEDE-10: AdminModulo renderiza UserMenu, que ahora lee useSedeContext()
+// para el badge de sede activa — necesita un <SedeProvider/> en el árbol
+// igual que en App.jsx, o el hook lanza ("useSedeContext debe usarse
+// dentro de <SedeProvider>"). Sedes/sedeActiva mínimos, no relevantes
+// para lo que este archivo audita (armado de tabs y gate de permisos).
+const SEDE_CONTEXT = {
+  sedeActiva: "cabimas",
+  sedes: [{ id: "cabimas", nombre: "Cabimas" }],
+  setSedeActiva: vi.fn(),
+};
+
 function renderAdminModulo(overrides = {}) {
   return render(
-    <AppDataProvider value={APP_DATA}>
-      <AdminModulo
-        profile={PROFILE}
-        permisos={{}}
-        user={{ id: "u1" }}
-        lapso="2026-1"
-        onCambiarLapso={vi.fn()}
-        tieneHorarios={false}
-        tieneQR={false}
-        onVolverSelector={vi.fn()}
-        onLogout={vi.fn()}
-        {...overrides}
-      />
-    </AppDataProvider>
+    <SedeProvider value={SEDE_CONTEXT}>
+      <AppDataProvider value={APP_DATA}>
+        <AdminModulo
+          profile={PROFILE}
+          permisos={{}}
+          user={{ id: "u1" }}
+          lapso="2026-1"
+          onCambiarLapso={vi.fn()}
+          tieneHorarios={false}
+          tieneQR={false}
+          onVolverSelector={vi.fn()}
+          onLogout={vi.fn()}
+          {...overrides}
+        />
+      </AppDataProvider>
+    </SedeProvider>
   );
 }
 
@@ -156,5 +170,11 @@ describe("AdminModulo — navegación entre módulos y menú de usuario", () => 
     fireEvent.click(await screen.findByText(/cambiar contraseña/i));
 
     expect(await screen.findByText(/configuración de cuenta/i)).toBeTruthy();
+  });
+
+  // SEDE-10: badge de sede activa en UserMenu, visible sin abrir el menú.
+  it("muestra el nombre de la sede activa como badge junto al menú de usuario", () => {
+    renderAdminModulo();
+    expect(screen.getByTitle("Sede activa").textContent).toContain("Cabimas");
   });
 });
