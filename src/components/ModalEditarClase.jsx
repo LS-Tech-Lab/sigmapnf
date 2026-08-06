@@ -49,6 +49,7 @@ import { supabase } from "../lib/supabase";
 import { DAYS, BLOQUES_DIURNO, BLOQUES_VESPERTINO, BLOQUES_MIXTO } from "../constants";
 import { parseClase } from "../utils/parsing";
 import { getTurnoDeRegistro } from "../utils/turno";
+import { mensajeAmigable } from "../utils/errorMessages";
 import useFocusTrap from "../hooks/useFocusTrap";
 import { useSedeContext } from "../context/SedeContext";
 import "./ModalEditarClase.css";
@@ -245,7 +246,7 @@ export default function ModalEditarClase({
               { onConflict: "sede_id,nombre_raw" }
             )
             .select().single();
-          if (insError) { setSaving(false); setError("Error al crear la materia: " + insError.message); return; }
+          if (insError) { setSaving(false); setError("Error al crear la materia: " + mensajeAmigable(insError)); return; }
           materiaRow = data;
         }
         if (docenteId === NUEVO) {
@@ -257,7 +258,7 @@ export default function ModalEditarClase({
               { onConflict: "sede_id,nombre_raw" }
             )
             .select().single();
-          if (insError) { setSaving(false); setError("Error al crear el docente: " + insError.message); return; }
+          if (insError) { setSaving(false); setError("Error al crear el docente: " + mensajeAmigable(insError)); return; }
           docenteRow = data;
         }
 
