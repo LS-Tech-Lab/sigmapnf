@@ -63,8 +63,9 @@ function adaptarFilasRpc(rows) {
  * @param {string} params.selectedPrograma - "todos" o nombre de programa
  * @param {Array} params.data - dataset ya cargado (usado solo como fallback)
  * @param {number} params.refreshKey - cambiar este valor fuerza un refetch
+ * @param {string|null} params.sedeActiva - sede seleccionada (SEDE-2)
  */
-export default function useConflictos({ lapso, selectedPrograma, data, refreshKey = 0 }) {
+export default function useConflictos({ lapso, selectedPrograma, data, refreshKey = 0, sedeActiva = null }) {
   const [conflicts, setConflicts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
@@ -73,9 +74,15 @@ export default function useConflictos({ lapso, selectedPrograma, data, refreshKe
     setLoading(true);
     try {
       const programaParam = selectedPrograma === "todos" ? null : selectedPrograma;
+      // SEDE-9: conflictos_horario_detalle() es SECURITY DEFINER (bypassa
+      // RLS) y hasta la migración 0067 no tenía NINGÚN filtro de sede --
+      // devolvía conflictos de todas las sedes sin importar cuál estuviera
+      // seleccionada. Ahora exige p_sede_id (o resuelve la sede fija del
+      // perfil si no se manda ninguno).
       const { data: rows, error } = await supabase.rpc("conflictos_horario_detalle", {
         p_lapso: lapso || null,
         p_programa: programaParam,
+        p_sede_id: sedeActiva || null,
       });
 
       if (error) throw error;
@@ -89,7 +96,7 @@ export default function useConflictos({ lapso, selectedPrograma, data, refreshKe
     } finally {
       setLoading(false);
     }
-  }, [lapso, selectedPrograma, data]);
+  }, [lapso, selectedPrograma, data, sedeActiva]);
 
   useEffect(() => {
     fetchConflictos();

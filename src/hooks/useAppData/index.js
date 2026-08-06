@@ -57,7 +57,7 @@ export default function useAppData(lapso, logAudit = null, userId = null, sedeAc
   });
 
   const { conflicts, usingFallback: usingFallbackConflicts, refetchConflictos } = useConflictos({
-    lapso, selectedPrograma, data, refreshKey: conflictsRefreshKey,
+    lapso, selectedPrograma, data, refreshKey: conflictsRefreshKey, sedeActiva,
   });
 
   const { saveDocenteName, saveDocenteCedula: saveDocenteCedulaBase, saveMateriaName } = createNameEditingActions({

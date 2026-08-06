@@ -67,7 +67,7 @@ describe("useConflictos — flujo con RPC disponible", () => {
 
     expect(supabase.rpc).toHaveBeenCalledWith(
       "conflictos_horario_detalle",
-      { p_lapso: "2026-1", p_programa: null }
+      { p_lapso: "2026-1", p_programa: null, p_sede_id: null }
     );
     expect(result.current.usingFallback).toBe(false);
     expect(result.current.conflicts).toHaveLength(1);
