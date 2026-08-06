@@ -11,15 +11,25 @@
 // esa migración, independientemente de RLS. Los SELECT/UPDATE/DELETE de
 // este archivo NO necesitaron tocarse: como ya filtran por nombre_raw
 // (único por sede), RLS (0063) hace la exclusión de otras sedes sola.
+//
+// SEDE-11 (auditoría 6 ago): `replace_nombre_en_clases` (llamada por
+// unifyNameLegacy, el fallback legacy cuando renombrar_docente/
+// renombrar_materia no está disponible) es SECURITY DEFINER y hasta la
+// migración 0068 no filtraba por sede -- ahora exige p_sede_id, así que
+// se manda `sedeActiva` en esa llamada también.
 
 import { supabase } from "../../lib/supabase";
 import { logger } from "../../utils/logger";
 
-async function unifyNameLegacy(tableName, rawName, newDisplayName) {
+async function unifyNameLegacy(tableName, rawName, newDisplayName, sedeActiva) {
   const { data: existing } = await supabase.from(tableName).select("nombre_raw, nombre_display").ilike("nombre_display", newDisplayName.trim()).neq("nombre_raw", rawName).limit(1);
   if (existing?.length > 0) {
     const { nombre_raw: targetRaw, nombre_display: canonicalDisplay } = existing[0];
-    const { error: rpcError } = await supabase.rpc("replace_nombre_en_clases", { old_raw: rawName, new_raw: targetRaw });
+    // SEDE-11: replace_nombre_en_clases ahora exige p_sede_id (resuelve
+    // la sede fija del perfil si no se manda; solo hace falta mandarla
+    // explícita para roles con puedeVerTodasLasSedes, igual que el resto
+    // de las RPCs de este mismo patrón).
+    const { error: rpcError } = await supabase.rpc("replace_nombre_en_clases", { old_raw: rawName, new_raw: targetRaw, p_sede_id: sedeActiva || null });
     if (rpcError) throw new Error(`Error al unificar en horarios: ${rpcError.message}`);
     const { error: deleteError } = await supabase.from(tableName).delete().eq("nombre_raw", rawName);
     if (deleteError) logger.warn(`No se pudo eliminar el registro huérfano "${rawName}" de "${tableName}":`, deleteError.message);
@@ -56,7 +66,7 @@ export function createNameEditingActions({
         }
         logger.warn("renombrar_docente no disponible, usando flujo legacy:", rpcError.message);
       }
-      const unified = await unifyNameLegacy("docentes", rawName, displayName);
+      const unified = await unifyNameLegacy("docentes", rawName, displayName, sedeActiva);
       // En unificación el rawName desaparece, no hace falta actualizar su entrada.
       if (unified) { showToast("Docente unificado.", "success"); logAudit?.({ accion: "UNIFICAR_DOCENTE", entidad: "docentes", resumen: `Docente unificado: "${rawName}" → "${displayName}"` }); await fetchDocenteNames(); await fetchHorarios(selectedPrograma); setConflictsRefreshKey(k => k + 1); return { success: true, targetRaw: unified.targetRaw }; }
       await supabase.from("docentes").upsert(
@@ -118,7 +128,7 @@ export function createNameEditingActions({
         }
         logger.warn("renombrar_materia no disponible, usando flujo legacy:", rpcError.message);
       }
-      const unified = await unifyNameLegacy("materias", rawName, displayName);
+      const unified = await unifyNameLegacy("materias", rawName, displayName, sedeActiva);
       // En unificación el rawName desaparece, no hace falta actualizar su entrada.
       if (unified) { showToast("Materia unificada.", "success"); logAudit?.({ accion: "UNIFICAR_MATERIA", entidad: "materias", resumen: `Materia unificada: "${rawName}" → "${displayName}"` }); await fetchMateriaNames(); await fetchHorarios(selectedPrograma); return { success: true, targetRaw: unified.targetRaw }; }
       await supabase.from("materias").upsert(

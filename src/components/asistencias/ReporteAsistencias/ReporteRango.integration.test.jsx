@@ -41,6 +41,7 @@ vi.mock("../../../lib/supabase", () => ({
 
 import { supabase } from "../../../lib/supabase";
 import ReporteRango from "./ReporteRango";
+import { SedeProvider } from "../../../context/SedeContext";
 
 // Rango fijo de lunes a viernes (5 días hábiles) para que diasHabiles/%
 // sean deterministas sin depender de la fecha real de ejecución del test.
@@ -98,10 +99,16 @@ function setDateInput(labelText, value) {
   fireEvent.change(input, { target: { value } });
 }
 
+// SEDE-13: ReporteRango ahora lee useSedeContext() para mandar
+// p_sede_id en admin_borrar_asistencias_rango — necesita un
+// <SedeProvider/> en el árbol o el hook lanza, igual que ya se ajustó en
+// AdminModulo.integration.test.jsx.
 function renderReporte(overrides = {}) {
   const showToast = vi.fn();
   const utils = render(
-    <ReporteRango onVolverDiario={vi.fn()} permisos={{}} showToast={showToast} {...overrides} />
+    <SedeProvider value={{ sedeActiva: "cabimas", sedes: [{ id: "cabimas", nombre: "Cabimas" }], setSedeActiva: vi.fn() }}>
+      <ReporteRango onVolverDiario={vi.fn()} permisos={{}} showToast={showToast} {...overrides} />
+    </SedeProvider>
   );
   return { ...utils, showToast };
 }
@@ -227,6 +234,7 @@ describe("ReporteRango — borrado de rango (ADMIN-2)", () => {
         p_fecha_hasta: FIN,
         p_turno:       "DIURNO",
         p_programa:    null,
+        p_sede_id:     "cabimas",
       })
     );
 

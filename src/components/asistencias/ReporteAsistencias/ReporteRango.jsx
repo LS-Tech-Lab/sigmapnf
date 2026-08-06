@@ -7,9 +7,15 @@ import { exportarPDFRango } from "./exportPDF";
 import { exportarCSVRango } from "./exportCSV";
 import { ModalConfirm } from "../../usuarios/shared";
 import { useReporteConfig } from "../../../hooks/useReporteConfig";
+import { useSedeContext } from "../../../context/SedeContext";
 import "./index.css";
 
 function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
+  // SEDE-13 (auditoría 6 ago): admin_borrar_asistencias_rango ahora exige
+  // p_sede_id (mismo patrón que conflictos_horario/crear_qr_session) --
+  // antes borraba asistencias de TODAS las sedes que hicieran match con
+  // el rango/turno/programa.
+  const { sedeActiva } = useSedeContext();
   const hoy   = fechaHoyVE();
   // Fix (recurrencia de fecha-hoy-timezone, ver utils/time.js): se deriva
   // del mismo `hoy` anclado a Venezuela, no de `new Date()` crudo (que usa
@@ -162,6 +168,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
       p_fecha_hasta: fin,
       p_turno:       turno || null,
       p_programa:    programa || null,
+      p_sede_id:     sedeActiva || null,
     });
     setBorrando(false);
     setConfirmBorrar(false);
