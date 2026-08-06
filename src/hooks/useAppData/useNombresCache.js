@@ -9,16 +9,24 @@ import { supabase } from "../../lib/supabase";
 import { guardarEnCache, cargarDeCache, getCacheKey, CACHE_KEYS } from "../../utils/cache";
 import { logger } from "../../utils/logger";
 
-export default function useNombresCache(userId = null, showToast = null) {
+export default function useNombresCache(userId = null, showToast = null, sedeActiva = null) {
   const [programasDisponibles, setProgramasDisponibles] = useState(["todos", ...DEFAULT_PROGRAMAS]);
   const [docenteNames, setDocenteNames] = useState({});
   const [docenteCedulas, setDocenteCedulas] = useState({});
   const [docenteCedulaFuentes, setDocenteCedulaFuentes] = useState({});
   const [materiaNames, setMateriaNames] = useState({});
 
+  // SEDE-6: clave de caché por sede -- sin esto, cambiar de sede activa
+  // podía mostrar por un instante nombres cacheados de la sede anterior.
+  const cacheKeySede = useCallback((base) => (sedeActiva ? `${base}_s_${sedeActiva}` : base), [sedeActiva]);
+
   const fetchProgramas = useCallback(async (lapsoActual) => {
     let query = supabase.from("horarios").select("programa").not("programa", "is", null);
     if (lapsoActual) query = query.eq("lapso", lapsoActual);
+    // SEDE-6: mismo filtro que useDataSync -- sin esto, un admin con
+    // puedeVerTodasLasSedes veía en el dropdown programas de sedes que
+    // no eran la elegida.
+    if (sedeActiva) query = query.eq("sede_id", sedeActiva);
     const { data: programas } = await query;
     if (programas) {
       const canonicalSet = new Map();
@@ -27,17 +35,24 @@ export default function useNombresCache(userId = null, showToast = null) {
       const defaults = DEFAULT_PROGRAMAS.filter(p => !unique.some(u => u.toLowerCase() === p.toLowerCase()));
       setProgramasDisponibles(["todos", ...unique, ...defaults]);
     }
-  }, []);
+  }, [sedeActiva]);
 
   const fetchDocenteNames = useCallback(async () => {
-    const cachedDocentes = cargarDeCache(CACHE_KEYS.docentes, userId, { offlineMode: !navigator.onLine });
+    const cachedDocentes = cargarDeCache(cacheKeySede(CACHE_KEYS.docentes), userId, { offlineMode: !navigator.onLine });
     if (cachedDocentes) setDocenteNames(cachedDocentes);
-    const cachedCedulas = cargarDeCache(CACHE_KEYS.docenteCedulas, userId, { offlineMode: !navigator.onLine });
+    const cachedCedulas = cargarDeCache(cacheKeySede(CACHE_KEYS.docenteCedulas), userId, { offlineMode: !navigator.onLine });
     if (cachedCedulas) setDocenteCedulas(cachedCedulas);
     try {
       // Usar docentes_con_cedula() que incluye cédulas vinculadas automáticamente
       // por asistencia QR, no solo las vinculadas manualmente.
-      const { data: docentes, error: rpcError } = await supabase.rpc("docentes_con_cedula");
+      // SEDE-6: docentes_con_cedula() es SECURITY DEFINER (bypassa RLS) y
+      // hasta 0066 no tenía NINGÚN filtro de sede -- devolvía docentes de
+      // todas las sedes a cualquier usuario. Ahora exige p_sede_id (o
+      // resuelve la sede fija del perfil si no se manda ninguno).
+      const { data: docentes, error: rpcError } = await supabase.rpc(
+        "docentes_con_cedula",
+        sedeActiva ? { p_sede_id: sedeActiva } : {}
+      );
       if (rpcError) throw rpcError;
       if (docentes) {
         const m = {}, c = {}, f = {};
@@ -49,37 +64,41 @@ export default function useNombresCache(userId = null, showToast = null) {
         setDocenteNames(m);
         setDocenteCedulas(c);
         setDocenteCedulaFuentes(f);
-        guardarEnCache(CACHE_KEYS.docentes, m, userId);
-        guardarEnCache(CACHE_KEYS.docenteCedulas, c, userId);
+        guardarEnCache(cacheKeySede(CACHE_KEYS.docentes), m, userId);
+        guardarEnCache(cacheKeySede(CACHE_KEYS.docenteCedulas), c, userId);
       }
     } catch (err) {
       // Fallback: consulta directa a la tabla si la RPC aún no existe
       logger.warn("docentes_con_cedula() no disponible, usando fallback:", err);
       try {
-        const { data: docentes } = await supabase.from("docentes").select("*");
+        let query = supabase.from("docentes").select("*");
+        if (sedeActiva) query = query.eq("sede_id", sedeActiva);
+        const { data: docentes } = await query;
         if (docentes) {
           const m = {}, c = {};
           docentes.forEach(d => { m[d.nombre_raw] = d.nombre_display; if (d.cedula) c[d.nombre_raw] = d.cedula; });
           setDocenteNames(m);
           setDocenteCedulas(c);
           setDocenteCedulaFuentes({});  // fallback no tiene fuente
-          guardarEnCache(CACHE_KEYS.docentes, m, userId);
-          guardarEnCache(CACHE_KEYS.docenteCedulas, c, userId);
+          guardarEnCache(cacheKeySede(CACHE_KEYS.docentes), m, userId);
+          guardarEnCache(cacheKeySede(CACHE_KEYS.docenteCedulas), c, userId);
         }
       } catch (fallbackErr) {
         // Fix #15: segundo intento tras 3 s antes de rendirse y avisar al usuario
         logger.warn("Fallback de docentes también falló, reintentando en 3 s:", fallbackErr);
         setTimeout(async () => {
           try {
-            const { data: docentesRetry } = await supabase.from("docentes").select("*");
+            let queryRetry = supabase.from("docentes").select("*");
+            if (sedeActiva) queryRetry = queryRetry.eq("sede_id", sedeActiva);
+            const { data: docentesRetry } = await queryRetry;
             if (docentesRetry) {
               const m = {}, c = {};
               docentesRetry.forEach(d => { m[d.nombre_raw] = d.nombre_display; if (d.cedula) c[d.nombre_raw] = d.cedula; });
               setDocenteNames(m);
               setDocenteCedulas(c);
               setDocenteCedulaFuentes({});
-              guardarEnCache(CACHE_KEYS.docentes, m, userId);
-              guardarEnCache(CACHE_KEYS.docenteCedulas, c, userId);
+              guardarEnCache(cacheKeySede(CACHE_KEYS.docentes), m, userId);
+              guardarEnCache(cacheKeySede(CACHE_KEYS.docenteCedulas), c, userId);
             }
           } catch {
             // Reintento también falló: usar caché y avisar
@@ -92,24 +111,28 @@ export default function useNombresCache(userId = null, showToast = null) {
         if (cachedCedulas) setDocenteCedulas(cachedCedulas);
       }
     }
-  }, [userId, showToast]);
+  }, [userId, showToast, sedeActiva, cacheKeySede]);
 
   const fetchMateriaNames = useCallback(async () => {
-    const cachedMaterias = cargarDeCache(CACHE_KEYS.materias, userId, { offlineMode: !navigator.onLine });
+    const cachedMaterias = cargarDeCache(cacheKeySede(CACHE_KEYS.materias), userId, { offlineMode: !navigator.onLine });
     if (cachedMaterias) setMateriaNames(cachedMaterias);
     try {
-      const { data: materias } = await supabase.from("materias").select("*");
+      // SEDE-6: sin este filtro, RLS deja pasar todas las sedes para
+      // roles con puedeVerTodasLasSedes -- ver mismo fix en useDataSync.
+      let query = supabase.from("materias").select("*");
+      if (sedeActiva) query = query.eq("sede_id", sedeActiva);
+      const { data: materias } = await query;
       if (materias) {
         const m = {};
         materias.forEach(d => { m[d.nombre_raw] = d.nombre_display; });
         setMateriaNames(m);
-        guardarEnCache(CACHE_KEYS.materias, m, userId);
+        guardarEnCache(cacheKeySede(CACHE_KEYS.materias), m, userId);
       }
     } catch (err) {
       logger.warn("Error fetching materias:", err);
       if (cachedMaterias) setMateriaNames(cachedMaterias);
     }
-  }, [userId]);
+  }, [userId, sedeActiva, cacheKeySede]);
 
   const getDocName = useCallback((raw) => docenteNames[raw] || raw, [docenteNames]);
   const getDocCedula = useCallback((raw) => docenteCedulas[raw] || "", [docenteCedulas]);
@@ -120,12 +143,12 @@ export default function useNombresCache(userId = null, showToast = null) {
   // vaya directo a la RPC sin leer datos viejos del localStorage.
   const invalidarCacheDocentes = useCallback(() => {
     try {
-      const k1 = getCacheKey(CACHE_KEYS.docentes, userId);
-      const k2 = getCacheKey(CACHE_KEYS.docenteCedulas, userId);
+      const k1 = getCacheKey(cacheKeySede(CACHE_KEYS.docentes), userId);
+      const k2 = getCacheKey(cacheKeySede(CACHE_KEYS.docenteCedulas), userId);
       localStorage.removeItem(k1);
       localStorage.removeItem(k2);
     } catch (_) {}
-  }, [userId]);
+  }, [userId, cacheKeySede]);
 
   return {
     programasDisponibles, docenteNames, docenteCedulas, docenteCedulaFuentes, materiaNames,

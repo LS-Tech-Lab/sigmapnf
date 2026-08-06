@@ -43,7 +43,7 @@ export default function useAppData(lapso, logAudit = null, userId = null, sedeAc
     setDocenteNames, setDocenteCedulas, setMateriaNames,
     fetchProgramas, fetchDocenteNames, fetchMateriaNames, invalidarCacheDocentes,
     getDocName, getDocCedula, getDocCedulaFuente, getMateriaName,
-  } = useNombresCache(userId, showToast);
+  } = useNombresCache(userId, showToast, sedeActiva);
 
   const {
     data, loading, setLoading, isSyncing, error, setError,
@@ -53,7 +53,7 @@ export default function useAppData(lapso, logAudit = null, userId = null, sedeAc
     lapso, selectedPrograma, showToast,
     fetchDocenteNames, fetchMateriaNames, fetchProgramas,
     setConflictsRefreshKey,
-    userId,
+    userId, sedeActiva,
   });
 
   const { conflicts, usingFallback: usingFallbackConflicts, refetchConflictos } = useConflictos({

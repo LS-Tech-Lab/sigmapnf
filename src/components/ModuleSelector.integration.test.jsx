@@ -103,4 +103,31 @@ describe("ModuleSelector — filtrado real de módulos según acceso del perfil"
     fireEvent.click(screen.getByText(/cerrar sesión/i));
     expect(onLogout).toHaveBeenCalledTimes(1);
   });
+
+  // SEDE-6: badge de sede activa, solo para roles con puedeVerTodasLasSedes.
+  it("sin puedeElegirSede, no muestra el badge de sede (mayoría de los roles, con sede fija)", () => {
+    renderSelector({ tieneHorarios: true });
+    expect(screen.queryByTitle("Cambiar de sede")).toBeNull();
+  });
+
+  it("con puedeElegirSede, muestra el nombre de la sede activa y permite cambiarla", () => {
+    const onCambiarSede = vi.fn();
+    renderSelector({
+      tieneHorarios: true,
+      puedeElegirSede: true,
+      sedeActivaNombre: "Cabimas",
+      onCambiarSede,
+    });
+
+    const badge = screen.getByTitle("Cambiar de sede");
+    expect(badge.textContent).toContain("Cabimas");
+
+    fireEvent.click(badge);
+    expect(onCambiarSede).toHaveBeenCalledTimes(1);
+  });
+
+  it("con puedeElegirSede pero sin sedeActivaNombre resuelto todavía, muestra un fallback en vez de texto vacío", () => {
+    renderSelector({ tieneHorarios: true, puedeElegirSede: true, sedeActivaNombre: null });
+    expect(screen.getByTitle("Cambiar de sede").textContent).toContain("Sin sede");
+  });
 });

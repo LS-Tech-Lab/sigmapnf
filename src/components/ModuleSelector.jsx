@@ -31,7 +31,10 @@ const MODULES = [
   },
 ];
 
-export default function ModuleSelector({ profile, tieneHorarios, tieneQR, tieneAdmin, onSelectModule, onLogout }) {
+export default function ModuleSelector({
+  profile, tieneHorarios, tieneQR, tieneAdmin, onSelectModule, onLogout,
+  puedeElegirSede, sedeActivaNombre, onCambiarSede,
+}) {
   const acceso = { horarios: tieneHorarios, asistencias: tieneQR, admin: tieneAdmin };
   const modulosVisibles = MODULES.filter((mod) => acceso[mod.id]);
 
@@ -48,6 +51,23 @@ export default function ModuleSelector({ profile, tieneHorarios, tieneQR, tieneA
             {profile?.nombre || profile?.email || "Usuario"}
           </span>
         </p>
+        {/* SEDE-6: visible solo para roles con puedeVerTodasLasSedes —
+            la sede fija del resto de los roles nunca cambia, así que no
+            tiene sentido mostrarles un botón para "cambiarla". Sin este
+            indicador, la única forma de saber en qué sede está trabajando
+            un admin era abrir un módulo y fijarse en los datos cargados. */}
+        {puedeElegirSede && (
+          <button
+            type="button"
+            onClick={onCambiarSede}
+            className="module-sede-badge"
+            title="Cambiar de sede"
+          >
+            <i className="ti ti-building-community" aria-hidden="true" />
+            <span>{sedeActivaNombre || "Sin sede"}</span>
+            <i className="ti ti-chevron-down" aria-hidden="true" />
+          </button>
+        )}
         <p className="module-hint">Selecciona el módulo al que deseas acceder</p>
       </div>
 

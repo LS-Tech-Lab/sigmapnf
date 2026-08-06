@@ -62,6 +62,21 @@
 .module-welcome-name { color: var(--color-border-info); font-weight: 600; }
 .module-hint { margin: var(--space-2) 0 0; font-size: var(--font-size-13); color: var(--color-text-tertiary); }
 
+/* SEDE-6: badge de sede activa + acción para cambiarla, en la cabecera
+   del selector de módulo. Mismo patrón visual que .module-logout (botón
+   fantasma, borde sutil solo al hover) para no introducir un nuevo
+   lenguaje visual en una pantalla que ya tiene los suyos bien definidos. */
+.module-sede-badge {
+  margin: var(--space-3) 0 0; background: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: var(--space-6px);
+  padding: var(--space-6px) var(--space-3); border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.16));
+  color: var(--color-text-secondary); font-size: var(--font-size-13); font-weight: 500;
+  transition: color 0.15s, border-color 0.15s;
+}
+.module-sede-badge:hover { color: var(--color-border-info); border-color: var(--color-border-info); }
+.module-sede-badge i.ti-chevron-down { font-size: var(--font-size-12); opacity: 0.7; }
+
 /* Grid: fix de "no caben en una fila" (ver ADMIN-5) + ahora también más
    angosto por tarjeta, ya que el layout horizontal necesita menos ancho
    por tarjeta que el anterior (el texto ya no tiene que caber centrado
@@ -156,7 +171,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .module-header, .module-grid { animation: none; }
-  .module-card, .module-icon, .module-title-card, .module-chevron, .module-logout {
+  .module-card, .module-icon, .module-title-card, .module-chevron, .module-logout, .module-sede-badge {
     transition: none;
   }
 }

@@ -20,9 +20,12 @@ import { renderHook, waitFor } from "@testing-library/react";
 
 function makeSelectBuilder(result) {
   // supabase.from("docentes").select("*") — el camino de fallback encadena
-  // .select() y luego se usa como thenable (await directo, sin .single()).
+  // .select() y, si hay sedeActiva, también .eq("sede_id", ...) antes de
+  // resolverse como thenable (await directo, sin .single()).
   const builder = {
-    select: () => Promise.resolve(result),
+    select: () => builder,
+    eq: () => builder,
+    then: (resolve, reject) => Promise.resolve(result).then(resolve, reject),
   };
   return builder;
 }
@@ -54,11 +57,31 @@ describe("useNombresCache — flujo con RPC disponible", () => {
 
     await waitFor(() => expect(result.current.docenteNames["PEREZ JUAN"]).toBe("Juan Pérez"));
 
-    expect(supabase.rpc).toHaveBeenCalledWith("docentes_con_cedula");
+    // SEDE-6: sin sedeActiva, se manda un objeto vacío (no se omite el
+    // segundo argumento) — la RPC resuelve la sede fija del perfil del lado
+    // del servidor en ese caso.
+    expect(supabase.rpc).toHaveBeenCalledWith("docentes_con_cedula", {});
     expect(result.current.docenteCedulas["PEREZ JUAN"]).toBe("12345678");
     expect(result.current.docenteCedulaFuentes["PEREZ JUAN"]).toBe("qr");
     // No debe haber caído al fallback si la RPC respondió bien.
     expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it("SEDE-6: manda p_sede_id cuando hay una sede activa elegida", async () => {
+    supabase.rpc.mockResolvedValueOnce({
+      data: [
+        { nombre_raw: "PEREZ JUAN", nombre_display: "Juan Pérez", cedula: "12345678", cedula_fuente: "qr" },
+      ],
+      error: null,
+    });
+
+    const { result } = renderHook(() => useNombresCache("user-1", null, "cabimas"));
+
+    await result.current.fetchDocenteNames();
+
+    await waitFor(() => expect(result.current.docenteNames["PEREZ JUAN"]).toBe("Juan Pérez"));
+
+    expect(supabase.rpc).toHaveBeenCalledWith("docentes_con_cedula", { p_sede_id: "cabimas" });
   });
 });
 
@@ -83,5 +106,23 @@ describe("useNombresCache — flujo de fallback cuando la RPC no existe", () => 
     // El fallback no calcula cedula_fuente — debe quedar vacío, no undefined
     // ni un valor inventado.
     expect(result.current.docenteCedulaFuentes).toEqual({});
+  });
+
+  it("SEDE-6: filtra el fallback por sede_id cuando hay una sede activa elegida", async () => {
+    supabase.rpc.mockRejectedValueOnce(new Error("function docentes_con_cedula() does not exist"));
+    const builder = makeSelectBuilder({
+      data: [{ nombre_raw: "GOMEZ ANA", nombre_display: "Ana Gómez", cedula: "87654321" }],
+      error: null,
+    });
+    const eqSpy = vi.spyOn(builder, "eq");
+    supabase.from.mockReturnValue(builder);
+
+    const { result } = renderHook(() => useNombresCache("user-1", null, "cabimas"));
+
+    await result.current.fetchDocenteNames();
+
+    await waitFor(() => expect(result.current.docenteNames["GOMEZ ANA"]).toBe("Ana Gómez"));
+
+    expect(eqSpy).toHaveBeenCalledWith("sede_id", "cabimas");
   });
 });

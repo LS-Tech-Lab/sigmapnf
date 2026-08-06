@@ -16,9 +16,14 @@ import {
 
 // Invalida solo las claves de nombres (docentes/materias) para un usuario dado,
 // sin afectar el caché de horarios. Usado por los listeners realtime de #7.
-function limpiarCacheNombres(userId) {
+// SEDE-6: debe usar la misma clave con sufijo de sede que useNombresCache.js
+// (`${base}_s_${sedeActiva}`) -- si no, esta invalidación apunta a una
+// clave vieja que ya no es la que se lee/escribe realmente, y el cambio
+// remoto no se reflejaría hasta que expire el caché por tiempo.
+function limpiarCacheNombres(userId, sedeActiva) {
+  const sufijo = sedeActiva ? `_s_${sedeActiva}` : "";
   const keys = [CACHE_KEYS.docentes, CACHE_KEYS.docenteCedulas, CACHE_KEYS.materias];
-  keys.forEach(k => localStorage.removeItem(getCacheKey(k, userId)));
+  keys.forEach(k => localStorage.removeItem(getCacheKey(`${k}${sufijo}`, userId)));
 }
 
 const PAGE_SIZE = 500;
@@ -27,7 +32,7 @@ export default function useDataSync({
   lapso, selectedPrograma, showToast,
   fetchDocenteNames, fetchMateriaNames, fetchProgramas,
   setConflictsRefreshKey,
-  userId,
+  userId, sedeActiva,
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +50,11 @@ export default function useDataSync({
 
   // Fix #12: usar siempre una clave explícita para evitar colisiones entre
   // "sin lapso" y futuros lapsos: `horarios_nolap` vs `horarios_2025-1`.
-  const cacheKey = lapso ? `${CACHE_KEYS.horarios}_${lapso}` : `${CACHE_KEYS.horarios}_nolap`;
+  // SEDE-6: se agrega la sede a la clave -- sin esto, un usuario con
+  // puedeVerTodasLasSedes que cambia de sede activa vería por un instante
+  // (hasta que el fetch fresco reemplace el estado) los horarios cacheados
+  // de la sede anterior, porque compartían la misma clave de caché.
+  const cacheKey = `${lapso ? `${CACHE_KEYS.horarios}_${lapso}` : `${CACHE_KEYS.horarios}_nolap`}${sedeActiva ? `_s_${sedeActiva}` : ""}`;
 
   // M-3: la firma incluye `lapsoParam` explícito para que los llamadores
   // externos (useUpload, handlers de lapso) puedan pasar el valor fresco
@@ -88,6 +97,10 @@ export default function useDataSync({
 
         if (lapsoParam)           query = query.eq("lapso",    lapsoParam);
         if (programa !== "todos") query = query.eq("programa", programa);
+        // SEDE-6: sin este filtro, RLS deja pasar TODAS las sedes para
+        // cualquier rol con puedeVerTodasLasSedes -- la sede elegida en
+        // el selector (SEDE-2) nunca se aplicaba a este query.
+        if (sedeActiva)           query = query.eq("sede_id",  sedeActiva);
 
         const { data: pagina, error } = await query;
 
@@ -145,7 +158,7 @@ export default function useDataSync({
 
     setLoading(false);
     setIsSyncing(false);
-  }, [lapso, cacheKey, showToast, userId]);
+  }, [lapso, cacheKey, showToast, userId, sedeActiva]);
 
   useEffect(() => { fetchProgramas(lapso); fetchDocenteNames(); fetchMateriaNames(); }, [lapso, fetchProgramas, fetchDocenteNames, fetchMateriaNames]);
   useEffect(() => { fetchHorarios(selectedPrograma); }, [selectedPrograma, lapso, fetchHorarios]);
@@ -179,18 +192,18 @@ export default function useDataSync({
         onDocentesChange: () => {
           // Fix #7: invalidar caché de docentes antes de re-fetch para que
           // el listener remoto no aplique el caché stale antes del resultado fresco.
-          limpiarCacheNombres(userId);
+          limpiarCacheNombres(userId, sedeActiva);
           fetchDocenteNames();
           setConflictsRefreshKey(k => k + 1);
         },
         onMateriasChange: () => {
-          limpiarCacheNombres(userId);
+          limpiarCacheNombres(userId, sedeActiva);
           fetchMateriaNames();
         },
       });
     });
     return () => cancelar();
-  }, [lapso, selectedPrograma, fetchHorarios, fetchDocenteNames, fetchMateriaNames, showToast, userId, setConflictsRefreshKey]);
+  }, [lapso, selectedPrograma, fetchHorarios, fetchDocenteNames, fetchMateriaNames, showToast, userId, sedeActiva, setConflictsRefreshKey]);
 
   const byDocente = useMemo(() => {
     const m = {};

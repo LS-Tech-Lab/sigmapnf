@@ -117,7 +117,7 @@ export default function App() {
   // seleccionable solo para quienes tienen puedeVerTodasLasSedes.
   const { sedes, loadingSedes } = useSedes();
   const {
-    sedeActiva, setSedeActiva, requiereSeleccion,
+    sedeActiva, setSedeActiva, requiereSeleccion, puedeElegir,
   } = useSedeActiva({ userId: user?.id, efectivePermisos });
 
   // ── Navegación interna del módulo horarios ────────────────────────────────
@@ -333,6 +333,13 @@ export default function App() {
         tieneAdmin={tieneAdmin}
         onSelectModule={(mod) => setModuloActivo(mod)}
         onLogout={handleLogout}
+        // SEDE-2/6: visible solo para quienes pueden elegir sede
+        // (admin/coordinador). Reutiliza requiereSeleccion: al resetear
+        // sedeActiva a null, App.jsx vuelve a mostrar <SedeSelector/> en
+        // el siguiente render sin necesidad de una pantalla nueva.
+        puedeElegirSede={puedeElegir}
+        sedeActivaNombre={sedes.find((s) => s.id === sedeActiva)?.nombre || sedeActiva}
+        onCambiarSede={() => setSedeActiva(null)}
       />
     );
   }
