@@ -115,7 +115,7 @@ export default function App() {
   // ── Sede activa (SEDE-2) ────────────────────────────────────────────────
   // Fija para la mayoría de los roles (efectivePermisos.sedeAsignada);
   // seleccionable solo para quienes tienen puedeVerTodasLasSedes.
-  const { sedes, loadingSedes } = useSedes();
+  const { sedes, loadingSedes } = useSedes(user?.id);
   const {
     sedeActiva, setSedeActiva, requiereSeleccion, puedeElegir,
   } = useSedeActiva({ userId: user?.id, efectivePermisos });
