@@ -20,6 +20,7 @@
 
 import { supabase } from "../../lib/supabase";
 import { logger } from "../../utils/logger";
+import { mensajeAmigable } from "../../utils/errorMessages";
 
 async function unifyNameLegacy(tableName, rawName, newDisplayName, sedeActiva) {
   const { data: existing } = await supabase.from(tableName).select("nombre_raw, nombre_display").ilike("nombre_display", newDisplayName.trim()).neq("nombre_raw", rawName).limit(1);
@@ -77,7 +78,7 @@ export function createNameEditingActions({
       showToast("Docente actualizado.", "success");
       logAudit?.({ accion: "EDITAR_DOCENTE", entidad: "docentes", resumen: `Docente actualizado: "${rawName}" → "${displayName}"` });
       return { success: true };
-    } catch (err) { showToast("Error: " + err.message, "error"); return { success: false }; }
+    } catch (err) { showToast("Error: " + mensajeAmigable(err), "error"); return { success: false }; }
   };
 
   // Vincula manualmente la cédula de un docente (nombre_raw -> cedula),
@@ -139,7 +140,7 @@ export function createNameEditingActions({
       showToast("Materia actualizada.", "success");
       logAudit?.({ accion: "EDITAR_MATERIA", entidad: "materias", resumen: `Materia actualizada: "${rawName}" → "${displayName}"` });
       return { success: true };
-    } catch (err) { showToast("Error: " + err.message, "error"); return { success: false }; }
+    } catch (err) { showToast("Error: " + mensajeAmigable(err), "error"); return { success: false }; }
   };
 
   return { saveDocenteName, saveDocenteCedula, saveMateriaName };
