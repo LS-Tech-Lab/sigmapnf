@@ -7,7 +7,7 @@
  * automáticamente y esta pantalla nunca se muestra.
  */
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./ModuleSelector.css";
 
 const MODULES = [
@@ -33,10 +33,32 @@ const MODULES = [
 
 export default function ModuleSelector({
   profile, tieneHorarios, tieneQR, tieneAdmin, onSelectModule, onLogout,
-  puedeElegirSede, sedeActivaNombre, onCambiarSede,
+  puedeElegirSede, sedes = [], sedeActiva, onSelectSede,
 }) {
   const acceso = { horarios: tieneHorarios, asistencias: tieneQR, admin: tieneAdmin };
   const modulosVisibles = MODULES.filter((mod) => acceso[mod.id]);
+
+  // UX-31: el badge de sede antes navegaba a una pantalla completa
+  // (<SedeSelector/>) para elegir sede. Ahora es un dropdown real: se
+  // abre/cierra in-place y la selección llama a onSelectSede directo,
+  // sin salir de esta pantalla. Mismo patrón de cierre por click-afuera
+  // que GlobalSearch.jsx (ref + listener de "mousedown" en el documento).
+  const [sedeMenuOpen, setSedeMenuOpen] = useState(false);
+  const sedeMenuRef = useRef(null);
+  const sedeActivaNombre = sedes.find((s) => s.id === sedeActiva)?.nombre || sedeActiva;
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (sedeMenuRef.current && !sedeMenuRef.current.contains(e.target)) setSedeMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSelectSede = (id) => {
+    setSedeMenuOpen(false);
+    if (id !== sedeActiva) onSelectSede(id);
+  };
 
   return (
     <div className="module-page">
@@ -57,16 +79,41 @@ export default function ModuleSelector({
             indicador, la única forma de saber en qué sede está trabajando
             un admin era abrir un módulo y fijarse en los datos cargados. */}
         {puedeElegirSede && (
-          <button
-            type="button"
-            onClick={onCambiarSede}
-            className="module-sede-badge"
-            title="Cambiar de sede"
-          >
-            <i className="ti ti-building-community" aria-hidden="true" />
-            <span>{sedeActivaNombre || "Sin sede"}</span>
-            <i className="ti ti-chevron-down" aria-hidden="true" />
-          </button>
+          <div className="module-sede-wrap" ref={sedeMenuRef}>
+            <button
+              type="button"
+              onClick={() => setSedeMenuOpen((v) => !v)}
+              className="module-sede-badge"
+              title="Cambiar de sede"
+              aria-expanded={sedeMenuOpen}
+              aria-haspopup="listbox"
+            >
+              <i className="ti ti-building-community" aria-hidden="true" />
+              <span>{sedeActivaNombre || "Sin sede"}</span>
+              <i className={`ti ti-chevron-down module-sede-chevron${sedeMenuOpen ? " module-sede-chevron--open" : ""}`} aria-hidden="true" />
+            </button>
+            {sedeMenuOpen && (
+              <ul className="module-sede-menu" role="listbox">
+                {sedes.length === 0 && (
+                  <li className="module-sede-menu-empty">No hay sedes activas configuradas.</li>
+                )}
+                {sedes.map((sede) => (
+                  <li key={sede.id}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={sede.id === sedeActiva}
+                      className={`module-sede-menu-item${sede.id === sedeActiva ? " module-sede-menu-item--active" : ""}`}
+                      onClick={() => handleSelectSede(sede.id)}
+                    >
+                      <span>{sede.nombre}</span>
+                      {sede.id === sedeActiva && <i className="ti ti-check" aria-hidden="true" />}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
         <p className="module-hint">Selecciona el módulo al que deseas acceder</p>
       </div>

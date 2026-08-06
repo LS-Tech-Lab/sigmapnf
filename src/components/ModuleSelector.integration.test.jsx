@@ -110,24 +110,53 @@ describe("ModuleSelector — filtrado real de módulos según acceso del perfil"
     expect(screen.queryByTitle("Cambiar de sede")).toBeNull();
   });
 
-  it("con puedeElegirSede, muestra el nombre de la sede activa y permite cambiarla", () => {
-    const onCambiarSede = vi.fn();
+  it("con puedeElegirSede, muestra el nombre de la sede activa y despliega el dropdown al hacer click, sin navegar a otra pantalla", () => {
+    const onSelectSede = vi.fn();
+    const sedes = [
+      { id: "cabimas", nombre: "Cabimas" },
+      { id: "ciudad_ojeda", nombre: "Ciudad Ojeda" },
+    ];
     renderSelector({
       tieneHorarios: true,
       puedeElegirSede: true,
-      sedeActivaNombre: "Cabimas",
-      onCambiarSede,
+      sedes,
+      sedeActiva: "cabimas",
+      onSelectSede,
     });
 
     const badge = screen.getByTitle("Cambiar de sede");
     expect(badge.textContent).toContain("Cabimas");
 
+    // Antes de abrir el dropdown, la lista de sedes no está en el DOM.
+    expect(screen.queryByText("Ciudad Ojeda")).toBeNull();
+
     fireEvent.click(badge);
-    expect(onCambiarSede).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Ciudad Ojeda")).toBeTruthy();
+    // La pantalla sigue siendo ModuleSelector — el dropdown no navega.
+    expect(screen.getByText("Gestión de Horarios")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Ciudad Ojeda").closest("button"));
+    expect(onSelectSede).toHaveBeenCalledWith("ciudad_ojeda");
   });
 
-  it("con puedeElegirSede pero sin sedeActivaNombre resuelto todavía, muestra un fallback en vez de texto vacío", () => {
-    renderSelector({ tieneHorarios: true, puedeElegirSede: true, sedeActivaNombre: null });
+  it("clickear la sede ya activa dentro del dropdown no vuelve a llamar a onSelectSede", () => {
+    const onSelectSede = vi.fn();
+    const sedes = [{ id: "cabimas", nombre: "Cabimas" }];
+    renderSelector({
+      tieneHorarios: true,
+      puedeElegirSede: true,
+      sedes,
+      sedeActiva: "cabimas",
+      onSelectSede,
+    });
+
+    fireEvent.click(screen.getByTitle("Cambiar de sede"));
+    fireEvent.click(screen.getByText("Cabimas", { selector: ".module-sede-menu-item span" }).closest("button"));
+    expect(onSelectSede).not.toHaveBeenCalled();
+  });
+
+  it("con puedeElegirSede pero sin sedeActiva resuelta todavía, muestra un fallback en vez de texto vacío", () => {
+    renderSelector({ tieneHorarios: true, puedeElegirSede: true, sedes: [], sedeActiva: null });
     expect(screen.getByTitle("Cambiar de sede").textContent).toContain("Sin sede");
   });
 });

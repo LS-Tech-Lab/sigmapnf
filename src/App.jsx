@@ -334,12 +334,15 @@ export default function App() {
         onSelectModule={(mod) => setModuloActivo(mod)}
         onLogout={handleLogout}
         // SEDE-2/6: visible solo para quienes pueden elegir sede
-        // (admin/coordinador). Reutiliza requiereSeleccion: al resetear
-        // sedeActiva a null, App.jsx vuelve a mostrar <SedeSelector/> en
-        // el siguiente render sin necesidad de una pantalla nueva.
+        // (admin/coordinador). UX-31: antes onCambiarSede reseteaba
+        // sedeActiva a null para forzar la pantalla completa
+        // <SedeSelector/> en el siguiente render; ahora el propio
+        // ModuleSelector despliega un dropdown in-place con la lista de
+        // sedes y llama a onSelectSede(id) directo al elegir una.
         puedeElegirSede={puedeElegir}
-        sedeActivaNombre={sedes.find((s) => s.id === sedeActiva)?.nombre || sedeActiva}
-        onCambiarSede={() => setSedeActiva(null)}
+        sedes={sedes}
+        sedeActiva={sedeActiva}
+        onSelectSede={setSedeActiva}
       />
     );
   }

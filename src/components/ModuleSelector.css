@@ -66,8 +66,9 @@
    del selector de módulo. Mismo patrón visual que .module-logout (botón
    fantasma, borde sutil solo al hover) para no introducir un nuevo
    lenguaje visual en una pantalla que ya tiene los suyos bien definidos. */
+.module-sede-wrap { position: relative; display: inline-block; margin: var(--space-3) 0 0; }
 .module-sede-badge {
-  margin: var(--space-3) 0 0; background: none; cursor: pointer;
+  margin: 0; background: none; cursor: pointer;
   display: inline-flex; align-items: center; gap: var(--space-6px);
   padding: var(--space-6px) var(--space-3); border-radius: var(--border-radius-md);
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.16));
@@ -75,7 +76,34 @@
   transition: color 0.15s, border-color 0.15s;
 }
 .module-sede-badge:hover { color: var(--color-border-info); border-color: var(--color-border-info); }
-.module-sede-badge i.ti-chevron-down { font-size: var(--font-size-12); opacity: 0.7; }
+.module-sede-chevron { font-size: var(--font-size-12); opacity: 0.7; transition: transform 0.15s; }
+.module-sede-chevron--open { transform: rotate(180deg); }
+
+/* UX-31: dropdown real (antes navegaba a una pantalla completa). Mismo
+   patrón visual/posicional que .gs-results en GlobalSearch.css: absolute
+   debajo del trigger, fondo sólido propio (no hereda el fondo oscuro de
+   .module-page), sombra para despegarlo del contenido de atrás. */
+.module-sede-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; min-width: 220px; max-height: 280px;
+  overflow-y: auto; margin: 0; padding: var(--space-6px); list-style: none;
+  background: var(--color-background-primary, #fff); border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border-tertiary); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  z-index: 200; text-align: left;
+}
+.module-sede-menu-item {
+  width: 100%; background: none; border: none; cursor: pointer; text-align: left;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  padding: var(--space-6px) var(--space-3); border-radius: var(--border-radius-sm, 6px);
+  font-size: var(--font-size-13); font-weight: 500; color: var(--color-text-primary);
+  transition: background-color 0.15s;
+}
+.module-sede-menu-item:hover { background: var(--color-background-subtle); }
+.module-sede-menu-item--active { color: var(--color-border-info); font-weight: 600; }
+.module-sede-menu-item--active i.ti-check { color: var(--color-border-info); }
+.module-sede-menu-empty {
+  padding: var(--space-6px) var(--space-3); font-size: var(--font-size-13);
+  color: var(--color-text-tertiary);
+}
 
 /* Grid: fix de "no caben en una fila" (ver ADMIN-5) + ahora también más
    angosto por tarjeta, ya que el layout horizontal necesita menos ancho
@@ -171,7 +199,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .module-header, .module-grid { animation: none; }
-  .module-card, .module-icon, .module-title-card, .module-chevron, .module-logout, .module-sede-badge {
+  .module-card, .module-icon, .module-title-card, .module-chevron, .module-logout, .module-sede-badge, .module-sede-chevron {
     transition: none;
   }
 }
