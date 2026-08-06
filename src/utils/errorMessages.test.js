@@ -1,9 +1,10 @@
 // =====================================================================
-// errorMessages.test.js — UX-31 (auditoría 6 de agosto)
+// errorMessages.test.js — UX-31 / UX-32 (auditoría 6 de agosto)
 //
-// mensajeAmigable() intercepta el mensaje técnico del trigger de sede
-// (0063) y lo traduce; cualquier otro mensaje debe pasar sin cambios,
-// para no inventar traducciones sobre errores no verificados.
+// mensajeAmigable() intercepta un set explícito de mensajes técnicos de
+// Postgres y los traduce (trigger de sede, constraint único, foreign key);
+// cualquier otro mensaje no cubierto debe pasar sin cambios, para no
+// inventar traducciones sobre errores no verificados.
 // =====================================================================
 
 import { describe, it, expect } from "vitest";
@@ -21,9 +22,28 @@ describe("mensajeAmigable", () => {
     );
   });
 
-  it("deja pasar sin cambios cualquier otro mensaje de error", () => {
-    const error = { message: "duplicate key value violates unique constraint" };
-    expect(mensajeAmigable(error)).toBe("duplicate key value violates unique constraint");
+  it("traduce una violación de constraint único (UX-32)", () => {
+    const error = {
+      message: 'duplicate key value violates unique constraint "horarios_pkey"',
+    };
+    expect(mensajeAmigable(error)).toBe(
+      "Ya existe un registro con esos mismos datos. Verifica antes de guardar de nuevo."
+    );
+  });
+
+  it("traduce una violación de foreign key (UX-32)", () => {
+    const error = {
+      message:
+        'update or delete on table "docentes" violates foreign key constraint "horarios_docente_id_fkey" on table "horarios"',
+    };
+    expect(mensajeAmigable(error)).toBe(
+      "Ese registro está siendo usado por otro dato del sistema y no se puede eliminar todavía."
+    );
+  });
+
+  it("deja pasar sin cambios un mensaje de error no cubierto por ninguna regla", () => {
+    const error = { message: "connection timeout while contacting the database" };
+    expect(mensajeAmigable(error)).toBe("connection timeout while contacting the database");
   });
 
   it("no revienta si el error no trae message", () => {
