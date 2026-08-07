@@ -26,12 +26,17 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 vi.mock("../../lib/supabase", () => ({
   supabase: {
     rpc: vi.fn(),
-    // SEDE-2: PestanaUsuarios ahora usa useSedes() (supabase.from("sedes")...)
-    // para poblar el selector de sede del modal. Se mockea con una cadena
-    // encadenable que resuelve una lista vacía — ningún test de este
-    // archivo ejercita el selector de sede en sí (eso vive en
-    // ModalUsuario), esto solo evita que el hook quede sin mock y
-    // rompa el render con una unhandled rejection.
+    // SEDE-2/SEDE-18: PestanaUsuarios usa useSedes(userId) (supabase.
+    // from("sedes")...) para poblar el selector de sede del modal.
+    // Se mockea con una cadena encadenable que resuelve una lista
+    // vacía — ningún test de este archivo ejercita el selector de sede
+    // en sí (eso vive en ModalUsuario), este mock solo evita que el
+    // hook quede sin mock y rompa el render con una unhandled
+    // rejection. Sí hay un test dedicado (abajo) que confirma que
+    // supabase.from("sedes") se LLEGA a llamar — antes de SEDE-18,
+    // useSedes() se invocaba sin userId y su guard interno lo
+    // cortocircuitaba siempre, así que este mock nunca se ejercitaba
+    // de verdad pese a estar declarado.
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         order: vi.fn().mockResolvedValue({ data: [], error: null }),
@@ -62,6 +67,7 @@ function renderPestana(overrides = {}) {
       programas={["INFORMATICA"]}
       showToast={showToast}
       logAudit={logAudit}
+      userId="actor-1"
       {...overrides}
     />
   );
@@ -133,5 +139,18 @@ describe("PestanaUsuarios — flujo de carga y desactivación de usuario", () =>
 
     // cargar() se volvió a ejecutar tras el toggle → la tabla refleja "Inactivo"
     await waitFor(() => expect(screen.getByText("Inactivo")).toBeTruthy());
+  });
+
+  it("SEDE-18: con userId, useSedes() sí consulta el catálogo de sedes (antes quedaba siempre vacío en producción)", async () => {
+    supabase.rpc.mockImplementation((fn) => {
+      if (fn === "admin_get_users") return Promise.resolve({ data: [usuarioActivo], error: null });
+      if (fn === "admin_get_orphan_auth_users") return Promise.resolve({ data: [], error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    renderPestana({ userId: "actor-1" });
+
+    await waitFor(() => screen.getByText("Test User"));
+    await waitFor(() => expect(supabase.from).toHaveBeenCalledWith("sedes"));
   });
 });

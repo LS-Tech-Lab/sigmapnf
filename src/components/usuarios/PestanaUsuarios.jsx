@@ -32,7 +32,7 @@ import useSedes from "../../hooks/useSedes";
 import "./PestanaUsuarios.css";
 import ModalUsuario from "./ModalUsuario";
 
-export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles, programas, showToast: showToastProp, logAudit }) {
+export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles, programas, showToast: showToastProp, logAudit, userId }) {
   const [usuarios,    setUsuarios]    = useState([]);
   const [huerfanos,   setHuerfanos]   = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -42,7 +42,16 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
   const [modalNuevo,  setModalNuevo]  = useState(false);
   const [confirm,     setConfirm]     = useState(null);
   const [toastMsg,    setToastMsg]    = useState("");
-  const { sedes } = useSedes();
+  // SEDE-18: useSedes() se llamaba SIN userId -- su guard interno
+  // (if (!userId) { setSedes([]); return; }, agregado en SEDE-7 para
+  // evitar el fetch antes de que exista sesión) se disparaba siempre,
+  // así que el selector de sede del modal de Nuevo/Editar usuario
+  // quedaba permanentemente vacío en producción, en silencio (RLS no
+  // era el problema -- el hook nunca llegaba a consultar). El test de
+  // integración ya mockeaba supabase.from("sedes") pero nunca verificaba
+  // que se llamara, así que el mock quedaba de adorno sin ejercitar el
+  // camino real.
+  const { sedes } = useSedes(userId);
 
   const toast = useCallback((msg, type) => {
     if (showToastProp) showToastProp(msg, type);

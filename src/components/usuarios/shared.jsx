@@ -57,6 +57,7 @@ export const GRUPOS_PERMISOS = [
       { key: "puedeVerAuditoria",      label: "Ver auditoría",      desc: "Ver quién hizo qué y cuándo" },
       { key: "puedeConfigurarReportes", label: "Configurar reportes", desc: "Personalizar logo, colores y textos del membrete de los reportes imprimibles" },
       { key: "puedeVerTodasLasSedes",  label: "Ver todas las sedes", desc: "Acceder y gestionar todas las sedes en vez de quedar fijo a una sola (SEDE-1/2)" },
+      { key: "puedeGestionarSedes",    label: "Gestionar sedes",     desc: "Crear sedes nuevas, renombrarlas, reordenarlas y activarlas/desactivarlas (SEDE-17)" },
     ],
   },
 ];

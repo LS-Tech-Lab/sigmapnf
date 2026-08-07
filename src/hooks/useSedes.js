@@ -15,12 +15,40 @@
  * sesión del navegador.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function useSedes(userId) {
   const [sedes, setSedes] = useState([]);
   const [loadingSedes, setLoadingSedes] = useState(true);
+
+  // SEDE-17: extraído del useEffect para poder recargar el catálogo a
+  // demanda (ej. tras crear/editar una sede desde el nuevo panel de
+  // Sistema → Sedes) sin depender de un cambio de userId ni de que el
+  // usuario recargue la página entera.
+  const cargar = useCallback(async () => {
+    if (!userId) {
+      setSedes([]);
+      setLoadingSedes(false);
+      return;
+    }
+    setLoadingSedes(true);
+    const { data, error } = await supabase
+      .from("sedes")
+      .select("id, nombre, activa, orden")
+      .order("orden", { ascending: true });
+
+    if (error) {
+      // No hay una vía de fallo distinta a "lista vacía" acá: si esto
+      // falla, el selector de sede simplemente no tiene opciones para
+      // mostrar. Se loguea para no tragarse el error en silencio.
+      console.error("useSedes: error al cargar catálogo de sedes", error);
+      setSedes([]);
+    } else {
+      setSedes((data || []).filter(s => s.activa));
+    }
+    setLoadingSedes(false);
+  }, [userId]);
 
   useEffect(() => {
     // SEDE-7: sin esperar userId, este efecto se disparaba en el primer
@@ -33,34 +61,9 @@ export default function useSedes(userId) {
     // quedaba pegado en [] el resto de esa carga de página. Ahora se
     // condiciona a que exista una sesión autenticada, y se vuelve a
     // ejecutar si userId cambia (login/logout/cambio de cuenta).
-    if (!userId) {
-      setSedes([]);
-      setLoadingSedes(false);
-      return;
-    }
-
-    let cancelado = false;
-    setLoadingSedes(true);
-    (async () => {
-      const { data, error } = await supabase
-        .from("sedes")
-        .select("id, nombre, activa, orden")
-        .order("orden", { ascending: true });
-
-      if (cancelado) return;
-      if (error) {
-        // No hay una vía de fallo distinta a "lista vacía" acá: si esto
-        // falla, el selector de sede simplemente no tiene opciones para
-        // mostrar. Se loguea para no tragarse el error en silencio.
-        console.error("useSedes: error al cargar catálogo de sedes", error);
-        setSedes([]);
-      } else {
-        setSedes((data || []).filter(s => s.activa));
-      }
-      setLoadingSedes(false);
-    })();
-    return () => { cancelado = true; };
+    cargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  return { sedes, loadingSedes };
+  return { sedes, loadingSedes, refetchSedes: cargar };
 }

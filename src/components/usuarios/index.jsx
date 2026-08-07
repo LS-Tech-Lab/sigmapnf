@@ -7,9 +7,12 @@
  *
  * Props:
  *   permisos  — objeto de permisos del usuario actual
- *   profile   — perfil del usuario actual (se usa solo para saber si
- *               rol === "admin" — jerarquía fija de SEC-15, ver
- *               PestanaUsuarios/ModalUsuario)
+ *   profile   — perfil del usuario actual: usado para saber si
+ *               rol === "admin" (jerarquía fija de SEC-15, ver
+ *               PestanaUsuarios/ModalUsuario) y para pasar profile.id
+ *               como userId a useSedes() dentro de PestanaUsuarios
+ *               (SEDE-18 -- sin esto, el selector de sede del modal de
+ *               Nuevo/Editar usuario quedaba siempre vacío)
  *   programas — lista de programas disponibles
  *   logAudit  — función de auditoría
  *   showToast — función de toast global
@@ -97,6 +100,7 @@ export default function UsuariosView({ permisos, profile, programas, logAudit, s
           programas={programasDisponibles}
           showToast={showToast}
           logAudit={logAudit}
+          userId={profile?.id}
         />
       )}
       {tab === "roles" && puedeRoles && (

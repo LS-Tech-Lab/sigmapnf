@@ -8,6 +8,7 @@ const UsuariosView  = lazy(() => import("../components/usuarios"));
 const LogsView       = lazy(() => import("../components/LogsView"));
 const HistorialView  = lazy(() => import("../components/HistorialView"));
 const ConfiguracionReportes = lazy(() => import("../components/ConfiguracionReportes"));
+const GestionSedes   = lazy(() => import("../components/GestionSedes"));
 
 const AdminFallback = () => (
   <div className="lazy-fallback">
@@ -82,6 +83,13 @@ export default function AdminModulo({
     // (puedeConfigurarReportes), no por pertenecer a este módulo.
     ...(permisos.puedeConfigurarReportes
       ? [{ id: "reportes", icon: "ti-palette", label: "Reportes" }]
+      : []),
+    // SEDE-17 (6 ago): alta/edición/activación del catálogo de sedes —
+    // mismo criterio que "Reportes": permiso granular propio
+    // (puedeGestionarSedes), no puedeVerTodasLasSedes (una cosa es VER
+    // todas las sedes en los reportes, otra ADMINISTRAR el catálogo).
+    ...(permisos.puedeGestionarSedes
+      ? [{ id: "sedes", icon: "ti-building-community", label: "Sedes" }]
       : []),
     { id: "historial", icon: "ti-archive", label: "Historial" },
   ];
@@ -158,6 +166,10 @@ export default function AdminModulo({
 
             {tab === "reportes" && permisos.puedeConfigurarReportes && (
               <ConfiguracionReportes showToast={appData.showToast} logAudit={appData.logAudit} />
+            )}
+
+            {tab === "sedes" && permisos.puedeGestionarSedes && (
+              <GestionSedes showToast={appData.showToast} logAudit={appData.logAudit} />
             )}
 
             {tab === "historial" && (

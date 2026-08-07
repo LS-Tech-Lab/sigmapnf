@@ -103,4 +103,31 @@ describe("useSedes", () => {
     );
     consoleErrorSpy.mockRestore();
   });
+
+  it("SEDE-17: refetchSedes vuelve a consultar la tabla a demanda (ej. tras crear/editar una sede)", async () => {
+    supabase.from
+      .mockReturnValueOnce(
+        makeSelectBuilder({
+          data: [{ id: "cabimas", nombre: "Cabimas", activa: true, orden: 1 }],
+          error: null,
+        })
+      )
+      .mockReturnValueOnce(
+        makeSelectBuilder({
+          data: [
+            { id: "cabimas", nombre: "Cabimas", activa: true, orden: 1 },
+            { id: "bobures", nombre: "Bobures", activa: true, orden: 2 },
+          ],
+          error: null,
+        })
+      );
+
+    const { result } = renderHook(() => useSedes("user-1"));
+    await waitFor(() => expect(result.current.sedes.length).toBe(1));
+
+    await result.current.refetchSedes();
+
+    await waitFor(() => expect(result.current.sedes.length).toBe(2));
+    expect(supabase.from).toHaveBeenCalledTimes(2);
+  });
 });

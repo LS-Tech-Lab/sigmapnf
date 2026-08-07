@@ -115,7 +115,7 @@ export default function App() {
   // ── Sede activa (SEDE-2) ────────────────────────────────────────────────
   // Fija para la mayoría de los roles (efectivePermisos.sedeAsignada);
   // seleccionable solo para quienes tienen puedeVerTodasLasSedes.
-  const { sedes, loadingSedes } = useSedes(user?.id);
+  const { sedes, loadingSedes, refetchSedes } = useSedes(user?.id);
   const {
     sedeActiva, setSedeActiva, requiereSeleccion, puedeElegir,
   } = useSedeActiva({ userId: user?.id, efectivePermisos });
@@ -351,7 +351,9 @@ export default function App() {
   // adelante. Objeto simple (no useMemo) porque sedes/sedeActiva/
   // setSedeActiva ya son estables entre renders salvo cuando cambian de
   // verdad (useSedes/useSedeActiva no generan referencias nuevas gratis).
-  const sedeContextValue = { sedeActiva, sedes, setSedeActiva };
+  // SEDE-17: refetchSedes se suma para que GestionSedes.jsx (Sistema →
+  // Sedes) pueda refrescar el catálogo en todo el árbol tras un cambio.
+  const sedeContextValue = { sedeActiva, sedes, setSedeActiva, refetchSedes };
 
   // ── Módulo Asistencias QR ─────────────────────────────────────────────────
   if (moduloActivo === "asistencias") {
