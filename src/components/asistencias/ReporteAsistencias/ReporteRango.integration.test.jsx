@@ -143,6 +143,7 @@ describe("ReporteRango — carga real del reporte por rango (ARCH-27, agregació
         p_fecha_hasta: FIN,
         p_turno:       "DIURNO",
         p_programa:    null,
+        p_sede_id:     "cabimas",
       })
     );
   });
@@ -173,6 +174,7 @@ describe("ReporteRango — carga real del reporte por rango (ARCH-27, agregació
         p_fecha_hasta: FIN,
         p_turno:       "MIXTO",
         p_programa:    null,
+        p_sede_id:     "cabimas",
       })
     );
   });

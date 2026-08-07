@@ -34,6 +34,11 @@ const MATERIAS = [{ id: 10, nombre_raw: "Quimica Aplicada", nombre_display: "Qui
 function makeCatalogBuilder(data) {
   const b = {};
   b.select = vi.fn(() => b);
+  // SEDE-16: ModalEditarClase.jsx ahora filtra el dropdown de
+  // docentes/materias por sede (`.eq("sede_id", sedeActiva)` antes de
+  // `.order`), así que el builder mock necesita encadenar `.eq` igual
+  // que el cliente real de supabase-js.
+  b.eq = vi.fn(() => b);
   b.order = vi.fn(() => Promise.resolve({ data, error: null }));
   return b;
 }

@@ -516,7 +516,7 @@ export default function AdminQRPanel({
           {activa && <ContadorSesion sessionId={sessionId} />}
           {activa && <FeedActividad registros={feedRegistros} flash={feedFlash} />}
           <ColaOfflinePanel />
-          <HistorialSesiones fecha={fecha} sessionIdActiva={sessionId} permisos={permisos} showToast={showToast} />
+          <HistorialSesiones fecha={fecha} sessionIdActiva={sessionId} permisos={permisos} showToast={showToast} sedeActiva={sedeActiva} />
         </div>
 
         {/* ── Columna derecha: estado de la sesión ── */}

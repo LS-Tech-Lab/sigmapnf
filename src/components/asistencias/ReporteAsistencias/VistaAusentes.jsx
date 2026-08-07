@@ -7,7 +7,7 @@ import { guardarAusentesEnIDB, cargarAusentesDeIDB } from "../../../utils/report
 import "./index.css";
 import "./VistaAusentes.css";
 
-function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) {
+function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange, sedeActiva = null }) {
   const [ausentes,    setAusentes]    = useState([]);
   const [loading,     setLoading]     = useState(false);
   const [modoOffline, setModoOffline] = useState(false);
@@ -57,6 +57,10 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
         .eq("dia", dia);
 
       if (programa) query = query.eq("programa", programa);
+      // SEDE-16: sin este filtro, un rol con puedeVerTodasLasSedes vería
+      // ausentes calculados sobre el horario de TODAS las sedes, no solo
+      // la activa -- RLS (0063) deja pasar todas para ese rol.
+      if (sedeActiva) query = query.eq("sede_id", sedeActiva);
 
       const { data: clases } = await query;
 
@@ -78,9 +82,9 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
       let catalogoDocentes = [];
       let cedulaPorNombre = {};
       if (necesitaCatalogo) {
-        const { data: docentesCatalogo } = await supabase
-          .from("docentes")
-          .select("nombre_raw, cedula");
+        let queryCatalogo = supabase.from("docentes").select("nombre_raw, cedula");
+        if (sedeActiva) queryCatalogo = queryCatalogo.eq("sede_id", sedeActiva);
+        const { data: docentesCatalogo } = await queryCatalogo;
 
         catalogoDocentes = (docentesCatalogo || []).map(d => d.nombre_raw).filter(Boolean);
         (docentesCatalogo || []).forEach(d => { if (d.cedula) cedulaPorNombre[d.nombre_raw] = d.cedula; });
@@ -130,7 +134,7 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange }) 
     };
 
     fetch();
-  }, [fecha, programa, dia, cedulasPresentes, onAusentesChange]);
+  }, [fecha, programa, dia, cedulasPresentes, onAusentesChange, sedeActiva]);
 
   if (modoOffline && !fechaCache && (dia !== "SÁBADO" && dia !== "DOMINGO")) {
     return (

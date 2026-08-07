@@ -5,15 +5,17 @@ import { supabase } from "../../../lib/supabase";
 import { rangoFechas } from "./helpers";
 
 // ── Exportar CSV con nombre_display cruzado (MEJORA #8) ─────────────────────
-export async function exportarCSV(docentesAgrupados, fecha, turno) {
+export async function exportarCSV(docentesAgrupados, fecha, turno, sedeActiva = null) {
   // Cruzar cédulas contra la tabla docentes para obtener nombre_display oficial
   const cedulas = docentesAgrupados.map(d => d.cedula).filter(Boolean);
   let nombreDisplay = {};
   if (cedulas.length > 0) {
-    const { data: docentesDB } = await supabase
-      .from("docentes")
-      .select("cedula, nombre_display")
-      .in("cedula", cedulas);
+    // SEDE-16: catálogo de docentes independiente por sede (0061) -- sin
+    // este filtro el cruce podía traer el nombre_display de un docente
+    // homónimo de OTRA sede.
+    let query = supabase.from("docentes").select("cedula, nombre_display").in("cedula", cedulas);
+    if (sedeActiva) query = query.eq("sede_id", sedeActiva);
+    const { data: docentesDB } = await query;
     (docentesDB || []).forEach(d => {
       if (d.cedula && d.nombre_display) nombreDisplay[d.cedula] = d.nombre_display;
     });

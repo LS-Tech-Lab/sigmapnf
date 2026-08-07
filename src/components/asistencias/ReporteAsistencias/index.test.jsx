@@ -24,6 +24,19 @@ vi.mock("../../../utils/reporteCache", () => ({
 
 import { supabase } from "../../../lib/supabase";
 import ReporteAsistencias from "./index";
+import { SedeProvider } from "../../../context/SedeContext";
+
+function renderReporte(props = {}) {
+  // SEDE-16: ReporteAsistencias ahora consume useSedeContext() (filtra
+  // asistencias/horarios/docentes por sede activa) — en producción vive
+  // dentro de AsistenciasModulo, que App.jsx envuelve en <SedeProvider>.
+  // Se replica acá el mismo wrapper con una sede fija de prueba.
+  return render(
+    <SedeProvider value={{ sedeActiva: "cabimas", sedes: [], setSedeActiva: vi.fn() }}>
+      <ReporteAsistencias onVolverPanel={vi.fn()} permisos={{}} showToast={vi.fn()} {...props} />
+    </SedeProvider>
+  );
+}
 
 function makeQueryMock(result) {
   const builder = {};
@@ -50,7 +63,7 @@ afterEach(() => {
 
 describe("ReporteAsistencias (vista diaria) — labels del filtro de turno", () => {
   it("MIXTO se etiqueta 'Mixto', no 'Todos los turnos' (no se confunde con la opción TODOS real)", () => {
-    render(<ReporteAsistencias onVolverPanel={vi.fn()} permisos={{}} showToast={vi.fn()} />);
+    renderReporte();
 
     const select = screen.getByText("Turno").closest("label").querySelector("select");
     const opciones = Array.from(select.options).map(o => ({ value: o.value, text: o.textContent }));
@@ -66,7 +79,7 @@ describe("ReporteAsistencias (vista diaria) — labels del filtro de turno", () 
   });
 
   it("DIURNO y VESPERTINO se siguen etiquetando igual que antes — no regresión", () => {
-    render(<ReporteAsistencias onVolverPanel={vi.fn()} permisos={{}} showToast={vi.fn()} />);
+    renderReporte();
 
     const select = screen.getByText("Turno").closest("label").querySelector("select");
     const opciones = Array.from(select.options).map(o => ({ value: o.value, text: o.textContent }));

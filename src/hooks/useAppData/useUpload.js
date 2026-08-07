@@ -290,6 +290,12 @@ export default function useUpload({
         .in("sheet", sheetsEnArchivo)
         .in("programa", programasEnArchivo);
       if (lapso) dupQuery = dupQuery.eq("lapso", lapso);
+      // SEDE-16: sin este filtro, un rol con puedeVerTodasLasSedes podía
+      // recibir falsos positivos de "ya existe" -- RLS (0063) deja pasar
+      // horarios de todas las sedes para ese rol, así que una clase con el
+      // mismo sheet/día/hora/clase/programa en OTRA sede se detectaba como
+      // duplicado local y se descartaba de la importación sin serlo.
+      if (sedeActiva) dupQuery = dupQuery.eq("sede_id", sedeActiva);
 
       const { data: existingData } = await dupQuery;
       const existingKeys = new Set(

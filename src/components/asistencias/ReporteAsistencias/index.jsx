@@ -17,9 +17,17 @@ import AlertaSinVincular from "./AlertaSinVincular";
 import ReporteRango from "./ReporteRango";
 import { guardarReporteEnIDB, cargarReporteDeIDB } from "../../../utils/reporteCache";
 import { useReporteConfig } from "../../../hooks/useReporteConfig";
+import { useSedeContext } from "../../../context/SedeContext";
 import "./index.css";
 
 export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showToast }) {
+  // SEDE-16: esta vista (y VistaAusentes/AlertaSinVincular/exportarCSV, que
+  // cuelgan de acá) nunca leía sedeActiva -- un rol con puedeVerTodasLasSedes
+  // veía el Reporte diario mezclando asistencias/horarios/docentes de TODAS
+  // las sedes, sin importar la sede elegida en el selector. RLS (0063/0064)
+  // deja pasar todas las sedes para ese rol; el filtro por sede activa tiene
+  // que venir del cliente, mismo patrón que el resto del módulo.
+  const { sedeActiva } = useSedeContext();
   const hoy = fechaHoyVE();
   const [vistaRango, setVistaRango] = useState(false);
   const [fecha,    setFecha]    = useState(hoy);
@@ -69,6 +77,7 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
 
     if (turno !== "TODOS") query = query.eq("turno", turno);
     if (programa) query = query.eq("programa", programa);
+    if (sedeActiva) query = query.eq("sede_id", sedeActiva);
 
     const { data, error: err } = await query;
     if (err) {
@@ -89,7 +98,7 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
       await guardarReporteEnIDB(fecha, turno, programa, resultado);
     }
     if (!silent) setLoading(false);
-  }, [fecha, turno, programa]);
+  }, [fecha, turno, programa, sedeActiva]);
 
   useEffect(() => { fetchAsistencias(); }, [fetchAsistencias]);
 
@@ -181,7 +190,7 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
             PDF
           </button>
           <button
-            onClick={() => exportarCSV(filtrados, fecha, turno)}
+            onClick={() => exportarCSV(filtrados, fecha, turno, sedeActiva)}
             disabled={filtrados.length === 0}
             className={`ra-btn ra-btn-csv${filtrados.length === 0 ? ' ra-btn-csv--disabled' : ''}`}
           >
@@ -271,7 +280,7 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
         ))}
       </div>
 
-      <AlertaSinVincular cedulasPresentes={cedulasPresentes} loading={loading} />
+      <AlertaSinVincular cedulasPresentes={cedulasPresentes} loading={loading} sedeActiva={sedeActiva} />
 
       {modoOffline && (
         <div className="ra-offline-banner">
@@ -356,7 +365,7 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
 
       {/* Vista Ausentes */}
       {tab === "ausentes" && (
-        <VistaAusentes fecha={fecha} programa={programa} cedulasPresentes={cedulasPresentes} onAusentesChange={setAusentesParaPDF} />
+        <VistaAusentes fecha={fecha} programa={programa} cedulasPresentes={cedulasPresentes} onAusentesChange={setAusentesParaPDF} sedeActiva={sedeActiva} />
       )}
     </div>
   );

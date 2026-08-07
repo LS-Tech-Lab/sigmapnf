@@ -155,15 +155,24 @@ export default function ModalEditarClase({
     setNuevaMateriaNombre("");
 
     setCargandoCatalogos(true);
+    // SEDE-16: sin el filtro de sede, un rol con puedeVerTodasLasSedes vería
+    // (y podría asignar) docentes/materias de TODAS las sedes en este
+    // dropdown, no solo de la sede activa — RLS (0063) deja pasar todas las
+    // sedes para ese rol, así que el filtro tiene que venir del cliente,
+    // mismo patrón que useDataSync.js/useNombresCache.js.
     Promise.all([
-      supabase.from("docentes").select("id, nombre_raw, nombre_display").order("nombre_display"),
-      supabase.from("materias").select("id, nombre_raw, nombre_display").order("nombre_display"),
+      sedeActiva
+        ? supabase.from("docentes").select("id, nombre_raw, nombre_display").eq("sede_id", sedeActiva).order("nombre_display")
+        : supabase.from("docentes").select("id, nombre_raw, nombre_display").order("nombre_display"),
+      sedeActiva
+        ? supabase.from("materias").select("id, nombre_raw, nombre_display").eq("sede_id", sedeActiva).order("nombre_display")
+        : supabase.from("materias").select("id, nombre_raw, nombre_display").order("nombre_display"),
     ]).then(([docsRes, matsRes]) => {
       setDocentes(docsRes.data || []);
       setMaterias(matsRes.data || []);
       setCargandoCatalogos(false);
     });
-  }, [open, entry]);
+  }, [open, entry, sedeActiva]);
 
   useEffect(() => {
     if (!open) return;

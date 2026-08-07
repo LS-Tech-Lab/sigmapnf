@@ -8,7 +8,7 @@ import ConfirmBorrarSesionModal from "./ConfirmBorrarSesionModal";
 // bloque autocontenido a su propio archivo, dejando el panel principal como
 // orquestador). El modal de confirmación de borrado vive en su propio
 // archivo presentacional (ConfirmBorrarSesionModal.jsx).
-export default function HistorialSesiones({ fecha, sessionIdActiva, permisos = {}, showToast }) {
+export default function HistorialSesiones({ fecha, sessionIdActiva, permisos = {}, showToast, sedeActiva = null }) {
   const [sesiones,     setSesiones]     = useState([]);
   const [loading,      setLoading]      = useState(false);
   const [expandido,    setExpandido]    = useState(false);
@@ -23,11 +23,17 @@ export default function HistorialSesiones({ fecha, sessionIdActiva, permisos = {
     if (!expandido) return;
     const fetchHistorial = async () => {
       setLoading(true);
-      const { data } = await supabase
+      // SEDE-16: sin este filtro, un rol con puedeVerTodasLasSedes vería
+      // (y podría borrar) sesiones QR de otras sedes en este historial —
+      // RLS (0064) las deja pasar todas, el filtro por sede activa tiene
+      // que venir del cliente.
+      let query = supabase
         .from("qr_sessions")
         .select("id, turno, programa, created_at, activa")
         .eq("fecha", fecha)
         .order("created_at", { ascending: false });
+      if (sedeActiva) query = query.eq("sede_id", sedeActiva);
+      const { data } = await query;
       const sesionesData = data || [];
       setSesiones(sesionesData);
       if (sesionesData.length > 0) {
@@ -48,7 +54,7 @@ export default function HistorialSesiones({ fecha, sessionIdActiva, permisos = {
       setLoading(false);
     };
     fetchHistorial();
-  }, [fecha, expandido, sessionIdActiva]);
+  }, [fecha, expandido, sessionIdActiva, sedeActiva]);
 
   const handleBorrar = async () => {
     if (!confirmBorrar) return;

@@ -7,6 +7,7 @@ import { fmt, duracion, StatusBadge } from "./historial/historialUtils";
 import ModalTrimestre from "./historial/ModalTrimestre";
 import ComparadorPanel from "./historial/ComparadorPanel";
 import HistorialLista from "./historial/HistorialLista";
+import { useSedeContext } from "../context/SedeContext";
 import "./HistorialView.css";
 
 // Fix ARCH-13 (auditoría 9 de julio): ModalTrimestre, ComparadorPanel,
@@ -19,6 +20,15 @@ import "./HistorialView.css";
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, user, modoConsulta = false, logAudit = null, programaRestringido = null }) {
+  // SEDE-16: `trimestres` no tiene sede_id (decisión de negocio pendiente,
+  // ver nota en 0061 -- los lapsos hoy son compartidos entre sedes), pero
+  // las estadísticas que este archivo calcula a partir de `horarios` sí
+  // deben acotarse a la sede activa: sin esto, un rol con
+  // puedeVerTodasLasSedes veía "docentes"/"secciones"/"programas" de un
+  // trimestre mezclando TODAS las sedes -- RLS (0063) deja pasar todas
+  // para ese rol.
+  const { sedeActiva } = useSedeContext();
+
   const [trimestres,     setTrimestres]     = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [expandido,      setExpandido]      = useState(null);
@@ -38,10 +48,12 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     let data, error;
     if (programaRestringido) {
       // Obtenemos los lapsos donde existe al menos un horario de su programa
-      const { data: lapsos, error: errLapsos } = await supabase
+      let queryLapsos = supabase
         .from("horarios")
         .select("lapso")
         .eq("programa", programaRestringido);
+      if (sedeActiva) queryLapsos = queryLapsos.eq("sede_id", sedeActiva);
+      const { data: lapsos, error: errLapsos } = await queryLapsos;
       if (errLapsos) { showToast("Error al cargar historial: " + errLapsos.message, "error"); setLoading(false); return; }
       const lapsoSet = [...new Set((lapsos || []).map(h => h.lapso))];
       if (lapsoSet.length === 0) { setTrimestres([]); setLoading(false); return; }
@@ -61,9 +73,15 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     if (error) showToast("Error al cargar historial: " + error.message, "error");
     else setTrimestres(data || []);
     setLoading(false);
-  }, [showToast, programaRestringido]);
+  }, [showToast, programaRestringido, sedeActiva]);
 
   useEffect(() => { cargarTrimestres(); }, [cargarTrimestres]);
+
+  // SEDE-16: el caché de `detalles` es por lapso, no por sede -- si un
+  // rol con puedeVerTodasLasSedes cambia de sede activa y vuelve a abrir
+  // un lapso ya expandido antes, sin este reset vería el detalle
+  // cacheado de la sede anterior en vez de refrescarlo.
+  useEffect(() => { setDetalles({}); setExpandido(null); }, [sedeActiva]);
 
   const cargarDetalle = async (lapso) => {
     if (detalles[lapso]) { setExpandido(lapso); return; }
@@ -71,6 +89,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     // PERM-3 fix: si hay restricción de programa, el detalle también se filtra
     let query = supabase.from("horarios").select("programa, trayecto, sheet").eq("lapso", lapso);
     if (programaRestringido) query = query.eq("programa", programaRestringido);
+    if (sedeActiva) query = query.eq("sede_id", sedeActiva);
     const { data: horarios } = await query;
 
     const meta = trimestres.find(t => t.lapso === lapso);

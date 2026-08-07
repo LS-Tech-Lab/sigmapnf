@@ -98,6 +98,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
           p_fecha_hasta: fin,
           p_turno:       turno,
           p_programa:    programa || null,
+          p_sede_id:     sedeActiva || null,
         })
         .abortSignal(signal);
 
@@ -110,6 +111,10 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
         .gte("fecha", inicio).lte("fecha", fin).eq("turno", turno)
         .abortSignal(signal);
       if (programa) countQuery = countQuery.eq("programa", programa);
+      // SEDE-16: sin este filtro, un rol con puedeVerTodasLasSedes veía el
+      // conteo (y el reporte agregado de arriba, ver p_sede_id) mezclando
+      // TODAS las sedes -- RLS (0064) las deja pasar todas para ese rol.
+      if (sedeActiva) countQuery = countQuery.eq("sede_id", sedeActiva);
 
       const [{ data, error: err }, { count, error: countErr }] = await Promise.all([rpcCall, countQuery]);
 
@@ -157,7 +162,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
       setTotalRegistros(0);
     }
     setLoading(false);
-  }, [inicio, fin, turno, programa]);
+  }, [inicio, fin, turno, programa, sedeActiva]);
 
   useEffect(() => { fetchRango(); }, [fetchRango]);
 
