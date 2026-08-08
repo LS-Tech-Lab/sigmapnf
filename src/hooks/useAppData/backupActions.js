@@ -86,8 +86,38 @@ export function createBackupActions({
         horariosQuery,
         supabase.from("docentes").select("*"),
         supabase.from("materias").select("*"),
-        supabase.from("asistencias").select("*"),
+        // PERM-4 (cerrado originalmente el X de julio) documentaba esta
+        // consulta como corregida a `asistencias_diarias` -- la tabla
+        // `asistencias` (sin sufijo) nunca existió en el esquema. El código
+        // real seguía apuntando a la tabla inexistente: como ninguna de
+        // estas 4 consultas revisaba `.error`, cada backup exportado hasta
+        // ahora quedaba con `asistencias: []` en silencio, marcado igual
+        // como `asistencias_incluidas: true` -- un backup incompleto sin
+        // ningún aviso visible para quien lo descargó. Encontrado el 8 de
+        // agosto revisando `puedeHacerBackup` para PERM-6 (ver AUDITORIA_
+        // INDICE.md), reabierto como PERM-7. asistencias_diarias no tiene
+        // columna `lapso` (es una tabla operativa de marcas QR, no de
+        // horarios de un trimestre) -- se exporta completa, ya acotada por
+        // RLS a la sede del usuario igual que docentes/materias/horarios.
+        supabase.from("asistencias_diarias").select("*"),
       ]);
+
+      // Antes, un error en cualquiera de las 4 consultas se descartaba en
+      // silencio (`.data || []`) y el backup se descargaba igual,
+      // incompleto pero sin ninguna señal de que algo había fallado.
+      const erroresQuery = [
+        ["horarios", horariosRes.error],
+        ["docentes", docentesRes.error],
+        ["materias", materiasRes.error],
+        ["asistencias", asistenciasRes.error],
+      ].filter(([, err]) => err);
+      if (erroresQuery.length > 0) {
+        const detalle = erroresQuery.map(([tabla]) => tabla).join(", ");
+        logger.error("Error al exportar backup:", erroresQuery);
+        showToast(`Error al leer ${detalle}. El backup NO se descargó — reintenta o avisa si persiste.`, "error");
+        return;
+      }
+
       const backup = {
         version: "2.0",
         fecha: new Date().toISOString(),
