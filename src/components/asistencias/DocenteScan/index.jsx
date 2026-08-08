@@ -3,12 +3,15 @@
  * No requiere sesión Supabase (acceso anónimo).
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import { fechaHoyVE } from "../../../utils/time";
 import { encolarAsistencia } from "../../../utils/offlineQueue";
 
-import { LS_KEY, normalizarCedula, cedulaTieneFormatoValido } from "./cedula";
+import {
+  LS_KEY, normalizarCedula, cedulaTieneFormatoValido,
+  leerBorrador, guardarBorrador, borrarBorrador,
+} from "./cedula";
 import { calcularDeviceFingerprint } from "./deviceFingerprint";
 import { IconError } from "./icons";
 import Shell from "./Shell";
@@ -36,6 +39,23 @@ export default function DocenteScan() {
   const [paso,      setPaso]      = useState("cargando");
   const [resultado, setResultado] = useState(null);
   const [loading,   setLoading]   = useState(false);
+  // UX-33: borrador recuperado del formulario de "primera vez" (ver cedula.js)
+  const [borradorRecuperado, setBorradorRecuperado] = useState(null);
+  const guardarBorradorTimerRef = useRef(null);
+
+  // Solo se usa dentro de cargarConValidacion, cuando se decide mandar al
+  // docente al formulario en blanco: si hay un borrador reciente sin
+  // expirar, lo precarga y muestra el aviso. No se usa en handleCambiarDatos
+  // ("No soy yo"), que es un reinicio deliberado del docente.
+  const irAFormulario = () => {
+    const borrador = leerBorrador();
+    if (borrador) {
+      setCedula(borrador.cedula || "");
+      setNombre(borrador.nombre || "");
+      setBorradorRecuperado(borrador);
+    }
+    setPaso("formulario");
+  };
 
   useEffect(() => {
     // Fix #11: antes de mostrar datos guardados, verificar que el token QR
@@ -46,10 +66,10 @@ export default function DocenteScan() {
     const cargarConValidacion = async () => {
       try {
         const raw = localStorage.getItem(LS_KEY);
-        if (!raw) { setPaso("formulario"); return; }
+        if (!raw) { irAFormulario(); return; }
 
         const datos = JSON.parse(raw);
-        if (!datos?.cedula || !datos?.nombre) { setPaso("formulario"); return; }
+        if (!datos?.cedula || !datos?.nombre) { irAFormulario(); return; }
 
         // Sin red: saltar la validación y mostrar datos guardados directamente
         if (!navigator.onLine) {
@@ -76,7 +96,7 @@ export default function DocenteScan() {
         const { data: sesionActiva, error } = await Promise.race([consulta, timeout]);
 
         if (error || !sesionActiva) {
-          setPaso("formulario");
+          irAFormulario();
           return;
         }
 
@@ -100,7 +120,7 @@ export default function DocenteScan() {
             }
           } catch {}
         }
-        setPaso("formulario");
+        irAFormulario();
       }
     };
 
@@ -174,6 +194,26 @@ export default function DocenteScan() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cedula, paso]);
 
+  // UX-33: mientras el docente llena el formulario de primera vez, guarda
+  // un borrador con debounce (independiente de guardarDatos, que solo se
+  // ejecuta tras un registro exitoso). Así, si el token QR rota antes de
+  // que termine de escribir, no pierde lo tecleado al volver a escanear.
+  useEffect(() => {
+    if (paso !== "formulario") return;
+    if (guardarBorradorTimerRef.current) clearTimeout(guardarBorradorTimerRef.current);
+    guardarBorradorTimerRef.current = setTimeout(() => {
+      guardarBorrador(cedula, nombre);
+    }, 500);
+    return () => clearTimeout(guardarBorradorTimerRef.current);
+  }, [cedula, nombre, paso]);
+
+  const handleDescartarBorrador = () => {
+    borrarBorrador();
+    setBorradorRecuperado(null);
+    setCedula("");
+    setNombre("");
+  };
+
   const guardarDatos = (c, n) => {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify({
@@ -200,6 +240,7 @@ export default function DocenteScan() {
       if (!navigator.onLine) {
         await encolarAsistencia(payload);
         guardarDatos(cedulaNorm, nombreFinal.trim() || cedulaNorm);
+        borrarBorrador();
         setDatosGuardados({
           cedula: cedulaNorm, nombre: nombreFinal.trim() || cedulaNorm,
           fecha: fechaHoyVE(), guardadoEn: Date.now(),
@@ -219,6 +260,7 @@ export default function DocenteScan() {
       if (rpcErr) throw rpcErr;
       if (data?.ok) {
         guardarDatos(cedulaNorm, nombreFinal.trim() || cedulaNorm);
+        borrarBorrador();
         setDatosGuardados({
           cedula: cedulaNorm, nombre: nombreFinal.trim() || cedulaNorm,
           fecha: fechaHoyVE(), guardadoEn: Date.now(),
@@ -315,6 +357,8 @@ export default function DocenteScan() {
       buscandoDocente={buscandoDocente}
       datosNuevos={datosNuevos}
       loading={loading}
+      borradorRecuperado={borradorRecuperado}
+      onDescartarBorrador={handleDescartarBorrador}
       onCedulaChange={e => { setCedula(e.target.value); if (errorCedula) setErrorCedula(""); }}
       onNombreChange={e => { setNombre(e.target.value); setNombreAuto(""); }}
       onSubmit={handleFormulario}

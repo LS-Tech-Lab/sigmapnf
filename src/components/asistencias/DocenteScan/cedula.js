@@ -7,6 +7,52 @@ export const LS_KEY = "pnf_docente_datos";
 // Tiempo máximo en horas antes de mostrar aviso de datos viejos
 export const LS_TIMEOUT_HORAS = 12;
 
+// UX-33: clave SEPARADA para el borrador del formulario de "primera vez"
+// (docente sin datos confirmados aún). Nunca se mezcla con LS_KEY, que
+// representa una identidad ya confirmada por un registro exitoso.
+export const LS_KEY_BORRADOR = "pnf_docente_borrador";
+// TTL corto (a diferencia de LS_TIMEOUT_HORAS): esto es texto a medio
+// escribir, no una identidad confirmada. Un TTL corto limita la ventana
+// en la que un dispositivo compartido podría precargar el nombre/cédula
+// de alguien más si nunca completó su registro.
+export const LS_BORRADOR_TTL_MIN = 20;
+
+// Lee el borrador guardado, si existe y no ha expirado. No lanza si el
+// storage está corrupto o inaccesible (Safari privado, cuota llena, etc).
+export function leerBorrador() {
+  try {
+    const raw = localStorage.getItem(LS_KEY_BORRADOR);
+    if (!raw) return null;
+    const datos = JSON.parse(raw);
+    if (!datos?.guardadoEn) return null;
+    const minutos = (Date.now() - datos.guardadoEn) / 60000;
+    if (minutos >= LS_BORRADOR_TTL_MIN) {
+      localStorage.removeItem(LS_KEY_BORRADOR);
+      return null;
+    }
+    // Un borrador sin nada útil que recuperar no vale la pena mostrarlo
+    if (!datos.cedula?.trim() && !datos.nombre?.trim()) return null;
+    return datos;
+  } catch {
+    return null;
+  }
+}
+
+export function guardarBorrador(cedulaVal, nombreVal) {
+  try {
+    // No vale la pena persistir (ni disparar el aviso de recuperación
+    // después) un formulario todavía vacío.
+    if (!cedulaVal?.trim() && !nombreVal?.trim()) return;
+    localStorage.setItem(LS_KEY_BORRADOR, JSON.stringify({
+      cedula: cedulaVal, nombre: nombreVal, guardadoEn: Date.now(),
+    }));
+  } catch {}
+}
+
+export function borrarBorrador() {
+  try { localStorage.removeItem(LS_KEY_BORRADOR); } catch {}
+}
+
 // Devuelve string de aviso si los datos guardados son sospechosamente viejos o de otro dia
 export function avisoStale(datos) {
   if (!datos) return null;

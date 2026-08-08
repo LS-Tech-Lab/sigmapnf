@@ -23,6 +23,8 @@ export default function PasoValidacionCedula({
   buscandoDocente,
   datosNuevos,
   loading,
+  borradorRecuperado,
+  onDescartarBorrador,
   onCedulaChange,
   onNombreChange,
   onSubmit,
@@ -89,6 +91,21 @@ export default function PasoValidacionCedula({
         <h1 className="scan-step-heading">{tipo === "SALIDA" ? "Registro de Salida" : "Registro de Entrada"}</h1>
         <p className="scan-step-subtitle">Primera vez — ingresa tus datos</p>
       </div>
+
+      {/* UX-33: si el código QR rotó mientras el docente escribía (medida de
+          seguridad — ver useQRSession.js), recuperamos lo que había tecleado
+          desde el borrador local en vez de forzarlo a empezar de cero. */}
+      {borradorRecuperado && (
+        <div className="scan-warn-banner scan-warn-banner--mb16">
+          <i className="ti ti-history scan-warn-banner__icon" aria-hidden="true" />
+          <p className="scan-warn-banner__text">
+            Recuperamos lo que estabas escribiendo antes de volver a escanear. Verifica que sea correcto antes de continuar.{" "}
+            <button type="button" onClick={onDescartarBorrador} className="scan-borrador-descartar-btn">
+              No es lo mío, empezar de nuevo
+            </button>
+          </p>
+        </div>
+      )}
 
       <form onSubmit={onSubmit} className="scan-form-full">
         <Campo

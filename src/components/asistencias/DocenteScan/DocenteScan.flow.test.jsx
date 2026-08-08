@@ -29,6 +29,11 @@
 //      muestra el mensaje de error sin llamar a Supabase.
 //   3. Docente recurrente (con datos guardados y sesión QR vigente):
 //      confirma sin tener que volver a escribir cédula/nombre.
+//   4. UX-33: docente primerizo cuyo token QR rotó a mitad del formulario
+//      (ver useQRSession.js — rotación anti-captura-de-pantalla). Al volver
+//      a escanear (nueva instancia del componente, como ocurre en el
+//      dispositivo real), recupera lo que había tecleado desde el borrador
+//      local en vez de empezar de cero.
 // =====================================================================
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -57,7 +62,7 @@ vi.mock("../../../lib/supabase", () => ({
 
 import { supabase } from "../../../lib/supabase";
 import DocenteScan from "./index.jsx";
-import { LS_KEY } from "./cedula";
+import { LS_KEY, LS_KEY_BORRADOR } from "./cedula";
 
 function irA(token) {
   window.history.pushState({}, "", token ? `/scan?token=${token}` : "/scan");
@@ -170,6 +175,87 @@ describe("DocenteScan — flujo de docente nuevo", () => {
       await screen.findByText(/eso no parece una cédula válida/i)
     ).toBeTruthy();
     expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe("DocenteScan — UX-33: recuperación de borrador tras rotación de token", () => {
+  it("precarga cédula y nombre desde el borrador y los limpia tras registrar con éxito", async () => {
+    // Simula lo que dejó guardado el intento anterior: el docente estaba
+    // escribiendo cuando el token rotó, así que nunca llegó a haber datos
+    // confirmados (LS_KEY), solo el borrador con debounce.
+    localStorage.setItem(LS_KEY_BORRADOR, JSON.stringify({
+      cedula: "12345678",
+      nombre: "Prof. Ana Pérez",
+      guardadoEn: Date.now(),
+    }));
+
+    irA("qr-token-nuevo-tras-rescan");
+    supabase.rpc.mockImplementation((fn) => {
+      if (fn === "buscar_docente_scan") return Promise.resolve({ data: { encontrado: false }, error: null });
+      return Promise.resolve({
+        data: { ok: true, tipo: "ENTRADA", mensaje: "Entrada registrada correctamente." },
+        error: null,
+      });
+    });
+
+    render(<DocenteScan />);
+    fireEvent.click(await screen.findByRole("button", { name: /marcar entrada/i }));
+
+    // El formulario aparece con los campos ya llenos, sin que el docente
+    // tenga que volver a escribir nada, más el aviso de recuperación.
+    const inputCedula = await screen.findByLabelText(/cédula de identidad/i);
+    const inputNombre = screen.getByLabelText(/nombre completo/i);
+    expect(inputCedula.value).toBe("12345678");
+    expect(inputNombre.value).toBe("Prof. Ana Pérez");
+    expect(screen.getByText(/recuperamos lo que estabas escribiendo/i)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /^registrar mi entrada$/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /confirmar y registrar mi entrada/i }));
+
+    await waitFor(() => expect(supabase.rpc).toHaveBeenCalledWith(
+      "registrar_asistencia",
+      expect.objectContaining({ p_cedula_docente: "12345678", p_nombre_docente: "Prof. Ana Pérez" })
+    ));
+
+    // El borrador no debe sobrevivir a un registro exitoso: ya se convirtió
+    // en datos confirmados (LS_KEY), no tiene sentido conservarlo aparte.
+    await waitFor(() => expect(localStorage.getItem(LS_KEY_BORRADOR)).toBeNull());
+    expect(JSON.parse(localStorage.getItem(LS_KEY)).cedula).toBe("12345678");
+  });
+
+  it("ignora un borrador vencido y muestra el formulario en blanco", async () => {
+    localStorage.setItem(LS_KEY_BORRADOR, JSON.stringify({
+      cedula: "99999999",
+      nombre: "Prof. Vencido",
+      guardadoEn: Date.now() - 60 * 60000, // 1 hora — supera el TTL de 20 min
+    }));
+
+    irA("qr-token-x");
+    render(<DocenteScan />);
+    fireEvent.click(await screen.findByRole("button", { name: /marcar entrada/i }));
+
+    const inputCedula = await screen.findByLabelText(/cédula de identidad/i);
+    expect(inputCedula.value).toBe("");
+    expect(screen.queryByText(/recuperamos lo que estabas escribiendo/i)).toBeNull();
+  });
+
+  it("el botón 'No es lo mío' limpia el borrador y el formulario", async () => {
+    localStorage.setItem(LS_KEY_BORRADOR, JSON.stringify({
+      cedula: "12345678",
+      nombre: "Prof. Ana Pérez",
+      guardadoEn: Date.now(),
+    }));
+
+    irA("qr-token-x");
+    render(<DocenteScan />);
+    fireEvent.click(await screen.findByRole("button", { name: /marcar entrada/i }));
+
+    await screen.findByLabelText(/cédula de identidad/i);
+    fireEvent.click(screen.getByRole("button", { name: /no es lo mío/i }));
+
+    expect(screen.getByLabelText(/cédula de identidad/i).value).toBe("");
+    expect(screen.getByLabelText(/nombre completo/i).value).toBe("");
+    expect(localStorage.getItem(LS_KEY_BORRADOR)).toBeNull();
   });
 });
 

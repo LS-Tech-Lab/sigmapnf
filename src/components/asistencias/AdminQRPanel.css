@@ -131,6 +131,8 @@
 .qrp-counter-lbl     { font-size: var(--font-size-11); font-weight: 600; margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 4px; }
 .qrp-counter-lbl--e  { color: #166534; }
 .qrp-counter-lbl--s  { color: #9F1239; }
+/* UX-33: "de N esperados" — mismo color que la etiqueta, algo más tenue */
+.qrp-counter-esperados { font-weight: 500; opacity: 0.75; }
 
 /* ── ColaOfflinePanel ─────────────────────────────────────────────────────── */
 .qrp-cola            { margin-top: 12px; }
@@ -193,6 +195,30 @@
 .qrp-modal-subtitle  { font-size: var(--font-size-13); color: var(--color-text-tertiary); margin-top: 2px; }
 .qrp-modal-body      { margin: 0 0 20px; font-size: var(--font-size-14); color: var(--color-text-secondary); line-height: 1.6; }
 .qrp-modal-actions   { display: flex; gap: 10px; }
+
+/* UX-33: modal de resumen al cerrar sesión — variante positiva del ícono
+   (el modal de confirmación de cierre usa el rojo/danger de arriba, este
+   es informativo, no una advertencia) */
+.qrp-modal-icon--ok  { background: var(--color-success-bg); }
+.qrp-ic-ok-22        { font-size: var(--font-size-22); color: #15803D; }
+.qrp-resumen-counter { margin-top: 0; margin-bottom: 4px; }
+.qrp-resumen-pendientes {
+  margin-top: 14px; padding: 10px 14px; background: #FFFBEB; border: 1px solid #FCD34D;
+  border-radius: 10px;
+}
+.qrp-resumen-pendientes__label {
+  font-size: var(--font-size-12); font-weight: 700; color: #92400E;
+  display: flex; align-items: center; gap: 5px; margin-bottom: 6px;
+}
+.qrp-resumen-pendientes__lista {
+  margin: 0; padding-left: 18px; font-size: var(--font-size-12); color: #78350F;
+  max-height: 120px; overflow-y: auto;
+}
+.qrp-resumen-pendientes__lista li { padding: 2px 0; }
+.qrp-btn-ok {
+  flex: 1; padding: 10px 0; background: var(--color-success, #16A34A); border: none;
+  border-radius: 9px; font-size: var(--font-size-13); font-weight: 700; color: #fff; cursor: pointer;
+}
 .qrp-btn-cancel      { flex: 1; padding: 10px 0; background: var(--color-background-subtle, #F8FAFC); border: 1px solid var(--color-border); border-radius: 9px; font-size: var(--font-size-13); font-weight: 600; color: var(--color-text-secondary); cursor: pointer; }
 .qrp-btn-danger      { flex: 1; padding: 10px 0; background: var(--color-error, #DC2626); border: none; border-radius: 9px; font-size: var(--font-size-13); font-weight: 700; color: #fff; cursor: pointer; }
 

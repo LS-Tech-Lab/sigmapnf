@@ -27,7 +27,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../constants";
 import { playRegistroSound, useFlashFeed } from "./useRegistroSound";
 import { supabase } from "../../lib/supabase";
-import { fechaHoyVE } from "../../utils/time";
+import { fechaHoyVE, diaSemanaVE } from "../../utils/time";
 import { obtenerPendientes, eliminarPendiente, purgarExpirados } from "../../utils/offlineQueue";
 // Fix ARCH-15: QRDisplay/formatFechaVE/TURNOS_VISIBLES ya no se definen
 // acá — viven en su propio archivo (QRDisplay.jsx) para que QRProyeccion.jsx
@@ -81,8 +81,16 @@ function FeedActividad({ registros, flash }) {
 }
 
 // ── Contador separado: docentes únicos con entrada y marcas de salida ────────
-function ContadorSesion({ sessionId }) {
+// UX-33: además del conteo en vivo (ya existía), agrega el denominador
+// "de Y esperados" cruzando contra horarios (RPC contar_docentes_esperados,
+// migración 0072). Es un fetch aparte del de entradas/salidas: el
+// esperado no cambia en tiempo real (depende del horario planificado, no
+// de quién ha marcado), así que no hace falta suscribirlo a postgres_changes
+// ni al polling — solo se recalcula si cambia turno/programa/dia/sede,
+// que de todos modos están bloqueados en la UI mientras la sesión está activa.
+function ContadorSesion({ sessionId, turno, programa, dia, sedeId }) {
   const [stats, setStats] = useState({ entradas: 0, salidas: 0 });
+  const [esperados, setEsperados] = useState(null); // null = aún no disponible / no se pudo calcular
 
   useEffect(() => {
     if (!sessionId) { setStats({ entradas: 0, salidas: 0 }); return; }
@@ -106,6 +114,21 @@ function ContadorSesion({ sessionId }) {
     return () => { supabase.removeChannel(ch); clearInterval(pollId); };
   }, [sessionId]);
 
+  useEffect(() => {
+    if (!sessionId || !turno || !dia) { setEsperados(null); return; }
+    let cancelado = false;
+    supabase.rpc("contar_docentes_esperados", {
+      p_turno: turno, p_dia: dia, p_programa: programa || null, p_sede_id: sedeId || null,
+    }).then(({ data, error }) => {
+      if (cancelado) return;
+      // Fallo silencioso: si la RPC no existe todavía (deploy en curso) o
+      // el usuario no tiene sede resuelta, el contador de entradas/salidas
+      // sigue funcionando igual — este número es un complemento, no crítico.
+      setEsperados(error ? null : data);
+    });
+    return () => { cancelado = true; };
+  }, [sessionId, turno, programa, dia, sedeId]);
+
   return (
     <div className="qrp-counter">
       <div className="qrp-counter-card qrp-counter-card--e">
@@ -113,6 +136,9 @@ function ContadorSesion({ sessionId }) {
         <div className="qrp-counter-lbl qrp-counter-lbl--e">
           <i className="ti ti-login qrp-ic-12" aria-hidden="true" />
           {stats.entradas === 1 ? "docente entró" : "docentes entraron"}
+          {typeof esperados === "number" && esperados > 0 && (
+            <span className="qrp-counter-esperados"> de {esperados} esperados</span>
+          )}
         </div>
       </div>
       <div className="qrp-counter-card qrp-counter-card--s">
@@ -291,6 +317,12 @@ export default function AdminQRPanel({
   const feedRegistrosRef = useRef([]);
   const { flash: feedFlash, trigger: flashTrigger } = useFlashFeed();
   const [confirmCierre, setConfirmCierre] = useState(false);
+  // UX-33: resumen automático mostrado justo después de cerrar la sesión
+  // (null = no hay resumen que mostrar). cerrandoResumen indica que se
+  // está armando ese resumen (consultando asistencias_diarias) antes de
+  // llamar a cerrarSesion() — deshabilita el botón para evitar doble clic.
+  const [resumenCierre, setResumenCierre]   = useState(null);
+  const [cerrandoResumen, setCerrandoResumen] = useState(false);
 
   // SEDE-3: la sesión QR queda anclada a la sede activa de quien la crea
   // (fija para la mayoría de los roles, elegida en SedeSelector para
@@ -341,6 +373,44 @@ export default function AdminQRPanel({
   const handleIniciar = () => {
     if (esHoy && !turnoDisponible(turno)) return;
     crearSesion({ turno, programa: programa || null, fecha, sede_id: sedeActiva });
+  };
+
+  // UX-33: arma el resumen ANTES de cerrar la sesión (mientras
+  // asistencias_diarias todavía es consultable con este sessionId sin
+  // ambigüedad — cerrarSesion() pone sessionId en null en el hook padre).
+  // Si la consulta del resumen falla por cualquier motivo, la sesión se
+  // cierra igual: el resumen es un plus informativo, no debe bloquear el
+  // cierre real de la sesión QR.
+  const handleConfirmarCierre = async () => {
+    setCerrandoResumen(true);
+    const sidCerrada = sessionId;
+    let resumen = { entradas: 0, salidas: 0, soloEntrada: [] };
+    try {
+      const { data } = await supabase
+        .from("asistencias_diarias")
+        .select("cedula_docente, nombre_docente, tipo")
+        .eq("qr_session_id", sidCerrada);
+      if (data) {
+        const entradasPorCedula = new Map();
+        const salidasSet = new Set();
+        data.forEach(r => {
+          if (r.tipo === "ENTRADA") entradasPorCedula.set(r.cedula_docente, r.nombre_docente);
+          if (r.tipo === "SALIDA") salidasSet.add(r.cedula_docente);
+        });
+        resumen = {
+          entradas: entradasPorCedula.size,
+          salidas: salidasSet.size,
+          soloEntrada: [...entradasPorCedula.entries()]
+            .filter(([cedula]) => !salidasSet.has(cedula))
+            .map(([cedula, nombre]) => ({ cedula, nombre })),
+        };
+      }
+    } catch { /* el cierre de la sesión no depende de que esto funcione */ }
+
+    await cerrarSesion();
+    setConfirmCierre(false);
+    setCerrandoResumen(false);
+    setResumenCierre(resumen);
   };
 
   const turnoInfo     = TURNOS_VISIBLES.find(t => t.id === turno);
@@ -504,8 +574,10 @@ export default function AdminQRPanel({
                       Asegúrate de que todos hayan completado su marca antes de cerrar.
                     </p>
                     <div className="qrp-modal-actions">
-                      <button onClick={() => setConfirmCierre(false)} className="qrp-btn-cancel">Cancelar</button>
-                      <button onClick={() => { setConfirmCierre(false); cerrarSesion(); }} className="qrp-btn-danger">Sí, cerrar sesión</button>
+                      <button onClick={() => setConfirmCierre(false)} disabled={cerrandoResumen} className="qrp-btn-cancel">Cancelar</button>
+                      <button onClick={handleConfirmarCierre} disabled={cerrandoResumen} className="qrp-btn-danger">
+                        {cerrandoResumen ? "Cerrando…" : "Sí, cerrar sesión"}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -513,7 +585,62 @@ export default function AdminQRPanel({
             </div>
           )}
 
-          {activa && <ContadorSesion sessionId={sessionId} />}
+          {/* UX-33: resumen automático — se muestra sin importar el valor
+              actual de `activa` (que ya pasó a false para cuando esto
+              aparece, tras cerrarSesion() en handleConfirmarCierre), así
+              que vive fuera de la rama activa/no-activa de arriba. */}
+          {resumenCierre && (
+            <div className="qrp-modal-overlay" role="alertdialog" aria-modal="true" aria-labelledby="modal-resumen-title">
+              <div className="qrp-modal">
+                <div className="qrp-modal-header">
+                  <div className="qrp-modal-icon qrp-modal-icon--ok">
+                    <i className="ti ti-clipboard-check qrp-ic-ok-22" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div id="modal-resumen-title" className="qrp-modal-title">Sesión cerrada</div>
+                    <div className="qrp-modal-subtitle">Resumen de la jornada</div>
+                  </div>
+                </div>
+
+                <div className="qrp-counter qrp-resumen-counter">
+                  <div className="qrp-counter-card qrp-counter-card--e">
+                    <div className="qrp-counter-n qrp-counter-n--e">{resumenCierre.entradas}</div>
+                    <div className="qrp-counter-lbl qrp-counter-lbl--e">
+                      <i className="ti ti-login qrp-ic-12" aria-hidden="true" />
+                      {resumenCierre.entradas === 1 ? "docente entró" : "docentes entraron"}
+                    </div>
+                  </div>
+                  <div className="qrp-counter-card qrp-counter-card--s">
+                    <div className="qrp-counter-n qrp-counter-n--s">{resumenCierre.salidas}</div>
+                    <div className="qrp-counter-lbl qrp-counter-lbl--s">
+                      <i className="ti ti-logout qrp-ic-12" aria-hidden="true" />
+                      {resumenCierre.salidas === 1 ? "docente salió" : "docentes salieron"}
+                    </div>
+                  </div>
+                </div>
+
+                {resumenCierre.soloEntrada.length > 0 && (
+                  <div className="qrp-resumen-pendientes">
+                    <div className="qrp-resumen-pendientes__label">
+                      <i className="ti ti-alert-triangle qrp-ic-12" aria-hidden="true" />
+                      Sin registro de salida ({resumenCierre.soloEntrada.length})
+                    </div>
+                    <ul className="qrp-resumen-pendientes__lista">
+                      {resumenCierre.soloEntrada.map(d => (
+                        <li key={d.cedula}>{d.nombre || d.cedula}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="qrp-modal-actions">
+                  <button onClick={() => setResumenCierre(null)} className="qrp-btn-ok">Cerrar</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activa && <ContadorSesion sessionId={sessionId} turno={turno} programa={programa} dia={diaSemanaVE(fecha)} sedeId={sedeActiva} />}
           {activa && <FeedActividad registros={feedRegistros} flash={feedFlash} />}
           <ColaOfflinePanel />
           <HistorialSesiones fecha={fecha} sessionIdActiva={sessionId} permisos={permisos} showToast={showToast} sedeActiva={sedeActiva} />

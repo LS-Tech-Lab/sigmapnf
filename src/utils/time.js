@@ -83,6 +83,21 @@ export function fechaHoyVE() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Caracas" });
 }
 
+// UX-33: día de la semana (LUNES..DOMINGO) para una fecha YYYY-MM-DD,
+// en el mismo formato que usa horarios.dia y que ya calcula el backend
+// (ver v_dia_semana en 0064_qr_sessions_asistencias_y_scan_por_sede.sql,
+// CASE EXTRACT(ISODOW FROM ...)). Venezuela no observa horario de verano
+// (UTC-4 fijo todo el año), así que anclar a mediodía con offset -04:00
+// explícito evita cualquier ambigüedad de zona horaria del navegador sin
+// depender de Intl con timeZone (más simple de testear con fecha fija).
+const DIAS_SEMANA_VE = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
+export function diaSemanaVE(fechaISO) {
+  if (!fechaISO) return null;
+  const d = new Date(`${fechaISO}T12:00:00-04:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  return DIAS_SEMANA_VE[d.getUTCDay()];
+}
+
 export function countBlocks(horaStr) {
   if (!horaStr) return 1;
   const [inicioStr, finStr] = partesHoraNormalizadas(horaStr);
