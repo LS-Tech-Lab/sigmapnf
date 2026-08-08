@@ -1,20 +1,25 @@
 // @vitest-environment jsdom
 // =====================================================================
-// backupActions.exportarDatos.test.js — PERM-7 (auditoría 8 ago 2026,
-// reabre PERM-4):
+// backupActions.exportarDatos.test.js — PERM-6 (auditoría 8 ago 2026):
 //
-// PERM-4 documentaba `exportarDatos()` como corregido para consultar
-// `asistencias_diarias` en vez de una tabla `asistencias` que nunca
-// existió en el esquema. El código real seguía apuntando a la tabla
-// inexistente, y como ninguna de las 4 consultas revisaba `.error`, todo
-// backup exportado quedaba con `asistencias: []` en silencio, igual
-// marcado `asistencias_incluidas: true` -- sin ningún aviso visible.
+// puedeHacerBackup solo gateaba el botón en la UI; exportarDatos() hacía
+// 4 consultas directas del cliente sin ningún chequeo server-side del
+// permiso -- cualquier usuario con lectura normal a esas tablas podía
+// exportar el mismo dataset sin tenerlo. Se reemplazaron las 4 consultas
+// por un solo RPC (exportar_backup_completo, 0076) que revisa el permiso
+// antes de devolver nada.
+//
+// De paso mantiene la cobertura de PERM-7 (backup incompleto en
+// silencio): ahora la responsabilidad de no devolver `asistencias: []`
+// en silencio recae en el RPC del backend (no testeable acá sin DB real),
+// pero el frontend sigue debiendo mostrar un error visible y NO descargar
+// nada si el RPC devuelve un error -- eso sí se cubre acá.
 // =====================================================================
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createBackupActions } from "./backupActions";
 
-vi.mock("../../lib/supabase", () => ({ supabase: { from: vi.fn() } }));
+vi.mock("../../lib/supabase", () => ({ supabase: { rpc: vi.fn() } }));
 vi.mock("../../utils/cache", () => ({ limpiarCache: vi.fn() }));
 vi.mock("../../utils/logger", () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
 
@@ -29,17 +34,6 @@ function makeDeps(overrides = {}) {
     logAudit: vi.fn(), sedeActiva: "cabimas",
     ...overrides,
   };
-}
-
-// Builder encadenable para supabase.from(tabla).select(...)[.eq(...)],
-// resuelve directamente con { data, error } sin pasar por .then thenable
-// (exportarDatos usa await Promise.all([...queries]) directo, no
-// encadena nada después de select/eq).
-function makeQueryMock(response) {
-  const q = Promise.resolve(response);
-  q.eq = vi.fn(() => q);
-  q.select = vi.fn(() => q);
-  return q;
 }
 
 // jsdom no implementa URL.createObjectURL/revokeObjectURL de forma nativa
@@ -71,32 +65,45 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("exportarDatos — PERM-7", () => {
-  it("consulta asistencias_diarias, NO la tabla inexistente 'asistencias'", async () => {
-    const tablasConsultadas = [];
-    supabase.from.mockImplementation((tabla) => {
-      tablasConsultadas.push(tabla);
-      return makeQueryMock({ data: [], error: null });
+describe("exportarDatos — PERM-6: permiso y datos vía RPC server-side", () => {
+  it("llama al RPC con lapso/programa/sede correctos, NO con consultas directas a las tablas", async () => {
+    supabase.rpc.mockResolvedValue({
+      data: { horarios: [], docentes: [], materias: [], asistencias: [] }, error: null,
     });
     espiarDescarga();
 
-    const { exportarDatos } = createBackupActions(makeDeps());
+    const { exportarDatos } = createBackupActions(makeDeps({
+      lapso: "2026-1", selectedPrograma: "PNF Informática", sedeActiva: "cabimas",
+    }));
     await exportarDatos();
 
-    expect(tablasConsultadas).toContain("asistencias_diarias");
-    expect(tablasConsultadas).not.toContain("asistencias");
+    expect(supabase.rpc).toHaveBeenCalledWith("exportar_backup_completo", {
+      p_lapso: "2026-1", p_programa: "PNF Informática", p_sede_id: "cabimas",
+    });
   });
 
-  it("arma el backup con los 4 datasets cuando todas las consultas responden bien", async () => {
-    const filasPorTabla = {
-      horarios: [{ id: "h1" }],
-      docentes: [{ id: "d1" }],
-      materias: [{ id: "m1" }],
-      asistencias_diarias: [{ id: "a1" }],
-    };
-    supabase.from.mockImplementation((tabla) =>
-      makeQueryMock({ data: filasPorTabla[tabla] || [], error: null })
+  it('con selectedPrograma "todos", manda p_programa: null (no la palabra "todos")', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: { horarios: [], docentes: [], materias: [], asistencias: [] }, error: null,
+    });
+    espiarDescarga();
+
+    const { exportarDatos } = createBackupActions(makeDeps({ selectedPrograma: "todos" }));
+    await exportarDatos();
+
+    expect(supabase.rpc).toHaveBeenCalledWith("exportar_backup_completo",
+      expect.objectContaining({ p_programa: null })
     );
+  });
+
+  it("arma y descarga el backup con los 4 datasets que devuelve el RPC", async () => {
+    supabase.rpc.mockResolvedValue({
+      data: {
+        horarios: [{ id: "h1" }], docentes: [{ id: "d1" }],
+        materias: [{ id: "m1" }], asistencias: [{ id: "a1" }],
+      },
+      error: null,
+    });
     const clickSpy = espiarDescarga();
     const showToast = vi.fn();
 
@@ -114,15 +121,13 @@ describe("exportarDatos — PERM-7", () => {
     expect(showToast).toHaveBeenCalledWith(expect.stringContaining("descargado"), "success");
     const backup = JSON.parse(contenidoCapturado);
     expect(backup.asistencias).toEqual([{ id: "a1" }]);
+    expect(backup.horarios).toEqual([{ id: "h1" }]);
     expect(backup.asistencias_incluidas).toBe(true);
   });
 
-  it("si alguna consulta falla, NO descarga un backup incompleto y avisa con un error claro", async () => {
-    supabase.from.mockImplementation((tabla) => {
-      if (tabla === "asistencias_diarias") {
-        return makeQueryMock({ data: null, error: { message: "relation does not exist" } });
-      }
-      return makeQueryMock({ data: [], error: null });
+  it("si el usuario no tiene puedeHacerBackup, el RPC lo rechaza y NO se descarga nada", async () => {
+    supabase.rpc.mockResolvedValue({
+      data: null, error: { message: "No tienes permiso para exportar un backup." },
     });
     const clickSpy = espiarDescarga();
     const showToast = vi.fn();
@@ -130,29 +135,41 @@ describe("exportarDatos — PERM-7", () => {
     const { exportarDatos } = createBackupActions(makeDeps({ showToast }));
     await exportarDatos();
 
-    // Antes de este fix: el error se descartaba (`.data || []`) y el
-    // backup se descargaba igual, marcado como completo pese a faltarle
-    // datos enteros. Ahora: ni se descarga, ni se llama a success.
     expect(clickSpy).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("asistencias"), "error");
-    expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("descargado"), "success");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.stringContaining("No tienes permiso"), "error"
+    );
   });
 
-  it("si fallan varias tablas a la vez, las nombra todas en el mismo mensaje", async () => {
-    supabase.from.mockImplementation((tabla) => {
-      if (tabla === "docentes" || tabla === "materias") {
-        return makeQueryMock({ data: null, error: { message: "boom" } });
-      }
-      return makeQueryMock({ data: [], error: null });
+  it("si el RPC todavía no existe en la base (migración no aplicada), da un mensaje accionable — sin fallback inseguro", async () => {
+    supabase.rpc.mockResolvedValue({
+      data: null, error: { code: "PGRST202", message: "Could not find the function" },
     });
+    const clickSpy = espiarDescarga();
     const showToast = vi.fn();
-    espiarDescarga();
 
     const { exportarDatos } = createBackupActions(makeDeps({ showToast }));
     await exportarDatos();
 
-    const [mensaje] = showToast.mock.calls.find(([, tipo]) => tipo === "error");
-    expect(mensaje).toContain("docentes");
-    expect(mensaje).toContain("materias");
+    // A propósito NO hay fallback a una consulta directa acá (a
+    // diferencia de borrar_horarios en clearAllData): ese fallback
+    // reabriría el hueco de permiso que este RPC existe para cerrar.
+    expect(clickSpy).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(
+      expect.stringContaining("migración pendiente"), "error"
+    );
+  });
+
+  it("si el RPC falla por otro motivo, NO descarga un backup incompleto", async () => {
+    supabase.rpc.mockResolvedValue({ data: null, error: { message: "network down" } });
+    const clickSpy = espiarDescarga();
+    const showToast = vi.fn();
+
+    const { exportarDatos } = createBackupActions(makeDeps({ showToast }));
+    await exportarDatos();
+
+    expect(clickSpy).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("Error al generar"), "error");
+    expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("descargado"), "success");
   });
 });

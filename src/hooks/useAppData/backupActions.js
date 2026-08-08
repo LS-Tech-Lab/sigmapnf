@@ -76,45 +76,32 @@ export function createBackupActions({
     try {
       showToast("📦 Preparando backup...", "info");
 
-      // Fix #5: filtrar horarios por programa cuando no es "todos",
-      // para que usuarios con restringe_programa no exporten datos ajenos.
-      let horariosQuery = supabase.from("horarios").select("*");
-      if (lapso) horariosQuery = horariosQuery.eq("lapso", lapso);
-      if (selectedPrograma !== "todos") horariosQuery = horariosQuery.eq("programa", selectedPrograma);
+      // PERM-6: antes esto eran 4 consultas directas del cliente, con el
+      // permiso puedeHacerBackup gateando solo el botón en la UI, sin
+      // ningún chequeo server-side real -- ver 0076 para el detalle. El
+      // RPC hace las 4 consultas Y el chequeo de permiso en un solo viaje.
+      const { data, error } = await supabase.rpc("exportar_backup_completo", {
+        p_lapso:    lapso || null,
+        p_programa: selectedPrograma !== "todos" ? selectedPrograma : null,
+        p_sede_id:  sedeActiva || null,
+      });
 
-      const [horariosRes, docentesRes, materiasRes, asistenciasRes] = await Promise.all([
-        horariosQuery,
-        supabase.from("docentes").select("*"),
-        supabase.from("materias").select("*"),
-        // PERM-4 (cerrado originalmente el X de julio) documentaba esta
-        // consulta como corregida a `asistencias_diarias` -- la tabla
-        // `asistencias` (sin sufijo) nunca existió en el esquema. El código
-        // real seguía apuntando a la tabla inexistente: como ninguna de
-        // estas 4 consultas revisaba `.error`, cada backup exportado hasta
-        // ahora quedaba con `asistencias: []` en silencio, marcado igual
-        // como `asistencias_incluidas: true` -- un backup incompleto sin
-        // ningún aviso visible para quien lo descargó. Encontrado el 8 de
-        // agosto revisando `puedeHacerBackup` para PERM-6 (ver AUDITORIA_
-        // INDICE.md), reabierto como PERM-7. asistencias_diarias no tiene
-        // columna `lapso` (es una tabla operativa de marcas QR, no de
-        // horarios de un trimestre) -- se exporta completa, ya acotada por
-        // RLS a la sede del usuario igual que docentes/materias/horarios.
-        supabase.from("asistencias_diarias").select("*"),
-      ]);
-
-      // Antes, un error en cualquiera de las 4 consultas se descartaba en
-      // silencio (`.data || []`) y el backup se descargaba igual,
-      // incompleto pero sin ninguna señal de que algo había fallado.
-      const erroresQuery = [
-        ["horarios", horariosRes.error],
-        ["docentes", docentesRes.error],
-        ["materias", materiasRes.error],
-        ["asistencias", asistenciasRes.error],
-      ].filter(([, err]) => err);
-      if (erroresQuery.length > 0) {
-        const detalle = erroresQuery.map(([tabla]) => tabla).join(", ");
-        logger.error("Error al exportar backup:", erroresQuery);
-        showToast(`Error al leer ${detalle}. El backup NO se descargó — reintenta o avisa si persiste.`, "error");
+      if (error) {
+        logger.error("Error al exportar backup:", error);
+        const sinPermiso = error.message?.toLowerCase().includes("no tienes permiso");
+        // A propósito NO hay fallback a una consulta directa del cliente
+        // acá (a diferencia de borrar_horarios en clearAllData): ese
+        // fallback reabriría exactamente el hueco de PERM-6 que este RPC
+        // cierra. Si el RPC todavía no existe en la base (migración 0076
+        // no aplicada), el mensaje debe ser accionable, no un fallback
+        // silencioso al camino inseguro.
+        const noExiste = error.code === "PGRST202" || error.message?.includes("Could not find");
+        showToast(
+          sinPermiso ? "No tienes permiso para exportar un backup."
+          : noExiste  ? "Backup no disponible todavía (falta aplicar una migración pendiente). Avisa al equipo técnico."
+          : "Error al generar el backup. El backup NO se descargó — reintenta o avisa si persiste.",
+          "error"
+        );
         return;
       }
 
@@ -123,10 +110,10 @@ export function createBackupActions({
         fecha: new Date().toISOString(),
         lapso: lapso || "todos",
         programa: selectedPrograma,
-        horarios: horariosRes.data || [],
-        docentes: docentesRes.data || [],
-        materias: materiasRes.data || [],
-        asistencias: asistenciasRes.data || [],
+        horarios: data?.horarios || [],
+        docentes: data?.docentes || [],
+        materias: data?.materias || [],
+        asistencias: data?.asistencias || [],
         asistencias_incluidas: true,
       };
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
