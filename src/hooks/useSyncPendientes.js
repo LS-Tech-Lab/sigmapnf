@@ -165,7 +165,7 @@ export default function useSyncPendientes(showToast) {
     let irrecuperables = 0;
 
     for (const item of pendientes) {
-      const { id, creadoEn, cedula, nombre, tipo, turno, programa, fecha, sede_id } = item;
+      const { id, cedula, nombre, tipo, turno, programa, fecha, sede_id } = item;
       try {
         const { data } = await supabase.rpc('registrar_asistencia_manual', {
           p_cedula_docente: cedula,
