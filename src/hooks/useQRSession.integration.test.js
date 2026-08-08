@@ -80,9 +80,14 @@ describe("useQRSession — flujo de creación de sesión QR", () => {
     });
 
     expect(ok).toBe(true);
+    // FIX OFF-11: p_ttl_min ya no es 5 (cadencia de rotación) — es el
+    // margen de expiración de respaldo, ahora deliberadamente holgado
+    // (6h) para sobrevivir cortes largos sin red. La cadencia de
+    // rotación real (5 min) vive por separado en ROTATION_MINUTES y no
+    // se manda al backend.
     expect(supabase.rpc).toHaveBeenCalledWith(
       "crear_qr_session",
-      expect.objectContaining({ p_turno: "Diurno", p_ttl_min: 5 })
+      expect.objectContaining({ p_turno: "Diurno", p_ttl_min: 360 })
     );
     expect(result.current.activa).toBe(true);
     expect(result.current.sessionId).toBe("sess-123");
@@ -112,6 +117,66 @@ describe("useQRSession — flujo de creación de sesión QR", () => {
     expect(result.current.sessionId).toBe(null);
     expect(result.current.error).toBe("Ya existe una sesión activa para este turno.");
     expect(result.current.loading).toBe(false);
+
+    unmount();
+  });
+});
+
+// FIX OFF-11: cobertura del desacople rotación/expiración. La cadencia de
+// rotación (protección anti-foto-compartida) debe seguir siendo de 5 min
+// para la UI, independientemente de cuán holgado sea el margen de
+// expiración que se manda al backend como respaldo para sobrevivir cortes
+// largos sin red.
+describe("useQRSession — OFF-11: rotación de UI desacoplada del TTL de respaldo", () => {
+  it("expone ttlMinutes = 5 para la UI (CountdownBar) aunque el TTL enviado al backend sea de horas", async () => {
+    const expiresAt = new Date(Date.now() + 360 * 60 * 1000).toISOString();
+    supabase.rpc.mockResolvedValueOnce({
+      data: { ok: true, session_id: "sess-1", token: "tok-1", expires_at: expiresAt },
+      error: null,
+    });
+
+    const { result, unmount } = renderHook(() => useQRSession());
+
+    await act(async () => {
+      await result.current.crearSesion({ turno: "Diurno" });
+    });
+
+    // El backend devolvió un expires_at de 6h, pero la UI sigue pensada
+    // para un ciclo de rotación de 5 minutos.
+    expect(result.current.ttlMinutes).toBe(5);
+    // El countdown visible arranca cerca de 5 min (300s), NO cerca de las
+    // 6h que en realidad quedan hasta expires_at.
+    expect(result.current.segundosRestantes).toBeGreaterThan(295);
+    expect(result.current.segundosRestantes).toBeLessThanOrEqual(300);
+
+    unmount();
+  });
+
+  it("renovarManual() manda el mismo p_ttl_min holgado que crearSesion, no 5", async () => {
+    const expiresAt = new Date(Date.now() + 360 * 60 * 1000).toISOString();
+    supabase.rpc.mockResolvedValueOnce({
+      data: { ok: true, session_id: "sess-1", token: "tok-1", expires_at: expiresAt },
+      error: null,
+    });
+    supabase.rpc.mockResolvedValueOnce({
+      data: { ok: true, token: "tok-2", expires_at: expiresAt },
+      error: null,
+    });
+
+    const { result, unmount } = renderHook(() => useQRSession());
+
+    await act(async () => {
+      await result.current.crearSesion({ turno: "Diurno" });
+    });
+    await act(async () => {
+      await result.current.renovarManual();
+    });
+
+    expect(supabase.rpc).toHaveBeenLastCalledWith(
+      "renovar_qr_token",
+      expect.objectContaining({ p_session_id: "sess-1", p_ttl_min: 360 })
+    );
+    expect(result.current.token).toBe("tok-2");
 
     unmount();
   });

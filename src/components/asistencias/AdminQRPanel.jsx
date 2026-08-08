@@ -29,6 +29,11 @@ import { playRegistroSound, useFlashFeed } from "./useRegistroSound";
 import { supabase } from "../../lib/supabase";
 import { fechaHoyVE, diaSemanaVE } from "../../utils/time";
 import { obtenerPendientes, eliminarPendiente, purgarExpirados } from "../../utils/offlineQueue";
+// FIX OFF-10: pre-generación de sesiones (opción A) y registro manual sin
+// token (opción C) — ver useQRSession.js, qrOfflineCache.js y
+// manualAttendanceQueue.js para el detalle de cada pieza.
+import { listarSesionesCacheadas } from "../../utils/qrOfflineCache";
+import { encolarAsistenciaManual, contarPendientesManuales } from "../../utils/manualAttendanceQueue";
 // Fix ARCH-15: QRDisplay/formatFechaVE/TURNOS_VISIBLES ya no se definen
 // acá — viven en su propio archivo (QRDisplay.jsx) para que QRProyeccion.jsx
 // no tenga que importar este módulo completo solo para usar esos 3.
@@ -148,6 +153,168 @@ function ContadorSesion({ sessionId, turno, programa, dia, sedeId }) {
           {stats.salidas === 1 ? "docente salió" : "docentes salieron"}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── FIX OFF-10 (opción A): preparar sesiones offline con anticipación ───────
+function PrepararOfflinePanel({ fecha, sedeActiva, programa, prepararSesionOffline, activa, turnoActivo }) {
+  const [expandido,  setExpandido]  = useState(false);
+  const [preparando, setPreparando] = useState(null);
+  const [preparados, setPreparados] = useState({});
+  const [errorPrep,  setErrorPrep]  = useState(null);
+
+  const cargar = async () => {
+    try {
+      const lista = await listarSesionesCacheadas(fecha);
+      const map = {};
+      lista.forEach(item => { map[`${item.turno}__${item.programa || ""}`] = item.expiresAt; });
+      setPreparados(map);
+    } catch { /* silencioso */ }
+  };
+
+  useEffect(() => { if (expandido) cargar(); }, [expandido]);
+
+  const handlePreparar = async (turno) => {
+    setPreparando(turno);
+    setErrorPrep(null);
+    const res = await prepararSesionOffline({ turno, programa: programa || null, fecha, sede_id: sedeActiva });
+    if (!res.ok) setErrorPrep(res.mensaje);
+    await cargar();
+    setPreparando(null);
+  };
+
+  // No tiene sentido "preparar" el turno que ya está activo y en pantalla
+  // ahora mismo — ver nota en useQRSession.js sobre prepararSesionOffline.
+  const turnosParaPreparar = TURNOS_VISIBLES.filter(t => !(activa && t.id === turnoActivo));
+  if (turnosParaPreparar.length === 0) return null;
+
+  return (
+    <div className="qrp-prep">
+      <button onClick={() => setExpandido(v => !v)} className="qrp-prep-toggle">
+        <span className="qrp-cola-toggle-left">
+          <i className="ti ti-cloud-upload qrp-ic-14" aria-hidden="true" />
+          Preparar sesiones offline
+        </span>
+        <i className={`ti ti-chevron-${expandido ? "up" : "down"} qrp-ic-12`} aria-hidden="true" />
+      </button>
+
+      {expandido && (
+        <div className="qrp-prep-body">
+          <div className="qrp-prep-intro">
+            Genera de antemano el QR de un turno que aún no empieza, para poder iniciarlo sin conexión si llega un corte. Cada uno queda listo por varias horas.
+          </div>
+          <div className="qrp-prep-list">
+            {turnosParaPreparar.map(t => {
+              const key = `${t.id}__${programa || ""}`;
+              const expiraEn = preparados[key];
+              const vigente = expiraEn && new Date(expiraEn) > new Date();
+              return (
+                <div key={t.id} className="qrp-prep-row">
+                  <span className="qrp-prep-row-label">{t.label}</span>
+                  {vigente ? (
+                    <span className="qrp-prep-row-status">
+                      <i className="ti ti-circle-check qrp-ic-12" aria-hidden="true" />
+                      Listo hasta las {new Date(expiraEn).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  ) : (
+                    <button onClick={() => handlePreparar(t.id)} disabled={preparando === t.id} className="qrp-prep-btn">
+                      {preparando === t.id ? "Preparando…" : "Preparar"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {errorPrep && <div className="qrp-error-box qrp-prep-error">{errorPrep}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── FIX OFF-10 (opción C): registro manual de respaldo, sin token/QR ────────
+function RegistroManualForm({ turno, programa, fecha, sedeActiva, onCerrar }) {
+  const [cedula,     setCedula]     = useState("");
+  const [nombre,     setNombre]     = useState("");
+  const [tipo,       setTipo]       = useState("ENTRADA");
+  const [guardando,  setGuardando]  = useState(false);
+  const [pendientes, setPendientes] = useState(0);
+  const [msg,        setMsg]        = useState(null);
+
+  const cargarConteo = async () => {
+    try { setPendientes(await contarPendientesManuales()); } catch { /* silencioso */ }
+  };
+
+  useEffect(() => { cargarConteo(); }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!cedula.trim() || !nombre.trim()) return;
+    setGuardando(true);
+    setMsg(null);
+    try {
+      await encolarAsistenciaManual({
+        cedula: cedula.trim(), nombre: nombre.trim(), tipo,
+        turno, programa: programa || null, fecha, sede_id: sedeActiva,
+      });
+      setMsg("Guardado localmente — se sincronizará cuando vuelva la red.");
+      setCedula(""); setNombre("");
+      await cargarConteo();
+    } catch {
+      setMsg("No se pudo guardar en el dispositivo. Intenta de nuevo.");
+    }
+    setGuardando(false);
+  };
+
+  return (
+    <div className="qrp-manual-form">
+      <div className="qrp-manual-form-title">
+        <i className="ti ti-edit qrp-ic-15" aria-hidden="true" />
+        Registro manual de asistencia
+      </div>
+      <form onSubmit={handleSubmit}>
+        <label className="qrp-field">
+          <span className="qrp-field-label">Cédula del docente</span>
+          <input
+            type="text" value={cedula} onChange={e => setCedula(e.target.value)}
+            placeholder="V-12345678" className="qrp-input-base" required
+          />
+        </label>
+        <label className="qrp-field">
+          <span className="qrp-field-label">Nombre completo</span>
+          <input
+            type="text" value={nombre} onChange={e => setNombre(e.target.value)}
+            className="qrp-input-base" required
+          />
+        </label>
+        <div className="qrp-manual-tipo-group">
+          <button
+            type="button" onClick={() => setTipo("ENTRADA")}
+            className={`qrp-manual-tipo-btn ${tipo === "ENTRADA" ? "qrp-manual-tipo-btn--sel-entrada" : ""}`}
+          >
+            Entrada
+          </button>
+          <button
+            type="button" onClick={() => setTipo("SALIDA")}
+            className={`qrp-manual-tipo-btn ${tipo === "SALIDA" ? "qrp-manual-tipo-btn--sel-salida" : ""}`}
+          >
+            Salida
+          </button>
+        </div>
+        {msg && <div className="qrp-manual-pending-msg">{msg}</div>}
+        <div className="qrp-manual-actions">
+          <button type="submit" disabled={guardando} className="qrp-manual-submit">
+            {guardando ? "Guardando…" : "Guardar registro"}
+          </button>
+          <button type="button" onClick={onCerrar} className="qrp-manual-cancel">Cerrar</button>
+        </div>
+        {pendientes > 0 && (
+          <div className="qrp-manual-pending-msg">
+            {pendientes} registro{pendientes !== 1 ? "s" : ""} manual{pendientes !== 1 ? "es" : ""} pendiente{pendientes !== 1 ? "s" : ""} de sincronizar.
+          </div>
+        )}
+      </form>
     </div>
   );
 }
@@ -282,6 +449,8 @@ export default function AdminQRPanel({
   activa, loading, error, sessionId,
   crearSesion, renovarManual, cerrarSesion,
   isOffline = false,
+  // FIX OFF-10
+  requiereModoManual = false, prepararSesionOffline,
   permisos = {}, showToast,
 }) {
   const hoy    = fechaHoyVE();
@@ -323,6 +492,14 @@ export default function AdminQRPanel({
   // llamar a cerrarSesion() — deshabilita el botón para evitar doble clic.
   const [resumenCierre, setResumenCierre]   = useState(null);
   const [cerrandoResumen, setCerrandoResumen] = useState(false);
+  // FIX OFF-10: se abre solo cuando crearSesion() confirma que no hay
+  // nada que hacer sin red (requiereModoManual) — el admin también puede
+  // abrirlo a mano por si prefiere registrar así aunque sí haya red.
+  const [mostrarManual, setMostrarManual] = useState(false);
+
+  useEffect(() => {
+    if (requiereModoManual) setMostrarManual(true);
+  }, [requiereModoManual]);
 
   // SEDE-3: la sesión QR queda anclada a la sede activa de quien la crea
   // (fija para la mayoría de los roles, elegida en SedeSelector para
@@ -427,7 +604,9 @@ export default function AdminQRPanel({
             <div className="qrp-offline-sub">
               {activa
                 ? "La renovación automática del QR está pausada. Al recuperar la red se reanudará automáticamente."
-                : "No es posible iniciar una sesión QR sin conexión."}
+                : requiereModoManual
+                  ? "No hay una sesión preparada para este turno. Usa el registro manual mientras vuelve la red."
+                  : "Si preparaste este turno con anticipación (mientras había red), puedes iniciarlo igual. Si no, prueba igual o usa el registro manual."}
             </div>
           </div>
         </div>
@@ -454,6 +633,24 @@ export default function AdminQRPanel({
         {/* ── Columna izquierda: configuración ── */}
         <div className="qrp-col-left">
           <div className="qrp-section-label">Configuración de la sesión</div>
+
+          {/* FIX OFF-10 (opción C): CTA + formulario de registro manual.
+              Se abre solo (mostrarManual) cuando crearSesion() confirma que
+              no hay nada preparado sin red, o si el admin lo abre a mano. */}
+          {!mostrarManual && requiereModoManual && (
+            <div className="qrp-manual-cta">
+              <span>No hay sesión preparada para este turno sin conexión.</span>
+              <button onClick={() => setMostrarManual(true)} className="qrp-manual-cta-btn">
+                Registrar manual
+              </button>
+            </div>
+          )}
+          {mostrarManual && (
+            <RegistroManualForm
+              turno={turno} programa={programa} fecha={fecha} sedeActiva={sedeActiva}
+              onCerrar={() => setMostrarManual(false)}
+            />
+          )}
 
           {/* Fecha */}
           <label className="qrp-field">
@@ -642,6 +839,15 @@ export default function AdminQRPanel({
 
           {activa && <ContadorSesion sessionId={sessionId} turno={turno} programa={programa} dia={diaSemanaVE(fecha)} sedeId={sedeActiva} />}
           {activa && <FeedActividad registros={feedRegistros} flash={feedFlash} />}
+          {/* FIX OFF-10 (opción A): solo tiene sentido con red — pre-generar
+              sesiones offline sin conexión sería contradictorio. */}
+          {!isOffline && (
+            <PrepararOfflinePanel
+              fecha={fecha} sedeActiva={sedeActiva} programa={programa}
+              prepararSesionOffline={prepararSesionOffline}
+              activa={activa} turnoActivo={turno}
+            />
+          )}
           <ColaOfflinePanel />
           <HistorialSesiones fecha={fecha} sessionIdActiva={sessionId} permisos={permisos} showToast={showToast} sedeActiva={sedeActiva} />
         </div>

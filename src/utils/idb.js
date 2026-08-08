@@ -25,7 +25,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const DB_NAME = 'sigma_offline';
-export const DB_VER  = 6; // = versión más alta previamente usada (pinOffline.js)
+// FIX OFF-10: +1 por 'qr_sesiones_offline_cache' (pre-generación de
+// sesiones QR mientras hay red, para activación local sin RPC durante
+// cortes — ver qrOfflineCache.js).
+export const DB_VER  = 7;
 
 /**
  * Abre (o crea/actualiza) la base compartida 'sigma_offline', garantizando
@@ -51,6 +54,18 @@ export function abrirDBCompartida() {
         db.createObjectStore('pin_lockout', { keyPath: 'userId' });
       if (!db.objectStoreNames.contains('login_lockout'))
         db.createObjectStore('login_lockout', { keyPath: 'email' });
+      // FIX OFF-10: caché de sesiones QR pre-generadas mientras hay red,
+      // para poder activarlas localmente sin llamar a crear_qr_session
+      // si el corte llega antes del turno. Ver qrOfflineCache.js.
+      if (!db.objectStoreNames.contains('qr_sesiones_offline_cache'))
+        db.createObjectStore('qr_sesiones_offline_cache', { keyPath: 'clave' });
+      // FIX OFF-10: cola de registros manuales sin token/sesión QR, para
+      // el modo de respaldo cuando ni siquiera hay una sesión
+      // pre-generada disponible (corte sin ninguna ventana de red previa
+      // ese día). Separada de 'asistencias_pendientes' porque su RPC de
+      // sincronización y sus campos son distintos (no llevan p_token).
+      if (!db.objectStoreNames.contains('asistencias_manuales_pendientes'))
+        db.createObjectStore('asistencias_manuales_pendientes', { keyPath: 'id', autoIncrement: true });
     };
     req.onsuccess = e => res(e.target.result);
     req.onerror   = e => rej(e.target.error);
