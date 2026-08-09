@@ -33,13 +33,23 @@ import "./ModalUsuario.css";
 export default function ModalUsuario({ usuario, esActorAdmin = false, roles, programas, sedes, onSave, onClose, showToast, logAudit }) {
   const esNuevo = !usuario?.id;
   const rolesVisibles = esActorAdmin ? roles : roles.filter(r => r.nombre !== "admin");
+  // PROG-3 (fase 1): `usuario.programas` (array) viene de
+  // admin_get_user_profiles_programas() cuando existe algo en
+  // user_profiles_programas (0078/0079) — PestanaUsuarios lo mezcla en
+  // cada fila antes de pasarla acá. Si no hay nada ahí todavía (usuario
+  // creado antes de esta migración, o recién editado sin re-cargar), se
+  // cae de vuelta al valor de la columna escalar legada `usuario.programa`
+  // como lista de un solo elemento — mismo dato, sin perder nada.
+  const programasIniciales = Array.isArray(usuario?.programas) && usuario.programas.length > 0
+    ? usuario.programas
+    : (usuario?.programa ? [usuario.programa] : []);
   const [form, setForm] = useState({
-    email:    usuario?.email    || "",
-    nombre:   usuario?.nombre   || "",
-    rol:      usuario?.rol      || (rolesVisibles[0]?.nombre || ""),
-    programa: usuario?.programa || "",
-    sede_id:  usuario?.sede_id  || "",
-    password: "",
+    email:     usuario?.email    || "",
+    nombre:    usuario?.nombre   || "",
+    rol:       usuario?.rol      || (rolesVisibles[0]?.nombre || ""),
+    programas: programasIniciales,
+    sede_id:   usuario?.sede_id  || "",
+    password:  "",
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
@@ -50,14 +60,22 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
   // puedeVerTodasLasSedes (admin, coordinador general).
   const rolVeTodasSedes = !!rolSeleccionado?.permisos?.puedeVerTodasLasSedes;
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const toggleProgramaSeleccionado = (p) => {
+    setForm(f => ({
+      ...f,
+      programas: f.programas.includes(p)
+        ? f.programas.filter(x => x !== p)
+        : [...f.programas, p],
+    }));
+  };
 
   const handleSave = async () => {
     setError("");
     if (!form.email.trim())  return setError("El email es obligatorio.");
     if (!form.nombre.trim()) return setError("El nombre es obligatorio.");
     if (!form.rol)           return setError("Selecciona un rol.");
-    if (rolSeleccionado?.restringe_programa && !form.programa)
-      return setError("Este rol requiere un programa asignado.");
+    if (rolSeleccionado?.restringe_programa && form.programas.length === 0)
+      return setError("Este rol requiere al menos un programa asignado.");
     if (!rolVeTodasSedes && !form.sede_id)
       return setError("Este rol requiere una sede asignada.");
     if (esNuevo) {
@@ -67,7 +85,11 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
 
     setSaving(true);
     try {
-      const programa = rolSeleccionado?.restringe_programa ? form.programa : null;
+      // PROG-3: lista completa solo si el rol restringe programa —
+      // igual criterio que admin_set_user_programas (0079) del lado del
+      // servidor: un rol que no restringe no guarda ninguno.
+      const listaProgramas = rolSeleccionado?.restringe_programa ? form.programas : [];
+      const programaPrincipal = listaProgramas[0] || null;
       const sedeId   = rolVeTodasSedes ? (form.sede_id || null) : form.sede_id;
 
       if (esNuevo) {
@@ -79,13 +101,13 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
             Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            action:   "create",
-            email:    form.email.trim(),
-            password: form.password,
-            nombre:   form.nombre.trim(),
-            rol:      form.rol,
-            programa: rolSeleccionado?.restringe_programa ? form.programa : null,
-            sede_id:  sedeId,
+            action:    "create",
+            email:     form.email.trim(),
+            password:  form.password,
+            nombre:    form.nombre.trim(),
+            rol:       form.rol,
+            programas: listaProgramas,
+            sede_id:   sedeId,
           }),
         });
         const json = await res.json();
@@ -94,7 +116,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
         await logAudit?.({
           accion:  "CREAR_USUARIO",
           entidad: "usuarios",
-          resumen: `Usuario creado: ${form.email.trim()} (${form.rol}${rolSeleccionado?.restringe_programa ? ` - ${form.programa}` : ""}${sedeId ? ` - ${sedeId}` : ""})`,
+          resumen: `Usuario creado: ${form.email.trim()} (${form.rol}${listaProgramas.length ? ` - ${listaProgramas.join(", ")}` : ""}${sedeId ? ` - ${sedeId}` : ""})`,
         });
         showToast?.(`Usuario ${form.email.trim()} creado.`, "success");
 
@@ -104,10 +126,26 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
           p_email:    form.email.trim(),
           p_nombre:   form.nombre.trim(),
           p_rol:      form.rol,
-          p_programa: programa,
+          p_programa: programaPrincipal,
           p_sede_id:  sedeId,
         });
         if (profileError) throw new Error(profileError.message);
+
+        // PROG-3: reemplaza el conjunto completo en user_profiles_programas
+        // (0079) — llamada aparte, mismo patrón que ya usa este flujo para
+        // el reset de contraseña más abajo. Si esto falla, el perfil base
+        // ya se guardó (igual que si fallara el reset de password); se
+        // avisa sin descartar el resto del guardado.
+        const { error: programasError } = await supabase.rpc("admin_set_user_programas", {
+          p_user_id:   usuario.id,
+          p_programas: listaProgramas,
+        });
+        if (programasError) {
+          showToast?.(
+            "Perfil actualizado pero no se pudieron guardar los programas: " + programasError.message,
+            "warning"
+          );
+        }
 
         let passwordReseteada = false;
         if (form.password.trim()) {
@@ -147,7 +185,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
           accion:     "EDITAR_USUARIO",
           entidad:    "usuarios",
           entidad_id: usuario.id,
-          resumen: `Usuario editado: ${form.email.trim()} (${form.rol}${programa ? ` - ${programa}` : ""}${passwordReseteada ? " · contraseña reseteada" : ""})`,
+          resumen: `Usuario editado: ${form.email.trim()} (${form.rol}${listaProgramas.length ? ` - ${listaProgramas.join(", ")}` : ""}${passwordReseteada ? " · contraseña reseteada" : ""})`,
         });
         showToast?.(`Usuario ${form.email.trim()} actualizado.`, "success");
       }
@@ -236,7 +274,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
             {rolSeleccionado && (
               <p className="mu-field-hint">
                 {rolSeleccionado.restringe_programa
-                  ? "Este rol restringe la vista a un solo programa — debes asignar uno."
+                  ? "Este rol restringe la vista por programa — debes asignar al menos uno."
                   : "✓ Acceso sin restricción de programa."}
               </p>
             )}
@@ -244,11 +282,26 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
 
           {rolSeleccionado?.restringe_programa && (
             <div>
-              <label htmlFor="usr-field-programa" className="mu-field-label">Programa asignado</label>
-              <select id="usr-field-programa" className="s-select s-select--full" value={form.programa} onChange={set("programa")}>
-                <option value="">— Seleccionar programa —</option>
-                {programas.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <span className="mu-field-label">
+                Programa(s) asignado(s) {form.programas.length > 1 && `(${form.programas.length} seleccionados)`}
+              </span>
+              {/* PROG-3 (fase 1): multi-select vía checkboxes — un
+                  coordinador puede tener más de un programa a cargo
+                  (0078/0079). El primero marcado queda como "principal"
+                  en la columna escalar legada, sin que el orden importe
+                  para el acceso real (eso lo resuelve la tabla N:N). */}
+              <div className="mu-programas-lista" role="group" aria-label="Programas asignados">
+                {programas.map(p => (
+                  <label key={p} className="mu-programa-item">
+                    <input
+                      type="checkbox"
+                      checked={form.programas.includes(p)}
+                      onChange={() => toggleProgramaSeleccionado(p)}
+                    />
+                    {p}
+                  </label>
+                ))}
+              </div>
             </div>
           )}
 
@@ -303,6 +356,10 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
 // SEDE-2: se agrega `usuario.sede_id`, `roles[].permisos` (ya lo trae
 // `admin_get_roles`, ver 0019, solo faltaba declararlo acá) y la prop
 // nueva `sedes`.
+// PROG-3 (fase 1): se agrega `usuario.programas` (array, opcional —
+// viene de admin_get_user_profiles_programas() vía PestanaUsuarios).
+// `usuario.programa` (escalar) se conserva como fallback, ver
+// programasIniciales arriba.
 ModalUsuario.propTypes = {
   usuario: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -310,6 +367,7 @@ ModalUsuario.propTypes = {
     nombre: PropTypes.string,
     rol: PropTypes.string,
     programa: PropTypes.string,
+    programas: PropTypes.arrayOf(PropTypes.string),
     sede_id: PropTypes.string,
   }),
   esActorAdmin: PropTypes.bool,
