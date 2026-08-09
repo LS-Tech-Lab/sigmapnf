@@ -39,6 +39,21 @@ export default function useModuloActivo({ efectiveProfile, efectivePermisos }) {
   useEffect(() => {
     if (!efectiveProfile || moduloActivo) return;
 
+    // ADMIN-7: si la URL trae ?proyeccion=1 (deep-link de la PWA instalada
+    // "SIGMA Proyección", ver main.jsx/manifest-proyeccion.webmanifest),
+    // saltar directo a Asistencias sin pasar por el ModuleSelector, sin
+    // importar cuántos módulos tenga el usuario. Antes, un admin/coordinador
+    // con 2+ módulos abría el ícono instalado y caía en el selector en vez
+    // de la proyección — el query param solo lo consumía AsistenciasModulo,
+    // que nunca llegaba a montarse. Requiere igual tener acceso real al
+    // módulo (tieneQR) — si no, sigue el flujo normal de abajo.
+    const esDeepLinkProyeccion =
+      new URLSearchParams(window.location.search).get("proyeccion") === "1";
+    if (esDeepLinkProyeccion && tieneQR) {
+      setModuloActivo("asistencias");
+      return;
+    }
+
     const modulosDisponibles = [
       tieneHorarios && "horarios",
       tieneQR       && "asistencias",

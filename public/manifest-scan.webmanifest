@@ -1,0 +1,15 @@
+{
+  "name": "SIGMA Scan QR",
+  "short_name": "Scan QR",
+  "description": "Registro de entrada/salida por QR — SIGMA PNF",
+  "start_url": "/scan",
+  "scope": "/scan",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0F172A",
+  "lang": "es",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -8,10 +8,17 @@
     <link rel="icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
-    <link rel="apple-touch-icon" href="/logo-coordinacion.png" />
+    <!-- ADMIN-7: se agregan los meta apple-mobile-web-app-* que faltaban —
+         sin ellos, "Agregar a inicio" en iOS Safari abre el enlace dentro
+         de Safari en vez de en modo standalone (sin barra de navegador).
+         apple-mobile-web-app-title es el nombre que usa iOS (ignora
+         manifest.name); se sobreescribe en runtime para /scan y la
+         proyección — ver main.jsx. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SIGMA" />
     <!-- Tabler Icons local — cargado aquí porque Vite ignora @import de archivos en public/ -->
     <link rel="stylesheet" href="/fonts/tabler-icons.min.css" />
-    <link rel="manifest" href="/manifest.webmanifest" />
     <title>SIGMA · UNERMB</title>
   </head>
   <body>

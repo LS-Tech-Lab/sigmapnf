@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
         registerType: 'prompt',
         devOptions: { enabled: false },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,woff,woff2}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,woff,woff2,webmanifest}'],
           runtimeCaching: [
             {
               urlPattern: new RegExp(`^https://${supabaseHost}/.*`, 'i'),

@@ -12,6 +12,7 @@ import { QRDisplay, formatFechaVE, TURNOS_VISIBLES } from "./QRDisplay";
 import { supabase } from "../../lib/supabase";
 import "./QRProyeccion.css";
 import { playRegistroSound } from "./useRegistroSound";
+import useInstallPrompt from "../../hooks/useInstallPrompt";
 
 const PASOS = [
   { icon: "📱", texto: "Abre la cámara de tu celular" },
@@ -48,6 +49,9 @@ function useQRCanvasSize() {
 export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinutes, meta, sessionId, isOffline = false }) {
   const turnoInfo = meta?.turno ? TURNOS_VISIBLES.find(t => t.id === meta.turno) : null;
   const qrSize = useQRCanvasSize();
+  // ADMIN-7: instalar esta pantalla como app propia en el equipo del proyector
+  // (evita depender del navegador quedando abierto/con la pestaña correcta).
+  const instalacion = useInstallPrompt();
 
   /* ── Contador en tiempo real ─────────────────────────────────────────── */
   const [conteo, setConteo] = useState({ entradas: 0, salidas: 0 });
@@ -107,7 +111,7 @@ export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinu
   if (!activa) {
     return (
       <div className="qrp-root">
-        <TopBar visible={barVisible} meta={null} turnoInfo={null} />
+        <TopBar visible={barVisible} meta={null} turnoInfo={null} instalacion={instalacion} />
         <div className="qrp-waiting-wrap">
           <div className="qrp-waiting-box">
             <span className="qrp-waiting-emoji">📋</span>
@@ -125,7 +129,7 @@ export default function QRProyeccion({ activa, qrUrl, segundosRestantes, ttlMinu
   /* ── Vista activa ────────────────────────────────────────────────────── */
   return (
     <div className="qrp-root">
-      <TopBar visible={barVisible} meta={meta} turnoInfo={turnoInfo} isOffline={isOffline} />
+      <TopBar visible={barVisible} meta={meta} turnoInfo={turnoInfo} isOffline={isOffline} instalacion={instalacion} />
 
       {/* Fix OFF-3: banner de red caída visible para docentes en el aula */}
       {isOffline && (
@@ -213,7 +217,8 @@ function QRSection({ qrUrl, segundosRestantes, ttlMinutes, qrSize }) {
 }
 
 /* ── Top bar ─────────────────────────────────────────────────────────────── */
-function TopBar({ visible, meta, turnoInfo, isOffline }) {
+function TopBar({ visible, meta, turnoInfo, isOffline, instalacion }) {
+  const { puedeInstalar, esIOS, instalar } = instalacion || {};
   return (
     <div className={`qrp-topbar ${visible ? "qrp-topbar--visible" : "qrp-topbar--hidden"}`}>
       <div className="qrp-topbar-inner">
@@ -225,6 +230,19 @@ function TopBar({ visible, meta, turnoInfo, isOffline }) {
           {isOffline && (
             <span className="qrp-topbar-offline-pill">
               📡 Sin red
+            </span>
+          )}
+          {/* ADMIN-7: instalar esta pantalla como app dedicada del proyector */}
+          {puedeInstalar && (
+            <button type="button" className="qrp-topbar-install-btn" onClick={instalar}>
+              <i className="ti ti-download" aria-hidden="true" />
+              Instalar
+            </button>
+          )}
+          {esIOS && (
+            <span className="qrp-topbar-install-btn qrp-topbar-install-btn--hint">
+              <i className="ti ti-share-2" aria-hidden="true" />
+              Compartir → Agregar a inicio
             </span>
           )}
         </div>

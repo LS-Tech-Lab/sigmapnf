@@ -5,6 +5,42 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { logger } from './utils/logger'
 import './index.css'
 
+// ADMIN-7: identidad de instalación por ruta. vite-plugin-pwa inyecta un
+// único <link rel="manifest"> apuntando al manifest de la app completa
+// ("SIGMA PNF", start_url "/") — correcto para el caso general, pero
+// incorrecto para /scan y la proyección QR: si un docente instala desde
+// /scan con ESE manifest, el ícono en su celular abre "/" (pantalla de
+// login), no "/scan". Acá se reemplaza ese link, antes de montar React,
+// por uno de los manifests dedicados (public/manifest-scan.webmanifest,
+// public/manifest-proyeccion.webmanifest) cuando corresponde — mismos
+// iconos, pero start_url/scope/name propios. document.title y el meta
+// apple-mobile-web-app-title (iOS ignora manifest.name) se ajustan igual,
+// para que "Agregar a inicio" en Safari también use el nombre correcto.
+function configurarIdentidadPWA() {
+  const enScan = window.location.pathname === '/scan';
+  const enProyeccion = new URLSearchParams(window.location.search).get('proyeccion') === '1';
+
+  if (!enScan && !enProyeccion) return; // caso general: se deja el manifest de la app completa
+
+  const href = enScan ? '/manifest-scan.webmanifest' : '/manifest-proyeccion.webmanifest';
+  const titulo = enScan ? 'SIGMA Scan QR' : 'SIGMA Proyección';
+
+  const linkExistente = document.querySelector('link[rel="manifest"]');
+  if (linkExistente) {
+    linkExistente.setAttribute('href', href);
+  } else {
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
+  document.title = titulo;
+  document.querySelector('meta[name="apple-mobile-web-app-title"]')
+    ?.setAttribute('content', titulo);
+}
+configurarIdentidadPWA();
+
 // Fix OFF-5 / ARCH-10: registrar el Service Worker explícitamente para habilitar
 // banners de actualización y garantizar el ciclo de vida del SW en
 // todos los entornos (incluido tras recargas forzadas).

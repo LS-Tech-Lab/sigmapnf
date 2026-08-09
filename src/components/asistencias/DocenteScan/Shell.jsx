@@ -9,10 +9,14 @@
 // purgarExpirados(), más 'online'/'offline' como respaldo.
 import { useState, useEffect } from "react";
 import { contarPendientes } from "../../../utils/offlineQueue";
+import useInstallPrompt from "../../../hooks/useInstallPrompt";
 import "./DocenteScan.css";
 
 function Shell({ children, ancho = 480 }) {
   const [pendientes, setPendientes] = useState(0);
+  // ADMIN-7: botón "Instalar app" — ver useInstallPrompt.js para el porqué
+  // de esIOS (Safari nunca dispara beforeinstallprompt, no hay API).
+  const { puedeInstalar, esIOS, instalar } = useInstallPrompt();
 
   useEffect(() => {
     let activo = true;
@@ -45,6 +49,23 @@ function Shell({ children, ancho = 480 }) {
           <div className="scan-pending-badge" role="status" aria-live="polite">
             <i className="ti ti-clock-hour-4" aria-hidden="true" />
             {pendientes} registro{pendientes !== 1 ? "s" : ""} pendiente{pendientes !== 1 ? "s" : ""} de sincronizar
+          </div>
+        )}
+        {puedeInstalar && (
+          <button
+            type="button"
+            className="scan-install-banner"
+            onClick={instalar}
+          >
+            <i className="ti ti-download" aria-hidden="true" />
+            Instalar esta app en tu celular — evita abrir el navegador cada vez
+          </button>
+        )}
+        {esIOS && (
+          <div className="scan-install-banner scan-install-banner--ios" role="note">
+            <i className="ti ti-share-2" aria-hidden="true" />
+            Para instalar: toca <strong>Compartir</strong> y luego{" "}
+            <strong>&quot;Agregar a inicio&quot;</strong>
           </div>
         )}
         {children}
