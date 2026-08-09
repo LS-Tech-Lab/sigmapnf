@@ -30,7 +30,10 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
   const [inicio,   setInicio]   = useState(lunes);
   const [fin,      setFin]      = useState(hoy);
   const [turno,    setTurno]    = useState("DIURNO");
-  const [programa, setPrograma] = useState("");
+  // PROG-3 (fase 2): mismo patrón que ReporteAsistencias/index.jsx --
+  // este selector tampoco revisaba restricción de programa.
+  const misProgramas = permisos.puedeVerSoloSuPrograma ? (permisos.programasRestringidos || []) : [];
+  const [programa, setPrograma] = useState(misProgramas[0] || "");
   // ARCH-27 (auditoría 1 ago): `docentes` ya viene agregado por docente
   // desde el servidor (ver reporte_asistencias_rango_agregado, migración
   // 0055) — ya no se guardan las filas crudas de asistencia en el cliente.
@@ -166,6 +169,15 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
 
   useEffect(() => { fetchRango(); }, [fetchRango]);
 
+  // PROG-3 (fase 2): clamp defensivo, mismo criterio que el resto de la
+  // fase.
+  useEffect(() => {
+    if (misProgramas.length > 0 && !misProgramas.includes(programa)) {
+      setPrograma(misProgramas[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permisos.puedeVerSoloSuPrograma, JSON.stringify(misProgramas)]);
+
   const handleBorrarRango = async () => {
     setBorrando(true);
     const { data: cantidad, error } = await supabase.rpc("admin_borrar_asistencias_rango", {
@@ -266,9 +278,16 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
         </label>
         <label className="ra-filtro-label">
           <span className="ra-filtro-label-text">Programa</span>
-          <select value={programa} onChange={e => setPrograma(e.target.value)} className="s-select">
-            <option value="">Todos</option>
-            {DEFAULT_PROGRAMAS.map(p => <option key={p} value={p}>{p.replace("PNF ", "")}</option>)}
+          <select
+            value={programa}
+            onChange={e => (!permisos.puedeVerSoloSuPrograma || misProgramas.length > 1) && setPrograma(e.target.value)}
+            disabled={permisos.puedeVerSoloSuPrograma && misProgramas.length <= 1}
+            className="s-select"
+          >
+            {!permisos.puedeVerSoloSuPrograma && <option value="">Todos</option>}
+            {(permisos.puedeVerSoloSuPrograma ? misProgramas : DEFAULT_PROGRAMAS).map(p => (
+              <option key={p} value={p}>{p.replace("PNF ", "")}</option>
+            ))}
           </select>
         </label>
         <label className="ra-filtro-label ra-filtro-label--grow160">
