@@ -19,7 +19,7 @@ import "./HistorialView.css";
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, user, modoConsulta = false, logAudit = null, programaRestringido = null }) {
+export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, user, modoConsulta = false, logAudit = null, programasRestringidos = [] }) {
   // SEDE-16: `trimestres` no tiene sede_id (decisión de negocio pendiente,
   // ver nota en 0061 -- los lapsos hoy son compartidos entre sedes), pero
   // las estadísticas que este archivo calcula a partir de `horarios` sí
@@ -43,15 +43,18 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
   const cargarTrimestres = useCallback(async () => {
     setLoading(true);
     // PERM-3 fix: si el usuario tiene restringe_programa, solo mostramos
-    // trimestres que contengan horarios de su programa. Para usuarios sin
-    // restricción la query es idéntica a la original.
+    // trimestres que contengan horarios de su(s) programa(s). Para
+    // usuarios sin restricción la query es idéntica a la original.
+    // PROG-3 (fase 2): programasRestringidos es un array -- un
+    // coordinador puede tener más de uno (0078/0079); .in() cubre tanto
+    // el caso de uno solo como el de varios.
     let data, error;
-    if (programaRestringido) {
-      // Obtenemos los lapsos donde existe al menos un horario de su programa
+    if (programasRestringidos.length > 0) {
+      // Obtenemos los lapsos donde existe al menos un horario de sus programas
       let queryLapsos = supabase
         .from("horarios")
         .select("lapso")
-        .eq("programa", programaRestringido);
+        .in("programa", programasRestringidos);
       if (sedeActiva) queryLapsos = queryLapsos.eq("sede_id", sedeActiva);
       const { data: lapsos, error: errLapsos } = await queryLapsos;
       if (errLapsos) { showToast("Error al cargar historial: " + errLapsos.message, "error"); setLoading(false); return; }
@@ -73,7 +76,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     if (error) showToast("Error al cargar historial: " + error.message, "error");
     else setTrimestres(data || []);
     setLoading(false);
-  }, [showToast, programaRestringido, sedeActiva]);
+  }, [showToast, programasRestringidos, sedeActiva]);
 
   useEffect(() => { cargarTrimestres(); }, [cargarTrimestres]);
 
@@ -88,7 +91,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     setLoadingDet(true);
     // PERM-3 fix: si hay restricción de programa, el detalle también se filtra
     let query = supabase.from("horarios").select("programa, trayecto, sheet").eq("lapso", lapso);
-    if (programaRestringido) query = query.eq("programa", programaRestringido);
+    if (programasRestringidos.length > 0) query = query.in("programa", programasRestringidos);
     if (sedeActiva) query = query.eq("sede_id", sedeActiva);
     const { data: horarios } = await query;
 
