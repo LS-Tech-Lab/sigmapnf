@@ -56,17 +56,35 @@ export function calcularPermisos(profile) {
       ...PERMISOS_BASE,
       puedeVerSoloSuPrograma: false,
       programaRestringido:    null,
+      programasRestringidos:  [],
       sedeAsignada:           null,
     };
   }
 
   const rolInfo = profile.rol_info;
 
+  // PROG-3 (fase 2): programasRestringidos es la lista real de un
+  // usuario, respaldada por user_profiles_programas (0078/0079) --
+  // permite que un coordinador tenga más de un programa a cargo, cosa
+  // que la columna escalar programaRestringido nunca pudo representar.
+  // Fallback al escalar legado si la tabla nueva no trajo nada (usuario
+  // creado antes de PROG-2, o la migración 0079 todavía sin aplicar en
+  // este entorno) para no dejar a nadie sin acceso.
+  const programasAsignados = (profile.programas_asignados || [])
+    .map(p => p.programa).filter(Boolean);
+  const programasRestringidos = rolInfo.restringe_programa
+    ? (programasAsignados.length > 0 ? programasAsignados : [profile.programa].filter(Boolean))
+    : [];
+
   return {
     ...PERMISOS_BASE,
     ...(rolInfo.permisos || {}),
     puedeVerSoloSuPrograma: !!rolInfo.restringe_programa,
-    programaRestringido:    rolInfo.restringe_programa ? profile.programa : null,
+    // programaRestringido (escalar) se conserva por compatibilidad con
+    // código que todavía no migró a la lista -- siempre es el primero
+    // de programasRestringidos, nunca una fuente independiente de dato.
+    programaRestringido:   programasRestringidos[0] || null,
+    programasRestringidos,
     // A diferencia de programaRestringido (depende del rol), sedeAsignada
     // depende del usuario: cada perfil trae su propio sede_id (0061), sin
     // importar el rol. Quien tenga puedeVerTodasLasSedes puede no tener
@@ -237,7 +255,7 @@ export default function useAuth() {
     try {
       const { data, error } = await supabase
         .from("user_profiles")
-        .select("*, rol_info:roles!user_profiles_rol_fk(nombre, label, emoji, color, restringe_programa, permisos)")
+        .select("*, rol_info:roles!user_profiles_rol_fk(nombre, label, emoji, color, restringe_programa, permisos), programas_asignados:user_profiles_programas(programa)")
         .eq("id", authUser.id)
         .single();
 
