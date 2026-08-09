@@ -771,19 +771,36 @@ textarea:focus-visible,
   display: flex; align-items: center; gap: 6px; flex-shrink: 0;
 }
 
-.asm-tabs { display: flex; gap: 4px; }
+/* Fix UX-34 (auditoría responsive, 9 ago 2026): .asm-tabs es un hijo flex
+   de .asm-topbar sin `min-width: 0` -- por el mínimo automático de los
+   flex items (min-width: auto), el grupo de pestañas nunca podía encogerse
+   por debajo del ancho de su contenido, así que en viewports angostos
+   empujaba al resto de la topbar (badge de sesión, pendientes, UserMenu, e
+   incluso las últimas pestañas) fuera del viewport -- sin overflow-x en
+   ningún ancestro, ese contenido quedaba invisible y sin forma de
+   alcanzarlo (no había scroll). Mismo bug clásico de flexbox que ya se
+   había resuelto en `.ra-filtros`/`.qrp-body` (flex-wrap) y en
+   `.hl-nav`/`.qrp-turno-list` (overflow con scroll dedicado), pero nunca
+   se replicó acá. Ahora el grupo de pestañas es su propio contenedor con
+   scroll horizontal (swipe en móvil), y cada pestaña no se comprime
+   (flex-shrink: 0) para no truncar el label a la mitad. */
+.asm-tabs {
+  display: flex; gap: 4px; min-width: 0; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.asm-tabs::-webkit-scrollbar { display: none; }
 .asm-tab {
   padding: 5px 14px; border-radius: 7px; border: none;
   background: transparent; color: var(--color-text-tertiary); font-weight: 500;
   font-size: var(--font-size-13); cursor: pointer; transition: all 0.12s;
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap;
 }
 .asm-tab--active { background: var(--color-background-info); color: var(--brand-600); font-weight: 700; }
 
 .asm-session-badge {
   display: flex; align-items: center; gap: 6px;
   padding: 3px 10px; background: #F0FDF4;
-  border: 1px solid #86EFAC; border-radius: 20px;
+  border: 1px solid #86EFAC; border-radius: 20px; flex-shrink: 0;
 }
 .asm-session-dot { width: 7px; height: 7px; border-radius: 50%; background: #22C55E; display: inline-block; animation: pulse 1.4s ease-in-out infinite; }
 .asm-session-text { font-size: var(--font-size-12); font-weight: 600; color: #15803D; }
@@ -798,6 +815,16 @@ textarea:focus-visible,
 
 .asm-main { padding-top: 52px; }
 .asm-main--proyeccion { padding-top: 0; }
+
+/* Fix UX-34 (auditoría responsive, 9 ago 2026): mismo criterio de
+   breakpoint (640px) que `.qap-root`/`.hl-brand-row` -- reduce el padding
+   lateral y el tamaño de las pestañas para que quepan más sin depender
+   solo del scroll de `.asm-tabs`. */
+@media (max-width: 640px) {
+  .asm-topbar { padding: 0 12px; gap: 8px; }
+  .asm-tab { padding: 5px 10px; font-size: var(--font-size-12); gap: 4px; }
+  .topbar-back-btn { padding: 5px 9px; }
+}
 
 /* HorariosLayout.jsx — shell completo del módulo Horarios (UX-5, auditoría 2026-07-05) */
 .hl-select-dark { width: 100%; background: var(--navy-800); color: var(--color-border-secondary); border-color: var(--navy-700); font-size: var(--font-size-12); padding: var(--space-6px) var(--space-2); }
