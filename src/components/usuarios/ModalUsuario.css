@@ -34,6 +34,21 @@
   border-radius: 8px; padding: 10px 14px; color: var(--color-danger); font-size: var(--font-size-13);
 }
 
+/* PROG-3 (fase 1): lista de checkboxes de programas — reemplaza el
+   <select> de un solo programa. Mismos tokens de color/tipografía que
+   el resto del modal, sin componentes nuevos. */
+.mu-programas-lista {
+  display: flex; flex-direction: column; gap: 6px; margin-top: 4px;
+  max-height: 160px; overflow-y: auto;
+  border: 1px solid var(--color-border, #e2e8f0); border-radius: 8px; padding: 8px 10px;
+}
+.mu-programa-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--font-size-13); color: var(--color-text-primary);
+  cursor: pointer;
+}
+.mu-programa-item input[type="checkbox"] { cursor: pointer; }
+
 .mu-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
 .mu-btn-save {
