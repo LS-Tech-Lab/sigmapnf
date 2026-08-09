@@ -122,6 +122,33 @@ En **Authentication → Settings**:
 | `session_logs` / `audit_logs` | admin y coordinador; secretario limitado a su programa | vía RPC (`logAudit`) | — |
 | `qr_sessions` / `asistencias_diarias` | Ver `FLUJO_ASISTENCIAS_QR.md` — modelo de acceso anónimo específico para `/scan`, con rate limiting por `device_fingerprint` | ídem | ídem |
 
+### Checklist obligatorio para toda tabla nueva (agregado 9 ago, auditoría de BD)
+
+Verificado contra `pg_default_acl` real: los privilegios por defecto de
+`postgres` en el esquema `public` siguen otorgando `arwdDxtm` (lectura,
+escritura, borrado completos) a **`anon` y `authenticated`** sobre toda
+tabla/secuencia nueva — es el modelo estándar de Supabase (RLS es el único
+gatekeeper real), corregido para funciones en `SEC-34`/`0074` pero **no
+aplica a tablas**, y no se revierte a propósito (romper esto rompería el
+modelo esperado de Supabase). Esta es la causa raíz estructural de `SEC-1`
+(RLS nunca habilitado en `horarios`) y de `0043` (RLS nunca habilitado en
+`user_profiles`): sin este paso, una tabla nueva queda con escritura
+completa para `anon` desde el segundo cero.
+
+Antes de mergear cualquier migración con `CREATE TABLE public.*`:
+
+1. `ALTER TABLE public.<tabla> ENABLE ROW LEVEL SECURITY;` — en la misma
+   migración que crea la tabla, nunca en una migración posterior.
+2. Al menos una política por operación que la tabla necesite (`SELECT`,
+   `INSERT`, `UPDATE`, `DELETE`) — una tabla con RLS activo pero 0
+   políticas es válida y es el patrón más restrictivo (ver
+   `scan_rate_limit`), pero debe ser una decisión explícita, no un olvido.
+3. Confirmar contra la BD real, no solo contra el archivo de migración:
+   ```sql
+   SELECT relrowsecurity FROM pg_class WHERE relname = '<tabla>';
+   SELECT policyname, roles, cmd FROM pg_policies WHERE tablename = '<tabla>';
+   ```
+
 ### Historial de hallazgos y fixes (RLS)
 
 | ID | Hallazgo | Causa raíz | Fix |
