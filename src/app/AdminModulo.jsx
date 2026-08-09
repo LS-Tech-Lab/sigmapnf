@@ -181,7 +181,7 @@ export default function AdminModulo({
                 closeConfirm={appData.closeConfirm}
                 user={user}
                 modoConsulta={!permisos.puedeGestionarTrimestres}
-                programaRestringido={permisos.puedeVerSoloSuPrograma ? permisos.programaRestringido : null}
+                programasRestringidos={permisos.puedeVerSoloSuPrograma ? permisos.programasRestringidos : []}
               />
             )}
           </Suspense>
