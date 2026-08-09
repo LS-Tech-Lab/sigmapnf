@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "test:visual": "playwright test",
     "test:visual:update": "playwright test --update-snapshots",
-    "rls:smoke-test": "node scripts/rls-smoke-test.mjs"
+    "rls:smoke-test": "node scripts/rls-smoke-test.mjs",
+    "qr:load-test": "node scripts/qr-load-test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
