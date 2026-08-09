@@ -66,6 +66,17 @@ sequenceDiagram
 4. Al confirmar con éxito, los datos quedan guardados localmente para la
    próxima vez.
 
+**Persistencia de borrador (UX-33, 8 ago):** mientras el primerizo escribe,
+lo tecleado se guarda con debounce en una clave de `localStorage` separada
+(`pnf_docente_borrador`, TTL de 20 minutos) — **nunca** se mezcla con la
+clave de identidad ya confirmada (`pnf_docente_datos`). Si el token rota
+antes de que termine de escribir (ver §3/§4) y tiene que reescanear, el
+formulario se precarga con lo que ya había tecleado, con aviso de que es un
+borrador recuperado. Se borra automáticamente al confirmar el registro con
+éxito. El TTL corto (frente a las 12h de `LS_TIMEOUT_HORAS` para datos
+confirmados) acota la ventana en la que un dispositivo compartido podría
+precargar el nombre/cédula de alguien que nunca completó su registro.
+
 ---
 
 ## 3. Ciclo de vida del token
@@ -154,9 +165,10 @@ estrecha.
   confirma después de que ya rotó, todavía puede perder la carrera. La
   pantalla de "solo reescanea" (docentes recurrentes) sigue siendo la red
   de seguridad para ese caso.
-- El caso de **primerizos** que pierden la carrera sigue sin pantalla de
-  recuperación dedicada — el throttle reduce la frecuencia del problema,
-  no lo elimina. Queda pendiente (ver §5).
+- El caso de **primerizos** que pierden la carrera ya tiene red de
+  seguridad propia desde `UX-33` (§2.2, §5): el throttle reduce la
+  frecuencia de la colisión, y si igual ocurre, el borrador guardado evita
+  que pierdan lo ya tecleado al reescanear.
 
 ---
 
@@ -164,7 +176,8 @@ estrecha.
 
 | Propuesta | Estado | Motivo |
 |---|---|---|
-| Persistir datos de un primerizo mientras espera el reescaneo, para no perder cédula/nombre tecleados | **Pendiente**, prioridad media | Requiere una clave de `localStorage` separada de la de "registro confirmado", para no contaminar la lógica de `avisoStale` ni la detección de docente recurrente. Menos urgente ahora que el throttle bajó la frecuencia de colisiones. |
+| Persistir datos de un primerizo mientras espera el reescaneo, para no perder cédula/nombre tecleados | **Cerrado (`UX-33`, 8 ago)** | Implementado con clave de `localStorage` separada (`pnf_docente_borrador`, TTL 20 min) de la de "registro confirmado" (`pnf_docente_datos`) — no contamina `avisoStale` ni la detección de docente recurrente. Ver §2.2 para el detalle. |
+| Resumen automático al cerrar sesión (`AdminQRPanel`) | **Cerrado (`UX-33`, 8 ago)** | Ver §7 — no estaba entre las propuestas evaluadas originalmente en este documento, se agrega ahora que está implementado. |
 | Ventana de gracia real en el token (aceptar el penúltimo token unos segundos) | **Evaluada y descartada por ahora** | Toca `registrar_asistencia` y `renovar_qr_token` (RPCs `SECURITY DEFINER` con acceso anónimo) — zona de mayor riesgo del sistema. No cubre bien ráfagas de 3+ rotaciones seguidas (cada rotación nueva pisa la gracia de la anterior). Se reconsiderará solo si el throttle actual resulta insuficiente en uso real. |
 
 ---
@@ -190,5 +203,35 @@ solo disponible hoy para docentes con datos guardados localmente (ver §5).
 
 ---
 
-*Última actualización: julio 2026 — auditoría de seguridad y calidad de
-código de SIGMA PNF.*
+## 7. Panel del operador: contador "de N esperados" y resumen de cierre (UX-33)
+
+Dos mejoras al `AdminQRPanel.jsx`, agregadas junto con la persistencia de
+borrador (§2.2):
+
+### 7.1 Contador "de N esperados"
+
+El contador en vivo de entradas/salidas (`ContadorSesion`) ya existía; se le
+agregó un denominador: "3 de 5 esperados". El "esperados" viene de una RPC
+aparte, `contar_docentes_esperados` (migración `0072`, `SECURITY DEFINER`,
+scoped por sede), que cruza `horarios` por turno/día/programa/sede — a
+diferencia del conteo de entradas/salidas, no está suscrita a Realtime ni al
+polling: el número esperado no cambia mientras la sesión está activa (depende
+del horario planificado, no de quién ya marcó), solo se recalcula si cambian
+turno/programa/día/sede, que de todos modos están bloqueados en la UI
+mientras hay una sesión abierta. Si la RPC falla (ej. no aplicada todavía en
+el Supabase real), el contador de entradas/salidas sigue funcionando igual —
+es un complemento, no crítico.
+
+### 7.2 Resumen automático al cerrar sesión
+
+Al cerrar una sesión QR, `AdminQRPanel.jsx` arma un resumen (entradas,
+salidas, y la lista de docentes que marcaron entrada pero no salida) y lo
+muestra en un modal. El resumen se calcula **antes** de ejecutar el cierre
+real de la sesión, para evitar una condición de carrera con `sessionId` una
+vez cerrada. Si la consulta del resumen falla por cualquier motivo, la
+sesión se cierra igual — el resumen es informativo, nunca bloquea el cierre.
+
+---
+
+*Última actualización: 8 de agosto de 2026 — persistencia de borrador y
+resumen de cierre de sesión (`UX-33`).*
