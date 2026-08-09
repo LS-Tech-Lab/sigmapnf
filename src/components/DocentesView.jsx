@@ -28,7 +28,8 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
   useEffect(() => { if (sel) { setEditValue(getDocName(sel)); setCedulaValue(getDocCedula ? getDocCedula(sel) : ""); } }, [sel]);
 
   const hasConflict = (name) => conflicts.some(c => c.docente === name);
-  const selEntries = byDocente[sel] || [], selConflicts = sel ? conflicts.filter(c => c.docente === sel) : [];
+  const selEntries = useMemo(() => byDocente[sel] || [], [byDocente, sel]);
+  const selConflicts = sel ? conflicts.filter(c => c.docente === sel) : [];
   const filteredSorted = search ? sorted.filter(d => getDocName(d).toLowerCase().includes(search.toLowerCase())) : sorted;
 
   // Fix rendimiento: el array ordenado de asignaciones se calcula una sola vez

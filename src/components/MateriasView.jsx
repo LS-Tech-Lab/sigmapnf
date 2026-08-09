@@ -17,7 +17,7 @@ export default function MateriasView({ byMateria, initialSel, onConsumeNav, getM
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (sel) { setEditValue(getMateriaName(sel)); setEditingName(false); } }, [sel]);
 
-  const selEntries = sel && byMateria[sel] ? byMateria[sel] : [];
+  const selEntries = useMemo(() => (sel && byMateria[sel] ? byMateria[sel] : []), [sel, byMateria]);
   const filteredSorted = search ? sorted.filter(m => getMateriaName(m).toLowerCase().includes(search.toLowerCase())) : sorted;
 
   const saveEdit = async () => {

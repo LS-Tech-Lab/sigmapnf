@@ -2,6 +2,11 @@ import React from "react";
 
 // Fix ARCH-13 (auditoría 9 de julio): extraído de LogsView.jsx sin cambios
 // de lógica. Compartido por TabSesiones y TabAuditoria.
+//
+// ARCH-42: mezcla intencional y estable de formatters + configs (EVENTO_CONFIG/
+// ACCION_CONFIG) + los badges que los consumen. Solo afecta Fast Refresh en
+// desarrollo.
+/* eslint-disable react-refresh/only-export-components */
 
 export function fmtDateTime(iso) {
   if (!iso) return "—";

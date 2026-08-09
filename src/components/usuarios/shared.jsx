@@ -3,7 +3,12 @@
  *
  * Constantes, helpers y micro-componentes compartidos por todos los
  * sub-módulos de Gestión de Usuarios y Roles.
+ *
+ * ARCH-42: la mezcla de constantes/helpers/micro-componentes es intencional
+ * y estable — todos son consumidos juntos por los mismos sub-módulos. Solo
+ * afecta Fast Refresh en desarrollo.
  */
+/* eslint-disable react-refresh/only-export-components */
 
 import './shared.css';
 import { roleColorClass } from '../../constants';

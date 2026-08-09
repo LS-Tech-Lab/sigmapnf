@@ -16,6 +16,9 @@
  * `GestionSedes.jsx` (Sistema → Sedes) pueda refrescar el catálogo en
  * todo el árbol después de crear/editar/(des)activar una sede, sin
  * depender de que el usuario recargue la página.
+ *
+ * ARCH-42: Provider + hook de consumo en el mismo archivo es el patrón
+ * estándar de React Context — solo afecta Fast Refresh en desarrollo.
  */
 
 import { createContext, useContext } from "react";
@@ -23,6 +26,7 @@ import { createContext, useContext } from "react";
 const SedeContext = createContext(null);
 
 /** Provee { sedeActiva, sedes, setSedeActiva, refetchSedes } al árbol. */
+/* eslint-disable react-refresh/only-export-components */
 export function SedeProvider({ value, children }) {
   return (
     <SedeContext.Provider value={value}>

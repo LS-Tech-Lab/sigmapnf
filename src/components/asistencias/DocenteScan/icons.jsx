@@ -1,5 +1,11 @@
 // Iconos de resultado (éxito/error/aviso) y el mapa de UI por código de
 // respuesta de la RPC registrar_asistencia. Extraído de DocenteScan.jsx.
+//
+// ARCH-42: mezcla intencional y estable de componentes de ícono + el mapa
+// RESULTADO_UI que los referencia — separarlos rompería la cohesión del
+// módulo sin beneficio real. Solo afecta Fast Refresh en desarrollo, no
+// producción ni comportamiento.
+/* eslint-disable react-refresh/only-export-components */
 
 // ── Iconos ───────────────────────────────────────────────────────────────────
 export const IconCheck = () => (

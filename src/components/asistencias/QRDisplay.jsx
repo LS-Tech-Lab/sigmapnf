@@ -12,7 +12,12 @@
  * y `CountdownBar` (su única dependencia interna) necesitan de verdad.
  * `AdminQRPanel.jsx` y `QRProyeccion.jsx` importan ambos desde aquí en vez
  * de uno del otro.
+ *
+ * ARCH-42: por la misma razón (evitar arrastrar imports entre chunks), no
+ * se separan `TURNOS_VISIBLES`/`formatFechaVE` en otro archivo — mezclarlos
+ * aquí es intencional. Solo afecta Fast Refresh en desarrollo.
  */
+/* eslint-disable react-refresh/only-export-components */
 
 import { useEffect, useRef } from "react";
 import PropTypes from "prop-types";

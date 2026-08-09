@@ -92,6 +92,10 @@ export default function LoginScreen({ onOfflineLogin }) {
   }, [email]);
 
   // ── Lockout normal ────────────────────────────────────────────────────────
+  // 'email' no se agrega a las deps a propósito: el input de email está
+  // disabled mientras isLocked (ver LoginFormNormal.jsx), así que no puede
+  // cambiar durante la vida de este efecto. Agregarlo forzaría un reinicio
+  // innecesario del interval en cada render sin cambiar el comportamiento.
   useEffect(() => {
     if (!lockedUntil) return;
     const tick = () => {
@@ -106,6 +110,7 @@ export default function LoginScreen({ onOfflineLogin }) {
     tick();
     timerRef.current = setInterval(tick, 500);
     return () => clearInterval(timerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lockedUntil]);
 
   // ── Lockout PIN ───────────────────────────────────────────────────────────

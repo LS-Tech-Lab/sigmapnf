@@ -2,6 +2,10 @@
  * AppDataContext — provee el resultado de useAppData a todo el árbol de
  * HorariosLayout sin prop drilling.
  *
+ * ARCH-42: Provider + hook de consumo en el mismo archivo es el patrón
+ * estándar de React Context — separarlos no aporta nada y solo afecta
+ * Fast Refresh en desarrollo.
+ *
  * Uso:
  *   // En App.jsx (productor):
  *   <AppDataProvider value={appDataAuditada}>
@@ -17,6 +21,7 @@ import { createContext, useContext } from "react";
 const AppDataContext = createContext(null);
 
 /** Provee el objeto appData al árbol. Recibe el valor ya construido externamente. */
+/* eslint-disable react-refresh/only-export-components */
 export function AppDataProvider({ value, children }) {
   return (
     <AppDataContext.Provider value={value}>

@@ -23,7 +23,7 @@
  * mantienen acá: son pequeños y no forman parte del hallazgo.
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../constants";
 import { playRegistroSound, useFlashFeed } from "./useRegistroSound";
 import { supabase } from "../../lib/supabase";
@@ -164,16 +164,16 @@ function PrepararOfflinePanel({ fecha, sedeActiva, programa, prepararSesionOffli
   const [preparados, setPreparados] = useState({});
   const [errorPrep,  setErrorPrep]  = useState(null);
 
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
     try {
       const lista = await listarSesionesCacheadas(fecha);
       const map = {};
       lista.forEach(item => { map[`${item.turno}__${item.programa || ""}`] = item.expiresAt; });
       setPreparados(map);
     } catch { /* silencioso */ }
-  };
+  }, [fecha]);
 
-  useEffect(() => { if (expandido) cargar(); }, [expandido]);
+  useEffect(() => { if (expandido) cargar(); }, [expandido, cargar]);
 
   const handlePreparar = async (turno) => {
     setPreparando(turno);
@@ -545,7 +545,7 @@ export default function AdminQRPanel({
       .subscribe();
     const pollId = setInterval(fetchFeed, POLL_FALLBACK_MS);
     return () => { supabase.removeChannel(ch); clearInterval(pollId); };
-  }, [sessionId]);
+  }, [sessionId, flashTrigger]);
 
   const handleIniciar = () => {
     if (esHoy && !turnoDisponible(turno)) return;

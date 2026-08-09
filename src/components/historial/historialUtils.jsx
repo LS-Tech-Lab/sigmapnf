@@ -3,6 +3,11 @@ import React from "react";
 // Fix ARCH-13 (auditoría 9 de julio): extraído de HistorialView.jsx sin
 // cambios de lógica. Compartido por HistorialView, ModalTrimestre,
 // ComparadorPanel y HistorialLista.
+//
+// ARCH-42: mezcla intencional y estable de helpers (fmt/duracion) +
+// StatusBadge, todos consumidos juntos por los mismos módulos de
+// historial. Solo afecta Fast Refresh en desarrollo.
+/* eslint-disable react-refresh/only-export-components */
 
 export function fmt(iso) {
   if (!iso) return "—";
