@@ -41,7 +41,13 @@ export default function HorariosSidebar({
 
   const navGroups      = buildNavGroups();
   const conflictCount  = appData.conflicts.length;
-  const puedeSeleccionarPrograma = !permisos.puedeVerSoloSuPrograma;
+  // PROG-3 (fase 2): un coordinador puede tener más de un programa
+  // (permisos.programasRestringidos, 0078/0079) — el selector deja de
+  // estar totalmente deshabilitado en ese caso: se puede alternar entre
+  // los propios, pero nunca salir de esa lista ni ver "Todos".
+  const misProgramas = permisos.programasRestringidos || [];
+  const puedeElegirEntreLosPropios = permisos.puedeVerSoloSuPrograma && misProgramas.length > 1;
+  const puedeSeleccionarPrograma = !permisos.puedeVerSoloSuPrograma || puedeElegirEntreLosPropios;
 
   return (
     <>
@@ -147,7 +153,7 @@ export default function HorariosSidebar({
               className="s-select hl-select-dark"
             >
               {puedeSeleccionarPrograma
-                ? appData.programasDisponibles.map(p => (
+                ? (permisos.puedeVerSoloSuPrograma ? misProgramas : appData.programasDisponibles).map(p => (
                     <option key={p} value={p}>
                       {p === "todos" ? "Todos los programas" : p}
                     </option>
