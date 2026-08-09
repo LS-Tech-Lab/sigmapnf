@@ -24,6 +24,14 @@ export function getCurrentLapso(fecha = new Date()) {
 
 /**
  * Genera lista de trimestres: los 2 anteriores + el actual + los 2 siguientes.
+ *
+ * ARCH-41 (9 ago): esto es un cálculo ORIENTATIVO por fecha, no consulta la
+ * tabla `trimestres`. NO usar para poblar selectores de UI -- puede ofrecer
+ * lapsos que nunca se crearon (sin fila en `trimestres`, sin datos en
+ * `horarios`) o excluir uno real que quedó fuera del rango ±2. Los
+ * selectores de trimestre deben consultar `trimestres` filtrando por
+ * `estado` (ver `PlanillaQR.jsx`). Esta función queda solo para cálculos
+ * orientativos internos (p. ej. sugerir un rango en un formulario).
  * @param {string} [trimestre] - Ej: "2-2026"
  * @returns {string[]}
  */
