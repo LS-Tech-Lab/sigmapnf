@@ -147,7 +147,17 @@ async function handleRequest(req, res) {
 
   // ── action: create ───────────────────────────────────────────────
   if (action === "create") {
-    const { email, password, nombre, rol, programa, sede_id } = body;
+    // PROG-3 (fase 1): `programas` es el array nuevo que manda
+    // ModalUsuario cuando el rol restringe programa; `programa` (singular)
+    // se mantiene como fallback por compatibilidad hacia atrás si algún
+    // caller viejo todavía lo manda solo. El primer elemento del array
+    // (si viene) es siempre el que se guarda en la columna escalar
+    // "principal" -- mismo criterio que admin_set_user_programas (0079).
+    const { email, password, nombre, rol, programa, programas, sede_id } = body;
+    const listaProgramas = Array.isArray(programas) && programas.length > 0
+      ? [...new Set(programas.map(p => String(p).trim()).filter(Boolean))]
+      : (programa ? [programa] : []);
+    const programaPrincipal = listaProgramas[0] || null;
 
     if (!email || !password || !nombre || !rol) {
       return res.status(400).json({ error: "Faltan campos obligatorios." });
@@ -186,7 +196,7 @@ async function handleRequest(req, res) {
         email,
         nombre,
         rol,
-        programa:  programa || null,
+        programa:  programaPrincipal,
         sede_id:   sede_id || null,
         activo:    true,
         creado_por: userData.email,
@@ -198,6 +208,26 @@ async function handleRequest(req, res) {
       // Revertir: borrar el usuario de Auth si el perfil falló
       await supabaseAdminFetch(`/auth/v1/admin/users/${userId}`, { method: "DELETE" });
       return res.status(400).json({ error: profileErr.message || "Error al crear el perfil del usuario." });
+    }
+
+    // PROG-3 (fase 1): además de la columna escalar de arriba, se
+    // registran TODOS los programas en user_profiles_programas (relación
+    // N:N, 0078) -- vía service_role, no la RPC admin_set_user_programas,
+    // porque acá el usuario recién se creó y las validaciones de rol ya
+    // se resolvieron arriba (listaProgramas ya viene filtrada). Si esto
+    // falla no se revierte la creación completa -- un fallo acá es un
+    // caso raro (la tabla recién creada en 0078) y el usuario ya quedó
+    // usable con su programa principal en la columna escalar; se avisa
+    // en logs de Vercel para revisar a mano en vez de descartar la cuenta.
+    if (listaProgramas.length > 0) {
+      const programasRes = await supabaseAdminFetch("/rest/v1/user_profiles_programas", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: listaProgramas.map(p => ({ user_id: userId, programa: p })),
+      });
+      if (!programasRes.ok) {
+        console.error("admin-users: fallo al registrar user_profiles_programas para", userId);
+      }
     }
 
     return res.status(200).json({ user_id: userId });
