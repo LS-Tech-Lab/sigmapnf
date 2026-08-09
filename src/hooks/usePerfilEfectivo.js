@@ -45,6 +45,16 @@ function calcularPermisosOffline(offlineProfile) {
     programaRestringido:    offlineProfile.rol_info?.restringe_programa
       ? offlineProfile.programa
       : null,
+    // PROG-3 (fase 2): el snapshot offline (qrOfflineCache.js, OFF-10)
+    // cachea el perfil con la columna escalar `programa`, no la lista de
+    // user_profiles_programas -- expandir ese formato de caché queda
+    // fuera de este alcance. Un coordinador multi-programa que entra en
+    // modo offline-PIN ve solo su programa "principal" cacheado, no la
+    // lista completa; es una limitación conocida y aceptable dado que el
+    // acceso offline ya es de capacidad reducida en general.
+    programasRestringidos: offlineProfile.rol_info?.restringe_programa
+      ? [offlineProfile.programa].filter(Boolean)
+      : [],
     // SEDE-2: igual que programaRestringido, viene del perfil cacheado,
     // no del rol. El acceso offline-PIN ya es de un solo dispositivo/
     // sede en la práctica, así que no hace falta forzarlo a false.
