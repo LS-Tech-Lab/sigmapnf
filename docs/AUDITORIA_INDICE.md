@@ -65,8 +65,9 @@ asumir que 0 hallazgos abiertos es un estado permanente.
 
 **Pendiente (no verificable desde sandbox — `curl` a `supabase.com`
 devuelve 403 por la política de red):** confirmar en el dashboard real
-de Supabase que `pg_cron` (`SEC-21`) y el rate limiting nativo de Auth
-(`SEC-7`) siguen activos.
+de Supabase que el rate limiting nativo de Auth (`SEC-7`) sigue activo.
+`pg_cron`/`SEC-21` ya confirmado (9 ago, auditoría de BD): `cron.job`
+real muestra `limpiar-sesiones-expiradas` (`*/15 * * * *`) `active=true`.
 
 ---
 
