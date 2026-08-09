@@ -17,7 +17,16 @@ import PlanillaImprimibleBase from './PlanillaImprimibleBase';
 const PAGE_SIZE = 500;
 
 export default function PlanillaQR({ permisos = {}, profile }) {
-  const restringidoAPrograma = permisos.puedeVerSoloSuPrograma ? profile?.programa : null;
+  // PROG-3 (fase 2): permisos.programasRestringidos (0078/0079) es la
+  // lista real -- un coordinador puede tener más de un programa a
+  // cargo. Fallback a profile.programa (escalar legado) si esa lista
+  // viene vacía (perfil sin filas todavía en user_profiles_programas).
+  const misProgramas = permisos.puedeVerSoloSuPrograma
+    ? (permisos.programasRestringidos?.length > 0
+        ? permisos.programasRestringidos
+        : (profile?.programa ? [profile.programa] : []))
+    : [];
+  const restringidoAUnSolo = misProgramas.length === 1 ? misProgramas[0] : null;
 
   // SEDE-15: esta pestaña se autoabastece con su propio fetch a Supabase
   // (ver comentario de arriba) y por eso quedó fuera de la pasada SEDE-3
@@ -29,7 +38,7 @@ export default function PlanillaQR({ permisos = {}, profile }) {
   const { sedeActiva } = useSedeContext();
 
   const [lapso, setLapso] = useState(getCurrentLapso());
-  const [programa, setPrograma] = useState(restringidoAPrograma || "todos");
+  const [programa, setPrograma] = useState(misProgramas[0] || "todos");
   const [programasDisponibles, setProgramasDisponibles] = useState([]);
   const [data, setData] = useState([]);
   const [docenteNames, setDocenteNames] = useState({});
@@ -50,10 +59,23 @@ export default function PlanillaQR({ permisos = {}, profile }) {
   // importó/editó el Excel) para forzar el refetch de la tabla horarios.
   const [horariosRefreshKey, setHorariosRefreshKey] = useState(0);
 
-  // Lista de programas disponibles para el selector (solo si el rol no
-  // está restringido a un único programa).
+  // PROG-3 (fase 2): clamp defensivo, mismo criterio que App.jsx --
+  // permisos/profile pueden llegar después del primer render (por
+  // ejemplo justo al reconectar tras modo offline), así que el useState
+  // inicial de `programa` no basta por sí solo.
   useEffect(() => {
-    if (restringidoAPrograma) return;
+    if (misProgramas.length > 0 && !misProgramas.includes(programa)) {
+      setPrograma(misProgramas[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permisos.puedeVerSoloSuPrograma, JSON.stringify(misProgramas)]);
+
+  // Lista de programas disponibles para el selector. Si el rol está
+  // restringido a más de un programa, se ofrecen solo los suyos -- nunca
+  // el catálogo completo ni la opción "todos".
+  useEffect(() => {
+    if (restringidoAUnSolo) return;
+    if (misProgramas.length > 0) { setProgramasDisponibles(misProgramas); return; }
     (async () => {
       let query = supabase
         .from("horarios")
@@ -65,7 +87,8 @@ export default function PlanillaQR({ permisos = {}, profile }) {
       const unicos = [...new Set((rows || []).map(r => r.programa).filter(Boolean))].sort();
       setProgramasDisponibles(unicos);
     })();
-  }, [lapso, restringidoAPrograma, sedeActiva]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lapso, restringidoAUnSolo, sedeActiva, JSON.stringify(misProgramas)]);
 
   // Nombres de docentes y materias (display name, independiente del lapso).
   const fetchNombres = useCallback(async () => {
@@ -165,7 +188,7 @@ export default function PlanillaQR({ permisos = {}, profile }) {
             {getLapsosDisponibles().map(l => <option key={l} value={l}>{formatLapso(l)}</option>)}
           </select>
         </div>
-        {!restringidoAPrograma && (
+        {!restringidoAUnSolo && (
           <div>
             <div className="qr-filter-label">Programa</div>
             <select
@@ -173,7 +196,10 @@ export default function PlanillaQR({ permisos = {}, profile }) {
               onChange={(e) => setPrograma(e.target.value)}
               className="qr-filter-select"
             >
-              <option value="todos">Todos los programas</option>
+              {/* PROG-3 (fase 2): "Todos" solo tiene sentido para quien no
+                  tiene restricción de programa -- un coordinador con más
+                  de uno elige entre los suyos, nunca ve el resto. */}
+              {!permisos.puedeVerSoloSuPrograma && <option value="todos">Todos los programas</option>}
               {programasDisponibles.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
