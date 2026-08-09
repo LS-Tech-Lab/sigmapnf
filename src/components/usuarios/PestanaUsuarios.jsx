@@ -63,7 +63,24 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
     try {
       const { data, error } = await supabase.rpc("admin_get_users");
       if (error) throw error;
-      setUsuarios(data || []);
+
+      // PROG-3 (fase 1): admin_get_users() sigue devolviendo solo la
+      // columna escalar `programa` (0062) — se mezcla acá el resultado
+      // de admin_get_user_profiles_programas() (0079) para que
+      // ModalUsuario pueda precargar el multi-select al editar. Un
+      // fallo acá no debe tumbar la carga de la tabla completa (el
+      // fallback de ModalUsuario a `usuario.programa` sigue funcionando
+      // sin esto) — por eso va en su propio try/catch silencioso.
+      let programasPorUsuario = {};
+      try {
+        const { data: prog, error: progError } = await supabase.rpc("admin_get_user_profiles_programas");
+        if (progError) throw progError;
+        programasPorUsuario = Object.fromEntries((prog || []).map(r => [r.user_id, r.programas]));
+      } catch {
+        // silencioso — ver comentario arriba
+      }
+
+      setUsuarios((data || []).map(u => ({ ...u, programas: programasPorUsuario[u.id] || undefined })));
     } catch (e) {
       toast(`Error al cargar usuarios: ${e.message}`);
     }
@@ -255,7 +272,15 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
                       <Badge color={rolInfo?.color}>{rolInfo?.emoji || "👤"} {rolInfo?.label || u.rol}</Badge>
                     </td>
                     <td className="s-td">
-                      <span className="pu-programa">{u.programa || "—"}</span>
+                      {/* PROG-3 (fase 1): u.programas (array, si existe algo
+                          en user_profiles_programas) tiene prioridad sobre
+                          el escalar legado u.programa para reflejar cuando
+                          un coordinador tiene más de uno asignado. */}
+                      <span className="pu-programa">
+                        {Array.isArray(u.programas) && u.programas.length > 0
+                          ? u.programas.join(", ")
+                          : (u.programa || "—")}
+                      </span>
                     </td>
                     <td className="s-td">
                       <span className="pu-programa">
