@@ -32,7 +32,13 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
   const [vistaRango, setVistaRango] = useState(false);
   const [fecha,    setFecha]    = useState(hoy);
   const [turno,    setTurno]    = useState("DIURNO");
-  const [programa, setPrograma] = useState("");
+  // PROG-3 (fase 2): este selector no revisaba permisos.puedeVerSoloSuPrograma
+  // en absoluto -- cualquier usuario, restringido o no, podía elegir
+  // cualquier programa del dropdown. misProgramas es la lista real de un
+  // usuario restringido (0078/0079); el valor inicial y el clamp de abajo
+  // lo fuerzan a quedarse dentro de su propio conjunto.
+  const misProgramas = permisos.puedeVerSoloSuPrograma ? (permisos.programasRestringidos || []) : [];
+  const [programa, setPrograma] = useState(misProgramas[0] || "");
   const [rows,     setRows]     = useState([]);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState(null);
@@ -45,6 +51,17 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
   // color institucional) — carga con fallback seguro a los valores por
   // defecto, ver useReporteConfig.js.
   const { config: reporteConfig } = useReporteConfig();
+
+  // PROG-3 (fase 2): clamp defensivo, mismo criterio que App.jsx/
+  // PlanillaQR.jsx -- si `programa` queda fuera del conjunto permitido
+  // (primer render antes de que lleguen permisos, o un cambio de rol en
+  // caliente), se corrige antes de que la query se dispare.
+  useEffect(() => {
+    if (misProgramas.length > 0 && !misProgramas.includes(programa)) {
+      setPrograma(misProgramas[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permisos.puedeVerSoloSuPrograma, JSON.stringify(misProgramas)]);
 
   const fetchAsistencias = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -224,9 +241,18 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
         </label>
         <label className="ra-filtro-label">
           <span className="ra-filtro-label-text">Programa</span>
-          <select value={programa} onChange={e => setPrograma(e.target.value)} className="s-select">
-            <option value="">Todos</option>
-            {DEFAULT_PROGRAMAS.map(p => <option key={p} value={p}>{p.replace("PNF ", "")}</option>)}
+          <select
+            value={programa}
+            onChange={e => (!permisos.puedeVerSoloSuPrograma || misProgramas.length > 1) && setPrograma(e.target.value)}
+            disabled={permisos.puedeVerSoloSuPrograma && misProgramas.length <= 1}
+            className="s-select"
+          >
+            {/* PROG-3 (fase 2): "Todos" solo para quien no tiene
+                restricción de programa. */}
+            {!permisos.puedeVerSoloSuPrograma && <option value="">Todos</option>}
+            {(permisos.puedeVerSoloSuPrograma ? misProgramas : DEFAULT_PROGRAMAS).map(p => (
+              <option key={p} value={p}>{p.replace("PNF ", "")}</option>
+            ))}
           </select>
         </label>
         <label className="ra-filtro-label ra-filtro-label--grow">
