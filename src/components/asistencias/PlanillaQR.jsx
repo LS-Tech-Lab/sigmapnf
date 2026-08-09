@@ -9,7 +9,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { suscribirCambiosRemotos } from '../../lib/realtime';
-import { getCurrentLapso, getLapsosDisponibles, formatLapso } from '../../utils/lapso';
+import { getCurrentLapso, formatLapso } from '../../utils/lapso';
 import { useReporteConfig } from '../../hooks/useReporteConfig';
 import { useSedeContext } from '../../context/SedeContext';
 import PlanillaImprimibleBase from './PlanillaImprimibleBase';
@@ -38,6 +38,10 @@ export default function PlanillaQR({ permisos = {}, profile }) {
   const { sedeActiva } = useSedeContext();
 
   const [lapso, setLapso] = useState(getCurrentLapso());
+  // ARCH-41 (9 ago): lista real de trimestres para el selector, en vez del
+  // cálculo por fecha de getLapsosDisponibles() (ver nota en utils/lapso.js).
+  // Arranca vacía -- se llena tras el primer fetch a `trimestres` más abajo.
+  const [trimestresDisponibles, setTrimestresDisponibles] = useState([]);
   const [programa, setPrograma] = useState(misProgramas[0] || "todos");
   const [programasDisponibles, setProgramasDisponibles] = useState([]);
   const [data, setData] = useState([]);
@@ -58,6 +62,50 @@ export default function PlanillaQR({ permisos = {}, profile }) {
   // Se incrementa cuando llega un evento remoto de horarios (otro usuario
   // importó/editó el Excel) para forzar el refetch de la tabla horarios.
   const [horariosRefreshKey, setHorariosRefreshKey] = useState(0);
+
+  // ARCH-41 (9 ago): trimestres reales disponibles para el selector.
+  // Antes se generaban por cálculo de fecha (getLapsosDisponibles(), ±2
+  // trimestres desde hoy) sin tocar la BD -- eso ofrecía trimestres que
+  // nunca se crearon (sin fila en `trimestres`, sin datos en `horarios`,
+  // p. ej. futuros aún no configurados o años viejos huérfanos) y podía
+  // excluir uno real si quedaba fuera del rango ±2. Ahora se consulta
+  // `trimestres` filtrando por estado -- 'activo' (el que está en curso)
+  // y 'cerrado' (historial con datos reales) -- nunca 'planificado' si a
+  // futuro se usa ese estado desde HistorialView antes de activarlo.
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      const { data: rows, error: errTrimestres } = await supabase
+        .from("trimestres")
+        .select("lapso, estado")
+        .in("estado", ["activo", "cerrado"])
+        .order("anio", { ascending: false })
+        .order("numero", { ascending: false });
+      if (cancelado) return;
+
+      if (errTrimestres || !rows || rows.length === 0) {
+        // Fallback defensivo: si `trimestres` no responde o aún no tiene
+        // ninguna fila (ambiente recién creado), no dejamos el selector
+        // vacío -- se ofrece el trimestre actual calculado como única
+        // opción, igual que el comportamiento previo a este fix.
+        setTrimestresDisponibles([getCurrentLapso()]);
+        return;
+      }
+
+      const lapsos = rows.map(r => r.lapso);
+      setTrimestresDisponibles(lapsos);
+
+      // Si el lapso seleccionado (el calculado por fecha al montar el
+      // componente) no tiene fila real en `trimestres`, lo corregimos: al
+      // activo si existe, o si no, al más reciente de la lista.
+      setLapso(prev => {
+        if (lapsos.includes(prev)) return prev;
+        const activo = rows.find(r => r.estado === "activo");
+        return activo ? activo.lapso : lapsos[0];
+      });
+    })();
+    return () => { cancelado = true; };
+  }, []);
 
   // PROG-3 (fase 2): clamp defensivo, mismo criterio que App.jsx --
   // permisos/profile pueden llegar después del primer render (por
@@ -184,8 +232,9 @@ export default function PlanillaQR({ permisos = {}, profile }) {
             value={lapso}
             onChange={(e) => setLapso(e.target.value)}
             className="qr-filter-select"
+            disabled={trimestresDisponibles.length === 0}
           >
-            {getLapsosDisponibles().map(l => <option key={l} value={l}>{formatLapso(l)}</option>)}
+            {trimestresDisponibles.map(l => <option key={l} value={l}>{formatLapso(l)}</option>)}
           </select>
         </div>
         {!restringidoAUnSolo && (
