@@ -189,12 +189,19 @@ export default function App() {
     check();
   }, [lapso]);
 
-  // Restringir programa para secretarios
+  // Restringir programa para secretarios — PROG-3 (fase 2): con más de un
+  // programa asignado, solo se fuerza la selección cuando la actual no es
+  // (o dejó de ser) una de las permitidas, para no pisarle al usuario un
+  // cambio manual entre sus propios programas en cada render. Mismo
+  // criterio de "clamp" que el resto de la serie SEDE-N usa para sede.
   useEffect(() => {
-    if (efectivePermisos.puedeVerSoloSuPrograma && efectivePermisos.programaRestringido) {
-      setSelectedPrograma(efectivePermisos.programaRestringido);
+    if (!efectivePermisos.puedeVerSoloSuPrograma) return;
+    const misProgramas = efectivePermisos.programasRestringidos;
+    if (misProgramas.length === 0) return;
+    if (!misProgramas.includes(appData.selectedPrograma)) {
+      setSelectedPrograma(misProgramas[0]);
     }
-  }, [efectivePermisos.puedeVerSoloSuPrograma, efectivePermisos.programaRestringido, setSelectedPrograma]);
+  }, [efectivePermisos.puedeVerSoloSuPrograma, efectivePermisos.programasRestringidos, appData.selectedPrograma, setSelectedPrograma]);
 
   const horariosFilters = useHorariosFilters(appData.data);
   const { resetFilters } = horariosFilters;
