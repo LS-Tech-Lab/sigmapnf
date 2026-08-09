@@ -24,7 +24,7 @@ uso en `src/` y `docs/supabase/migrations/`.
 ### Horarios
 | Permiso | Qué habilita | Enforcement real |
 |---|---|---|
-| `puedeVerTodo` | Cambiar libremente entre todos los PNF | **Solo UI** — ver §3 |
+| `puedeVerTodo` | Cambiar libremente entre todos los PNF | RLS (`horarios`/`asistencias_diarias` vía `usuario_puede_ver_programa()`, `0081`) — ver §3 |
 | `puedeEditarHorarios` | Arrastrar/colocar bloques, edición in-line | RLS (`horarios`, `0035`/`0045`) |
 | `puedeBorrarHorarios` | Eliminar bloques, vaciar trimestres | RLS (`horarios`, `0035`/`0045`) + RPC `borrar_horarios` (`0018`) |
 | `puedeGestionarTrimestres` | Cambiar lapso activo, crear/eliminar trimestres | RPC (`0025`) |
@@ -39,7 +39,7 @@ uso en `src/` y `docs/supabase/migrations/`.
 ### Respaldo de datos
 | Permiso | Qué habilita | Enforcement real |
 |---|---|---|
-| `puedeHacerBackup` | Descargar JSON con todos los datos | **Solo UI** — ver §3 |
+| `puedeHacerBackup` | Descargar JSON con todos los datos | RPC `exportar_backup_completo` (`0076`, `SECURITY DEFINER`) — ver §3 |
 | `puedeRestaurarBackup` | Sobrescribir datos desde un archivo | RPC (`0018`, `0041`) |
 
 ### Módulo QR
@@ -79,44 +79,61 @@ documento aquí explícitamente porque, a diferencia de los otros 19, grepear
 `roles.permisos` por esta clave no la va a encontrar — y sin esta nota, la
 próxima persona que audite el sistema de permisos puede asumir que falta.
 
+**Actualizado por `PROG-N` (serie cerrada 8 ago):** un coordinador puede
+tener **más de un** programa a cargo — a diferencia de sede, que es 1:1 por
+usuario. `useAuth.js` ahora deriva `programasRestringidos` (array) desde la
+tabla nueva `user_profiles_programas` (N:N, `0078`), con `programaRestringido`
+(escalar) conservado como `programasRestringidos[0]` solo por compatibilidad
+hacia atrás con código que aún no migró. `puedeVerSoloSuPrograma` en sí no
+cambió de definición, pero dejó de ser una restricción solo-en-cliente: desde
+`0081` tiene respaldo real en RLS (ver §3).
+
 ---
 
-## 3. Hallazgo: dos permisos sin respaldo en RLS/RPC
+## 3. Historial: dos permisos que fueron solo-UI, ya cerrados
 
-`puedeVerTodo` y `puedeHacerBackup` **no aparecen en ningún archivo SQL** —
-solo controlan si un botón/selector se muestra en la interfaz. Investigué
-el impacto real de cada uno antes de calificarlo:
+`puedeVerTodo` y `puedeHacerBackup` fueron en su momento un hallazgo real:
+**no aparecían en ningún archivo SQL** — solo controlaban si un
+botón/selector se mostraba en la interfaz, sin respaldo server-side. Ambos
+quedaron cerrados desde entonces; se conserva el historial de cada uno
+porque el razonamiento (qué se investigó, qué se descartó) sigue siendo
+útil para auditorías futuras.
 
-- **`puedeVerTodo`** — controla si el selector de programa deja elegir
-  "todos" o lo restringe. La tabla `horarios` tiene `SELECT` público
-  (`USING (true)`, ver `SECURITY.md`), así que quitarle este permiso a
-  alguien no le impide nada a nivel de datos — solo le simplifica la UI.
-  **No es un hallazgo de seguridad**, es una capa de conveniencia sin más.
+- **`puedeHacerBackup`** — cerrado como **`PERM-6`** (8 ago). `exportarDatos()`
+  (`src/hooks/useAppData/backupActions.js`) hacía `SELECT *` directo contra
+  `horarios`/`docentes`/`materias`/`asistencias_diarias` sin ningún RPC de
+  por medio — el único freno real era el RLS por sede (`SEDE-14`), que
+  nunca comprobaba este permiso en sí. Reemplazado por el RPC
+  `exportar_backup_completo` (`0076`, `SECURITY DEFINER`): verifica
+  `tiene_permiso(auth.uid(), 'puedeHacerBackup')` antes de tocar cualquier
+  tabla, y repite el filtro por sede a mano en las 4 sub-consultas (al ser
+  `SECURITY DEFINER` bypasea RLS). Sin fallback al camino inseguro si el
+  RPC no existe todavía. Ver también **`PERM-4`** (hallazgo previo,
+  separado): la consulta de respaldo apuntaba a una tabla inexistente
+  llamada `asistencias` en vez de `asistencias_diarias` — corregido antes
+  de `PERM-6`.
 
-- **`puedeHacerBackup`** — mismo patrón, pero encontré algo al revisar
-  `exportarDatos()` (`src/hooks/useAppData/backupActions.js`): hace
-  `SELECT *` directo contra `horarios`, `docentes`, `materias` y una tabla
-  llamada **`asistencias`** (sin RPC de por medio). Como esas cuatro tablas
-  ya tienen su propio RLS, alguien sin `puedeHacerBackup` que ejecute la
-  misma consulta manualmente obtiene exactamente lo que su RLS ya le
-  permitía ver — tampoco es una fuga nueva. **Pero:**
-
-  > 🔴 **`asistencias` no es `asistencias_diarias`.** No hay ningún
-  > `CREATE TABLE asistencias` en las migraciones — no es la tabla del
-  > módulo QR que documenta `ESQUEMA_Y_MIGRACIONES.md`.
-  >
-  > **Confirmado contra la BD real** (`SELECT to_regclass('public.asistencias')` → `NULL`):
-  > la tabla no existe. No era drift de una tabla legacy sin versionar —
-  > era un nombre de tabla incorrecto. Cada backup exportado hasta ahora
-  > tenía `asistencias: []` con `asistencias_incluidas: true` (falso
-  > positivo silencioso: `.data || []` no distingue "tabla inexistente"
-  > de "tabla vacía", así que nunca lanzó un error visible).
-  >
-  > **Cerrado como `PERM-4`** — un cambio de una línea en
-  > `src/hooks/useAppData/backupActions.js` (`exportarDatos`): la consulta
-  > ahora apunta a `asistencias_diarias`, igual que ya hacía el lado de
-  > restauración (`importarDatos`, que nunca tuvo este bug). Ver
-  > `AUDITORIA_INDICE.md` para el registro formal.
+- **`puedeVerTodo`** — cerrado como cierre de la serie **`PROG-N`**
+  (`PROG-1` → `PROG-3 fase 3`, 8 ago). Antes: la tabla `horarios` tenía
+  `SELECT` público a nivel RLS, así que restringir este permiso solo
+  simplificaba la UI, sin efecto real en los datos — un usuario
+  restringido a un programa podía en teoría consultar la API directo y
+  ver datos de otros programas. Cerrado con una serie de migraciones:
+  `user_profiles_programas` como tabla N:N (`PROG-2`, `0078`, ya que un
+  coordinador puede tener más de un programa, a diferencia de sede);
+  RPCs de gestión multi-programa (`PROG-3` fase 1, `0079`); migración de
+  los puntos de lectura del cliente a la lista completa en vez del
+  escalar legado (`PROG-3` fase 2); y el cierre real, RLS en `horarios` y
+  `asistencias_diarias` vía el helper `usuario_puede_ver_programa()`
+  (`PROG-3` fase 3, `0081`). **Nota de alcance:** `docentes` y `materias`
+  quedan fuera a propósito — son catálogos compartidos dentro de una sede
+  (un mismo docente dicta en varios programas), no le pertenecen a un
+  programa concreto. Detalle completo en `AUDITORIA_INDICE.md` (`PROG-1`
+  a `PROG-3 fase 3`).
+  > **Pendiente operativo:** las migraciones `0075`, `0077`–`0081` están
+  > escritas y verificadas contra los tests, pero **aún no aplicadas en
+  > el Supabase de producción** — aplicar en ese orden (`0081` depende de
+  > `usuario_puede_ver_programa()`, creada en `0078`).
 
 ---
 
@@ -163,9 +180,10 @@ Si se agrega un permiso nuevo: (1) agregarlo a `GRUPOS_PERMISOS` en
 `shared.jsx` — es la única fuente de verdad de la UI, (2) agregar la fila
 correspondiente aquí con su enforcement real verificado (no asumido), y
 (3) si controla algo sensible, confirmar que existe un respaldo en RLS o
-RPC — no solo un `if (permisos.x)` en el componente, como ya se ve en
-`puedeVerTodo`/`puedeHacerBackup`.
+RPC — no solo un `if (permisos.x)` en el componente, como en su momento le
+faltó a `puedeVerTodo`/`puedeHacerBackup` (ver §3).
 
 ---
 
-*Última actualización: agosto 2026.*
+*Última actualización: 9 de agosto de 2026 — cierre de `PERM-6` y de la
+serie `PROG-N`.*
