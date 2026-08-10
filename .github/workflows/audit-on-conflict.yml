@@ -1,0 +1,28 @@
+# Agregar como job dentro de tu workflow existente de CI/CD, o como
+# archivo separado en .github/workflows/audit-on-conflict.yml
+#
+# Requiere el secret DATABASE_URL en el repo (Settings → Secrets →
+# Actions), con la connection string de Supabase (Database →
+# Connection string → URI). Ideal usar un rol de solo lectura si lo
+# tienes, ya que el script solo hace SELECT sobre pg_catalog.
+
+name: Audit ON CONFLICT constraints
+
+on:
+  pull_request:
+    paths:
+      - 'docs/supabase/migrations/**'
+  workflow_dispatch: {}
+
+jobs:
+  audit-on-conflict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install pg
+      - run: node scripts/audit-on-conflict.mjs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
