@@ -46,7 +46,7 @@ uso en `src/` y `docs/supabase/migrations/`.
 | Permiso | Qué habilita | Enforcement real |
 |---|---|---|
 | `puedeGestionarQR` | Abrir/cerrar sesiones QR, ver proyección | RLS + RPC `crear_qr_session` (`0035`, `0036`) |
-| `puedeVerReporteAsistencias` | Consultar/exportar historial de asistencias | RLS (`asistencias_diarias`, `0036`) |
+| `puedeVerReporteAsistencias` | Consultar/exportar historial de asistencias; también gatea la pestaña "Estadísticas" (dashboard de analítica académica, `ESTAD-1`) | RLS (`asistencias_diarias`, `0036`) |
 | `puedeBorrarSesiones` | Eliminar sesiones QR ya cerradas del historial | RLS/RPC (`0054`) |
 | `puedeBorrarReportes` | Eliminar registros de asistencia en el reporte por rango | RLS/RPC (`0054`) |
 
@@ -186,4 +186,5 @@ faltó a `puedeVerTodo`/`puedeHacerBackup` (ver §3).
 ---
 
 *Última actualización: 9 de agosto de 2026 — cierre de `PERM-6` y de la
-serie `PROG-N`.*
+serie `PROG-N`, y nota de `ESTAD-1` (dashboard de estadísticas reutiliza
+`puedeVerReporteAsistencias`, sin permiso nuevo).*
