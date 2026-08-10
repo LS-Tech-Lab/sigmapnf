@@ -8,6 +8,10 @@ const AdminQRPanel      = lazy(() => import("../components/asistencias/AdminQRPa
 const QRProyeccion      = lazy(() => import("../components/asistencias/QRProyeccion"));
 const ReporteAsistencias = lazy(() => import("../components/asistencias/ReporteAsistencias"));
 const PlanillaQR         = lazy(() => import("../components/asistencias/PlanillaQR"));
+// ESTAD-1: dashboard de estadísticas y analítica académica -- vista
+// hermana de ReporteAsistencias (no anidada), se carga aparte igual que
+// ReporteRango.jsx.
+const EstadisticasAcademicas = lazy(() => import("../components/asistencias/EstadisticasAcademicas"));
 
 const QRFallback = () => (
   <div className="lazy-fallback">
@@ -94,7 +98,13 @@ export default function AsistenciasModulo({
         ]
       : []),
     ...(permisos.puedeVerReporteAsistencias
-      ? [{ id: "reporte", icon: "ti-report", label: "Reporte" }]
+      ? [
+          { id: "reporte",       icon: "ti-report",           label: "Reporte" },
+          // ESTAD-1: mismo permiso que "Reporte" -- la RLS de
+          // asistencias_diarias/horarios (0081) ya lo exige del lado del
+          // servidor, no hace falta un permiso nuevo en GRUPOS_PERMISOS.
+          { id: "estadisticas",  icon: "ti-chart-histogram",  label: "Estadísticas" },
+        ]
       : []),
     // Planilla imprimible (derivada del horario, no de datos QR) — visible
     // a cualquiera con acceso al módulo, igual que en Horarios.
@@ -204,6 +214,9 @@ export default function AsistenciasModulo({
             )}
             {subView === "planilla" && (
               <PlanillaQR permisos={permisos} profile={profile} />
+            )}
+            {subView === "estadisticas" && (
+              <EstadisticasAcademicas permisos={permisos} />
             )}
           </Suspense>
         </ErrorBoundary>
