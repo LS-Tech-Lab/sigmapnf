@@ -183,6 +183,23 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/src/components/asistencias/ReporteAsistencias')) {
               return 'view-qr-reporte'
             }
+            // ESTAD-1: sin esta regla, Rollup igual separa correctamente
+            // este chunk (solo EstadisticasAcademicas importa recharts, y
+            // el import es dynamic()) pero le pone un nombre ambiguo tipo
+            // `index-*.hash.js` -- indistinguible a simple vista del chunk
+            // de entrada real. Se nombra explícito por la misma razón que
+            // los demás chunks de este bloque: verificado con `grep` sobre
+            // el bundle generado (contiene "recharts"/"reporte_estadisticas_
+            // academicas" y nada más de la app), no solo por inspección
+            // manual del tamaño.
+            if (
+              id.includes('/src/components/asistencias/EstadisticasAcademicas') ||
+              id.includes('/node_modules/recharts/') ||
+              id.includes('/node_modules/d3-') ||
+              id.includes('/node_modules/victory-vendor/')
+            ) {
+              return 'view-qr-estadisticas'
+            }
             return undefined
           },
         },
