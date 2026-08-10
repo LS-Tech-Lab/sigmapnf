@@ -46,9 +46,11 @@ código↔BD real: 9 de agosto (auditoría completa de BD, 11/11 secciones,
 más confirmación de las 6 migraciones de `PROG-N` ya aplicadas en
 producción, más verificación operativa de rate limiting nativo de Auth
 — ver § Historial; verificación previa 6 de agosto). El único hallazgo
-abierto (`SEC-37`, leaked password protection) es un toggle de
-dashboard, no requiere migración ni cambio de código — pendiente de
-decisión de LS. 386/386 tests, 0 errores de lint, build limpio.
+abierto (`SEC-37`, leaked password protection) **no depende de una
+decisión de LS: el toggle requiere plan Pro** (confirmado contra la
+organización real — `bolysrglhpxjfydtuzkw`, plan `free`), no está
+disponible en el plan actual. 386/386 tests, 0 errores de lint,
+build limpio.
 
 **Patrón recurrente a vigilar:** dos veces un hallazgo se marcó ✅
 cerrado en este índice sin que el fix llegara realmente al código/CI
@@ -86,8 +88,13 @@ sin drift, ninguna ejecutable por `anon`.
 **Nuevo hallazgo, `SEC-37` (9 ago, dashboard de Supabase → Advisors):**
 `auth_leaked_password_protection` deshabilitado — Auth no verifica
 contraseñas nuevas contra la base de HaveIBeenPwned antes de aceptarlas.
-Sin código ni migración involucrada, toggle de un clic en el dashboard
-(Authentication → Policies). Ver fila `SEC-37` más abajo.
+**No accionable en este momento:** la función requiere plan Pro o
+superior — confirmado contra la organización real (`bolysrglhpxjfydtuzkw`,
+plan `free`); no es una decisión pendiente de LS, es un bloqueo de plan.
+Impacto real acotado: los usuarios los da de alta un admin
+(`admin_create_auth_user`), no hay self-signup público, así que la
+superficie de exposición ya es menor que en una app con registro abierto.
+Ver fila `SEC-37` más abajo.
 
 ---
 
@@ -134,7 +141,7 @@ Esquema `SEC-N`. Fusiona lo que antes eran 4 esquemas paralelos (`S-N`,
 | **SEC-34** 🟡 | Causa raíz de `SEC-8`/`SEC-9`/`SEC-33`, encontrada al verificar el cierre de `SEC-33`: el rol `postgres` (el que usa el SQL Editor de Supabase para crear funciones) tenía una regla de privilegios por defecto (`pg_default_acl`) que otorgaba `EXECUTE` a `anon` automáticamente en toda función nueva del esquema `public` — confirmado en vivo: `contar_docentes_esperados` (`0072`, `UX-33`) salió anon-ejecutable pese a que su propia migración hace `REVOKE ALL ... FROM PUBLIC`, porque nunca tuvo el privilegio vía `PUBLIC` — lo tenía directo por esta regla, que `REVOKE ... FROM PUBLIC` no toca. Explica por qué el mismo patrón se ha repetido 3 veces en la historia del proyecto y por qué se seguiría repitiendo con cada función `SECURITY DEFINER` nueva si no se corregía la regla en sí, no solo cada función una por una | Privilegios por defecto de `postgres` en el esquema `public`; parche puntual en `contar_docentes_esperados` | `0074` | ✅ Cerrado (7 ago) — `ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM anon` corrido y confirmado con `pg_default_acl`: `postgres` ya no tiene `anon` en la ACL por defecto de funciones. El mismo comando para `supabase_admin` falló con `permission denied to change default privileges` (rol interno de Supabase, LS no tiene permiso para alterarlo) — sin impacto real, ninguna migración del proyecto crea funciones bajo ese rol, así que queda fuera de alcance sin necesidad de resolverlo. Parche puntual en `contar_docentes_esperados` también corrido (no confirmado explícitamente con una segunda query, pero corrido junto con el resto sin error reportado) |
 | **SEC-35** 🟠 | Encontrado en la auditoría completa de BD (9 ago): `uq_asistencia_docente_dia_tipo` (`0008`, previo al sistema de sedes) es `UNIQUE (cedula_docente, fecha, tipo)` sin `sede_id`. `0061` estableció catálogos de docentes independientes por sede (`docentes_sede_cedula_unique` es `(sede_id, cedula)`, no global) pero este constraint nunca se actualizó — un mismo `cedula_docente` en dos sedes distintas el mismo día/tipo rechazaría el segundo registro aunque sean asistencias legítimas en sedes diferentes | `asistencias_diarias` | `0082` | ✅ Cerrado (9 ago) — constraint reemplazado por `uq_asistencia_docente_dia_tipo_sede`, `UNIQUE (sede_id, cedula_docente, fecha, tipo)` |
 | **SEC-36** 🟡 | Encontrado en la misma auditoría: política `Lectura publica trimestres` con `roles={public}` (incluye `anon`), único catálogo no restringido a `authenticated` (`sedes`/`roles` sí lo están correctamente). Sin migración que la haya creado — mismo patrón de objeto fantasma que `SEC-9`/`SEC-17`/`SEC-30`/`31`. Verificado contra el código real: `trimestres` solo se consulta desde `App.jsx`/`HistorialView.jsx` (contextos autenticados); el flujo anónimo `/scan` no la toca — sin necesidad funcional de que sea pública | `trimestres` | `0082` | ✅ Cerrado (9 ago) — política reemplazada por `trimestres_select_authenticated`, `roles={authenticated}` |
-| **SEC-37** 🟡 | Verificación operativa de rate limiting nativo de Auth (`SEC-7`) en el dashboard real, pedido de LS (9 ago): confirmado activo y reforzado (sign-ups/sign-ins en 4 req/5min por IP, resto en default). De paso, el advisor de seguridad de Supabase (`get_advisors`) señaló `auth_leaked_password_protection` deshabilitado — Auth no chequea contraseñas nuevas contra HaveIBeenPwned antes de aceptarlas. No es una migración ni afecta código: toggle de un clic en el dashboard (Authentication → Policies) | — (config del proyecto, no código) | — | 🟡 Abierto — pendiente de que LS decida activarlo desde el dashboard |
+| **SEC-37** 🟡 | Verificación operativa de rate limiting nativo de Auth (`SEC-7`) en el dashboard real, pedido de LS (9 ago): confirmado activo y reforzado (sign-ups/sign-ins en 4 req/5min por IP, resto en default). De paso, el advisor de seguridad de Supabase (`get_advisors`) señaló `auth_leaked_password_protection` deshabilitado — Auth no chequea contraseñas nuevas contra HaveIBeenPwned antes de aceptarlas. No es una migración ni afecta código: toggle de dashboard (Authentication → Policies), pero confirmado contra la organización real que **requiere plan Pro** — el proyecto está en plan `free` | — (config del proyecto, no código) | — | 🟡 Abierto — bloqueado por plan, no por decisión pendiente. Reevaluar si el proyecto sube a Pro |
 
 ## 🔎 Filtrado de datos por permiso/programa
 
@@ -412,6 +419,7 @@ Solo hitos — el "cómo" completo vive en las tablas de arriba.
 - **9 ago (segunda pasada):** LS confirmó que las 6 migraciones de `PROG-N` (`0075`, `0077`–`0081`) ya se aplicaron en Supabase real. Verificado por conector directo (no por archivo SQL ni por `supabase migration list`, que las devuelve vacías): tabla `user_profiles_programas`, funciones `usuario_puede_ver_programa()`/`registrar_asistencia_manual()`/`exportar_backup_completo()`/`admin_get_user_profiles_programas()`/`admin_set_user_programas()`/`reporte_asistencias_rango_agregado()` confirmadas en `information_schema`/`pg_proc`, y las 4 políticas RLS de `horarios`/`asistencias_diarias` confirmadas en `pg_policies` referenciando el helper — el cierre real de `PROG-3 fase 3` ya está activo en producción, no solo en código. De paso, corregido un nombre de RPC mal transcrito en `RESUMEN_PENDIENTES.md` (`admin_set_user_profiles_programas` → `admin_set_user_programas`, el nombre real desde `0079`); el código fuente (migración y `ModalUsuario.jsx`) siempre usó el nombre correcto, el error era solo del resumen.
 - **9 ago:** `ARCH-42`, cierra el pendiente de `ARCH-19` (33→24 warnings no bloqueantes de ESLint, detectados al verificar `ARCH-41`) — 5 de lógica real de hooks (`exhaustive-deps`) corregidos de verdad, no solo silenciados; 19 de organización de archivos (`only-export-components`) silenciados puntualmente con justificación, tras confirmar que separarlos exigía tocar ~40 puntos de import en todo el repo por un problema que solo afecta Fast Refresh en desarrollo. 24→0 warnings, 386/386 tests, build limpio.
 - **9 ago (verificación operativa final):** cierre de los 3 pendientes de dashboard que quedaban desde la auditoría de BD. `pg_cron`/`SEC-21` y grants de las 8 funciones admin/sesión de `SEC-9`/`SEC-17` reverificados por conector directo — sin drift. Rate limiting nativo de Auth (`SEC-7`) confirmado activo y reforzado por captura de LS del dashboard real (sign-ups/sign-ins 4 req/5min por IP, resto en default) — el límite bajo de envío de emails (2/h) se descartó como riesgo real tras confirmar por `grep` que el código no usa ningún flujo de Auth por correo (`resetPasswordForEmail`/`inviteUserByEmail`/`signInWithOtp`/`magicLink`); `admin_reset_user_password` (`0014`) escribe la contraseña directo vía `SECURITY DEFINER`, sin pasar por el sistema de correo. Nuevo hallazgo del advisor de seguridad de Supabase: `auth_leaked_password_protection` deshabilitado (`SEC-37`) — toggle de dashboard, sin código ni migración, pendiente de decisión de LS.
+- **9 ago (SEC-37, corrección de estado):** confirmado contra `get_organization` que la protección contra contraseñas filtradas requiere plan Pro — la organización (`bolysrglhpxjfydtuzkw`) está en plan `free`. `SEC-37` pasa de "pendiente de decisión" a "bloqueado por plan"; no es accionable hasta un eventual upgrade.
 
 ## 🔁 Tabla de equivalencias (IDs antiguos → nuevos)
 
