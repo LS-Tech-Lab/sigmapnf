@@ -502,9 +502,9 @@ export default function AdminQRPanel({
   }, [requiereModoManual]);
 
   // SEDE-3: la sesión QR queda anclada a la sede activa de quien la crea
-  // (fija para la mayoría de los roles, elegida en SedeSelector para
-  // quienes tienen puedeVerTodasLasSedes — ver useSedeActiva.js). Sin
-  // esto, dos sedes generando QR el mismo turno/programa se desactivarían
+  // (fija para la mayoría de los roles, elegida en el dropdown de
+  // ModuleSelector para quienes tienen puedeVerTodasLasSedes — ver
+  // useSedeActiva.js). Sin esto, dos sedes generando QR el mismo turno/programa se desactivarían
   // sesiones entre sí (crear_qr_session desactiva "la sesión previa del
   // mismo contexto", que ahora incluye sede).
   const { sedeActiva } = useSedeContext();
