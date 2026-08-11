@@ -58,6 +58,15 @@ uso en `src/` y `docs/supabase/migrations/`.
 | `puedeVerLogs` | Historial de acciones del sistema | RPC (`0024`, `0031`–`0033`) |
 | `puedeVerAuditoria` | Ver quién hizo qué y cuándo | RPC `get_audit_logs` (`0024`) |
 | `puedeConfigurarReportes` | Personalizar logo, colores y textos del membrete de los 3 documentos imprimibles | Tabla `configuracion_reportes` (`0056`, **ADMIN-6**) |
+| `puedeVerTodasLasSedes` | Acceder/gestionar todas las sedes en vez de quedar fijo a la propia (`user_profiles.sede_id`) | RLS (`0061`–`0064`, `SEDE-1`–`4`) — ver `usuario_puede_ver_sede()` |
+| `puedeGestionarSedes` | Crear sedes, renombrarlas, reordenarlas, activar/desactivar | RPC de gestión de sedes (`0070`, `SEDE-17`, `SECURITY DEFINER`) |
+
+> **Faltaban en este catálogo hasta el 11 de agosto** — `puedeVerTodasLasSedes`/
+> `puedeGestionarSedes` existen en `shared.jsx` (fuente de verdad real)
+> desde `SEDE-2`/`17` (6 ago) pero nunca se sumaron aquí. A diferencia de
+> `puedeVerSoloSuPrograma` (§2), estos sí son claves reales de
+> `roles.permisos` — simplemente quedaron fuera por una actualización que
+> no llegó a este archivo. 21 permisos reales en total, no 19.
 
 ---
 
@@ -130,10 +139,11 @@ porque el razonamiento (qué se investigó, qué se descartó) sigue siendo
   (un mismo docente dicta en varios programas), no le pertenecen a un
   programa concreto. Detalle completo en `AUDITORIA_INDICE.md` (`PROG-1`
   a `PROG-3 fase 3`).
-  > **Pendiente operativo:** las migraciones `0075`, `0077`–`0081` están
-  > escritas y verificadas contra los tests, pero **aún no aplicadas en
-  > el Supabase de producción** — aplicar en ese orden (`0081` depende de
-  > `usuario_puede_ver_programa()`, creada en `0078`).
+  > **Cerrado:** las migraciones `0075`, `0077`–`0081` están aplicadas en
+  > producción — confirmado el 9 ago por conector directo (`user_profiles_programas`
+  > y `usuario_puede_ver_programa()`/`registrar_asistencia_manual()`/etc. en
+  > `information_schema`/`pg_proc` real) y reconfirmado el 11 ago (`pg_proc`
+  > en vivo). Ya no es un pendiente operativo.
 
 ---
 
@@ -170,7 +180,8 @@ WHERE jsonb_object_keys(permisos) NOT IN (
   'puedeEditarDocentes','puedeEditarMaterias','puedeImportarExcel',
   'puedeHacerBackup','puedeRestaurarBackup',
   'puedeGestionarQR','puedeVerReporteAsistencias','puedeBorrarSesiones','puedeBorrarReportes',
-  'puedeGestionarUsuarios','puedeGestionarRoles','puedeVerLogs','puedeVerAuditoria','puedeConfigurarReportes'
+  'puedeGestionarUsuarios','puedeGestionarRoles','puedeVerLogs','puedeVerAuditoria','puedeConfigurarReportes',
+  'puedeVerTodasLasSedes','puedeGestionarSedes'
 );
 ```
 
@@ -185,6 +196,10 @@ faltó a `puedeVerTodo`/`puedeHacerBackup` (ver §3).
 
 ---
 
-*Última actualización: 9 de agosto de 2026 — cierre de `PERM-6` y de la
-serie `PROG-N`, y nota de `ESTAD-1` (dashboard de estadísticas reutiliza
-`puedeVerReporteAsistencias`, sin permiso nuevo).*
+*Última actualización: 11 de agosto de 2026 — reverificado en vivo contra
+`shared.jsx` (fuente de verdad real) y `pg_proc`: agregados los 2
+permisos de sedes que faltaban (`puedeVerTodasLasSedes`/
+`puedeGestionarSedes`, existían en código desde el 6 ago), y corregida
+la nota de `PROG-N` que decía "aún no aplicado en producción" —
+confirmado aplicado desde el 9 ago. Actualización anterior: 9 de agosto
+de 2026 (cierre de `PERM-6` y de la serie `PROG-N`, nota de `ESTAD-1`).*
