@@ -112,8 +112,12 @@ jobs:
       - name: Instalar dependencias (versión exacta del lockfile)
         run: npm ci
 
-      - name: Instalar navegador de Playwright (solo Chromium)
-        run: npx playwright install --with-deps chromium
+      - name: Instalar navegadores de Playwright (Chromium + WebKit)
+        # Fix UX-35 (auditoría de estrés operacional, 10 de agosto):
+        # antes solo se instalaba Chromium — el nuevo proyecto
+        # 'desktop-webkit-1280' (playwright.config.js) necesita el
+        # binario de WebKit o el job falla al intentar lanzarlo.
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Build de producción
         run: npm run build
@@ -123,6 +127,23 @@ jobs:
 
       - name: Correr tests visuales
         run: npm run test:visual
+
+      - name: Cross-browser WebKit (fix UX-35, piloto no bloqueante)
+        # A diferencia del paso de arriba, este SÍ puede fallar sin
+        # bloquear el check: es la primera corrida contra estas imágenes
+        # base, mismo criterio que UX-11 usó originalmente para Chromium
+        # (continue-on-error hasta confirmar N corridas reales sin falsos
+        # positivos, después se gradúa a bloqueante quitando esta línea).
+        run: npm run test:visual:webkit
+        continue-on-error: true
+
+      - name: Accesibilidad WCAG — axe-core (fix UX-35, piloto no bloqueante)
+        # Mismo criterio que el paso de arriba: primera corrida real,
+        # no verificada contra el código real en este entorno (sin salida
+        # de red hacia navegadores reales) — no debe bloquear el build
+        # hasta que LS confirme que no hay falsos positivos.
+        run: npm run test:a11y
+        continue-on-error: true
 
       - name: Subir reporte HTML (si hubo diffs)
         if: failure()
@@ -135,3 +156,10 @@ jobs:
     # corridas reales en CI desde el 13 de julio, todas success, sin
     # ningún diff falso (ver docs/AUDITORIA_INDICE.md § UX-11). Este job
     # ahora sí bloquea el check si una imagen difiere de la base.
+    #
+    # Fix UX-35 (auditoría de estrés operacional, 10 de agosto): SOLO
+    # aplica a los 3 proyectos originales de Chromium (test:visual). Los
+    # 2 pasos nuevos (WebKit, axe-core) arrancan con continue-on-error
+    # a propósito, mismo criterio que este mismo comentario describe para
+    # UX-11 — graduar a bloqueante es trabajo de seguimiento de LS una vez
+    # que haya corridas reales confirmando que no dan falsos positivos.
