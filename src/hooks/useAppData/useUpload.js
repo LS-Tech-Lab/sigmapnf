@@ -88,6 +88,49 @@ function esErrorDeRed(err) {
   );
 }
 
+// Fix UX-36 (auditoría de estrés operacional, 11 de agosto): a diferencia de
+// un corte de red, una sesión vencida durante el insert final NO se lanza
+// como excepción — Supabase la devuelve como `{ error }` normal de la
+// respuesta (código PostgREST 'PGRST301' / mensaje 'JWT expired' / status
+// 401), así que nunca pasaba por `esErrorDeRed()` ni por ninguna rama que
+// encolara el archivo. Un coordinador de sede cuya sesión expira a mitad de
+// una carga grande veía un error genérico y tenía que reseleccionar el
+// archivo y rehacer todo el flujo (parseo + resolución de catálogo + vista
+// previa) después de volver a loguearse — mismo dolor que OFF-12 ya resolvió
+// para cortes de red, sin cubrir este caso. Reconoce tanto el `err` lanzado
+// como un objeto `{ error }` devuelto directamente por una llamada Supabase.
+function esErrorDeSesionExpirada(err) {
+  if (!err) return false;
+  if (err.code === "PGRST301") return true;
+  if (err.status === 401) return true;
+  const msg = String(err.message || "").toLowerCase();
+  return msg.includes("jwt expired") || msg.includes("jwt is expired") || msg.includes("invalid jwt");
+}
+
+// Fix UX-36: cualquiera de los dos motivos amerita el mismo tratamiento
+// (preservar el archivo en `excelUploadQueue` en vez de perderlo), pero con
+// un mensaje distinto para que el usuario sepa qué hacer en cada caso.
+function esErrorRecuperable(err) {
+  return esErrorDeRed(err) || esErrorDeSesionExpirada(err);
+}
+
+function mensajeDeColaParaError(err, fileName, { antesDeVistaPrevia = false } = {}) {
+  if (esErrorDeSesionExpirada(err)) {
+    return (
+      "Tu sesión expiró mientras se guardaba. No se guardó nada a medias — " +
+      `tu archivo "${fileName}" quedó guardado en este dispositivo. Inicia sesión de nuevo y ` +
+      "reintenta desde \"Cargas pendientes\"."
+    );
+  }
+  return antesDeVistaPrevia
+    ? `Se perdió la conexión antes de poder procesar "${fileName}". ` +
+        "Tu archivo quedó guardado en este dispositivo — reintenta desde " +
+        "\"Cargas pendientes\" cuando vuelva la señal."
+    : "Se perdió la conexión durante la carga. No se guardó nada a medias — " +
+        `tu archivo "${fileName}" quedó guardado en este dispositivo. Reintenta ` +
+        "desde \"Cargas pendientes\" cuando vuelva la señal.";
+}
+
 // ── SEC-27 (auditoría 2 de agosto): validación de contenido real ───────────
 // Antes solo se validaba la extensión/mimetype del navegador (fácilmente
 // falsificable — un archivo renombrado a .xlsx sin serlo llegaba hasta
@@ -633,6 +676,27 @@ export default function useUpload({
           if (insertError) {
             if (timedOut) return;
             logger.error("insert horarios:", insertError);
+
+            // Fix UX-36: a diferencia de un fetch fallido, Supabase devuelve
+            // un JWT vencido como `{ error }` normal acá — nunca se lanza,
+            // así que este caso no pasaba por ningún camino de encolado.
+            // Se trata igual que un corte de red: se preserva el archivo en
+            // vez de perderlo, con un mensaje que le dice al usuario que
+            // vuelva a loguearse (reintentar sin hacerlo fallaría otra vez).
+            if (esErrorDeSesionExpirada(insertError)) {
+              try {
+                await encolarCargaExcel({ file, fileName: file.name, lapso, selectedPrograma, sedeActiva });
+                await refreshCargasExcelPendientes();
+                const msg = mensajeDeColaParaError(insertError, file.name);
+                setError(msg);
+                showToast(msg, "warning");
+                return;
+              } catch (queueErr) {
+                logger.error("No se pudo encolar la carga de Excel (UX-36):", queueErr);
+                // sigue al camino normal de abajo si no se pudo encolar
+              }
+            }
+
             showToast(`Error al guardar: ${mensajeAmigable(insertError)}`, "error");
             // M-6 fix: registrar fallo de insert en auditoría.
             // Antes: el error solo se mostraba en toast y console — sin rastro en audit_logs.
@@ -676,14 +740,11 @@ export default function useUpload({
             // reintentar sin volver a seleccionarlo, y sin haber insertado
             // nada a medias (el insert de horarios es una única sentencia,
             // no puede haber quedado parcial).
-            if (esErrorDeRed(unexpectedErr)) {
+            if (esErrorRecuperable(unexpectedErr)) {
               try {
                 await encolarCargaExcel({ file, fileName: file.name, lapso, selectedPrograma, sedeActiva });
                 await refreshCargasExcelPendientes();
-                const msg =
-                  "Se perdió la conexión durante la carga. No se guardó nada a medias — " +
-                  `tu archivo "${file.name}" quedó guardado en este dispositivo. Reintenta ` +
-                  "desde \"Cargas pendientes\" cuando vuelva la señal.";
+                const msg = mensajeDeColaParaError(unexpectedErr, file.name);
                 setError(msg);
                 showToast(msg, "warning");
               } catch (queueErr) {
@@ -711,14 +772,11 @@ export default function useUpload({
       // — parseo/lectura del Excel son puramente locales, no fallan por
       // red). Todavía no se mostró la vista previa, así que no hay nada
       // más que preservar salvo el archivo mismo.
-      if (esErrorDeRed(unexpectedErr)) {
+      if (esErrorRecuperable(unexpectedErr)) {
         try {
           await encolarCargaExcel({ file, fileName: file.name, lapso, selectedPrograma, sedeActiva });
           await refreshCargasExcelPendientes();
-          const msg =
-            `Se perdió la conexión antes de poder procesar "${file.name}". ` +
-            "Tu archivo quedó guardado en este dispositivo — reintenta desde " +
-            "\"Cargas pendientes\" cuando vuelva la señal.";
+          const msg = mensajeDeColaParaError(unexpectedErr, file.name, { antesDeVistaPrevia: true });
           setError(msg);
           showToast(msg, "warning");
         } catch (queueErr) {
