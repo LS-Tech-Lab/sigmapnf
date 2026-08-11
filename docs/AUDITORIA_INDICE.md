@@ -41,114 +41,36 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ## 🔴 Hallazgos realmente abiertos
 
-**1 abierto — `SEC-37`, no es código.** Última verificación cruzada
-código↔BD real: 9 de agosto (auditoría completa de BD, 11/11 secciones,
-más confirmación de las 6 migraciones de `PROG-N` ya aplicadas en
-producción, más verificación operativa de rate limiting nativo de Auth
-— ver § Historial; verificación previa 6 de agosto). El único hallazgo
-abierto (`SEC-37`, leaked password protection) **no depende de una
-decisión de LS: el toggle requiere plan Pro** (confirmado contra la
-organización real — `bolysrglhpxjfydtuzkw`, plan `free`), no está
-disponible en el plan actual. 411/411 tests, 0 errores de lint,
-build limpio.
+**1 abierto — `SEC-37`, no es código.** Bloqueado por plan, no por
+decisión de LS: el toggle de leaked-password protection requiere Pro
+(organización real `bolysrglhpxjfydtuzkw`, plan `free`). Reverificado
+en vivo el 11 ago vía `get_advisors` (conector Supabase directo, no
+código estático) — sigue deshabilitado, sin cambio de estado. Detalle
+en la fila `SEC-37`.
+
+**Nuevo, `SEC-39` (11 ago, primera verificación en vivo del proyecto
+real desde este índice, `get_advisors`/security):** 3 hallazgos menores
+de higiene de BD, ninguno bloqueante — ver fila `SEC-39` más abajo.
 
 **Patrón recurrente a vigilar:** dos veces un hallazgo se marcó ✅
-cerrado en este índice sin que el fix llegara realmente al código/CI
-(`ARCH-29`→reabierto como `ARCH-31`, 2 ago; `ARCH-34`→reabierto como
-`ARCH-35`, 3 ago) — ambas veces detectado *antes* de aplicar el
-siguiente fix, verificando archivo por archivo contra el HEAD real,
-nunca dando por buena la tabla de este documento sin más. El sistema
-de Sedes (`SEDE-1`–`18`, 6 ago) tuvo el mismo problema de fondo —
-15 pasadas reales que nunca se volcaron acá — cerrado como `ARCH-37`,
-detalle completo en § Sistema multi-sede.
+cerrado sin que el fix llegara realmente al código/CI (`ARCH-29`→`31`,
+2 ago; `ARCH-34`→`35`, 3 ago; mismo patrón de fondo en `ARCH-43`,
+10 ago) — siempre detectado verificando archivo por archivo contra el
+HEAD real, nunca dando por buena la tabla de este documento sin más.
+El sistema de Sedes tuvo el mismo problema (`ARCH-37`, § Sistema
+multi-sede).
 
 `UX-13` (modo oscuro) sigue ⛔ revertido a pedido de LS — decisión de
-producto, no hallazgo pendiente.
+producto, no hallazgo pendiente. CodeQL corre en cada push/PR y
+semanalmente por cron (`SEC-20`) — revisar Security → Code scanning
+periódicamente, 0 hallazgos hoy no es un estado permanente.
 
-CodeQL corre en cada push/PR y semanalmente por cron (`SEC-20`) —
-conviene revisar Security → Code scanning periódicamente en vez de
-asumir que 0 hallazgos abiertos es un estado permanente.
-
-**Confirmado en el dashboard real de Supabase (9 ago, captura de LS):**
-rate limiting nativo de Auth (`SEC-7`) activo — sign-ups/sign-ins en
-4 req/5min por IP (más estricto que el default de 30, respaldo real
-del lockout de `SEC-6`/`SEC-7`), token refresh/verification/anonymous
-en default (30/5min, 30/5min, 30/h). Límite de envío de emails (2/h)
-verificado como irrelevante: `admin_reset_user_password` (`0014`)
-escribe la contraseña directo vía `SECURITY DEFINER`, sin pasar por
-el sistema de correo de Auth — confirmado por `grep` que el código no
-usa `resetPasswordForEmail`/`inviteUserByEmail`/`signInWithOtp`/
-`magicLink` en ningún punto.
-`pg_cron`/`SEC-21` ya confirmado (9 ago, auditoría de BD): `cron.job`
-real muestra `limpiar-sesiones-expiradas` (`*/15 * * * *`) `active=true`.
-Grants de las 8 funciones admin/sesión cerradas por `SEC-9`/`SEC-17`
-reverificados el mismo día (9 ago) contra `has_function_privilege`:
-sin drift, ninguna ejecutable por `anon`.
-
-**Nuevo hallazgo, `SEC-37` (9 ago, dashboard de Supabase → Advisors):**
-`auth_leaked_password_protection` deshabilitado — Auth no verifica
-contraseñas nuevas contra la base de HaveIBeenPwned antes de aceptarlas.
-**No accionable en este momento:** la función requiere plan Pro o
-superior — confirmado contra la organización real (`bolysrglhpxjfydtuzkw`,
-plan `free`); no es una decisión pendiente de LS, es un bloqueo de plan.
-Impacto real acotado: los usuarios los da de alta un admin
-(`admin_create_auth_user`), no hay self-signup público, así que la
-superficie de exposición ya es menor que en una app con registro abierto.
-Ver fila `SEC-37` más abajo.
-
-**Auditoría de estrés operacional externa, 10 de agosto (simulación de**
-**concurrencia masiva, entradas maliciosas, fallos de infraestructura y**
-**fatiga de usuario contra HEAD real, 403/403 tests):** 4 hallazgos
-nuevos, ninguno bloqueante — gaps de cobertura, no vulnerabilidades
-activas ni bugs funcionales. Los 4 cerrados el mismo día: `ARCH-43`
-(el job de CI para `qr:load-test` que `ARCH-39` había documentado como
-"pendiente de confirmar" nunca llegó realmente a `ci.yml` — mismo
-patrón de fondo que `ARCH-29`→`31`/`ARCH-34`→`35`, corregido con un
-workflow separado en vez de dentro de `ci.yml`); `OFF-12` (cola offline
-nueva para cargas de Excel interrumpidas por corte de red, sin
-auto-sync a diferencia de `OFF-10` — necesita revisión manual del
-usuario contra el catálogo vigente); `SEC-38` (fallback de
-`mensajeAmigable()` dejó de mostrar mensajes crudos de Postgres al
-usuario final, más 6 call sites que bypasseaban el filtro por completo);
-`UX-35` (piloto de accesibilidad WCAG con axe-core + testing visual
-cross-browser WebKit, ambos arrancando `continue-on-error: true` en CI
-hasta que LS confirme corridas reales sin falsos positivos — **no**
-verificado contra navegadores reales en el entorno de esta auditoría,
-sin salida de red hacia servidores de descarga de Playwright). **Drift
-real detectado durante la implementación, en 2 rondas:** primera ronda,
-5 commits paralelos de LS en `origin/main` (`SEC-35`/`36` ya reflejados
-arriba, más 4 migraciones nuevas de corrección de `ON CONFLICT`/`sede_id`
-— originalmente numeradas `0082`/`0082b`/`0083`/`0084`, colisionando con
-los prefijos que ya usaban `SEC-35`/`36`, `ARCH-40` y el reporte de
-estadísticas académicas respectivamente — y un nuevo workflow
-`audit-on-conflict.yml`). Segunda ronda, 7 commits más (tests nuevos:
-`api/admin-users.test.js` — el endpoint más sensible del sistema, sin
-ningún test hasta ahora —, `ModalRol.test.jsx`, `ModalUsuario.test.jsx`,
-`password.test.js`, `backupActions.restaurarBackup.test.js`; más el fix
-paralelo del mismo `ON CONFLICT` en el fallback client-side de
-`restaurarBackup()`, `backupActions.js`). `git merge origin/main` local
-sin conflictos de contenido en ninguna de las dos rondas (archivos
-distintos a los tocados por esta auditoría). **Confirmado revisando el
-contenido de las 4 migraciones de corrección:** las 4 ya estaban
-aplicadas en producción al momento del commit (cada archivo lo dice
-explícitamente en su propio comentario — "este fix ya fue aplicado
-directamente en produccion via SQL... el 2026-08-10", el mismo día,
-documentando el cambio en el repo después del hecho) — sin impacto
-operativo adicional más allá de la ventana real entre que `SEC-35` se
-aplicó (9 ago) y estas 4 se aplicaron (10 ago), durante la cual
-`registrar_asistencia()`/`registrar_asistencia_manual()`/
-`restaurar_backup()` habrían fallado con "there is no unique or
-exclusion constraint matching the ON CONFLICT specification" ante
-cualquier intento real de marcar asistencia — **LS: vale la pena revisar
-los logs de Postgres/API de ese rango para confirmar el alcance real de
-esa ventana**, no se pudo verificar desde este entorno (tool de Supabase
-sin aprobar). **Colisión de numeración resuelta (10 ago):** las 4
-migraciones renumeradas `0082`→`0085`, `0082b`→`0086`, `0083`→`0087`,
-`0084`→`0088` (contenido SQL sin cambios, ya aplicado en producción bajo
-los nombres viejos — la renumeración es solo para que el archivo en el
-repo no colisione de acá en adelante); cabecera interna de cada archivo
-(`-- Migration: NNNN_...`) actualizada a juego. Ver filas
-`ARCH-43`/`OFF-12`/`SEC-38`/`UX-35` más abajo.
+Rate limiting nativo de Auth (`SEC-7`), `pg_cron` (`SEC-21`) y grants
+de las 8 funciones admin/sesión (`SEC-9`/`SEC-17`) confirmados sin
+drift el 9 ago — detalle completo, la auditoría de estrés operacional
+del 10 ago (`ARCH-43`/`OFF-12`/`SEC-38`/`UX-35`) y el drift paralelo
+de esos días (4 migraciones renumeradas `0082`–`84`→`0085`–`88`): ver
+§ Historial cronológico y las filas de cada ID en sus tablas.
 
 ---
 
@@ -197,6 +119,7 @@ Esquema `SEC-N`. Fusiona lo que antes eran 4 esquemas paralelos (`S-N`,
 | **SEC-36** 🟡 | Encontrado en la misma auditoría: política `Lectura publica trimestres` con `roles={public}` (incluye `anon`), único catálogo no restringido a `authenticated` (`sedes`/`roles` sí lo están correctamente). Sin migración que la haya creado — mismo patrón de objeto fantasma que `SEC-9`/`SEC-17`/`SEC-30`/`31`. Verificado contra el código real: `trimestres` solo se consulta desde `App.jsx`/`HistorialView.jsx` (contextos autenticados); el flujo anónimo `/scan` no la toca — sin necesidad funcional de que sea pública | `trimestres` | `0082` | ✅ Cerrado (9 ago) — política reemplazada por `trimestres_select_authenticated`, `roles={authenticated}` |
 | **SEC-37** 🟡 | Verificación operativa de rate limiting nativo de Auth (`SEC-7`) en el dashboard real, pedido de LS (9 ago): confirmado activo y reforzado (sign-ups/sign-ins en 4 req/5min por IP, resto en default). De paso, el advisor de seguridad de Supabase (`get_advisors`) señaló `auth_leaked_password_protection` deshabilitado — Auth no chequea contraseñas nuevas contra HaveIBeenPwned antes de aceptarlas. No es una migración ni afecta código: toggle de dashboard (Authentication → Policies), pero confirmado contra la organización real que **requiere plan Pro** — el proyecto está en plan `free` | — (config del proyecto, no código) | — | 🟡 Abierto — bloqueado por plan, no por decisión pendiente. Reevaluar si el proyecto sube a Pro |
 | **SEC-38** 🟡 | Auditoría de estrés operacional (10 ago, simulación externa de entradas maliciosas/erróneas): `mensajeAmigable()` (`UX-31`/`32`) era una whitelist *pass-through* — cualquier mensaje de Postgres no cubierto por sus reglas se mostraba crudo al usuario final. Ante un parámetro manipulado a mano (URL/DevTools) con tipo inválido, o una política RLS rechazando la operación, el mensaje crudo (`invalid input syntax for type uuid...`, `permission denied for table...`) filtraba nombres de tabla/columna/tipo internos — fuga de información de esquema de bajo riesgo (OWASP A05), útil para reconocimiento previo a un intento de explotación más serio, no explotable por sí sola. Verificación adicional encontró 6 archivos más que concatenaban `error.message` directo sin pasar por `mensajeAmigable()` en absoluto (`TabSesiones.jsx`, `HistorialView.jsx` ×3, `HistorialSesiones.jsx`, `ReporteRango.jsx`, `horarioEditing.js` ×2, `useDataSync.js`) | `src/utils/errorMessages.js`, + 6 archivos de call sites (ver descripción) | — | ✅ Cerrado (10 ago) — el fallback de `mensajeAmigable()` deja de devolver el mensaje original: ahora es un mensaje genérico accionable, con el original preservado solo en `logger.warn` (silenciado en producción, mismo criterio que el resto de `logger.js`). 2 reglas nuevas (`invalid input syntax/value for`, `permission denied for`) además de las 3 ya existentes. Los 6 call sites que bypasseaban el filtro ahora pasan por `mensajeAmigable()`; el audit log (`logAudit`) sigue guardando el mensaje crudo a propósito — es un registro interno para el equipo técnico, no algo que vea el usuario final. 2 tests preexistentes actualizados (verificaban el comportamiento pass-through viejo, ahora verifican el mensaje genérico), 4 tests nuevos. 411/411 tests, 0 errores de lint, build limpio |
+| **SEC-39** 🟡 | Primera verificación en vivo del proyecto real vía `get_advisors`/security del conector de Supabase (11 ago) — antes este índice solo se cruzaba contra código/migraciones estáticas o consultas SQL manuales, nunca contra el linter nativo. 3 hallazgos, ninguno bloqueante: **(1)** ~15 funciones sin `search_path` fijo (`parse_clase`, `get_my_role`, `_aplicar_rls_horarios`, `unificar_docente`/`_materia`, `renombrar_docente`/`_materia`, entre otras) — hardening estándar de Supabase, sin explotación práctica hoy (ningún schema no confiable convive en el `search_path` actual); **(2)** extensión `pg_trgm` (usada por `buscar_docente_scan`/auto-linking fuzzy) instalada en el schema `public` en vez de uno dedicado; **(3)** posible función duplicada real — `restaurar_backup()` aparece dos veces en el advisor con firmas distintas (`p_docentes, p_materias, p_horarios, p_asistencias, p_lapso, p_sede_id` vs. `p_lapso, p_horarios, p_docentes, p_materias, p_asistencias, p_sede_id`), señal de un overload viejo que nunca tuvo su `DROP FUNCTION` y quedó vivo en paralelo al actual | ~15 funciones `SECURITY DEFINER`/`INVOKER`, `pg_trgm`, `restaurar_backup` (firma duplicada) | — | 🟡 Abierto — pendiente que LS confirme cuál firma de `restaurar_backup` usa el frontend real antes de tocar nada (`backupActions.js` tiene fallback client-side propio, ver `SEC-35`/`36`/drift del 10 ago); `search_path`/extensión son hardening no urgente, sin explotación conocida |
 
 ## 🔎 Filtrado de datos por permiso/programa
 
@@ -602,7 +525,20 @@ dice `Fix S1`, es el mismo hallazgo que esta tabla mapea a `SEC-1`.
 
 ---
 
-*Optimizaciones de este documento — **16 jul** (601→~400 líneas): párrafos
+*Optimizaciones de este documento — **11 ago** (líneas exactas al
+cierre de esta pasada, ver historial de git): la sección de apertura
+("Hallazgos realmente abiertos", ~110 líneas) se condensó a un resumen
+de ~20 líneas — casi todo su contenido (verificación de rate limiting,
+la auditoría de estrés del 10 ago, el drift paralelo de 4 migraciones)
+ya vivía palabra por palabra en § Historial cronológico y en las filas
+`SEC-37`/`SEC-38`/`ARCH-42`/`ARCH-43`; nada se eliminó sin que ya
+estuviera migrado a otra parte del documento, mismo criterio que las
+pasadas anteriores. De paso, primera verificación en vivo del proyecto
+real vía conector Supabase directo (antes de esta sesión el trabajo
+era solo contra código/migraciones estáticas clonadas del repo):
+`SEC-37` reconfirmado sin cambios de estado; nuevo hallazgo `SEC-39`
+(3 items menores del advisor nativo de seguridad de Supabase, nunca
+antes cruzado contra este índice). **16 jul** (601→~400 líneas): párrafos
 de verificación de cada hallazgo ✅ cerrado condensados a causa raíz + fix
 en una línea (migraciones/archivos/IDs intactos); historial narrativo
 recortado a resumen por fecha. Incluyó una recuperación de contenido
