@@ -5,9 +5,12 @@ indica qué rol puede hacer qué — si no ves una opción descrita aquí en tu
 pantalla, es porque tu rol no tiene ese permiso, no porque esté roto.
 
 > Este manual describe el comportamiento real del sistema al momento de
-> escribirlo (julio 2026). Las imágenes son ilustraciones del flujo, no
-> capturas de pantalla reales — los textos, botones y mensajes sí son
-> exactos.
+> escribirlo (última revisión: 11 de agosto de 2026 — se agregaron las
+> secciones de Estadísticas §3.5, respaldo manual sin QR §3.6, Sedes §4.3,
+> y la nota de multi-programa en §4.2; texto original de julio 2026 sin
+> cambios donde el sistema no cambió). Las imágenes son ilustraciones del
+> flujo, no capturas de pantalla reales — los textos, botones y mensajes
+> sí son exactos.
 
 ---
 
@@ -213,6 +216,30 @@ filtrando por turno y programa, y **exportar a PDF o CSV** — el CSV cruza
 automáticamente con el listado de docentes para incluir cédula completa,
 útil para llevar a nómina o control administrativo.
 
+### 3.5 Estadísticas — panel de analítica (nuevo, no documentado hasta ahora)
+
+*(Reutiliza el mismo permiso "Ver Reporte de Asistencias" — no es un
+permiso aparte.)*
+
+La pestaña "Estadísticas" del módulo de Asistencias muestra un dashboard
+con gráficos de asistencia por programa/turno a lo largo del tiempo,
+pensado para identificar patrones (ej. un turno con inasistencia
+recurrente) sin tener que armar el análisis a mano desde el reporte por
+rango.
+
+### 3.6 Si se cae la conexión sin ningún QR ya generado
+
+Si nunca llegó a abrirse una sesión QR (corte de red/infraestructura
+antes de empezar) y aun así hay que dejar constancia de la asistencia del
+día, quien tenga el permiso "Gestionar QR" puede registrar entradas y
+salidas **a mano** — cédula, nombre y tipo, sin depender de ningún QR.
+El registro queda guardado en el dispositivo y se sincroniza solo al
+volver la conexión, pero **requiere revisión manual antes de reintentar**
+(a diferencia del resto del sistema, que reintenta solo) — el catálogo de
+docentes pudo cambiar mientras tanto. Solo permite registrar los últimos
+7 días: es un respaldo para reconstruir asistencia reciente, no para
+corregir historial antiguo.
+
 ---
 
 ## 4. Gestión de usuarios y roles
@@ -247,7 +274,25 @@ independiente al crear o editar un rol.
 **Un rol puede "restringir por programa":** si se activa esa opción,
 cualquier usuario con ese rol solo ve y gestiona datos de su propio
 programa asignado, sin acceso al resto — pensado para secretarías que
-atienden un solo PNF.
+atienden un solo PNF. **Un mismo usuario puede tener más de un programa
+asignado** (nuevo) — útil para un coordinador que atiende dos PNF a la
+vez, no solo uno.
+
+### 4.3 Sedes (nuevo, no documentado hasta ahora)
+
+*(Requiere el permiso "Gestionar sedes" para crear/editar sedes; "Ver
+todas las sedes" para moverse entre todas en vez de quedar fijo a una.)*
+
+La mayoría de los usuarios queda fijo a **una sola sede** — todo lo que
+ven (horarios, docentes, asistencias) está limitado a esa sede, sin
+selector visible. Quien tenga el permiso "Ver todas las sedes" (típico
+de un admin o coordinador general) elige la sede activa desde un menú
+desplegable junto a su nombre, en la pantalla de selección de módulo —
+la app recuerda la última sede elegida entre sesiones, pero pide elegir
+de nuevo si se cambia de cuenta.
+
+Dar de baja una sede no la borra (los datos existentes de esa sede se
+conservan) — solo la desactiva para que no aparezca como opción nueva.
 
 ---
 
