@@ -31,6 +31,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import * as XLSX from "xlsx";
+import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
+
+// Fix UX-36: los tests de esa sección encolan de verdad en excelUploadQueue
+// (IndexedDB real, no mockeado) — mismo criterio que excelUploadQueue.test.js,
+// para probar el camino completo useUpload → encolarCargaExcel, no solo que
+// se llamó una función mockeada.
+beforeEach(() => {
+  global.indexedDB = new IDBFactory();
+  global.IDBKeyRange = IDBKeyRange;
+});
 
 vi.mock("../../utils/excelParser", () => ({
   parseExcelFile: vi.fn(),
@@ -337,5 +347,100 @@ describe("useUpload — SEC-27: validación de contenido real (magic bytes)", ()
 
     await waitFor(() => expect(result.current.previewData).not.toBe(null));
     expect(parseExcelFile).toHaveBeenCalled();
+  });
+});
+
+describe("useUpload — UX-36: sesión expirada durante la carga se encola, no se pierde", () => {
+  it("insert() devuelve JWT vencido (PGRST301) como { error } normal → encola el archivo en vez de perderlo", async () => {
+    parseHojaDocentes.mockReturnValue([docenteSinCedula]);
+    parseHojaMalla.mockReturnValue([materiaFixture]);
+    parseExcelFile.mockResolvedValue({ rows: [filaExcel], advertencias: [] });
+
+    // Supabase NO lanza excepción en este caso — devuelve { error } como
+    // cualquier otro fallo de insert. Antes de UX-36 esta rama nunca
+    // revisaba si el error era recuperable; siempre mostraba un toast
+    // genérico y perdía el archivo.
+    supabase.from = makeFromMock({
+      horarios: {
+        select: { data: [] },
+        insert: { error: { code: "PGRST301", message: "JWT expired" } },
+      },
+      docentes: { upsert: { error: null } },
+      materias: { upsert: { error: null } },
+    });
+    supabase.rpc = vi.fn().mockResolvedValue({ error: null });
+
+    const { result, showToast, setError } = renderUseUpload();
+
+    await act(async () => {
+      await result.current.handleFileUpload(archivoExcelMinimo());
+    });
+    await waitFor(() => expect(result.current.previewData).not.toBe(null));
+
+    await act(async () => {
+      await result.current.confirmPreview();
+    });
+
+    // Se avisa como "warning" (recuperable) y no como "error" genérico,
+    // con instrucción clara de volver a loguearse y reintentar.
+    expect(showToast).toHaveBeenCalledWith(
+      expect.stringMatching(/sesión expiró.*Cargas pendientes/s),
+      "warning"
+    );
+    expect(setError).toHaveBeenCalledWith(expect.stringContaining("sesión expiró"));
+
+    // El archivo quedó guardado de verdad en la cola (IndexedDB real), no
+    // solo se llamó una función mockeada.
+    const { obtenerCargasPendientes } = await import("../../utils/excelUploadQueue");
+    const pendientes = await obtenerCargasPendientes();
+    expect(pendientes).toHaveLength(1);
+    expect(pendientes[0].fileName).toBe("horarios.xlsx");
+  });
+
+  it("un JWT vencido lanzado como excepción durante el insert también se encola (no solo el caso { error })", async () => {
+    parseHojaDocentes.mockReturnValue([docenteSinCedula]);
+    parseHojaMalla.mockReturnValue([materiaFixture]);
+    parseExcelFile.mockResolvedValue({ rows: [filaExcel], advertencias: [] });
+
+    const jwtError = Object.assign(new Error("JWT expired"), { code: "PGRST301" });
+
+    supabase.from = makeFromMock({
+      horarios: { select: { data: [] } }, // sin duplicados; insert se sobreescribe abajo para que LANCE
+      docentes: {
+        upsert: { error: null },
+        select: { data: [{ id: 1, nombre_raw: "Juan Pérez", cedula: null }] },
+      },
+      materias: {
+        upsert: { error: null },
+        select: { data: [{ id: 2, nombre_raw: "Cálculo I" }] },
+      },
+    });
+    // Sobreescribe insert() de "horarios" para que LANCE (no devuelva {error})
+    // — es el caso menos común pero posible de que el cliente arroje en vez
+    // de devolver la respuesta como objeto normal.
+    const fromOriginal = supabase.from;
+    supabase.from = vi.fn((table) => {
+      const chain = fromOriginal(table);
+      if (table === "horarios") chain.insert = vi.fn(() => Promise.reject(jwtError));
+      return chain;
+    });
+    supabase.rpc = vi.fn().mockResolvedValue({ error: null });
+
+    const { result, showToast } = renderUseUpload();
+
+    await act(async () => {
+      await result.current.handleFileUpload(archivoExcelMinimo());
+    });
+    await waitFor(() => expect(result.current.previewData).not.toBe(null));
+
+    await act(async () => {
+      await result.current.confirmPreview();
+    });
+
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("sesión expiró"), "warning");
+
+    const { obtenerCargasPendientes } = await import("../../utils/excelUploadQueue");
+    const pendientes = await obtenerCargasPendientes();
+    expect(pendientes).toHaveLength(1);
   });
 });
