@@ -76,7 +76,7 @@ grilla — más rápido que navegar turno por turno.
 
 ### 2.2 Ver los horarios
 
-![Grilla de horarios](./images/grid-horarios.svg)
+![Grilla de horarios](./docs/grid-horarios.svg)
 
 La grilla se organiza por turno (Diurno, Vespertino, Nocturno) y muestra
 cada bloque de clase con la materia, el docente y el aula asignada. Usa
