@@ -15,22 +15,33 @@ deberían vivir más cerca de donde se usan. El orden real, con el motivo:
 ```
 1. Auth
 2. Perfil y permisos efectivos (online / offline-PIN)
-3. Navegación interna del módulo horarios     ← antes de useAppData:
+3. Sede activa (useSedeActiva) — resuelta ANTES del módulo activo:
+                                                 needsSedeSelection frena la
+                                                 auto-selección de módulo
+                                                 hasta que haya sede (SEDE-18)
+4. Navegación interna del módulo horarios     ← antes de useAppData:
                                                  `lapso` es argumento del hook
-4. Datos (useAppData)
-5. Sesión QR (useQRSession)                   ← vive aquí, no en AdminQRPanel:
+5. Datos (useAppData)
+6. Sesión QR (useQRSession)                   ← vive aquí, no en AdminQRPanel:
                                                  no debe perderse al cambiar de sub-vista
-6. Shell UI (sidebar, modales globales, Supabase caído, email-change)
-7. Módulo activo + auto-selección por permisos ← useModuloActivo, llamado
+7. Shell UI (sidebar, modales globales, Supabase caído, email-change)
+8. Módulo activo + auto-selección por permisos ← useModuloActivo, llamado
                                                   incondicionalmente (Regla de Hooks)
-8. Sincronización offline (vaciar cola IndexedDB al recuperar red)
-9. Reset de navegación al cambiar de usuario
-10. Modo consulta histórica / restricción de programa para secretarios
-11. Callbacks
-12. Refs de inputs de archivo ocultos          ← montados en document.body,
+9. Sincronización offline (vaciar cola IndexedDB al recuperar red)
+10. Reset de navegación al cambiar de usuario
+11. Modo consulta histórica / restricción de programa para secretarios
+12. Callbacks
+13. Refs de inputs de archivo ocultos          ← montados en document.body,
                                                   sobreviven a cualquier pantalla
-13. Guards                                     ← /scan PRIMERO (ver §2)
+14. Guards                                     ← /scan PRIMERO (ver §2)
 ```
+
+**Actualizado 11 ago (`SEDE-18`):** el orden real tiene la sede activa
+antes del módulo activo — la razón es exactamente la misma que ya
+explicaba el punto 3 original (ahora 4): `useModuloActivo` necesita saber
+si todavía falta elegir sede (`needsSedeSelection`) para no auto-seleccionar
+un módulo antes de que `ModuleSelector` haya tenido la oportunidad de
+mostrar su dropdown de sede al menos una vez.
 
 **Por qué importa:** si en algún momento se quiere "limpiar" `App.jsx`
 moviendo alguno de estos hooks a un componente hijo, dos se rompen
@@ -49,6 +60,48 @@ if (window.location.pathname === "/scan") { ... }
 Si un guard de sesión/auth se evaluara primero, un docente sin cuenta en
 el sistema vería una pantalla de login en vez del formulario de asistencia
 — rompería el flujo completo del módulo QR para todo el que no sea admin.
+
+## 2.5. Selección de sede: un único punto en toda la app (`SEDE-18`, 11 ago)
+
+Hasta el 10 de agosto, un usuario con `puedeVerTodasLasSedes` pasaba por
+una pantalla propia (`<SedeSelector/>`) forzada antes de llegar a
+`ModuleSelector`. Se eliminó: la elección de sede ahora vive **solo**
+como dropdown dentro de `ModuleSelector.jsx` (`UX-31`). El problema real
+que esto introdujo, y cómo se resolvió: si el usuario solo tenía acceso
+a **un** módulo, la auto-selección de `useModuloActivo` saltaba directo
+a él y `ModuleSelector` nunca llegaba a mostrarse — ese usuario quedaba
+sin ninguna forma de elegir sede en toda la sesión. `needsSedeSelection`
+(`useModuloActivo.js`) frena esa auto-selección mientras
+`puedeElegirSede` sea `true` y `sedeActiva` siga sin resolver, forzando
+que `ModuleSelector` se muestre al menos una vez.
+
+**Regla práctica:** cualquier auto-navegación nueva que dependa de
+`efectivePermisos`/`efectiveProfile` (siguiendo el patrón de
+`useModuloActivo`) debe considerar si el usuario todavía necesita elegir
+sede antes de saltarse pantallas — de lo contrario se reintroduce
+exactamente este bug.
+
+> ⚠️ **Código muerto detectado durante esta actualización (11 ago):**
+> `src/components/SedeSelector.jsx` sigue en el repo pero ya no lo
+> importa nada (`ModuleSelector.jsx` reemplazó su función por completo).
+> No se borró como parte de este documento — LS: confirmar que no hay
+> un motivo para conservarlo antes de eliminarlo.
+
+## 2.6. Errores recuperables durante cargas largas: red y sesión expirada son el mismo camino (`UX-36`, 11 ago)
+
+`useUpload.js` ya tenía `esErrorDeRed()` para preservar un archivo Excel
+en `excelUploadQueue` si se cortaba la conexión a mitad de carga
+(`OFF-12`). Un JWT vencido durante el `insert` final **no** se comporta
+igual: Supabase lo devuelve como `{ error }` normal de la respuesta
+(código `PGRST301`), no como excepción lanzada — así que nunca pasaba
+por ningún camino de encolado, y el usuario perdía el archivo y tenía
+que rehacer parseo + resolución de catálogo + vista previa tras volver
+a loguearse. `esErrorDeSesionExpirada()` + `esErrorRecuperable()` (red
+**o** sesión) generalizan el patrón. **Regla práctica:** cualquier
+operación larga contra Supabase que ya maneje cortes de red debe
+preguntarse también por sesión expirada — son fallos con la misma
+consecuencia para el usuario (perder trabajo) pero disparados de forma
+distinta (excepción vs. `{ error }` en la respuesta).
 
 ## 3. Fecha y hora de Venezuela: zona horaria IANA, no aritmética de offset
 
@@ -71,6 +124,24 @@ selector de fecha del Panel QR bloqueaba el día real y dejaba seleccionable
 el día siguiente. Si se agrega una nueva función que necesite "hoy" o
 "ahora" en Venezuela, replicar el patrón de la tabla — no volver a
 calcularlo con aritmética manual.
+
+**Relacionado — `getCurrentLapso()` es orientativo, no autoritativo (fix
+11 ago):** el botón "Volver al trimestre activo" (`HorariosSidebar.jsx`)
+usaba `getCurrentLapso()` — un cálculo por *fecha de calendario*
+(`ARCH-41`, `utils/lapso.js`), no el trimestre realmente `activo` en la
+tabla `trimestres`. Cerrar un trimestre solo le pone `estado='cerrado'`,
+**no** activa el siguiente automáticamente (eso es "Nuevo trimestre" en
+`HistorialView`, una acción separada) — si el trimestre recién cerrado
+era justo el que la fecha de hoy calcularía como "actual", el botón
+reenviaba al usuario exactamente al mismo trimestre cerrado, atrapado en
+modo lectura. `handleVolverActivo()` (`App.jsx`) ahora consulta
+`trimestres WHERE estado='activo'` en el momento del clic (siempre
+fresco) y solo cae al heurístico de `getCurrentLapso()` como *fallback*
+si no hay ninguno activo. **Regla práctica:** para "¿cuál es el
+trimestre vigente ahora mismo?", preferir siempre una consulta real a
+`trimestres.estado` sobre el heurístico de fecha — el heurístico es para
+cuando no hay datos que consultar (instalación nueva), no la fuente de
+verdad.
 
 ## 4. `horarios` está particionada — cualquier cambio de esquema o RLS debe considerar ambos niveles
 
@@ -160,4 +231,9 @@ puntual*.
 
 ---
 
-*Última actualización: julio 2026.*
+*Última actualización: 11 de agosto de 2026 — agregadas §2.5 (`SEDE-18`,
+selección de sede unificada en `ModuleSelector`) y §2.6 (`UX-36`, sesión
+expirada como error recuperable en cargas largas), más la nota sobre
+`getCurrentLapso()` en §3. Verificado contra `git diff` real del drift
+paralelo detectado el mismo día (17 commits), no inferido. Actualización
+anterior: julio 2026.*
