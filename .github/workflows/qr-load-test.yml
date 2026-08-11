@@ -1,0 +1,46 @@
+name: Load test QR (concurrencia)
+
+# Fix ARCH-43 (auditoría de estrés operacional, 10 de agosto): scripts/qr-load-test.mjs
+# existía desde ARCH-32/33 (condición de carrera real, reproducida contra Postgres real,
+# en el rate limiting de registrar_asistencia() cuando varios docentes escanean casi al
+# mismo tiempo con el mismo device_fingerprint) pero solo corría manual — nada impedía
+# que una migración futura reintrodujera el patrón SELECT-then-INSERT (en vez de UPSERT
+# atómico) sin que CI lo notara antes de llegar a producción.
+#
+# No se agrega a ci.yml (job "test-and-build") a propósito, mismo criterio que
+# rls-smoke-test.mjs y visual-regression: necesita credenciales reales contra la BD de
+# producción/staging (SUPABASE_SERVICE_ROLE_KEY) para crear y limpiar el fixture de
+# prueba, y su tiempo de ejecución (llamadas concurrentes reales) no debe formar parte
+# del feedback rápido de cada PR. Corre semanal (mismo día/hora que CodeQL, SEC-20) +
+# bajo demanda desde la pestaña Actions.
+on:
+  schedule:
+    - cron: '30 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  qr-load-test:
+    name: Concurrencia QR (registrar_asistencia)
+    runs-on: ubuntu-latest
+    # Si SUPABASE_URL/SUPABASE_ANON_KEY/SUPABASE_SERVICE_ROLE_KEY no están
+    # configurados como secrets del repo, el script se salta con un aviso
+    # (mismo patrón que rls-smoke-test.mjs) en vez de fallar el job.
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependencias (versión exacta del lockfile)
+        run: npm ci
+
+      - name: Correr load test de concurrencia QR
+        run: npm run qr:load-test
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
