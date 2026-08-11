@@ -156,7 +156,7 @@ que se ve en el aula), y el **docente** (quien escanea desde su celular).
 
 *(Requiere el permiso "Gestionar QR".)*
 
-![Panel de administración QR](./images/panel-qr-admin.svg)
+![Panel de administración QR](./panel-qr-admin.svg)
 
 Para tomar asistencia:
 1. Elige el **turno** y, si aplica, el **programa**.
@@ -186,7 +186,7 @@ proyecta desde otro dispositivo.
 No necesita cuenta ni contraseña — cualquier docente con cédula registrada
 en el sistema puede marcar su asistencia.
 
-![Flujo de escaneo del docente](./images/flujo-scan-docente.svg)
+![Flujo de escaneo del docente](./flujo-scan-docente.svg)
 
 1. **Escanear** el QR proyectado con la cámara del celular — se abre
    directo en el navegador, sin necesidad de ninguna app.
