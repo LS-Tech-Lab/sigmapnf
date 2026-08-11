@@ -215,6 +215,34 @@ export default function App() {
     resetFilters();
   }, [resetFilters]);
 
+  // Fix (bug "no puedo volver al trimestre activo" tras cerrar un
+  // trimestre): los botones "Volver al trimestre activo" usaban
+  // getCurrentLapso() — un cálculo ORIENTATIVO por fecha de calendario
+  // (ver ARCH-41 en utils/lapso.js), no el trimestre realmente activo en
+  // la tabla `trimestres`. Cerrar un trimestre solo le pone
+  // estado='cerrado' — NO activa automáticamente el siguiente (eso es la
+  // acción separada "Nuevo trimestre" en HistorialView). Si el trimestre
+  // recién cerrado es justo el que la fecha de hoy calcularía como
+  // "actual" (caso típico: se cierra antes de que cambie el rango de
+  // fecha orientativo), el botón reenviaba al usuario exactamente al
+  // mismo trimestre cerrado — el check de modoConsulta lo detectaba
+  // cerrado otra vez y el usuario quedaba atrapado en modo lectura.
+  // Ahora se consulta la tabla `trimestres` por estado='activo' en el
+  // momento del clic (siempre fresco, sin caché); si no hay ninguno
+  // activo (instalación que no gestiona `trimestres`, o quedó sin
+  // activar el siguiente tras cerrar), cae al heurístico anterior como
+  // fallback para no romper el comportamiento existente.
+  const handleVolverActivo = useCallback(async () => {
+    const { data } = await supabase
+      .from("trimestres")
+      .select("lapso")
+      .eq("estado", "activo")
+      .order("lapso", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    handleCambiarLapso(data?.lapso || getCurrentLapso());
+  }, [handleCambiarLapso]);
+
   const handleFileUploadAuditado = async (file) => {
     await appData.handleFileUpload(file);
     await logAudit({
@@ -423,6 +451,7 @@ export default function App() {
         lapso={lapso}
         modoConsulta={modoConsulta}
         handleCambiarLapso={handleCambiarLapso}
+        handleVolverActivo={handleVolverActivo}
         // Sidebar UI
         hovered={shell.hovered} setHovered={shell.setHovered}
         pinned={shell.pinned} togglePin={shell.togglePin}
