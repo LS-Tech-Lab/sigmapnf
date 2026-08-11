@@ -9,7 +9,6 @@ import useModuloActivo from "./hooks/useModuloActivo";
 import useAppShell from "./hooks/useAppShell";
 import LoginScreen from "./components/LoginScreen";
 import ModuleSelector from "./components/ModuleSelector";
-import SedeSelector from "./components/SedeSelector";
 import DocenteScan from "./components/asistencias/DocenteScan";
 import { getCurrentLapso } from "./utils/lapso";
 import { supabase, supabaseConfigError } from "./lib/supabase";
@@ -115,9 +114,9 @@ export default function App() {
   // ── Sede activa (SEDE-2) ────────────────────────────────────────────────
   // Fija para la mayoría de los roles (efectivePermisos.sedeAsignada);
   // seleccionable solo para quienes tienen puedeVerTodasLasSedes.
-  const { sedes, loadingSedes, refetchSedes } = useSedes(user?.id);
+  const { sedes, refetchSedes } = useSedes(user?.id);
   const {
-    sedeActiva, setSedeActiva, requiereSeleccion, puedeElegir,
+    sedeActiva, setSedeActiva, puedeElegir,
   } = useSedeActiva({ userId: user?.id, efectivePermisos });
 
   // ── Navegación interna del módulo horarios ────────────────────────────────
@@ -150,8 +149,8 @@ export default function App() {
   // ── Módulo activo + auto-selección por permisos ───────────────────────────
   const {
     moduloActivo, setModuloActivo,
-    tieneHorarios, tieneQR, tieneAdmin,
-  } = useModuloActivo({ efectiveProfile, efectivePermisos });
+    tieneHorarios, tieneQR, tieneAdmin, needsSedeSelection,
+  } = useModuloActivo({ efectiveProfile, efectivePermisos, puedeElegirSede: puedeElegir, sedeActiva });
 
   // ── Sincronización offline — vacía cola IndexedDB al recuperar red ────────
   // UX-4: pendientesCount se pasa a los layouts para mostrar badge persistente
@@ -334,30 +333,19 @@ export default function App() {
   if (efectiveProfile._desactivado) return <CuentaDesactivada onLogout={handleLogout} />;
   if (efectiveProfile._rolInvalido) return <SinPerfilAsignado onLogout={handleLogout} />;
 
-  // ── Selector de sede (SEDE-2) ────────────────────────────────────────────
-  // Va después de validar el perfil y antes del selector de módulo, para
-  // que todo lo que sigue (módulos, datos, RLS en SEDE-3) ya tenga una
-  // sede resuelta. Perfiles con sede fija nunca ven esta pantalla —
-  // requiereSeleccion solo es true para puedeVerTodasLasSedes sin sede
-  // activa todavía elegida en esta sesión (useSedeActiva.js).
-  if (requiereSeleccion) {
-    return (
-      <SedeSelector
-        profile={efectiveProfile}
-        sedes={sedes}
-        loadingSedes={loadingSedes}
-        onSelectSede={setSedeActiva}
-        onLogout={handleLogout}
-      />
-    );
-  }
-
   // ── Selector de módulo ────────────────────────────────────────────────────
+  // SEDE-18: la elección de sede para roles con puedeVerTodasLasSedes ya no
+  // tiene una pantalla propia — vive como dropdown dentro de ModuleSelector
+  // (ver comentario ahí y en useModuloActivo.js/needsSedeSelection). Este
+  // guard reemplaza al antiguo `if (requiereSeleccion) return <SedeSelector/>`.
   if (!moduloActivo) {
     // Spinner mientras el useEffect de useModuloActivo procesa la
-    // auto-selección (caso de un solo módulo disponible).
+    // auto-selección (caso de un solo módulo disponible) — salvo que el
+    // usuario todavía necesite elegir sede, caso en el que SIEMPRE se
+    // muestra ModuleSelector (con su dropdown de sede) sin importar cuántos
+    // módulos tenga, porque needsSedeSelection frena esa auto-selección.
     const modulosCount = [tieneHorarios, tieneQR, tieneAdmin].filter(Boolean).length;
-    if (modulosCount < 2) {
+    if (modulosCount < 2 && !needsSedeSelection) {
       return <FullScreenSpinner label="Cargando…" />;
     }
     return (
