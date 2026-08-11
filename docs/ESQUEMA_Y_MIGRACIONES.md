@@ -3,10 +3,10 @@
 Documentación completa y **verificada contra la base de datos real**
 (no solo contra las migraciones) — columnas, relaciones, RLS, funciones,
 índices, particiones, Realtime y roles. Pensada para que auditar o
-incorporar a alguien nuevo no requiera leer 49 archivos SQL en orden ni
+incorporar a alguien nuevo no requiera leer 85 archivos SQL en orden ni
 adivinar qué está realmente activo en producción.
 
-> **Metodología:** verificado el 4 de julio de 2026 contra
+> **Metodología:** verificado por última vez el 4 de julio de 2026 contra
 > `information_schema`, `pg_policies`, `pg_proc`, `pg_indexes`,
 > `pg_publication_tables` y `pg_extension` de la BD real — no inferido de
 > las migraciones. Esto importó: la verificación encontró **contradicciones
@@ -16,6 +16,16 @@ adivinar qué está realmente activo en producción.
 > dashboard de Supabase después de esta fecha no va a estar reflejado aquí
 > hasta la próxima verificación. Las queries para repetirla están en
 > `verificacion_esquema_completo.sql`.
+>
+> **Reverificado el 11 de agosto de 2026**, esta vez por conector directo
+> a la BD real (`information_schema`/`pg_proc` en vivo, no archivos SQL
+> clonados) — cubre las ~40 migraciones de julio-agosto (`0061`–`0088`)
+> ausentes en la verificación de julio: el sistema de Sedes (`SEDE-N`),
+> filtrado por programa (`PROG-N`), y varias tablas/funciones nuevas. No
+> es una reverificación 1:1 de las 11 queries originales — ver anotaciones
+> "(11 ago)" en las secciones que sí se recorrieron contra la BD real esta
+> vez; el resto conserva su última verificación de julio, marcada donde
+> corresponde.
 
 ---
 
@@ -106,6 +116,7 @@ Todas las tablas tienen **RLS habilitado** (verificado, no asumido).
 - **Índices:** `horarios_id_idx`, `horarios_lapso_idx`, `horarios_lapso_dia_idx (lapso, dia)`, `horarios_part_pkey (id, lapso)`, `idx_horarios_lapso_programa (lapso, programa)`, `idx_horarios_sheet`.
 - **RLS (4 políticas, padre + cada partición):** SELECT público (`true`); INSERT/UPDATE requieren `puedeEditarHorarios`; DELETE requiere `puedeBorrarHorarios`.
 - **Realtime:** habilitado (padre no, pero **cada partición sí** — coherente con que Postgres publica por relación física, no por el padre lógico).
+- **`sede_id` (text, sí nulo) agregada por `0061`/`SEDE-1`** (confirmada en vivo el 11 ago, presente en el padre y las 7 particiones) — el aislamiento real por sede se exige en RLS desde `0063` (`SEC-N`/`SEDE-3`), no solo por la columna. Ver § Sistema multi-sede en `AUDITORIA_INDICE.md` para las 18 pasadas completas.
 
 ### `docentes`
 
@@ -124,6 +135,7 @@ Todas las tablas tienen **RLS habilitado** (verificado, no asumido).
 - **RLS (4 políticas):** SELECT público (`true` — necesario para el autocompletado anónimo en `/scan`); INSERT/UPDATE requieren `puedeEditarDocentes OR puedeImportarExcel`; DELETE requiere `puedeEditarDocentes OR puedeRestaurarBackup`.
 - **Realtime:** habilitado.
 - ⚠️ **Nota:** existen `docentes_cedula_unique` y `uq_docentes_cedula` — dos índices UNIQUE distintos sobre la misma columna `cedula` (uno total, uno parcial). Funcionalmente redundante; no es un bug de seguridad, pero vale la pena limpiar en una migración futura si se toca esta tabla.
+- **`sede_id` (text, sí nulo) agregada por `0061`** (confirmada en vivo el 11 ago) — desde `0061`/`SEDE-1` el catálogo de docentes es independiente por sede (`docentes_sede_cedula_unique`, `UNIQUE (sede_id, cedula)`, no global); `docentes_con_cedula()` filtra por sede desde `0066`.
 
 ### `materias`
 
@@ -135,6 +147,7 @@ Todas las tablas tienen **RLS habilitado** (verificado, no asumido).
 | `trayecto` / `codigo_uc` / `horas_semanales` / `unidades_credito` | text | sí | — |
 
 - **UNIQUE:** `nombre_raw`. **RLS:** mismo patrón que `docentes` (con `puedeEditarMaterias` en vez de `puedeEditarDocentes`). **Realtime:** habilitado.
+- **`sede_id` (text, sí nulo) agregada por `0061`** (confirmada en vivo el 11 ago), mismo patrón que `docentes`.
 
 ### `trimestres` — no documentada en ninguna versión anterior de este archivo
 
@@ -165,9 +178,11 @@ Todas las tablas tienen **RLS habilitado** (verificado, no asumido).
 | `activo` | boolean | NO | `true` |
 | `creado_en` / `actualizado_en` | timestamptz | NO | `now()` |
 | `creado_por` | text | sí | — |
+| `sede_id` | text | sí | — |
 
 - **FK:** `id → auth.users.id` (`CASCADE`), `rol → roles.nombre` (`RESTRICT` — no se puede borrar un rol en uso, ver `admin_delete_role`).
 - **RLS (4 políticas):** cada usuario ve/edita su propio perfil (`auth.uid() = id`) o quien tenga `puedeGestionarUsuarios` ve/edita cualquiera. Sin acceso público.
+- **`sede_id` agregada por `0061`/`SEDE-1`.** `programa` (columna singular, preexistente) queda **desde `0078`/`PROG-2` solo como el programa "principal"** para roles `restringe_programa` de un solo programa — el soporte real multi-programa vive en la tabla nueva `user_profiles_programas` (N:N), no en esta columna. Ver esa tabla más abajo y `admin_set_user_programas()`/`admin_get_user_profiles_programas()`.
 
 ### `roles` — RBAC dinámico, no un enum fijo
 
@@ -208,6 +223,7 @@ Todas las tablas tienen **RLS habilitado** (verificado, no asumido).
 
 - **UNIQUE:** `token` (además de un índice parcial `idx_qr_sessions_token ... WHERE activa=true` para las búsquedas del hot path).
 - **RLS (3 políticas):** SELECT requiere `puedeGestionarQR OR puedeVerReporteAsistencias` (+ perfil activo); INSERT requiere lo mismo, perfil activo, y `fecha = fecha_hoy_ve()` (no se pueden crear sesiones con fecha pasada/futura). **Sin política pública** — el docente anónimo nunca lee esta tabla directo, todo pasa por `registrar_asistencia`. **Realtime:** habilitado.
+- **`sede_id` (text, sí nulo) agregada por `0061`**, con `WITH CHECK`/`USING` de sede reforzados en `0064` (INSERT) y `0071` (el `WITH CHECK` de INSERT no tenía el chequeo de sede hasta entonces — ver `SEC-32`).
 
 ### `asistencias_diarias`
 
@@ -223,8 +239,9 @@ Todas las tablas tienen **RLS habilitado** (verificado, no asumido).
 | `device_fingerprint` | text | sí | — |
 | `tipo` | text | NO | `'ENTRADA'` |
 
-- **UNIQUE:** `(cedula_docente, fecha, tipo)` — un docente puede tener como máximo una ENTRADA y una SALIDA por día.
-- **RLS (2 políticas, ambas SELECT):** requieren `puedeGestionarQR OR puedeVerReporteAsistencias`. **Sin política de INSERT/UPDATE/DELETE — por diseño**, no por omisión: la única vía de escritura es `registrar_asistencia()` (`SECURITY DEFINER`, corre como su propietario y por lo tanto no necesita que `anon` tenga ningún permiso directo sobre la tabla). Confirmar esto contra `pg_policies` antes de asumir que "falta" una política de INSERT — no falta, es intencional.
+- **UNIQUE:** ~~`(cedula_docente, fecha, tipo)`~~ — **reemplazada por `uq_asistencia_docente_dia_tipo_sede`, `(sede_id, cedula_docente, fecha, tipo)` en `0082`/`SEC-35`** (9 ago): la constraint vieja no tenía `sede_id`, así que un mismo docente en dos sedes distintas el mismo día/tipo rechazaba el segundo registro aunque fueran asistencias legítimas en sedes diferentes. **Ojo con `0085`–`0088`:** el `ON CONFLICT` de `registrar_asistencia()`/`registrar_asistencia_manual()`/`restaurar_backup()`/`horarios_resolver_docente_materia()` seguía apuntando a la constraint vieja tras `0082` — corregido recién en esos 4 fixes del 10 ago, ver `AUDITORIA_INDICE.md` para la ventana real de exposición.
+- **`sede_id`** (text, sí nulo) agregada por `0061`, forma parte de la UNIQUE desde `0082` (ver arriba).
+- **RLS (2 políticas, ambas SELECT):** requieren `puedeGestionarQR OR puedeVerReporteAsistencias` (más el filtro de sede vigente desde `0064`). **Sin política de INSERT/UPDATE/DELETE — por diseño**, no por omisión: la única vía de escritura es `registrar_asistencia()`/`registrar_asistencia_manual()` (`SECURITY DEFINER`, corren como su propietario y por lo tanto no necesitan que `anon`/`authenticated` tengan ningún permiso directo sobre la tabla). Confirmar esto contra `pg_policies` antes de asumir que "falta" una política de INSERT — no falta, es intencional.
 - **Realtime:** habilitado — es lo que dispara la rotación del token QR (`FLUJO_ASISTENCIAS_QR.md`).
 
 ### `login_attempts`
@@ -248,17 +265,88 @@ Todas las tablas tienen **RLS habilitado** (verificado, no asumido).
 
 - **RLS habilitado, 0 políticas** — esto es intencional y es el patrón más restrictivo posible: sin ninguna política, nadie (ni `authenticated`) puede tocar esta tabla directo vía PostgREST; el único acceso es interno, dentro de `registrar_asistencia()` (mismo rol de ejecución que el dueño de la tabla). Es upsert por dispositivo, no un log append-only como `login_attempts` — una fila por `device_fingerprint`, se actualiza `intentos`/`ventana_inicio` en vez de insertar una fila nueva por intento.
 
+### `sedes` — nueva, no existía en la verificación de julio
+
+| Columna | Tipo | Nulo | Default |
+|---|---|---|---|
+| `id` | text | NO | — (PK, slug legible, ej. `cabimas`) |
+| `nombre` | text | NO | — |
+| `activa` | boolean | NO | `true` |
+| `orden` | smallint | NO | — |
+| `creado_en` | timestamptz | NO | `now()` |
+
+- Creada en `0061`/`SEDE-1`. Sin `DELETE` real por diseño — dar de baja una sede es desactivarla (`activa=false`), no borrarla, porque `docentes`/`materias`/`horarios`/`qr_sessions`/`asistencias_diarias`/`user_profiles` tienen FK entrante. Gestión desde la UI (pestaña "Sedes" del módulo Sistema) agregada en `0070`/`SEDE-17`, permiso `puedeGestionarSedes`.
+- **RLS:** SELECT público (necesario para el selector de sede en `/scan`, anónimo); escritura vía RPCs de gestión de sedes con guardia interna.
+
+### `user_profiles_programas` — nueva, no existía en la verificación de julio
+
+| Columna | Tipo | Nulo | Default |
+|---|---|---|---|
+| `user_id` | uuid | NO | FK → `user_profiles.id` |
+| `programa` | text | NO | — |
+| `creado_en` | timestamptz | NO | `now()` |
+
+- Relación N:N creada en `0078`/`PROG-2`: reemplaza a la columna singular `user_profiles.programa` como fuente real para roles con `restringe_programa` que necesitan ver **más de un** programa (la columna vieja se conserva solo como "programa principal", ver nota en `user_profiles` arriba). Enforcement real en RLS de `horarios`/`asistencias_diarias` desde `0081`/`PROG-3 fase 3`. Gestión vía `admin_set_user_programas()`/`admin_get_user_profiles_programas()`.
+
+### `admin_actions_rate_limit` — nueva, no existía en la verificación de julio
+
+| Columna | Tipo | Nulo | Default |
+|---|---|---|---|
+| `actor_id` | uuid | NO | — (PK) |
+| `intentos` | integer | NO | `1` |
+| `ventana_inicio` | timestamptz | NO | `now()` |
+
+- Creada en `0051`/`SEC-11` (rate limit de `api/admin-users.js`, 10 acciones/min por `actor_id`) — existía desde julio pero nunca se documentó en este archivo. **RLS habilitado, 0 políticas** — mismo patrón intencional que `scan_rate_limit`: acceso exclusivo vía `registrar_admin_action_rate_limit()` (`SECURITY DEFINER`). Confirmado en el advisor de seguridad de Supabase (11 ago) que esto es intencional, no un hallazgo — ver `SEC-39` en `AUDITORIA_INDICE.md`. `autovacuum` ajustado por tabla en `0083`/`ARCH-40` (bloat invisible con pocas filas vivas).
+
+### `csp_report_rate_limit` — nueva, no existía en la verificación de julio
+
+| Columna | Tipo | Nulo | Default |
+|---|---|---|---|
+| `ip` | text | NO | — (PK) |
+| `intentos` | integer | NO | `1` |
+| `ventana_inicio` | timestamptz | NO | `now()` |
+
+- Creada en `0060`/`OFF-9` (rate limit persistente de `api/csp-report.js`, reemplaza el `Map()` en memoria que no sobrevivía entre invocaciones serverless) — existía desde julio, no documentada hasta ahora. Mismo patrón de RLS sin políticas que `scan_rate_limit`/`admin_actions_rate_limit`. `autovacuum` ajustado en `0083`.
+
+### `configuracion_reportes` — nueva, no existía en la verificación de julio
+
+| Columna | Tipo | Nulo | Default |
+|---|---|---|---|
+| `id` | integer | NO | `1` (singleton) |
+| `nombre_institucion` | text | NO | `'UNERMB'` |
+| `subtitulo_1` | text | NO | `'Programas Nacionales de Formación'` |
+| `subtitulo_2` | text | NO | `'Control de Asistencia Docente'` |
+| `pie_texto` | text | NO | — |
+| `firma_label` | text | NO | `'Firma y sello del Coordinador(a)'` |
+| `logo_base64` | text | sí | — |
+| `color_clase` | text | NO | `'rp-color--azul'` |
+| `updated_at` | timestamptz | NO | `now()` |
+| `updated_by` | uuid | sí | — |
+
+- Tabla singleton (una sola fila, `id=1`) creada en `0056`/`ADMIN-6` para la personalización de reportes impresos (logo como data-URI, colores institucionales de una paleta CSP-safe predefinida — ver `color_clase`). No documentada hasta ahora.
+
 ### `audit_logs` / `session_logs`
 
 Estructura ya descrita en `SECURITY.md` — confirmado sin cambios: RLS activo, lectura vía `puedeVerLogs`/`puedeVerAuditoria`, escritura exclusiva vía `log_audit_event`/`log_session_event` (INSERT directo bloqueado con `false` para `authenticated`).
 
 ---
 
-## 4. Funciones (RPCs) — 49 en total
+## 4. Funciones (RPCs) — 102 en total (reverificado en vivo, 11 ago)
 
-Todas corren en `LANGUAGE plpgsql` salvo las utilitarias simples. Resumen
-por categoría — el detalle completo de argumentos está en
-`verificacion_esquema_completo.sql` (Q6).
+**Sube de las 49 documentadas en julio a 102** — no es una discrepancia
+sospechosa, es la cuenta real (`pg_proc`/`pg_namespace`, `prokind='f'`,
+schema `public`) tras ~40 migraciones de sedes (`SEDE-N`), multi-programa
+(`PROG-N`) y funcionalidad nueva (`ESTAD-1`, `admin_get_orphan_auth_users`,
+gestión de sedes, etc.) que nunca se sumaron a este conteo. Todas corren
+en `LANGUAGE plpgsql` salvo las utilitarias simples. Resumen por
+categoría — el detalle completo de argumentos está en
+`verificacion_esquema_completo.sql` (Q6), sin actualizar desde julio.
+
+> ⚠️ **`SEC-39` (11 ago, `AUDITORIA_INDICE.md`):** el advisor de seguridad
+> de Supabase encontró `restaurar_backup()` con **dos firmas distintas**
+> registradas en `pg_proc` — posible overload viejo sin `DROP FUNCTION`.
+> Pendiente que LS confirme cuál usa el frontend real antes de asumir
+> que la tabla de abajo describe una sola función.
 
 | Categoría | Funciones | Seguridad |
 |---|---|---|
@@ -290,6 +378,10 @@ Realtime** — no documentado en ningún lugar antes de esta verificación.
 Implica que cualquier cambio a horarios/catálogos se propaga en vivo a
 todos los clientes conectados; si se construye una feature nueva que
 depende de datos "estáticos" de estas tablas, tenerlo en cuenta.
+**No reverificado el 11 de agosto** (sin query de `pg_publication_tables`
+en esta pasada) — asumir que sigue igual, pero confirmar si se sospecha
+un problema de sincronización en vivo con `sedes`/`user_profiles_programas`
+(tablas nuevas, no confirmadas en Realtime ni con RLS motivo para necesitarlo).
 
 ## 7. Extensiones instaladas
 
@@ -338,6 +430,42 @@ depende de datos "estáticos" de estas tablas, tenerlo en cuenta.
 | 0058 | `arch32_backoff_progresivo_scan.sql` | **ARCH-32** — backoff progresivo en `registrar_asistencia()` |
 | 0059 | `arch33_fix_race_condition_rate_limit.sql` | **ARCH-33** — condición de carrera real en `registrar_asistencia()`, verificada contra Postgres real |
 | 0060 | `off9_rate_limit_persistente_csp_report.sql` | **OFF-9** — rate limit persistente (antes `Map()` en memoria) para `api/csp-report.js` |
+| 0061 | `sedes_catalogo_y_columnas.sql` | **SEDE-1** — tabla `sedes` + columna `sede_id` en `docentes`/`materias`/`horarios`/`qr_sessions`/`asistencias_diarias`/`user_profiles` |
+| 0062 | `permiso_ver_todas_sedes_y_rpc_usuarios.sql` | **SEDE-2** — permiso dinámico `puedeVerTodasLasSedes` |
+| 0063 | `rls_aislamiento_docentes_materias_horarios.sql` | **SEDE-3** — RLS empieza a exigir `sede_id` (hasta acá la columna existía pero no se filtraba) |
+| 0064 | `qr_sessions_asistencias_y_scan_por_sede.sql` | **SEDE-4/5** — aislamiento por sede en el módulo QR (`crear_qr_session`, `registrar_asistencia`) |
+| 0065 | `borrar_y_restaurar_backup_por_sede.sql` | **SEDE-6** — `borrar_horarios`/`restaurar_backup` (`SECURITY DEFINER`) filtrados por sede |
+| 0066 | `docentes_con_cedula_por_sede.sql` | **SEDE-7** — bug real: el selector de sede no filtraba el catálogo de docentes |
+| 0067 | `conflictos_horario_por_sede.sql` | **SEDE-8** — mismo bug que `SEDE-7` en "Conflictos detectados" |
+| 0068 | `auditoria_sede_gestion_usuarios_borrado.sql` | **SEDE-9/10, ARCH-37, SEC-28/29** — auditoría completa de `SECURITY DEFINER` con `sede_id`; cierra `admin_borrar_asistencias_rango`/`admin_borrar_qr_sesiones` sin chequeo de sede |
+| 0069 | `reporte_rango_agregado_por_sede.sql` | **SEDE-16** — `reporte_asistencias_rango_agregado()` (`SECURITY INVOKER`) reforzado con filtro explícito de sede |
+| 0070 | `gestion_sedes_permiso_y_rls.sql` | **SEDE-17** — alta/edición de sedes desde la UI, permiso `puedeGestionarSedes` |
+| 0071 | `cierre_politicas_zombi_y_sede_qr_insert.sql` | **SEC-30/31/32** — 2 políticas RLS huérfanas (`qr_sessions`/`asistencias_diarias`) creadas a mano, nunca versionadas; política `sl_insert` zombi en `session_logs` |
+| 0072 | `ux33_docentes_esperados_hoy.sql` | **UX-33** — RPC `contar_docentes_esperados()`, sede-scoped |
+| 0073 | `sec33_cerrar_grants_publicos_rpcs_admin.sql` | **SEC-33** — ~24 funciones administrativas ejecutables por `anon`/`PUBLIC` sin que ninguna migración lo otorgara, cerradas de una sola vez |
+| 0074 | `sec34_default_privileges_anon_funciones.sql` | **SEC-34** — causa raíz de `SEC-8`/`SEC-9`/`SEC-33`: privilegio por defecto de `postgres` otorgaba `EXECUTE` a `anon` en toda función nueva |
+| 0075 | `off10_registrar_asistencia_manual.sql` | **OFF-10** — RPC `registrar_asistencia_manual()`, respaldo sin token QR para cortes de red sin sesión pre-generada |
+| 0076 | `perm6_backup_server_side.sql` | **PERM-6** — `exportar_backup_completo()` mueve el chequeo de `puedeHacerBackup` al servidor |
+| 0077 | `prog1_backup_valida_programa.sql` | **PROG-1** — `exportar_backup_completo()` valida también restricción por programa |
+| 0078 | `prog2_user_profiles_programas.sql` | **PROG-2** — tabla `user_profiles_programas` (N:N), primera fase de multi-programa |
+| 0079 | `prog3_rpcs_multi_programa.sql` | **PROG-3 fase 1** — RPCs de gestión de usuarios adaptados a multi-programa (`admin_set_user_programas`, etc.) |
+| 0080 | `prog3_reporte_rango_valida_programa.sql` | **PROG-3 fase 2** — `reporte_asistencias_rango_agregado()` valida programa |
+| 0081 | `prog3_rls_programa_horarios_asistencias.sql` | **PROG-3 fase 3 (cierre)** — enforcement real en RLS de `horarios`/`asistencias_diarias` por programa |
+| 0082 | `sec35_36_unique_sede_y_trimestres_privado.sql` | **SEC-35/36** — `UNIQUE` de `asistencias_diarias` reemplazada para incluir `sede_id`; política pública de `trimestres` cerrada a `authenticated` |
+| 0083 | `arch_autovacuum_tablas_rate_limit.sql` | **ARCH-40** — `autovacuum` ajustado por tabla en las 3 tablas de rate limit (bloat invisible con pocas filas vivas) |
+| 0084 | `estad1_reporte_estadisticas_academicas.sql` | **ESTAD-1** — primera funcionalidad del dashboard de estadísticas académicas |
+| 0085 | `fix_registrar_asistencia_on_conflict_sede_id.sql` | Fix — `ON CONFLICT` de `registrar_asistencia()` seguía apuntando a la constraint vieja tras `0082` (renumerada de `0082`, colisión con la fila de arriba) |
+| 0086 | `fix_registrar_asistencia_manual_on_conflict_sede_id.sql` | Mismo fix que `0085`, en `registrar_asistencia_manual()` |
+| 0087 | `fix_restaurar_backup_on_conflict_sede_id.sql` | Mismo fix que `0085`, en `restaurar_backup()` |
+| 0088 | `fix_horarios_resolver_docente_materia_sede_id.sql` | Mismo fix que `0085`, en `horarios_resolver_docente_materia()` |
+
+**Ventana de exposición real de `0085`–`0088`:** entre que `0082` se
+aplicó (9 ago) y estos 4 fixes se aplicaron (10 ago), cualquier intento
+real de `registrar_asistencia`/`registrar_asistencia_manual`/
+`restaurar_backup` habría fallado con "no unique or exclusion
+constraint matching ON CONFLICT" — pendiente que LS confirme el alcance
+real revisando logs de Postgres/API de esa ventana (no verificable
+desde este entorno). Ver `AUDITORIA_INDICE.md`, entrada del 10 ago.
 
 ---
 
@@ -352,4 +480,10 @@ el patrón ya repetido varias veces en este proyecto.
 
 ---
 
-*Última actualización: julio 2026 — verificación completa contra la base de datos real.*
+*Última actualización: 11 de agosto de 2026 — tablas/columnas nuevas
+(§3), conteo de funciones (§4) e índice de migraciones (§8, `0061`–`0088`)
+reverificados en vivo contra la base de datos real vía conector directo
+de Supabase (no contra código/migraciones clonadas). Índices (§5),
+Realtime (§6) y extensiones (§7) **conservan su última verificación de
+julio 2026** — no se recorrieron de nuevo en esta pasada, ver nota en
+§6. Verificación completa anterior: 4 de julio de 2026.*
