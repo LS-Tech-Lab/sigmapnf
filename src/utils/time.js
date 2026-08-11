@@ -42,8 +42,31 @@ export function partesHoraNormalizadas(horaStr) {
   const parts = horaStr.trim().split(/[-–]/);
   if (parts.length < 2) return [parts[0]?.trim() || "", ""];
   let inicio = parts[0].trim();
-  const fin = parts[1].trim();
+  let fin = parts[1].trim();
   if (!/AM|PM/i.test(inicio)) {
+    // Fix (typo "12:00 AM" en vez de "12:00 PM" con inicio ambiguo): este
+    // formato de captura (inicio SIN AM/PM propio) asume que ambas horas
+    // comparten meridiano — es el mismo atajo que ya maneja el bloque de
+    // abajo. Cuando el `fin` viene como "12:00 AM" (medianoche, 0 min) es,
+    // en la práctica, siempre un typo por "12:00 PM" (mediodía): ningún
+    // bloque de DIURNO/VESPERTINO/MIXTO activo cruza medianoche, y nadie
+    // tipea manualmente un inicio ambiguo pensando en una clase que
+    // termina a medianoche. Sin esta corrección, timeToMin("12:00AM") da
+    // 0 — MENOR que cualquier candidato de inicio en AM — y el heurístico
+    // de abajo concluía que el inicio debía ser el meridiano OPUESTO
+    // (PM), convirtiendo silenciosamente una clase real de la mañana (ej.
+    // "9:45 - 12:00 AM", pensada como "9:45 AM - 12:00 PM") en un bloque
+    // fantasma de la noche ("9:45 PM - 12:00 AM"). Encontrado en 48
+    // registros de PNF Informática (sede Cabimas - Los Laureles, lapso
+    // 2-2026): estiraban la grilla de Horarios turno Diurno hasta
+    // "10:30 PM" con bloques nocturnos inexistentes.
+    //
+    // Ojo: esto NO toca rangos con inicio explícito tipo "8:00PM -
+    // 12:00AM" (ver cruceMedianocheVE.test.js) — ahí el inicio ya trae su
+    // propio AM/PM, así que ni siquiera entra a esta rama, y un futuro
+    // turno NOCTURNO que sí cruce medianoche sigue funcionando igual.
+    const finEsTypoMedianoche = /^12:00\s*AM$/i.test(fin);
+    if (finEsTypoMedianoche) fin = fin.replace(/AM/i, "PM");
     const sufijo = fin.match(/AM|PM/i)?.[0];
     if (sufijo) {
       const candidato = `${inicio}${sufijo}`;
