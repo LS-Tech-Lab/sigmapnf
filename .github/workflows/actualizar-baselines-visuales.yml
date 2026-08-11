@@ -15,6 +15,18 @@ name: Actualizar baselines visuales (Playwright)
 # que el cambio visual es intencional (ej. contra el reporte HTML de un
 # corrida fallida de "Regresión visual" en el job normal de ci.yml) antes
 # de correr esto. No es para "arreglar" un diff inesperado sin mirarlo.
+#
+# Fix gap detectado por LS (11 de agosto, corrida real): este workflow es
+# anterior a UX-35 y solo instalaba Chromium. `test:visual:update` (a
+# diferencia de `test:visual`) no tiene ningún `--project` que lo filtre,
+# así que corre los 5 proyectos de playwright.config.js — incluidos
+# `desktop-webkit-1280` y `a11y`, agregados por UX-35 el 10 de agosto — no
+# solo los 3 originales de Chromium. Sin el binario de WebKit instalado,
+# los 3 specs contra `desktop-webkit-1280` fallaban con "Executable
+# doesn't exist" (los otros 12 —9 Chromium + 3 a11y— sí pasaban, por eso
+# el resultado real fue 12 passed / 3 failed, no un fallo total). Mismo
+# criterio que el paso equivalente de `ci.yml` (job `visual-regression`):
+# se instalan ambos navegadores.
 on:
   workflow_dispatch:
 
@@ -37,8 +49,8 @@ jobs:
       - name: Instalar dependencias (versión exacta del lockfile)
         run: npm ci
 
-      - name: Instalar navegador de Playwright (solo Chromium)
-        run: npx playwright install --with-deps chromium
+      - name: Instalar navegadores de Playwright (Chromium + WebKit)
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Build de producción
         run: npm run build
