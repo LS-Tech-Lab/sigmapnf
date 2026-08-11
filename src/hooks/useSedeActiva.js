@@ -5,11 +5,12 @@
  *   - Perfil con sede fija (la mayoría de los roles): sedeActiva se
  *     auto-asigna a efectivePermisos.sedeAsignada, sin mostrar selector.
  *   - Perfil con puedeVerTodasLasSedes (admin, coordinador general):
- *     debe elegir sede en <SedeSelector/>. La elección se persiste en
- *     localStorage por usuario, mismo patrón que `sigma_ultima_actividad`
- *     en useAuth.js — así no hay que re-elegir sede en cada refresh,
- *     pero SÍ se resetea al cambiar de usuario (mismo criterio que
- *     App.jsx resetea view/moduloActivo al cambiar user.id).
+ *     puede elegir sede en el dropdown de <ModuleSelector/> (SEDE-18).
+ *     La elección se persiste en localStorage por usuario, mismo patrón
+ *     que `sigma_ultima_actividad` en useAuth.js — así no hay que
+ *     re-elegir sede en cada refresh, pero SÍ se resetea al cambiar de
+ *     usuario (mismo criterio que App.jsx resetea view/moduloActivo al
+ *     cambiar user.id).
  *
  * No decide nada de RLS/queries — eso es SEDE-3. Esto solo resuelve
  * *cuál* es la sede activa para que el resto de la app la use.
