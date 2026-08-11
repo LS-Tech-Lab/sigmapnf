@@ -82,13 +82,31 @@ function leerArchivo(file) {
   });
 }
 
+// Fix (caso PNF Agroalimentación, hoja "1-1 (11)"): worksheet["!merges"]
+// siempre trae coordenadas ABSOLUTAS de la hoja completa (col A = 0),
+// pero XLSX.utils.sheet_to_json(worksheet, {header:1}) indexa cada fila
+// de forma RELATIVA al rango usado (worksheet["!ref"]) — si los datos no
+// arrancan en A1 (ej. esta hoja usa B1:G30), la columna 0 del array json
+// ya NO es la columna A. Antes este mapa se construía con las coordenadas
+// absolutas de !merges y se comparaba contra colIdx relativo (proveniente
+// de diaCols/detectarEncabezado, que sí lee desde json) — un desfase de
+// columna que hacía fallar el match del merge en cualquier hoja cuyo
+// rango no empezara en la columna A, cayendo silenciosamente al camino
+// "sin merge" (una sola fila de 45 min en vez del bloque completo).
+// Reproducciones sintéticas con datos desde A1 no lo detectaban porque
+// ahí relativo y absoluto coinciden por casualidad.
 function construirMergeMap(worksheet) {
   const merges   = worksheet["!merges"] || [];
   const mergeMap = {};
+  const range    = XLSX.utils.decode_range(worksheet["!ref"] || "A1:A1");
+  const { r: rOffset, c: cOffset } = range.s;
+
   merges.forEach((m) => {
-    for (let r = m.s.r; r <= m.e.r; r++) {
-      for (let c = m.s.c; c <= m.e.c; c++) {
-        mergeMap[`${r}-${c}`] = { sr: m.s.r, er: m.e.r, sc: m.s.c, ec: m.e.c };
+    const sr = m.s.r - rOffset, er = m.e.r - rOffset;
+    const sc = m.s.c - cOffset, ec = m.e.c - cOffset;
+    for (let r = sr; r <= er; r++) {
+      for (let c = sc; c <= ec; c++) {
+        mergeMap[`${r}-${c}`] = { sr, er, sc, ec };
       }
     }
   });
