@@ -41,8 +41,15 @@ export default function ModuleSelector({
   // UX-31: el badge de sede antes navegaba a una pantalla completa
   // (<SedeSelector/>) para elegir sede. Ahora es un dropdown real: se
   // abre/cierra in-place y la selección llama a onSelectSede directo,
-  // sin salir de esta pantalla. Mismo patrón de cierre por click-afuera
-  // que GlobalSearch.jsx (ref + listener de "mousedown" en el documento).
+  // sin salir de esta pantalla.
+  // SEDE-18: esa pantalla <SedeSelector/> se eliminó del todo — esta
+  // pantalla (ModuleSelector) es ahora el ÚNICO lugar de la app donde se
+  // puede elegir/cambiar sede. useModuloActivo.js (needsSedeSelection) se
+  // encarga de que este selector siempre se muestre al menos una vez
+  // para quienes pueden elegir sede, aunque solo tengan un módulo
+  // disponible (antes lo garantizaba la pantalla forzada).
+  // Mismo patrón de cierre por click-afuera que GlobalSearch.jsx (ref +
+  // listener de "mousedown" en el documento).
   const [sedeMenuOpen, setSedeMenuOpen] = useState(false);
   const sedeMenuRef = useRef(null);
   const sedeActivaNombre = sedes.find((s) => s.id === sedeActiva)?.nombre || sedeActiva;
