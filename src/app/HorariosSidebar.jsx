@@ -2,7 +2,7 @@
 // navegación, dropdown de administración y lógica de expansión/colapso
 // (hover, pin, apertura móvil). Extraído de HorariosLayout.jsx (ARCH-11).
 import { useAppDataContext } from "../context/AppDataContext";
-import { getCurrentLapso, formatLapso } from "../utils/lapso";
+import { formatLapso } from "../utils/lapso";
 import buildNavGroups from "./buildNavGroups";
 import AdminMenu from "./AdminMenu";
 import ProgramaLogo from "../components/ProgramaLogo";
@@ -10,7 +10,7 @@ import ProgramaLogo from "../components/ProgramaLogo";
 /**
  * Props — navegación:
  *   view, setView
- *   modoConsulta, lapso, handleCambiarLapso
+ *   modoConsulta, lapso, handleVolverActivo
  *
  * Props — UI / colapso:
  *   hovered, setHovered
@@ -26,7 +26,7 @@ export default function HorariosSidebar({
   view, setView,
   modoConsulta,
   lapso,
-  handleCambiarLapso,
+  handleVolverActivo,
   hovered, setHovered,
   pinned, togglePin,
   mobileOpen, setMobileOpen,
@@ -95,7 +95,7 @@ export default function HorariosSidebar({
           {!expanded ? (
             <div
               className={`hl-lapso-icon ${modoConsulta ? "hl-lapso-icon--consulta" : ""}`}
-              onClick={() => modoConsulta && handleCambiarLapso(getCurrentLapso())}
+              onClick={() => modoConsulta && handleVolverActivo()}
               title={modoConsulta ? `Historial: ${lapso}` : `Trimestre activo: ${lapso}`}
             >
               <i className={`ti ${modoConsulta ? "ti-archive" : "ti-calendar-event"}`} aria-hidden="true" />
@@ -111,7 +111,7 @@ export default function HorariosSidebar({
                 </span>
                 {modoConsulta && (
                   <button
-                    onClick={() => handleCambiarLapso(getCurrentLapso())}
+                    onClick={handleVolverActivo}
                     className="hl-lapso-reset-btn"
                   >
                     <i className="ti ti-arrow-back-up hl-icon-sm" aria-hidden="true" />
