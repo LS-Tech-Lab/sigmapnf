@@ -22,6 +22,9 @@ aplicado en la auditoría de 2026 (throttle de rotación).
 | `docs/supabase/migrations/0039_rate_limit_scan.sql` | Rate limiting por `device_fingerprint` sobre `registrar_asistencia`. |
 | `docs/supabase/migrations/0058_arch32_backoff_progresivo_scan.sql` | Backoff progresivo (**ARCH-32**) sobre el mismo rate limit. |
 | `docs/supabase/migrations/0059_arch33_fix_race_condition_rate_limit.sql` | Fix de condición de carrera real (**ARCH-33**) en `registrar_asistencia`. |
+| `docs/supabase/migrations/0064_qr_sessions_asistencias_y_scan_por_sede.sql` | Aislamiento por sede (**SEDE-4/5**) — `crear_qr_session`/`registrar_asistencia` filtran/exigen `sede_id` |
+| `docs/supabase/migrations/0075_off10_registrar_asistencia_manual.sql` | RPC `registrar_asistencia_manual` (**OFF-10**) — respaldo sin token QR, ver §8 |
+| `src/utils/manualAttendanceQueue.js` | Cola IndexedDB (`asistencias_manuales_pendientes`) para el respaldo manual — ver §8 |
 
 ---
 
@@ -233,5 +236,50 @@ sesión se cierra igual — el resumen es informativo, nunca bloquea el cierre.
 
 ---
 
-*Última actualización: 8 de agosto de 2026 — persistencia de borrador y
-resumen de cierre de sesión (`UX-33`).*
+## 8. Respaldo sin token QR: registro manual (`OFF-10`, 8 ago)
+
+Cuando un corte de red o de infraestructura llega **sin ninguna sesión QR
+pre-generada disponible** (a diferencia del caso que ya cubre la cola
+offline normal del docente, que sí tiene un token), el admin/coordinador
+puede registrar asistencia a mano — cédula + nombre + tipo — sin depender
+de ningún token QR. RPC `registrar_asistencia_manual()` (`0075`,
+`SECURITY DEFINER`):
+
+- Requiere `puedeGestionarQR` (verificado internamente, no confía en el
+  cliente) y una sede activa resuelta — sin sede, rechaza el registro.
+- La fecha del registro debe estar dentro de los **últimos 7 días** — no
+  es para corregir asistencia histórica arbitraria, es específicamente el
+  respaldo de "se cayó todo y hay que reconstruir estos días recientes".
+- El registro se guarda primero en IndexedDB
+  (`asistencias_manuales_pendientes`, `src/utils/manualAttendanceQueue.js`)
+  y se sincroniza al volver la conexión — mismo patrón de cola que el resto
+  del sistema offline-first, pero **sin auto-sync**: a diferencia de la
+  cola de escaneo normal, este necesita revisión manual del usuario contra
+  el catálogo vigente antes de reintentar (ver `AUDITORIA_INDICE.md`,
+  `OFF-12`, mismo criterio aplicado después a la cola de cargas de Excel).
+
+## 9. `sede_id` en el flujo QR (`SEDE-4/5`, 5 ago)
+
+`qr_sessions`/`asistencias_diarias` llevan `sede_id` desde `0061`, con
+aislamiento real desde `0064`: `crear_qr_session` exige sede activa
+resuelta, y `registrar_asistencia` la hereda de la sesión (el docente
+anónimo nunca la elige). La `UNIQUE` de `asistencias_diarias` pasó de
+`(cedula_docente, fecha, tipo)` a `(sede_id, cedula_docente, fecha, tipo)`
+en `0082`/`SEC-35` (9 ago) — antes, un mismo docente marcando en dos
+sedes distintas el mismo día/tipo rechazaba el segundo registro legítimo.
+
+> ⚠️ **Ventana real de fallas, ya cerrada:** entre que `0082` cambió la
+> constraint (9 ago) y `0085` corrigió el `ON CONFLICT` de
+> `registrar_asistencia()` para apuntar a la constraint nueva (10 ago),
+> cualquier intento real de marcar asistencia en ese rango habría
+> fallado con "no unique or exclusion constraint matching ON CONFLICT".
+> Detalle completo y pendiente de LS (revisar logs reales de ese rango):
+> `AUDITORIA_INDICE.md`, entrada del 10 ago.
+
+---
+
+*Última actualización: 11 de agosto de 2026 — agregadas §8 (`OFF-10`,
+respaldo manual sin token QR) y §9 (`sede_id` en el flujo, `SEDE-4/5`,
+más la ventana de fallas de `ON CONFLICT` ya cerrada). Actualización
+anterior: 8 de agosto de 2026 (persistencia de borrador y resumen de
+cierre de sesión, `UX-33`).*
