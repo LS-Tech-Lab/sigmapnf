@@ -127,7 +127,12 @@ describe("saveClase — bloqueo optimista (ARCH-29)", () => {
     const res = await actions.saveClase(42, payload, "2026-08-01T10:00:00Z");
 
     expect(res).toEqual({ success: false });
-    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("permission denied"), "error");
+    // Fix SEC-38: el mensaje crudo de Postgres ya no se muestra tal cual
+    // (no matchea ninguna regla de errorMessages.js, así que cae en el
+    // mensaje genérico) — lo que sigue importando acá es que SÍ hubo un
+    // toast de error real y que NO se confundió con un conflicto de
+    // bloqueo optimista.
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("Error al guardar"), "error");
     // Un error real no debe disparar el mensaje de conflicto ni recargar
     // como si el guardado hubiera sido superado por otro usuario.
     expect(showToast).not.toHaveBeenCalledWith(

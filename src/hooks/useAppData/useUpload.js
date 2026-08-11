@@ -10,7 +10,7 @@
 //   5. El usuario confirma → insertRows() hace la inserción real
 //      El usuario cancela → limpiar estado, nada se guarda
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 // Fix ARCH-21 (auditoría 12 de julio): "xlsx" es, con diferencia, el módulo
 // más pesado de todo el proyecto (750 KB sin comprimir, ~195 KB gzip — más
 // grande que todo el resto del chunk principal junto). Antes de este fix se
@@ -49,10 +49,44 @@ import { useState, useCallback } from "react";
 import { tokensMatch } from "../../utils/parsing";
 import { supabase } from "../../lib/supabase";
 import { logger } from "../../utils/logger";
+// Fix SEC-38 (auditoría de estrés operacional, 10 de agosto): el toast de
+// error de insert() más abajo bypasseaba el filtro de errorMessages.js.
+// El audit log (logAudit) sigue guardando insertError.message crudo a
+// propósito -- es un registro interno para el equipo técnico, no algo que
+// vea el usuario final.
+import { mensajeAmigable } from "../../utils/errorMessages";
+// Fix OFF-12 (auditoría de estrés operacional, 10 de agosto): cola offline
+// para el archivo original cuando un corte de red interrumpe la carga a
+// mitad del proceso — ver comentario completo al inicio de
+// excelUploadQueue.js sobre por qué se guarda el archivo crudo en vez del
+// insert ya resuelto.
+import {
+  encolarCargaExcel,
+  obtenerCargasPendientes,
+  eliminarCargaPendiente,
+  purgarExpiradasExcel,
+} from "../../utils/excelUploadQueue";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".xlsx", ".xls"];
 const UPLOAD_TIMEOUT_MS  = 60_000;
+
+// Fix OFF-12: distingue un corte de red real de cualquier otro error
+// (permiso denegado, dato inválido, archivo corrupto) — solo el primero
+// amerita encolar el archivo para reintento; los demás son errores reales
+// que reintentar sin cambios no va a resolver.
+function esErrorDeRed(err) {
+  if (!err) return false;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  const msg = String(err.message || "").toLowerCase();
+  return (
+    msg.includes("failed to fetch") ||
+    msg.includes("network request failed") ||
+    msg.includes("networkerror") ||
+    msg.includes("load failed") ||
+    (err.name === "TypeError" && msg.includes("fetch"))
+  );
+}
 
 // ── SEC-27 (auditoría 2 de agosto): validación de contenido real ───────────
 // Antes solo se validaba la extensión/mimetype del navegador (fácilmente
@@ -173,6 +207,27 @@ export default function useUpload({
   const [previewData, setPreviewData]     = useState(null);   // null = cerrado
   // Guardamos la función que ejecuta la inserción real hasta que el usuario confirme
   const [pendingInsert, setPendingInsert] = useState(null);
+
+  // Fix OFF-12: lista de cargas de Excel que quedaron pendientes de
+  // reintentar por un corte de red — se refresca al montar y cada vez que
+  // se encola o se retira algo, para que la UI (badge en HorariosTopbar)
+  // pueda mostrar cuántas hay sin que el usuario tenga que ir a buscarlas.
+  const [cargasExcelPendientes, setCargasExcelPendientes] = useState([]);
+
+  const refreshCargasExcelPendientes = useCallback(async () => {
+    try {
+      await purgarExpiradasExcel();
+      const pendientes = await obtenerCargasPendientes();
+      setCargasExcelPendientes(pendientes);
+    } catch {
+      // IDB no disponible (navegación privada, cuota agotada) — la
+      // funcionalidad de reintento simplemente no aparece, no rompe la UI.
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshCargasExcelPendientes();
+  }, [refreshCargasExcelPendientes]);
 
   // ── Cancelar desde el modal ──────────────────────────────────────────
   const cancelPreview = useCallback(() => {
@@ -578,7 +633,7 @@ export default function useUpload({
           if (insertError) {
             if (timedOut) return;
             logger.error("insert horarios:", insertError);
-            showToast(`Error al guardar: ${insertError.message}`, "error");
+            showToast(`Error al guardar: ${mensajeAmigable(insertError)}`, "error");
             // M-6 fix: registrar fallo de insert en auditoría.
             // Antes: el error solo se mostraba en toast y console — sin rastro en audit_logs.
             await logAudit?.({
@@ -615,9 +670,33 @@ export default function useUpload({
         } catch (unexpectedErr) {
           logger.error("Error inesperado en inserción:", unexpectedErr);
           if (!timedOut) {
-            const msg = humanizarErrorParser(unexpectedErr.message);
-            showToast(msg, "error");
-            setError(msg);
+            // Fix OFF-12: un corte de red a mitad del insert (que ya pasó
+            // la fase de parseo/vista previa) es justo el escenario que
+            // esta cola cubre — el archivo original se guarda para poder
+            // reintentar sin volver a seleccionarlo, y sin haber insertado
+            // nada a medias (el insert de horarios es una única sentencia,
+            // no puede haber quedado parcial).
+            if (esErrorDeRed(unexpectedErr)) {
+              try {
+                await encolarCargaExcel({ file, fileName: file.name, lapso, selectedPrograma, sedeActiva });
+                await refreshCargasExcelPendientes();
+                const msg =
+                  "Se perdió la conexión durante la carga. No se guardó nada a medias — " +
+                  `tu archivo "${file.name}" quedó guardado en este dispositivo. Reintenta ` +
+                  "desde \"Cargas pendientes\" cuando vuelva la señal.";
+                setError(msg);
+                showToast(msg, "warning");
+              } catch (queueErr) {
+                logger.error("No se pudo encolar la carga de Excel (OFF-12):", queueErr);
+                const msg = humanizarErrorParser(unexpectedErr.message);
+                showToast(msg, "error");
+                setError(msg);
+              }
+            } else {
+              const msg = humanizarErrorParser(unexpectedErr.message);
+              showToast(msg, "error");
+              setError(msg);
+            }
           }
         } finally {
           clearTimeout(timeoutId);
@@ -627,6 +706,30 @@ export default function useUpload({
 
     } catch (unexpectedErr) {
       logger.error("Error inesperado en handleFileUpload:", unexpectedErr);
+      // Fix OFF-12: acá el corte puede ocurrir en la consulta de
+      // duplicados (dupQuery, la única llamada de red antes de este catch
+      // — parseo/lectura del Excel son puramente locales, no fallan por
+      // red). Todavía no se mostró la vista previa, así que no hay nada
+      // más que preservar salvo el archivo mismo.
+      if (esErrorDeRed(unexpectedErr)) {
+        try {
+          await encolarCargaExcel({ file, fileName: file.name, lapso, selectedPrograma, sedeActiva });
+          await refreshCargasExcelPendientes();
+          const msg =
+            `Se perdió la conexión antes de poder procesar "${file.name}". ` +
+            "Tu archivo quedó guardado en este dispositivo — reintenta desde " +
+            "\"Cargas pendientes\" cuando vuelva la señal.";
+          setError(msg);
+          showToast(msg, "warning");
+        } catch (queueErr) {
+          logger.error("No se pudo encolar la carga de Excel (OFF-12):", queueErr);
+          const msg = humanizarErrorParser(unexpectedErr.message);
+          showToast(msg, "error");
+          setError(msg);
+        }
+        setUploading(false);
+        return;
+      }
       const msg = humanizarErrorParser(unexpectedErr.message);
       showToast(msg, "error");
       setError(msg);
@@ -634,9 +737,36 @@ export default function useUpload({
     }
   };
 
+  // Fix OFF-12: reintenta una carga encolada — quita la entrada de la cola
+  // ANTES de reprocesar (no después) para que un doble click o un segundo
+  // corte de red a mitad del reintento no la deje duplicada; si el
+  // reintento vuelve a fallar por red, handleFileUpload la vuelve a
+  // encolar sola por el mismo camino de arriba. Se re-corre el flujo
+  // completo (parseo + vista previa) contra el catálogo VIGENTE, nunca se
+  // inserta directamente el resultado viejo — ver el comentario grande al
+  // inicio de excelUploadQueue.js sobre por qué.
+  // Función plana, no useCallback, mismo criterio que handleFileUpload
+  // arriba: depende de handleFileUpload, que tampoco está memoizado.
+  const reintentarCargaExcel = async (id) => {
+    const pendientes = await obtenerCargasPendientes();
+    const item = pendientes.find(p => p.id === id);
+    if (!item) return;
+    await eliminarCargaPendiente(id);
+    await refreshCargasExcelPendientes();
+    showToast(`Reintentando carga de "${item.fileName}"…`, "info");
+    await handleFileUpload(item.file);
+  };
+
+  const descartarCargaExcelPendiente = useCallback(async (id) => {
+    await eliminarCargaPendiente(id);
+    await refreshCargasExcelPendientes();
+  }, [refreshCargasExcelPendientes]);
+
   return {
     uploading, setUploading, handleFileUpload,
     // Modal de vista previa
     previewData, cancelPreview, confirmPreview,
+    // Fix OFF-12: cola de cargas de Excel pendientes de reintentar
+    cargasExcelPendientes, reintentarCargaExcel, descartarCargaExcelPendiente,
   };
 }

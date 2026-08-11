@@ -9,6 +9,9 @@ import { parseClase } from "../../utils/parsing";
 import { supabase } from "../../lib/supabase";
 import { suscribirCambiosRemotos } from "../../lib/realtime";
 import { logger } from "../../utils/logger";
+// Fix SEC-38 (auditoría de estrés operacional, 10 de agosto): setError(error.message)
+// más abajo bypasseaba el filtro de errorMessages.js.
+import { mensajeAmigable } from "../../utils/errorMessages";
 import {
   guardarEnCache, cargarDeCache,
   CACHE_KEYS, limpiarCache, obtenerUltimaSincronizacion, getCacheKey,
@@ -115,7 +118,7 @@ export default function useDataSync({
             setData(cachedHorarios);
             showToast("⚠️ Error de conexión. Usando caché.", "warning");
           } else {
-            setError(error.message);
+            setError(mensajeAmigable(error));
           }
           setLoading(false);
           setIsSyncing(false);

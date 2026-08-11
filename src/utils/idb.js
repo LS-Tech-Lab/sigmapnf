@@ -25,10 +25,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const DB_NAME = 'sigma_offline';
-// FIX OFF-10: +1 por 'qr_sesiones_offline_cache' (pre-generación de
-// sesiones QR mientras hay red, para activación local sin RPC durante
-// cortes — ver qrOfflineCache.js).
-export const DB_VER  = 7;
+// FIX OFF-12: +1 por 'cargas_excel_pendientes' (cola de cargas de horarios
+// por Excel interrumpidas por un corte de red a mitad de la inserción —
+// ver excelUploadQueue.js).
+export const DB_VER  = 8;
 
 /**
  * Abre (o crea/actualiza) la base compartida 'sigma_offline', garantizando
@@ -66,6 +66,16 @@ export function abrirDBCompartida() {
       // sincronización y sus campos son distintos (no llevan p_token).
       if (!db.objectStoreNames.contains('asistencias_manuales_pendientes'))
         db.createObjectStore('asistencias_manuales_pendientes', { keyPath: 'id', autoIncrement: true });
+      // FIX OFF-12: cola de cargas de horarios por Excel que se
+      // interrumpieron por un corte de red a mitad de la inserción (a
+      // diferencia de OFF-10/11, que cubren asistencia, esto cubre la
+      // carga masiva de horarios de un coordinador de sede). Guarda el
+      // archivo original (File/Blob, IndexedDB lo soporta de forma
+      // nativa) + el contexto de sesión con el que se intentó subir, para
+      // poder reintentar sin obligar al usuario a volver a seleccionar el
+      // archivo ni re-parsearlo desde cero. Ver excelUploadQueue.js.
+      if (!db.objectStoreNames.contains('cargas_excel_pendientes'))
+        db.createObjectStore('cargas_excel_pendientes', { keyPath: 'id', autoIncrement: true });
     };
     req.onsuccess = e => res(e.target.result);
     req.onerror   = e => rej(e.target.error);

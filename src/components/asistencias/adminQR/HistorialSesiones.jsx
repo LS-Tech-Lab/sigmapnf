@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { TURNOS_CONFIG } from "../../../constants";
 import { supabase } from "../../../lib/supabase";
+// Fix SEC-38 (auditoría de estrés operacional, 10 de agosto): bypasseaba
+// el filtro de errorMessages.js.
+import { mensajeAmigable } from "../../../utils/errorMessages";
 import ConfirmBorrarSesionModal from "./ConfirmBorrarSesionModal";
 
 // Fix ARCH-18 (auditoría 12 de julio): extraído de AdminQRPanel.jsx sin
@@ -64,7 +67,7 @@ export default function HistorialSesiones({ fecha, sessionIdActiva, permisos = {
     });
     setBorrando(false);
     if (error) {
-      showToast?.(error.message || "No se pudo borrar la sesión.", "error");
+      showToast?.(error.message ? mensajeAmigable(error) : "No se pudo borrar la sesión.", "error");
     } else {
       setSesiones(prev => prev.filter(s => s.id !== confirmBorrar.id));
       showToast?.("Sesión QR borrada.", "success");

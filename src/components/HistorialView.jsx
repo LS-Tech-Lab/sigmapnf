@@ -8,6 +8,10 @@ import ModalTrimestre from "./historial/ModalTrimestre";
 import ComparadorPanel from "./historial/ComparadorPanel";
 import HistorialLista from "./historial/HistorialLista";
 import { useSedeContext } from "../context/SedeContext";
+// Fix SEC-38 (auditoría de estrés operacional, 10 de agosto): las 3
+// concatenaciones de error.message de abajo bypasseaban el filtro de
+// errorMessages.js.
+import { mensajeAmigable } from "../utils/errorMessages";
 import "./HistorialView.css";
 
 // Fix ARCH-13 (auditoría 9 de julio): ModalTrimestre, ComparadorPanel,
@@ -73,7 +77,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
         .order("anio", { ascending: false })
         .order("numero", { ascending: false }));
     }
-    if (error) showToast("Error al cargar historial: " + error.message, "error");
+    if (error) showToast("Error al cargar historial: " + mensajeAmigable(error), "error");
     else setTrimestres(data || []);
     setLoading(false);
   }, [showToast, programasRestringidos, sedeActiva]);
@@ -131,7 +135,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
       },
       { onConflict: "lapso" }
     );
-    if (error) { showToast("Error al cerrar: " + error.message, "error"); setProcesando(false); return; }
+    if (error) { showToast("Error al cerrar: " + mensajeAmigable(error), "error"); setProcesando(false); return; }
     showToast(`Trimestre ${formatLapso(lapso)} cerrado y archivado.`, "success");
     logAudit?.({ accion: "CERRAR_TRIMESTRE", entidad: "trimestres", lapso, resumen: `Trimestre cerrado: ${formatLapso(lapso)}` });
     setModal(null);
@@ -159,7 +163,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
       },
       { onConflict: "lapso" }
     );
-    if (error) { showToast("Error al crear: " + error.message, "error"); setProcesando(false); return; }
+    if (error) { showToast("Error al crear: " + mensajeAmigable(error), "error"); setProcesando(false); return; }
     showToast(`Trimestre ${formatLapso(lapso)} activado.`, "success");
     logAudit?.({ accion: "CREAR_TRIMESTRE", entidad: "trimestres", lapso, resumen: `Nuevo trimestre activado: ${formatLapso(lapso)}` });
     setModal(null);

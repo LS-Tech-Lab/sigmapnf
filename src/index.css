@@ -912,6 +912,50 @@ textarea:focus-visible,
   white-space: nowrap;
 }
 
+/* Fix OFF-12 (auditoría de estrés operacional, 10 de agosto): badge de
+   cargas de Excel pendientes de reintentar por corte de red. Reusa el
+   look de .hl-pendientes-badge (mismo tono de aviso "algo quedó
+   pendiente"), pero es un <button> con desplegable porque acá el usuario
+   elige QUÉ archivo reintentar, uno por uno -- no un contador pasivo. */
+.hl-cargas-excel-wrap { position: relative; flex-shrink: 0; }
+.hl-cargas-excel-badge {
+  cursor: pointer; border: 1px solid #FCD34D; font: inherit;
+}
+.hl-cargas-excel-dropdown {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+  min-width: 240px; max-width: 320px;
+  background: var(--color-bg-elevated, #fff);
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 280px; overflow-y: auto;
+}
+.hl-cargas-excel-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 6px 8px; border-radius: 6px;
+}
+.hl-cargas-excel-item:hover { background: var(--color-bg-hover, #F3F4F6); }
+.hl-cargas-excel-nombre {
+  display: flex; align-items: center; gap: 6px;
+  font-size: var(--font-size-12); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.hl-cargas-excel-acciones { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.hl-cargas-excel-btn {
+  font-size: var(--font-size-11); font-weight: 600; border-radius: 6px;
+  padding: 3px 8px; cursor: pointer; border: 1px solid transparent;
+}
+.hl-cargas-excel-btn--reintentar {
+  background: var(--color-primary, #2563EB); color: #fff;
+}
+.hl-cargas-excel-btn--descartar {
+  background: transparent; color: var(--color-text-tertiary, #9CA3AF);
+  padding: 3px 6px; display: flex; align-items: center;
+}
+.hl-cargas-excel-btn--descartar:hover { color: var(--color-danger, #DC2626); }
+
 .hl-consulta-banner { background: var(--color-warning-bg); border-bottom: 1px solid var(--color-warning-border); padding: var(--space-7px) var(--space-5); display: flex; align-items: center; gap: var(--space-10px); flex-shrink: 0; }
 .hl-consulta-text { font-size: var(--font-size-13); color: var(--color-warning-text); font-weight: 600; display: flex; align-items: center; gap: var(--space-6px); }
 .hl-consulta-btn {

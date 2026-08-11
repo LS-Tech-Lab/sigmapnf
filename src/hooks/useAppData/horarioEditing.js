@@ -10,6 +10,10 @@
 
 import { supabase } from "../../lib/supabase";
 import { logger } from "../../utils/logger";
+// Fix SEC-38 (auditoría de estrés operacional, 10 de agosto): las 2
+// concatenaciones de error.message de abajo bypasseaban el filtro de
+// errorMessages.js.
+import { mensajeAmigable } from "../../utils/errorMessages";
 
 export function createHorarioEditingActions({ logAudit, showToast, fetchHorarios, selectedPrograma }) {
   // payload esperado: { dia, hora, aula, trayecto?, docente_id, materia_id, clase }
@@ -47,7 +51,7 @@ export function createHorarioEditingActions({ logAudit, showToast, fetchHorarios
       const { data, error } = await query.select("id");
 
       if (error) {
-        showToast("Error al guardar: " + error.message, "error");
+        showToast("Error al guardar: " + mensajeAmigable(error), "error");
         return { success: false };
       }
 
@@ -74,7 +78,7 @@ export function createHorarioEditingActions({ logAudit, showToast, fetchHorarios
       return { success: true };
     } catch (err) {
       logger.error("saveClase:", err);
-      showToast("Error al guardar: " + err.message, "error");
+      showToast("Error al guardar: " + mensajeAmigable(err), "error");
       return { success: false };
     }
   };
@@ -83,7 +87,7 @@ export function createHorarioEditingActions({ logAudit, showToast, fetchHorarios
     try {
       const { error } = await supabase.from("horarios").delete().eq("id", id);
       if (error) {
-        showToast("Error al eliminar: " + error.message, "error");
+        showToast("Error al eliminar: " + mensajeAmigable(error), "error");
         return { success: false };
       }
       showToast("Clase eliminada.", "success");

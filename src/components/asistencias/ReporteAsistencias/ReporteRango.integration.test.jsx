@@ -247,7 +247,7 @@ describe("ReporteRango — borrado de rango (ADMIN-2)", () => {
     await waitFor(() => expect(supabase.rpc.mock.calls.length).toBeGreaterThan(llamadasAntesDeBorrar));
   });
 
-  it("si la RPC de borrado falla, avisa por toast con el mensaje de error sin romper la pantalla", async () => {
+  it("si la RPC de borrado falla, avisa por toast sin romper la pantalla (SEC-38: mensaje genérico, no crudo)", async () => {
     mockReporteYConteo({
       rpcMock: (fn) => {
         if (fn === "admin_borrar_asistencias_rango") return Promise.resolve({ data: null, error: { message: "No autorizado." } });
@@ -264,7 +264,16 @@ describe("ReporteRango — borrado de rango (ADMIN-2)", () => {
     fireEvent.click(screen.getByText("Borrar rango"));
     fireEvent.click(screen.getByText("Confirmar"));
 
-    await waitFor(() => expect(showToast).toHaveBeenCalledWith("No autorizado.", "error"));
+    await waitFor(() =>
+      // Fix SEC-38: "No autorizado." no matchea ninguna regla explícita
+      // de errorMessages.js, así que cae en el mensaje genérico en vez de
+      // mostrarse crudo — lo que importa acá es que el toast de error
+      // ocurrió y que la pantalla no se rompió/vació.
+      expect(showToast).toHaveBeenCalledWith(
+        "Ocurrió un error al procesar la solicitud. Si el problema persiste, contacta a soporte.",
+        "error"
+      )
+    );
     // Sigue mostrando los datos ya cargados (no se vació la tabla por el error)
     expect(screen.getByText("Prof. Ana Pérez")).toBeTruthy();
   });

@@ -1,6 +1,7 @@
 // Topbar del módulo Horarios: hamburguesa móvil, búsqueda global, menú de
 // usuario, indicador de sincronización y badge de pendientes offline.
 // Extraído de HorariosLayout.jsx (ARCH-11).
+import { useState } from "react";
 import { useAppDataContext } from "../context/AppDataContext";
 import { ROL_SIDEBAR } from "../constants";
 import UserMenu from "./UserMenu";
@@ -110,6 +111,70 @@ export default function HorariosTopbar({
           {pendientesCount} pendiente{pendientesCount > 1 ? 's' : ''}
         </span>
       )}
+
+      {/* Fix OFF-12 (auditoría de estrés operacional, 10 de agosto):
+          badge de cargas de Excel que quedaron pendientes de reintentar
+          por un corte de red — mismo patrón visual que el badge de
+          asistencias de arriba, pero con un desplegable propio porque acá
+          "reintentar" es una acción explícita del usuario por archivo,
+          no un sync automático en segundo plano (ver comentario grande
+          en excelUploadQueue.js sobre por qué no se reintenta solo). */}
+      {appData.cargasExcelPendientes?.length > 0 && (
+        <CargasExcelPendientesBadge
+          cargas={appData.cargasExcelPendientes}
+          onReintentar={appData.reintentarCargaExcel}
+          onDescartar={appData.descartarCargaExcelPendiente}
+        />
+      )}
     </header>
+  );
+}
+
+function CargasExcelPendientesBadge({ cargas, onReintentar, onDescartar }) {
+  const [abierto, setAbierto] = useState(false);
+  const n = cargas.length;
+
+  return (
+    <div className="hl-cargas-excel-wrap">
+      <button
+        type="button"
+        className="hl-pendientes-badge hl-cargas-excel-badge"
+        title={`${n} carga${n > 1 ? 's' : ''} de Excel pendiente${n > 1 ? 's' : ''} de reintentar (se perdió la conexión durante la carga)`}
+        onClick={() => setAbierto(o => !o)}
+        aria-expanded={abierto}
+      >
+        <i className="ti ti-file-upload" aria-hidden="true" />
+        {n} carga{n > 1 ? 's' : ''} pendiente{n > 1 ? 's' : ''}
+      </button>
+
+      {abierto && (
+        <div className="hl-cargas-excel-dropdown" role="menu">
+          {cargas.map(c => (
+            <div key={c.id} className="hl-cargas-excel-item">
+              <span className="hl-cargas-excel-nombre" title={c.fileName}>
+                <i className="ti ti-file-spreadsheet" aria-hidden="true" /> {c.fileName}
+              </span>
+              <div className="hl-cargas-excel-acciones">
+                <button
+                  type="button"
+                  className="hl-cargas-excel-btn hl-cargas-excel-btn--reintentar"
+                  onClick={() => { setAbierto(false); onReintentar?.(c.id); }}
+                >
+                  Reintentar
+                </button>
+                <button
+                  type="button"
+                  className="hl-cargas-excel-btn hl-cargas-excel-btn--descartar"
+                  onClick={() => onDescartar?.(c.id)}
+                  title="Descartar esta carga pendiente sin reintentarla"
+                >
+                  <i className="ti ti-x" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
+// Fix SEC-38 (auditoría de estrés operacional, 10 de agosto): este archivo
+// concatenaba error.message directo en el toast — bypasseaba el filtro de
+// errorMessages.js.
+import { mensajeAmigable } from "../../utils/errorMessages";
 import { fmtDateTime, EVENTO_CONFIG, eventoClass, EventoBadge } from "./logsUtils";
 import { ModalConfirm } from "../usuarios/shared";
 
@@ -57,7 +61,7 @@ export default function TabSesiones({ permisos, showToast }) {
     setBorrando(false);
     setConfirmBorrar(false);
     if (error) {
-      showToast?.(error.message || "No se pudieron borrar los registros.", "error");
+      showToast?.(error.message ? mensajeAmigable(error) : "No se pudieron borrar los registros.", "error");
     } else {
       setLogs(prev => prev.filter(l => !seleccionados.has(l.id)));
       setSeleccionados(new Set());

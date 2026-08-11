@@ -1,10 +1,13 @@
 // =====================================================================
-// errorMessages.test.js — UX-31 / UX-32 (auditoría 6 de agosto)
+// errorMessages.test.js — UX-31 / UX-32 (auditoría 6 de agosto),
+// SEC-38 (auditoría de estrés operacional, 10 de agosto)
 //
 // mensajeAmigable() intercepta un set explícito de mensajes técnicos de
-// Postgres y los traduce (trigger de sede, constraint único, foreign key);
-// cualquier otro mensaje no cubierto debe pasar sin cambios, para no
-// inventar traducciones sobre errores no verificados.
+// Postgres y los traduce (trigger de sede, constraint único, foreign key,
+// input inválido, permiso denegado). Desde SEC-38, un mensaje NO cubierto
+// por ninguna regla ya no pasa sin cambios — se reemplaza por un mensaje
+// genérico, para no filtrar estructura interna de la BD (nombres de
+// tabla/columna/tipo) ante un patrón de error no anticipado.
 // =====================================================================
 
 import { describe, it, expect } from "vitest";
@@ -41,9 +44,25 @@ describe("mensajeAmigable", () => {
     );
   });
 
-  it("deja pasar sin cambios un mensaje de error no cubierto por ninguna regla", () => {
+  it("traduce un input inválido de tipo/formato (SEC-38)", () => {
+    const error = { message: 'invalid input syntax for type uuid: "xyz"' };
+    expect(mensajeAmigable(error)).toBe(
+      "Uno de los datos enviados tiene un formato inválido. Verifica e intenta de nuevo."
+    );
+  });
+
+  it("traduce un permiso denegado a nivel de BD (SEC-38)", () => {
+    const error = { message: 'permission denied for table horarios' };
+    expect(mensajeAmigable(error)).toBe("No tienes permiso para realizar esta acción.");
+  });
+
+  it("SEC-38: reemplaza por un mensaje genérico un error no cubierto por ninguna regla, sin exponer el mensaje crudo de Postgres", () => {
     const error = { message: "connection timeout while contacting the database" };
-    expect(mensajeAmigable(error)).toBe("connection timeout while contacting the database");
+    expect(mensajeAmigable(error)).toBe(
+      "Ocurrió un error al procesar la solicitud. Si el problema persiste, contacta a soporte."
+    );
+    // El mensaje original nunca debe filtrarse al usuario final.
+    expect(mensajeAmigable(error)).not.toContain("connection timeout");
   });
 
   it("no revienta si el error no trae message", () => {

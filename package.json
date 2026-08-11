@@ -18,12 +18,15 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:visual": "playwright test",
+    "test:visual": "playwright test --project=mobile-375 --project=tablet-768 --project=desktop-1280",
+    "test:visual:webkit": "playwright test --project=desktop-webkit-1280",
+    "test:a11y": "playwright test --project=a11y",
     "test:visual:update": "playwright test --update-snapshots",
     "rls:smoke-test": "node scripts/rls-smoke-test.mjs",
     "qr:load-test": "node scripts/qr-load-test.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.1",
     "@testing-library/dom": "^10.4.1",

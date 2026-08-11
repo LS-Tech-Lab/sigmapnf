@@ -8,6 +8,9 @@ import { exportarCSVRango } from "./exportCSV";
 import { ModalConfirm } from "../../usuarios/shared";
 import { useReporteConfig } from "../../../hooks/useReporteConfig";
 import { useSedeContext } from "../../../context/SedeContext";
+// Fix SEC-38 (auditoría de estrés operacional, 10 de agosto): bypasseaba
+// el filtro de errorMessages.js.
+import { mensajeAmigable } from "../../../utils/errorMessages";
 import "./index.css";
 
 function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
@@ -190,7 +193,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
     setBorrando(false);
     setConfirmBorrar(false);
     if (error) {
-      showToast?.(error.message || "No se pudieron borrar los registros.", "error");
+      showToast?.(error.message ? mensajeAmigable(error) : "No se pudieron borrar los registros.", "error");
     } else {
       showToast?.(`Se borraron ${cantidad ?? 0} registro(s) de asistencia.`, "success");
       fetchRango();

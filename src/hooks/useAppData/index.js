@@ -89,7 +89,11 @@ export default function useAppData(lapso, logAudit = null, userId = null, sedeAc
     logAudit, showToast, fetchHorarios, selectedPrograma,
   });
 
-  const { uploading, setUploading, handleFileUpload, previewData, cancelPreview, confirmPreview } = useUpload({
+  const {
+    uploading, setUploading, handleFileUpload, previewData, cancelPreview, confirmPreview,
+    // Fix OFF-12: cola de cargas de Excel pendientes de reintentar
+    cargasExcelPendientes, reintentarCargaExcel, descartarCargaExcelPendiente,
+  } = useUpload({
     lapso, selectedPrograma, showToast, setError,
     fetchHorarios, fetchProgramas, fetchDocenteNames, fetchMateriaNames, invalidarCacheDocentes,
     setConflictsRefreshKey,
@@ -117,6 +121,8 @@ export default function useAppData(lapso, logAudit = null, userId = null, sedeAc
     confirmModal, openConfirm, closeConfirm,
     handleFileUpload, exportarDatos, importarDatos, clearAllData,
     previewData, cancelPreview, confirmPreview,
+    // Fix OFF-12: cola de cargas de Excel pendientes de reintentar
+    cargasExcelPendientes, reintentarCargaExcel, descartarCargaExcelPendiente,
     saveDocenteName, saveDocenteCedula, saveMateriaName, getDocName, getDocCedula, getDocCedulaFuente, getMateriaName,
     saveClase, deleteClase,
     logAudit,
