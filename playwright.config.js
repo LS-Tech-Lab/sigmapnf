@@ -26,21 +26,28 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // Fix UX-35 (auditoría de estrés operacional, 10 de agosto): 2 cambios—
-//   1. Proyecto 'desktop-webkit-1280': mismo breakpoint que 'desktop-1280'
-//      pero contra WebKit (motor de Safari) en vez de Chromium. Antes solo
-//      se probaba contra un único motor de renderizado — relevante porque
-//      una fracción no trivial de usuarios accede desde iOS/Safari, y las
-//      diferencias de renderizado de formularios/inputs entre Chromium y
-//      WebKit son una fuente común de bugs de UX que este suite no
-//      capturaba. Corre los MISMOS 3 specs de tests/visual/, necesita sus
-//      propias imágenes base (ver instrucciones al final del archivo,
-//      mismo procedimiento que para Chromium, con
-//      `npx playwright install --with-deps webkit`).
+//   1. WebKit (motor de Safari) sumado como segunda dimensión de la matriz
+//      de breakpoints. Antes solo se probaba contra Chromium — relevante
+//      porque una fracción no trivial de usuarios accede desde iOS/Safari,
+//      y las diferencias de renderizado de formularios/inputs entre
+//      Chromium y WebKit son una fuente común de bugs de UX que este suite
+//      no capturaba.
 //   2. Proyecto 'a11y': corre SOLO tests/visual/a11y.spec.js (axe-core,
 //      ver ese archivo) — se separa de los proyectos de snapshot visual
 //      porque no compara imágenes (no necesita 3 breakpoints × N specs,
 //      correrlo una vez alcanza) y porque un fallo de accesibilidad no
 //      debería reportarse mezclado con un diff de píxeles.
+//
+// Corrección de alcance (11 de agosto, LS): la entrega original de UX-35
+// solo agregó 'desktop-webkit-1280' — WebKit únicamente en el breakpoint
+// de escritorio. Eso no cubría el escenario real que motivó el hallazgo:
+// los docentes escanean el QR desde el teléfono (ver DocenteScan/, flujo
+// principal de asistencia), y en iOS Safari SIEMPRE corre en viewport
+// móvil, nunca en 1280px — el breakpoint que de verdad importa para
+// WebKit era el que se dejó afuera. Se agregan 'mobile-webkit-375' y
+// 'tablet-webkit-768' para completar la matriz 3 breakpoints × 2 motores.
+// Todos corren los MISMOS 3 specs de tests/visual/, cada uno con sus
+// propias imágenes base (ver instrucciones al final del archivo).
 // Los 3 proyectos de snapshot visual originales se acotan con `testMatch`
 // a los specs que sí comparan imágenes, para que a11y.spec.js no corra
 // (y falle sin sentido, por no tener screenshot que comparar) 3 veces de
@@ -96,10 +103,23 @@ export default defineConfig({
       testMatch: VISUAL_SPECS,
       use: { ...devices['Desktop Chrome'], viewport: { width: 375, height: 812 } },
     },
+    // Fix UX-35 (alcance corregido 11 ago): el breakpoint que más importa
+    // en WebKit — es donde un docente real escanea el QR desde su iPhone.
+    {
+      name: 'mobile-webkit-375',
+      testMatch: VISUAL_SPECS,
+      use: { ...devices['Desktop Safari'], viewport: { width: 375, height: 812 } },
+    },
     {
       name: 'tablet-768',
       testMatch: VISUAL_SPECS,
       use: { ...devices['Desktop Chrome'], viewport: { width: 768, height: 1024 } },
+    },
+    // Fix UX-35 (alcance corregido 11 ago).
+    {
+      name: 'tablet-webkit-768',
+      testMatch: VISUAL_SPECS,
+      use: { ...devices['Desktop Safari'], viewport: { width: 768, height: 1024 } },
     },
     {
       name: 'desktop-1280',
@@ -131,8 +151,10 @@ export default defineConfig({
 //      npx playwright test --update-snapshots
 // 2. Revisar visualmente los .png generados en tests/visual/__screenshots__/
 //    (que de verdad se vea como el login real, no una pantalla rota) —
-//    ahora incluye variantes '-desktop-webkit-1280.png' además de las de
-//    Chromium (fix UX-35), revisar esas también antes de commitear.
+//    ahora incluye variantes '-mobile-webkit-375.png', '-tablet-webkit-768.png'
+//    y '-desktop-webkit-1280.png' además de las 3 de Chromium (fix UX-35),
+//    revisar esas también antes de commitear — 'mobile-webkit-375' es la
+//    que más importa (docentes escaneando desde el teléfono).
 // 3. Commitear esas imágenes al repo. A partir de ahí, cada PR las compara
 //    contra ese estado "bueno conocido" en vez de generarlas de nuevo.
 //
