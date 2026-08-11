@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import { useAppDataContext } from "../context/AppDataContext";
-import { getCurrentLapso, formatLapso } from "../utils/lapso";
+import { formatLapso } from "../utils/lapso";
 import HorariosSidebar from "./HorariosSidebar";
 import HorariosTopbar from "./HorariosTopbar";
 import Toast from "../components/Toast";
@@ -60,7 +60,7 @@ const LazyFallback = ({ label }) => (
  *   horariosTab, setHorariosTab
  *   lapso
  *   modoConsulta
- *   handleCambiarLapso
+ *   handleVolverActivo
  *
  * Props — sidebar UI:
  *   hovered, setHovered
@@ -90,7 +90,7 @@ export default function HorariosLayout({
   horariosTab, setHorariosTab,
   lapso,
   modoConsulta,
-  handleCambiarLapso,
+  handleVolverActivo,
   // Sidebar UI
   hovered, setHovered,
   pinned, togglePin,
@@ -158,7 +158,7 @@ export default function HorariosLayout({
         view={view} setView={setView}
         modoConsulta={modoConsulta}
         lapso={lapso}
-        handleCambiarLapso={handleCambiarLapso}
+        handleVolverActivo={handleVolverActivo}
         hovered={hovered} setHovered={setHovered}
         pinned={pinned} togglePin={togglePin}
         mobileOpen={mobileOpen} setMobileOpen={setMobileOpen}
@@ -191,7 +191,7 @@ export default function HorariosLayout({
               <i className="ti ti-archive" aria-hidden="true" /> Modo consulta — estás viendo el trimestre {formatLapso(lapso)} (solo lectura)
             </span>
             <button
-              onClick={() => handleCambiarLapso(getCurrentLapso())}
+              onClick={handleVolverActivo}
               className="hl-consulta-btn"
             >
               <i className="ti ti-arrow-back-up" aria-hidden="true" /> Volver al trimestre activo
