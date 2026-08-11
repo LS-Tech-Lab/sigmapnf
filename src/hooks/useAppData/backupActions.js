@@ -252,7 +252,15 @@ export function createBackupActions({
                   ...rest,
                   ...(sedeActiva ? { sede_id: sedeActiva } : {}),
                 }));
-                await supabase.from("asistencias_diarias").upsert(asistenciasSinId, { onConflict: "cedula_docente,fecha,tipo", ignoreDuplicates: true });
+                // FIX (post-mortem 2026-08-10): mismo bug que
+                // registrar_asistencia() / registrar_asistencia_manual() /
+                // restaurar_backup() — la unique constraint real es
+                // uq_asistencia_docente_dia_tipo_sede = UNIQUE(sede_id,
+                // cedula_docente, fecha, tipo). Un onConflict sin sede_id
+                // no calza con ningún índice único y Postgres rechaza el
+                // upsert con "there is no unique or exclusion constraint
+                // matching the ON CONFLICT specification".
+                await supabase.from("asistencias_diarias").upsert(asistenciasSinId, { onConflict: "sede_id,cedula_docente,fecha,tipo", ignoreDuplicates: true });
               }
             } else {
               throw new Error(rpcError.message);
