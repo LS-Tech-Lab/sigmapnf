@@ -11,13 +11,26 @@
  * cae al mismo fallback que existía antes de ADMIN-3: "horarios" —
  * HorariosLayout ya maneja perfiles sin permisos vía sus propios guards.
  *
+ * SEDE-18 (eliminación de <SedeSelector/> como pantalla propia): antes,
+ * un usuario con puedeVerTodasLasSedes pasaba SIEMPRE por esa pantalla
+ * forzada antes de llegar acá, sin importar cuántos módulos tuviera. Al
+ * quitarla, el dropdown de sede de ModuleSelector queda como única forma
+ * de elegir sede — pero si el usuario solo tiene acceso a UN módulo, la
+ * auto-selección de abajo saltaba directo a él y ModuleSelector nunca
+ * llegaba a mostrarse: ese usuario quedaba sin ninguna forma de elegir
+ * sede en toda la sesión (setSedeActiva no está expuesto en ningún otro
+ * lugar de la UI). needsSedeSelection frena la auto-selección mientras
+ * puedeElegirSede sea true y sedeActiva siga sin resolver, forzando que
+ * ModuleSelector se muestre al menos una vez con su dropdown de sede,
+ * exactamente igual que hacía la pantalla que se eliminó.
+ *
  * IMPORTANTE: este hook debe llamarse incondicionalmente (Regla de Hooks).
  * App.jsx lo invoca antes de cualquier return condicional.
  */
 
 import { useState, useEffect } from "react";
 
-export default function useModuloActivo({ efectiveProfile, efectivePermisos }) {
+export default function useModuloActivo({ efectiveProfile, efectivePermisos, puedeElegirSede = false, sedeActiva = null }) {
   const [moduloActivo, setModuloActivo] = useState(null);
 
   const tieneHorarios =
@@ -34,10 +47,13 @@ export default function useModuloActivo({ efectiveProfile, efectivePermisos }) {
     efectivePermisos.puedeVerAuditoria ||
     efectivePermisos.puedeGestionarTrimestres;
 
+  // SEDE-18: ver comentario arriba.
+  const needsSedeSelection = puedeElegirSede && !sedeActiva;
+
   // Auto-selección cuando el usuario solo tiene acceso a un módulo.
   // Se ejecuta cada vez que cambia el perfil o se resetea moduloActivo a null.
   useEffect(() => {
-    if (!efectiveProfile || moduloActivo) return;
+    if (!efectiveProfile || moduloActivo || needsSedeSelection) return;
 
     // ADMIN-7: si la URL trae ?proyeccion=1 (deep-link de la PWA instalada
     // "SIGMA Proyección", ver main.jsx/manifest-proyeccion.webmanifest),
@@ -70,10 +86,11 @@ export default function useModuloActivo({ efectiveProfile, efectivePermisos }) {
   }, [
     efectiveProfile,
     moduloActivo,
+    needsSedeSelection,
     tieneHorarios,
     tieneQR,
     tieneAdmin,
   ]);
 
-  return { moduloActivo, setModuloActivo, tieneHorarios, tieneQR, tieneAdmin };
+  return { moduloActivo, setModuloActivo, tieneHorarios, tieneQR, tieneAdmin, needsSedeSelection };
 }
