@@ -12,6 +12,16 @@
 > **Rutas de archivos:** algunas rutas de este documento (`src/components/UsuariosView.jsx`,
 > `src/components/LogsView.jsx`) corresponden a la estructura original. La gestión de usuarios
 > vive hoy en `src/components/usuarios/` (carpeta); `LogsView.jsx` sigue en `src/components/`.
+>
+> **Modelo de roles (agregado 11 ago):** la tabla "Estructura de roles y
+> permisos" de abajo describe el diseño original de 4 roles fijos. Desde
+> `0021` los roles son **filas editables de la tabla `roles`** (21 permisos
+> reales, no una tabla fija) — la tabla de abajo sigue siendo una
+> referencia útil para los 4 roles base + `operador_qr`, pero el catálogo
+> completo, actualizado, y con el enforcement real de cada permiso vive en
+> `MATRIZ_PERMISOS.md`. Esa tabla tampoco refleja el sistema de sedes
+> (`SEDE-N`) ni el filtrado por múltiples programas (`PROG-N`) agregados
+> en agosto — ver ahí y en § Estado actual de RLS más abajo.
 
 # 🔐 Sistema de Seguridad — Guía de Implementación
 
@@ -121,6 +131,10 @@ En **Authentication → Settings**:
 | `user_profiles` | Cada usuario ve su perfil; admin ve todos | Columnas sensibles (`rol`, `activo`, `creado_por`) protegidas por trigger — solo modificables con `puedeGestionarUsuarios` | admin |
 | `session_logs` / `audit_logs` | admin y coordinador; secretario limitado a su programa | vía RPC (`logAudit`) | — |
 | `qr_sessions` / `asistencias_diarias` | Ver `FLUJO_ASISTENCIAS_QR.md` — modelo de acceso anónimo específico para `/scan`, con rate limiting por `device_fingerprint` | ídem | ídem |
+| `sedes` (nueva, `0061`/`SEDE-1`) | Público (necesario: selector de sede en `/scan`, anónimo) | Requiere `puedeGestionarSedes` (`0070`) | Sin `DELETE` real — dar de baja es desactivar (`activa=false`) |
+| `user_profiles_programas` (nueva, `0078`/`PROG-2`) | Ídem `user_profiles` (propio perfil o `puedeGestionarUsuarios`) | Vía RPC `admin_set_user_programas()` | ídem |
+| `scan_rate_limit` / `admin_actions_rate_limit` / `csp_report_rate_limit` | **RLS habilitado, 0 políticas** — patrón más restrictivo: ni siquiera `authenticated` toca estas tablas directo vía PostgREST, solo acceso interno desde su RPC correspondiente | — | — |
+| `configuracion_reportes` (nueva, `0056`/`ADMIN-6`) | Público (necesaria para renderizar el membrete en reportes imprimibles) | Requiere `puedeConfigurarReportes` | — |
 
 ### Checklist obligatorio para toda tabla nueva (agregado 9 ago, auditoría de BD)
 
@@ -157,6 +171,16 @@ Antes de mergear cualquier migración con `CREATE TABLE public.*`:
 | — | `docentes`/`materias`: la política de escritura solo exigía `authenticated`, sin verificar el permiso específico (`puedeEditarDocentes`/`puedeEditarMaterias`) | Mismo patrón que SEC-1, alcance más angosto — RLS sí estaba activo (falso positivo parcial de un informe externo), pero sin control granular | `0046` |
 | — | RLS de `user_profiles` nunca se activó a nivel de tabla, aunque las políticas existían desde `0016` | Drift entre lo aplicado directo en el dashboard de Supabase y lo versionado en el repo | `0043`, con un trigger adicional para proteger columnas sensibles antes de habilitar RLS |
 
+> **Tabla sin actualizar desde julio — no es la lista completa.** Entre
+> `SEC-8` y `SEC-39` hay ~30 hallazgos más de RLS/grants (políticas RLS
+> huérfanas creadas a mano, funciones `SECURITY DEFINER` ejecutables por
+> `anon` sin que ninguna migración lo otorgara, escalada de privilegios en
+> gestión de usuarios, aislamiento por sede/programa, etc.) — mismo
+> patrón de fondo (*drift* dashboard↔repo) que las 3 filas de arriba,
+> pero no se duplican acá para no desincronizarse en dos lugares. Índice
+> completo, verificado y actualizado activamente: `AUDITORIA_INDICE.md`
+> § Seguridad y RLS.
+
 **Patrón recurrente a vigilar:** varias de estas causas raíz son *drift* entre
 cambios hechos directo en el dashboard de Supabase y lo que queda versionado
 en `docs/supabase/migrations/`. Antes de dar por buena una política con solo leer
@@ -169,6 +193,45 @@ WHERE tablename = 'nombre_tabla';
 
 SELECT relname, relrowsecurity FROM pg_class WHERE relname = 'nombre_tabla';
 ```
+
+---
+
+## Cabeceras de seguridad y CSP (agregado 11 ago — faltaba en este documento)
+
+Configuradas en `vercel.json`, aplican a toda ruta (`/(.*)`):
+
+| Cabecera | Valor | Por qué |
+|---|---|---|
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self'; ...` — **sin `unsafe-inline`** | Cierre de `SEC-3`/`UX-5` (migración sistemática de estilos inline a CSS externo, ~30 componentes) |
+| `X-Frame-Options` | `DENY` | Anti-clickjacking |
+| `X-Content-Type-Options` | `nosniff` | — |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` | HSTS |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Superficie de API del navegador que la app no usa |
+| `Reporting-Endpoints` / `report-to` / `report-uri` | `/api/csp-report` | `SEC-24` — violaciones de CSP se registran en `audit_logs`, rate limit 20 req/min por IP (`api/csp-report.js`, persistente desde `OFF-9`/`0060`, antes `Map()` en memoria) |
+
+CodeQL (SAST) corre en cada push/PR + cron semanal (`SEC-20`) — ver
+Security → Code scanning del repo para el estado actual, no asumir que
+0 hallazgos hoy es permanente.
+
+## Estado del advisor de seguridad nativo de Supabase (verificado en vivo, 11 ago)
+
+Primera vez que este documento se cruza contra `get_advisors`/security del
+proyecto real (antes solo se auditaba `pg_policies`/`pg_proc` a mano). Dos
+hallazgos abiertos, ninguno bloqueante — detalle completo en
+`AUDITORIA_INDICE.md` (`SEC-37`, `SEC-39`):
+
+- **`auth_leaked_password_protection` deshabilitado.** Auth no verifica
+  contraseñas nuevas contra HaveIBeenPwned. Bloqueado por plan — requiere
+  Supabase Pro, el proyecto está en `free`. Impacto acotado: no hay
+  self-signup público, los usuarios los da de alta un admin
+  (`admin_create_auth_user`).
+- **Rate limiting nativo de Auth**: confirmado activo y reforzado
+  (sign-ups/sign-ins 4 req/5min por IP, resto en default) — respaldo real
+  del lockout de `SEC-6`/`SEC-7` (aplicación), no lo reemplaza.
+- Hardening menor sin explotación conocida: ~15 funciones sin
+  `search_path` fijo, extensión `pg_trgm` en el schema `public` en vez de
+  uno dedicado, y una posible función `restaurar_backup()` duplicada con
+  firma distinta (pendiente que LS confirme cuál usa el frontend real).
 
 ---
 
@@ -271,3 +334,12 @@ Las acciones registradas automáticamente son:
 > seguridad que seguía abierto tras la auditoría de sesiones (protección
 > de fuerza bruta server-side en el login) se cerró como `SEC-7` — ver
 > `AUDITORIA_INDICE.md`.
+
+---
+
+*Última actualización: 11 de agosto de 2026 — agregadas las secciones
+que faltaban por completo (cabeceras/CSP, estado del advisor nativo de
+Supabase), tablas nuevas de agosto sumadas a § Estado actual de RLS, y
+nota sobre el modelo de roles dinámico (`MATRIZ_PERMISOS.md` es la
+fuente de verdad actualizada, no la tabla de 4 roles de este documento).
+Actualización anterior: julio 2026.*
