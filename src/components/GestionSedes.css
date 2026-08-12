@@ -63,3 +63,43 @@
   background: var(--brand-500); color: #fff; font-size: var(--font-size-13); font-weight: 600;
 }
 .gs-btn-guardar:disabled { opacity: 0.6; cursor: default; }
+
+/* PROG-4 — pestañas del shell (Sedes / Programas / Asignación) */
+.gs-tabs {
+  display: flex; gap: 4px; margin-bottom: 18px;
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+.gs-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 16px; border: none; background: none; cursor: pointer;
+  font-size: var(--font-size-13); font-weight: 600; color: var(--color-text-mid);
+  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s;
+}
+.gs-tab:hover { color: var(--color-text-primary); }
+.gs-tab--activa { color: var(--brand-500); border-bottom-color: var(--brand-500); }
+
+.gs-tab-panel { min-height: 120px; }
+
+/* PROG-4 — matriz sede × programa (pestaña Asignación) */
+.gs-matriz-wrap { overflow-x: auto; }
+.gs-matriz { min-width: 100%; }
+.gs-matriz-esquina { white-space: nowrap; }
+.gs-matriz-col { text-align: center; white-space: nowrap; }
+.gs-matriz-fila { white-space: nowrap; }
+.gs-matriz-celda { text-align: center; }
+
+.gs-matriz-toggle {
+  width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--color-border-tertiary);
+  background: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.gs-matriz-toggle:disabled { opacity: 0.6; cursor: default; }
+.gs-matriz-toggle--activo {
+  background: var(--color-success-bg, #ECFDF5); color: var(--color-success-text, #047857);
+  border-color: rgba(4,120,87,0.3);
+}
+.gs-matriz-toggle--inactivo {
+  background: var(--color-background-secondary); color: var(--color-text-mid);
+}
+.gs-matriz-toggle--activo:hover   { background: rgba(4,120,87,0.18); }
+.gs-matriz-toggle--inactivo:hover { color: var(--color-error-text, #B91C1C); border-color: rgba(185,28,28,0.3); }

@@ -28,11 +28,36 @@ export default function useNombresCache(userId = null, showToast = null, sedeAct
     // no eran la elegida.
     if (sedeActiva) query = query.eq("sede_id", sedeActiva);
     const { data: programas } = await query;
+
+    // PROG-4 (12 ago 2026): el "relleno" del dropdown (programas del
+    // catálogo que todavía no aparecen en ningún horario real de esta
+    // sede/lapso) se filtra a los activos en `sedeActiva` -- sin sede
+    // puntual (admin viendo todas las sedes) se mantiene el catálogo
+    // completo, mismo criterio que useProgramasActivosPorSede.js. Los
+    // programas que SÍ vienen de datos reales (`unique`, abajo) nunca se
+    // ocultan por esto -- un horario ya importado no desaparece del
+    // dropdown solo porque alguien desactivó el programa después.
+    let defaultsPermitidos = DEFAULT_PROGRAMAS;
+    if (sedeActiva) {
+      const { data: activos } = await supabase
+        .from("sedes_programas")
+        .select("activo, programas(nombre, activa)")
+        .eq("sede_id", sedeActiva);
+      if (activos) {
+        const nombresActivos = new Set(
+          activos.filter(a => a.activo && a.programas?.activa).map(a => a.programas.nombre)
+        );
+        if (nombresActivos.size > 0) {
+          defaultsPermitidos = DEFAULT_PROGRAMAS.filter(p => nombresActivos.has(p));
+        }
+      }
+    }
+
     if (programas) {
       const canonicalSet = new Map();
       programas.forEach(p => { if (p.programa?.trim()) { const canon = normalizarPrograma(p.programa); if (canon) canonicalSet.set(canon, true); } });
       const unique = [...canonicalSet.keys()].sort();
-      const defaults = DEFAULT_PROGRAMAS.filter(p => !unique.some(u => u.toLowerCase() === p.toLowerCase()));
+      const defaults = defaultsPermitidos.filter(p => !unique.some(u => u.toLowerCase() === p.toLowerCase()));
       setProgramasDisponibles(["todos", ...unique, ...defaults]);
     }
   }, [sedeActiva]);

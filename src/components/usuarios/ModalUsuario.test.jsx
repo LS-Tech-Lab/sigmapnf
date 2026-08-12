@@ -75,6 +75,33 @@ afterEach(() => {
   cleanup();
 });
 
+describe("ModalUsuario — PROG-4: filtro de programas por sede activa", () => {
+  it("sin sedeProgramaActivo, muestra el catálogo completo (comportamiento previo sin cambios)", () => {
+    renderModal();
+    expect(screen.getByText("INFORMATICA")).toBeTruthy();
+    expect(screen.getByText("AGROALIMENTACION")).toBeTruthy();
+  });
+
+  it("con sedeProgramaActivo, filtra el checklist a los programas activos en la sede ya elegida", () => {
+    renderModal({
+      sedeProgramaActivo: { cabimas: new Set(["INFORMATICA"]) },
+    });
+    // usuarioExistente.sede_id === "cabimas": AGROALIMENTACION no está
+    // activo ahí y no estaba ya asignado -> se oculta.
+    expect(screen.getByText("INFORMATICA")).toBeTruthy();
+    expect(screen.queryByText("AGROALIMENTACION")).toBeNull();
+  });
+
+  it("no oculta un programa ya asignado aunque ya no esté activo en la sede (unión con lo asignado)", () => {
+    renderModal({
+      sedeProgramaActivo: { cabimas: new Set([]) }, // nada activo en cabimas
+    });
+    // usuarioExistente.programas === ["INFORMATICA"] -> se conserva visible.
+    expect(screen.getByText("INFORMATICA")).toBeTruthy();
+    expect(screen.queryByText("AGROALIMENTACION")).toBeNull();
+  });
+});
+
 describe("ModalUsuario — editar usuario existente", () => {
   it("guarda con admin_upsert_user_profile y luego admin_set_user_programas, en ese orden", async () => {
     const { onSave } = renderModal();

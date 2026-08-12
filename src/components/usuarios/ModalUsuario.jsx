@@ -14,8 +14,19 @@
  *                  rol === "admin" en ese caso — el filtro de abajo es
  *                  además una segunda barrera, no la única.
  *   roles        — lista de roles disponibles
- *   programas    — lista de programas disponibles
+ *   programas    — lista de programas disponibles (catálogo completo,
+ *                  sin filtrar por sede)
  *   sedes        — lista de sedes disponibles ({id, nombre}) — SEDE-2
+ *   sedeProgramaActivo — PROG-4 (12 ago 2026): mapa { sede_id:
+ *                  Set<nombrePrograma> } de qué programas están activos
+ *                  en cada sede (migración 0090). Con `form.sede_id`
+ *                  elegido, el checklist de abajo se filtra a los
+ *                  programas activos en ESA sede (unión con lo que el
+ *                  usuario ya tuviera asignado, para no ocultar en
+ *                  silencio una asignación previa que quedó inactiva).
+ *                  Sin sede elegida todavía (o si no llega el mapa),
+ *                  cae de vuelta al catálogo completo — mismo criterio
+ *                  que useProgramasActivosPorSede.js.
  *   onSave       — callback tras guardar con éxito
  *   onClose      — callback para cerrar sin guardar
  *   showToast    — función de toast global
@@ -30,7 +41,7 @@ import { validarPassword } from "../../utils/password";
 import useFocusTrap from "../../hooks/useFocusTrap";
 import "./ModalUsuario.css";
 
-export default function ModalUsuario({ usuario, esActorAdmin = false, roles, programas, sedes, onSave, onClose, showToast, logAudit }) {
+export default function ModalUsuario({ usuario, esActorAdmin = false, roles, programas, sedes, sedeProgramaActivo, onSave, onClose, showToast, logAudit }) {
   const esNuevo = !usuario?.id;
   const rolesVisibles = esActorAdmin ? roles : roles.filter(r => r.nombre !== "admin");
   // PROG-3 (fase 1): `usuario.programas` (array) viene de
@@ -55,6 +66,14 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
   const [error,  setError]  = useState("");
 
   const rolSeleccionado = roles.find(r => r.nombre === form.rol);
+  // PROG-4: catálogo de programas filtrado a los activos en la sede
+  // elegida (unión con lo ya asignado, ver doc del prop arriba).
+  const programasVisibles = React.useMemo(() => {
+    const activosEnSede = form.sede_id ? sedeProgramaActivo?.[form.sede_id] : null;
+    if (!activosEnSede) return programas;
+    const permitidos = new Set([...activosEnSede, ...form.programas]);
+    return programas.filter(p => permitidos.has(p));
+  }, [programas, sedeProgramaActivo, form.sede_id, form.programas]);
   // SEDE-2: mismo criterio que restringe_programa pero a la inversa —
   // casi todos los roles requieren sede, salvo quien tenga
   // puedeVerTodasLasSedes (admin, coordinador general).
@@ -291,7 +310,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
                   en la columna escalar legada, sin que el orden importe
                   para el acceso real (eso lo resuelve la tabla N:N). */}
               <div className="mu-programas-lista" role="group" aria-label="Programas asignados">
-                {programas.map(p => (
+                {programasVisibles.map(p => (
                   <label key={p} className="mu-programa-item">
                     <input
                       type="checkbox"
@@ -360,6 +379,9 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
 // viene de admin_get_user_profiles_programas() vía PestanaUsuarios).
 // `usuario.programa` (escalar) se conserva como fallback, ver
 // programasIniciales arriba.
+// PROG-4 (12 ago 2026): se agrega `sedeProgramaActivo` (mapa opcional,
+// ver doc del prop arriba) — sin ella el componente se comporta como
+// antes (catálogo completo sin filtrar por sede).
 ModalUsuario.propTypes = {
   usuario: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -383,6 +405,7 @@ ModalUsuario.propTypes = {
     id: PropTypes.string.isRequired,
     nombre: PropTypes.string.isRequired,
   })).isRequired,
+  sedeProgramaActivo: PropTypes.objectOf(PropTypes.instanceOf(Set)),
   onSave: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   showToast: PropTypes.func,

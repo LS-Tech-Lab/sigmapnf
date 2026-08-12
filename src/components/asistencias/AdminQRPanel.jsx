@@ -25,6 +25,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../constants";
+import useProgramasActivosPorSede from "../../hooks/useProgramasActivosPorSede";
 import { playRegistroSound, useFlashFeed } from "./useRegistroSound";
 import { supabase } from "../../lib/supabase";
 import { fechaHoyVE, diaSemanaVE } from "../../utils/time";
@@ -519,6 +520,18 @@ export default function AdminQRPanel({
   // mismo contexto", que ahora incluye sede).
   const { sedeActiva } = useSedeContext();
 
+  // PROG-4 (12 ago 2026): el selector de programa de acá abajo solo debe
+  // ofrecer los programas activos en la sede activa -- antes mostraba
+  // DEFAULT_PROGRAMAS completo sin importar la sede. Si el hook todavía
+  // no cargó nada (o la sede no tiene ninguna fila en sedes_programas
+  // por algún motivo), cae de vuelta al catálogo fijo -- mismo criterio
+  // defensivo que el resto de los puntos de consumo de este mapa.
+  const { programasActivosDe } = useProgramasActivosPorSede(profile?.id);
+  const programasSelector = (() => {
+    const activos = programasActivosDe(sedeActiva);
+    return activos.length ? activos : DEFAULT_PROGRAMAS;
+  })();
+
   const esHoy = fecha === hoy;
 
   function turnoIndisponibleRazon(tId) {
@@ -748,7 +761,7 @@ export default function AdminQRPanel({
               className={`qrp-select-base${activa ? ' qrp-select-base--disabled' : ''}`}
             >
               <option value="">Todos los programas</option>
-              {DEFAULT_PROGRAMAS.map(p => <option key={p} value={p}>{p}</option>)}
+              {programasSelector.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </label>
 

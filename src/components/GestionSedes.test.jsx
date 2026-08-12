@@ -90,11 +90,20 @@ describe("GestionSedes — alta de sede", () => {
   });
 
   it("al guardar, inserta con el slug generado y activa=true, llama a logAudit y a refetchSedes", async () => {
-    const insertBuilder = makeInsertBuilder({ error: null });
-    const selectBuilder = makeSelectBuilder({ data: SEDES_DB, error: null });
+    // PROG-4: al crear una sede, TabSedes también crea las filas de
+    // sedes_programas (una por cada programa del catálogo) -- el mock
+    // acá enruta por tabla para cubrir las 3 llamadas que ahora dispara
+    // el alta: insert en "sedes", select de ids en "programas", insert
+    // en "sedes_programas".
+    const sedesBuilder          = { ...makeSelectBuilder({ data: SEDES_DB, error: null }), ...makeInsertBuilder({ error: null }) };
+    const programasSelectBuilder = { select: vi.fn(() => Promise.resolve({ data: [{ id: "informatica" }], error: null })) };
+    const sedesProgramasInsertBuilder = makeInsertBuilder({ error: null });
+
     const mockFrom = (tabla) => {
-      expect(tabla).toBe("sedes");
-      return { ...selectBuilder, ...insertBuilder };
+      if (tabla === "sedes") return sedesBuilder;
+      if (tabla === "programas") return programasSelectBuilder;
+      if (tabla === "sedes_programas") return sedesProgramasInsertBuilder;
+      throw new Error(`Tabla inesperada: ${tabla}`);
     };
 
     const { refetchSedes, logAudit } = renderGestion({ mockFrom });
@@ -105,7 +114,8 @@ describe("GestionSedes — alta de sede", () => {
     fireEvent.change(screen.getByLabelText("Orden"), { target: { value: "3" } });
     fireEvent.click(screen.getByText("Guardar"));
 
-    await waitFor(() => expect(insertBuilder.insert).toHaveBeenCalledWith({ id: "coro", nombre: "Coro", orden: 3, activa: true }));
+    await waitFor(() => expect(sedesBuilder.insert).toHaveBeenCalledWith({ id: "coro", nombre: "Coro", orden: 3, activa: true }));
+    await waitFor(() => expect(sedesProgramasInsertBuilder.insert).toHaveBeenCalledWith([{ sede_id: "coro", programa_id: "informatica", activo: true }]));
     await waitFor(() => expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ accion: "CREAR_SEDE", entidad_id: "coro" })));
     await waitFor(() => expect(refetchSedes).toHaveBeenCalled());
   });

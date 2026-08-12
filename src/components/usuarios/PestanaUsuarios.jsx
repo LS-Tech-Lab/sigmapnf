@@ -13,7 +13,12 @@
  *                  una fila admin, y ocultar "admin" del selector de rol
  *                  del modal — ver ModalUsuario.jsx.
  *   roles        — lista de roles (para filtro y modal)
- *   programas    — lista de programas disponibles
+ *   programas    — lista de programas disponibles (catálogo completo)
+ *   sedeProgramaActivo — PROG-4 (12 ago 2026): mapa { sede_id:
+ *                  Set<nombrePrograma> } que ModalUsuario usa para
+ *                  filtrar el checklist de programas según la sede
+ *                  elegida — ver doc en ModalUsuario.jsx. Opcional, se
+ *                  pasa tal cual (sin resolverlo acá).
  *   showToast    — función de toast global (opcional; usa toast local si no se pasa)
  *   logAudit     — función de auditoría
  *
@@ -32,7 +37,7 @@ import useSedes from "../../hooks/useSedes";
 import "./PestanaUsuarios.css";
 import ModalUsuario from "./ModalUsuario";
 
-export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles, programas, showToast: showToastProp, logAudit, userId }) {
+export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles, programas, sedeProgramaActivo, showToast: showToastProp, logAudit, userId }) {
   const [usuarios,    setUsuarios]    = useState([]);
   const [huerfanos,   setHuerfanos]   = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -338,6 +343,7 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
           esActorAdmin={esActorAdmin}
           roles={roles}
           programas={programas}
+          sedeProgramaActivo={sedeProgramaActivo}
           sedes={sedes}
           showToast={toast}
           logAudit={logAudit}

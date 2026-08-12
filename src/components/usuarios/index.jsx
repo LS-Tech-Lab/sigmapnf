@@ -13,7 +13,13 @@
  *               como userId a useSedes() dentro de PestanaUsuarios
  *               (SEDE-18 -- sin esto, el selector de sede del modal de
  *               Nuevo/Editar usuario quedaba siempre vacío)
- *   programas — lista de programas disponibles
+ *   programas — lista de programas disponibles (catálogo completo, sin
+ *               filtrar por sede -- históricamente venía de
+ *               `appData.data?.programas`, que nunca se llegó a poblar
+ *               desde ningún lado; PROG-4 (12 ago 2026) lo reemplaza acá
+ *               mismo por useProgramasActivosPorSede(), que sí carga
+ *               contra el catálogo real -- se mantiene la prop como
+ *               último fallback por si el hook no trae nada todavía)
  *   logAudit  — función de auditoría
  *   showToast — función de toast global
  */
@@ -21,12 +27,20 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { DEFAULT_PROGRAMAS } from "../../constants";
+import useProgramasActivosPorSede from "../../hooks/useProgramasActivosPorSede";
 import PestanaUsuarios from "./PestanaUsuarios";
 import PestanaRoles    from "./PestanaRoles";
 import "./index.css";
 
 export default function UsuariosView({ permisos, profile, programas, logAudit, showToast }) {
-  const programasDisponibles = programas?.length ? programas : DEFAULT_PROGRAMAS;
+  // PROG-4: catálogo real de programas + mapa de activos por sede, en
+  // vez del prop `programas` (ver nota arriba). `catalogoNombres` ya es
+  // "todos los programas activos del catálogo", así que reemplaza al
+  // viejo fallback en el mismo orden de prioridad.
+  const { catalogoNombres, mapaPorSede } = useProgramasActivosPorSede(profile?.id);
+  const programasDisponibles = catalogoNombres.length
+    ? catalogoNombres
+    : (programas?.length ? programas : DEFAULT_PROGRAMAS);
   const puedeUsuarios = permisos.puedeGestionarUsuarios;
   const puedeRoles    = permisos.puedeGestionarRoles;
   // SEC-15 (jerarquía fija del rol admin, migración 0050): el backend ya
@@ -98,6 +112,7 @@ export default function UsuariosView({ permisos, profile, programas, logAudit, s
           esActorAdmin={esActorAdmin}
           roles={roles}
           programas={programasDisponibles}
+          sedeProgramaActivo={mapaPorSede}
           showToast={showToast}
           logAudit={logAudit}
           userId={profile?.id}
