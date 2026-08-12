@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useState, useEffect, useRef } from "react";
 import ErrorBoundary from "../components/ErrorBoundary";
 import ModalCambiarPassword from "../components/ModalCambiarPassword";
+import Toast from "../components/Toast";
 import UserMenu from "./UserMenu";
 import useTrimestreActivo from "../hooks/useTrimestreActivo";
 
@@ -31,6 +32,8 @@ const QRFallback = () => (
  *   tieneHorarios    — si el usuario también tiene acceso al módulo de horarios
  *   onVolverSelector — callback para volver al ModuleSelector
  *   showToast        — función de toast (de appData)
+ *   toast / hideToast — estado y cierre del toast (ASIST-7: sin esto no
+ *                        había nada en este árbol que pintara showToast())
  *   onLogout         — handleLogout de useAuth
  */
 export default function AsistenciasModulo({
@@ -40,6 +43,13 @@ export default function AsistenciasModulo({
   tieneHorarios,
   onVolverSelector,
   showToast,
+  // ASIST-7 (12 ago): faltaban -- este módulo recibía showToast() pero
+  // nunca el estado/cierre para poder pintar el aviso (mismo bug
+  // encontrado en el módulo Sistema, ver App.jsx). Los toasts se
+  // disparaban (appData.toast se actualizaba) pero no había ningún
+  // <Toast> en este árbol que lo mostrara.
+  toast,
+  hideToast,
   onLogout,
   // UX-4: badge de registros offline pendientes
   pendientesCount = 0,
@@ -124,6 +134,11 @@ export default function AsistenciasModulo({
 
   return (
     <div className="asm-root">
+
+      {/* ASIST-7: ver comentario junto a los props toast/hideToast. */}
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={hideToast} />
+      )}
 
       {cambiarPwdOpen && (
         <ModalCambiarPassword

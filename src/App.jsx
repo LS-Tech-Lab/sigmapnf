@@ -19,6 +19,16 @@ import useSedeActiva from "./hooks/useSedeActiva";
 import { AppDataProvider } from "./context/AppDataContext";
 // Context de sede activa (SEDE-2)
 import { SedeProvider } from "./context/SedeContext";
+// ASIST-7 (12 ago, hallazgo tras probar ASIST-6): el módulo "admin"
+// (Sistema, donde vive Historial → editar/cerrar/crear trimestre) se
+// renderiza en un return temprano separado de HorariosLayout.jsx -- por
+// eso nunca montaba <Toast>/<ConfirmModal>. Las acciones sí funcionaban
+// (showToast() actualizaba appData.toast igual que en Horarios), pero
+// no había ningún componente ahí abajo que leyera ese estado y lo
+// pintara -- de ahí que LS no viera ningún aviso, ni de éxito ni de
+// error, al editar fechas de un trimestre.
+import Toast from "./components/Toast";
+import ConfirmModal from "./components/ConfirmModal";
 
 // Layouts extraídos (P4)
 import HorariosLayout from "./app/HorariosLayout";
@@ -371,6 +381,8 @@ export default function App() {
             tieneHorarios={tieneHorarios}
             onVolverSelector={() => setModuloActivo(null)}
             showToast={appData.showToast}
+            toast={appData.toast}
+            hideToast={appData.hideToast}
             onLogout={handleLogout}
             pendientesCount={pendientesCount}
           />
@@ -384,6 +396,23 @@ export default function App() {
     return (
       <SedeProvider value={sedeContextValue}>
         <AppDataProvider value={appDataAuditada}>
+          {/* ASIST-7: sin esto, showToast()/openConfirm() dentro del
+              módulo Sistema (Historial, Usuarios, Logs, etc.) actualizan
+              appData.toast/appData.confirmModal correctamente, pero
+              nada los pinta -- ver comentario junto al import de Toast
+              arriba. */}
+          {appDataAuditada.toast && (
+            <Toast message={appDataAuditada.toast.message} type={appDataAuditada.toast.type} onClose={appDataAuditada.hideToast} />
+          )}
+          <ConfirmModal
+            open={!!appDataAuditada.confirmModal}
+            title={appDataAuditada.confirmModal?.title}
+            message={appDataAuditada.confirmModal?.message}
+            confirmLabel={appDataAuditada.confirmModal?.confirmLabel}
+            danger={appDataAuditada.confirmModal?.danger}
+            onConfirm={appDataAuditada.confirmModal?.onConfirm}
+            onCancel={appDataAuditada.closeConfirm}
+          />
           <Suspense fallback={<FullScreenSpinner label="Cargando módulo…" />}>
             <AdminModulo
               profile={efectiveProfile}
