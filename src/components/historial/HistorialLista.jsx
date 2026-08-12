@@ -16,6 +16,8 @@ export default function HistorialLista({
   lapsoActivo,
   cargarDetalle,
   onCambiarLapso,
+  onEditarFechas,
+  modoConsulta = false,
 }) {
   return (
     <>
@@ -78,6 +80,19 @@ export default function HistorialLista({
                         <i className="ti ti-notes hist-card__note-icon" aria-hidden="true" />
                         {t.notas}
                       </div>
+                    )}
+
+                    {/* ASIST-6: corregir fecha_inicio/fecha_fin sin pasar
+                        por "Cerrar" (que cambia estado) -- disponible
+                        para cualquier trimestre, activo o cerrado, igual
+                        que el resto de acciones de escritura de esta
+                        pantalla, gateadas por !modoConsulta. */}
+                    {!modoConsulta && (
+                      <button onClick={(e) => { e.stopPropagation(); onEditarFechas(t); }}
+                        className="hist-goto">
+                        <i className="ti ti-calendar-cog" aria-hidden="true" />
+                        Editar fechas
+                      </button>
                     )}
 
                     {loadingDet && !d ? (

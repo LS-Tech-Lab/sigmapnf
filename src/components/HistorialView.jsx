@@ -43,6 +43,9 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
   const [tab,            setTab]            = useState("lista");
   const [modal,          setModal]          = useState(null);
   const [lapsoSiguiente, setLapsoSiguiente] = useState("");
+  // ASIST-6: trimestre completo sobre el que se abrió el modal "editar"
+  // (ModalTrimestre necesita la fila real para precargar los campos).
+  const [trimestreEditando, setTrimestreEditando] = useState(null);
 
   const cargarTrimestres = useCallback(async () => {
     setLoading(true);
@@ -172,6 +175,40 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
     setProcesando(false);
   };
 
+  // ASIST-6 (pedido de LS, 12 ago): hasta ahora no había forma de
+  // corregir fecha_inicio/fecha_fin de un trimestre ya activo sin pasar
+  // por "Cerrar" (cambia estado a 'cerrado', no aplica) o "Nuevo
+  // trimestre" (bloqueado si el lapso ya está activo -- ver handleCrear).
+  // Upsert parcial: solo toca fecha_inicio/fecha_fin/notas -- estado,
+  // creado_en/creado_por, cerrado_en/cerrado_por quedan intactos (mismo
+  // comportamiento ya usado por handleCerrar, que tampoco reenvía
+  // creado_en/creado_por y no los pisa).
+  const handleEditarFechas = async ({ lapso, fechaInicio, fechaFin, observacion }) => {
+    setProcesando(true);
+    // numero/anio son NOT NULL sin default en `trimestres` -- Postgres
+    // exige que la fila propuesta los satisfaga incluso cuando el
+    // conflicto se resuelve como UPDATE (el ON CONFLICT no exime la
+    // validación de la fila de INSERT construida). Se derivan del mismo
+    // `lapso`, igual que ya hacen handleCerrar/handleCrear.
+    const [num, anio] = lapso.split("-").map(Number);
+    const { error } = await supabase.from("trimestres").upsert(
+      {
+        lapso, numero: num, anio,
+        fecha_inicio: fechaInicio || null,
+        fecha_fin:    fechaFin || null,
+        notas:        observacion || null,
+      },
+      { onConflict: "lapso" }
+    );
+    if (error) { showToast("Error al editar fechas: " + mensajeAmigable(error), "error"); setProcesando(false); return; }
+    showToast(`Fechas de ${formatLapso(lapso)} actualizadas.`, "success");
+    logAudit?.({ accion: "EDITAR_FECHAS_TRIMESTRE", entidad: "trimestres", lapso, resumen: `Fechas corregidas: ${formatLapso(lapso)} (${fechaInicio} a ${fechaFin})` });
+    setModal(null);
+    setTrimestreEditando(null);
+    await cargarTrimestres();
+    setProcesando(false);
+  };
+
   const filtrados = trimestres.filter(t =>
     !busqueda ||
     t.lapso.includes(busqueda) ||
@@ -186,8 +223,19 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
         <ModalTrimestre
           modo="cerrar"
           lapsoSugerido={lapsoActivo}
+          trimestre={trimestreActual}
           onConfirm={handleCerrar}
           onCancel={() => setModal(null)}
+          loading={procesando}
+        />
+      )}
+      {modal === "editar" && trimestreEditando && (
+        <ModalTrimestre
+          modo="editar"
+          lapsoSugerido={trimestreEditando.lapso}
+          trimestre={trimestreEditando}
+          onConfirm={handleEditarFechas}
+          onCancel={() => { setModal(null); setTrimestreEditando(null); }}
           loading={procesando}
         />
       )}
@@ -290,6 +338,8 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
             lapsoActivo={lapsoActivo}
             cargarDetalle={cargarDetalle}
             onCambiarLapso={onCambiarLapso}
+            onEditarFechas={(t) => { setTrimestreEditando(t); setModal("editar"); }}
+            modoConsulta={modoConsulta}
           />
         )}
 
