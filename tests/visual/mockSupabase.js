@@ -99,7 +99,22 @@ export async function loginComoFake(page, { rutasExtra = {} } = {}) {
       return route.fulfill({ status: 200, json: FAKE_PROFILE });
     }
     if (url.includes('/trimestres')) {
-      return route.fulfill({ status: 200, json: { estado: 'activo' } });
+      // ASIST-1 (12-ago, e43ce2d): useTrimestreActivo.js consulta esta
+      // tabla con `.select("lapso, estado, fecha_inicio, fecha_fin")`
+      // SIN `.single()` — o sea espera un array de filas, igual que
+      // Postgrest lo devuelve de verdad. Un objeto suelto acá (como
+      // `{ estado: 'activo' }`) pasaba el guard `!rows || rows.length===0`
+      // sin ser detectado (rows.length es undefined, no 0), y el
+      // `trimestres.find(...)` síncrono en el cuerpo del hook explotaba
+      // en pleno render de App, tumbando toda la app vía ErrorBoundary
+      // antes de que "Bienvenido" llegara a pintarse — la causa real de
+      // que este spec fallara en los 3 breakpoints por igual.
+      return route.fulfill({
+        status: 200,
+        json: [
+          { lapso: 2, estado: 'activo', fecha_inicio: null, fecha_fin: null },
+        ],
+      });
     }
     for (const [patron, respuesta] of Object.entries(rutasExtra)) {
       if (url.includes(patron)) {
