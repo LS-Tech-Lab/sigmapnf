@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useState, useEffect, useRef } from "react";
 import ErrorBoundary from "../components/ErrorBoundary";
 import ModalCambiarPassword from "../components/ModalCambiarPassword";
 import UserMenu from "./UserMenu";
+import useTrimestreActivo from "../hooks/useTrimestreActivo";
 
 // P5: imports lazy para separar el módulo QR del bundle principal
 const AdminQRPanel      = lazy(() => import("../components/asistencias/AdminQRPanel"));
@@ -50,6 +51,16 @@ export default function AsistenciasModulo({
   const [cambiarPwdOpen,    setCambiarPwdOpen]    = useState(false);
   const [headerVisible,     setHeaderVisible]     = useState(true);
   const headerTimerRef = useRef(null);
+
+  // ASIST-2: hook compartido (mismo que usa Horarios en App.jsx) -- se usa
+  // aquí solo para el aviso en Panel QR cuando "hoy" cae fuera del rango
+  // de fechas del trimestre activo (caso real: un trimestre se cierra y
+  // el siguiente aún no arranca -- ver hoyEnTrimestreActivo). El selector
+  // de trimestre para Reporte/Estadísticas/Planilla queda fuera de este
+  // shell -- Planilla ya trae el suyo propio (ver PlanillaQR.jsx, ahora
+  // también sobre este mismo hook); Reporte/Estadísticas quedan
+  // pendientes (ASIST-4) hasta revisar su modelo de filtrado por fecha.
+  const { trimestreActivoInfo, hoyEnTrimestreActivo } = useTrimestreActivo();
 
   const rolLabel = profile.rol_info?.label || "Operador QR";
   const rolColor = profile.rol_info?.color || "#34D399";
@@ -191,6 +202,8 @@ export default function AsistenciasModulo({
                 showToast={showToast}
                 onVerReporte={() => setSubView("reporte")}
                 onVerProyeccion={() => setSubView("proyeccion")}
+                hoyEnTrimestreActivo={hoyEnTrimestreActivo}
+                trimestreActivoInfo={trimestreActivoInfo}
                 {...qrSession}
               />
             )}

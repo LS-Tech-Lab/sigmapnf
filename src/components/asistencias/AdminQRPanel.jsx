@@ -28,6 +28,7 @@ import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../constants";
 import { playRegistroSound, useFlashFeed } from "./useRegistroSound";
 import { supabase } from "../../lib/supabase";
 import { fechaHoyVE, diaSemanaVE } from "../../utils/time";
+import { formatLapso } from "../../utils/lapso";
 import { obtenerPendientes, eliminarPendiente, purgarExpirados } from "../../utils/offlineQueue";
 // FIX OFF-10: pre-generación de sesiones (opción A) y registro manual sin
 // token (opción C) — ver useQRSession.js, qrOfflineCache.js y
@@ -452,6 +453,15 @@ export default function AdminQRPanel({
   // FIX OFF-10
   requiereModoManual = false, prepararSesionOffline,
   permisos = {}, showToast,
+  // ASIST-2: si "hoy" cae fuera del rango de fechas del trimestre activo
+  // (caso real: un trimestre se cierra y el siguiente aún no arranca),
+  // se avisa y se bloquea "Iniciar sesión QR" -- no tiene sentido abrir
+  // asistencia para un día que no pertenece a ningún trimestre en curso.
+  // undefined mientras useTrimestreActivo() todavía está cargando (ver
+  // AsistenciasModulo.jsx) -- no se avisa hasta tener el dato real, para
+  // no parpadear el banner en cada carga.
+  hoyEnTrimestreActivo,
+  trimestreActivoInfo,
 }) {
   const hoy    = fechaHoyVE();
   const minHoy = horaActualVE();
@@ -591,10 +601,27 @@ export default function AdminQRPanel({
   };
 
   const turnoInfo     = TURNOS_VISIBLES.find(t => t.id === turno);
-  const btnDisabled   = loading || fecha < hoy || (esHoy && !turnoDisponible(turno));
+  // ASIST-2: `hoyEnTrimestreActivo === false` explícito -- undefined
+  // mientras el hook padre sigue cargando no debe bloquear el botón por
+  // un instante en cada carga de página.
+  const sinTrimestreVigente = hoyEnTrimestreActivo === false;
+  const btnDisabled   = loading || fecha < hoy || (esHoy && !turnoDisponible(turno)) || sinTrimestreVigente;
 
   return (
     <div className="qap-root">
+      {/* ASIST-2: aviso cuando hoy no cae dentro del rango de fechas del
+          trimestre activo -- no bloquea toda la pantalla (el historial
+          de sesiones del día sigue siendo consultable), solo impide
+          abrir una sesión nueva. */}
+      {sinTrimestreVigente && (
+        <div className="qap-offline-banner" role="status">
+          <i className="ti ti-calendar-off qrp-ic-danger-20" aria-hidden="true" />
+          {trimestreActivoInfo
+            ? <>La fecha de hoy no está dentro del trimestre activo ({formatLapso(trimestreActivoInfo.lapso)}). No se puede iniciar una sesión QR hasta que el trimestre correspondiente esté vigente.</>
+            : <>No hay ningún trimestre activo configurado. No se puede iniciar una sesión QR.</>
+          }
+        </div>
+      )}
       {/* Banner offline */}
       {isOffline && (
         <div className="qap-offline-banner">

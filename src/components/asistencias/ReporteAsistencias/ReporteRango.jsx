@@ -8,6 +8,8 @@ import { exportarCSVRango } from "./exportCSV";
 import { ModalConfirm } from "../../usuarios/shared";
 import { useReporteConfig } from "../../../hooks/useReporteConfig";
 import { useSedeContext } from "../../../context/SedeContext";
+import useTrimestreActivo from "../../../hooks/useTrimestreActivo";
+import { formatLapso, rangoTrimestre } from "../../../utils/lapso";
 // Fix SEC-38 (auditoría de estrés operacional, 10 de agosto): bypasseaba
 // el filtro de errorMessages.js.
 import { mensajeAmigable } from "../../../utils/errorMessages";
@@ -60,6 +62,30 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
   // solo metadatos de sesión.
   const [confirmBorrar, setConfirmBorrar] = useState(false);
   const [borrando,      setBorrando]      = useState(false);
+
+  // ASIST-4/5: selector de trimestre para saltar rápido a "ver todo el
+  // trimestre X" en vez de picar Desde/Hasta a mano, y para poder
+  // deshabilitar "Borrar rango" en cliente cuando el rango elegido no
+  // cae completo dentro del trimestre activo -- el mismo guard ya existe
+  // en servidor (admin_borrar_asistencias_rango, migración 0089), esto
+  // solo evita que el admin llegue a intentarlo y se encuentre con el
+  // error recién en el toast.
+  const { trimestres, trimestreActivo, trimestreActivoInfo, cargando: cargandoTrimestres } = useTrimestreActivo();
+  const [trimestreFiltro, setTrimestreFiltro] = useState("");
+
+  const handleTrimestreFiltro = (lapsoElegido) => {
+    setTrimestreFiltro(lapsoElegido);
+    if (!lapsoElegido) return;
+    const info = trimestres.find(t => t.lapso === lapsoElegido);
+    const rango = rangoTrimestre(info, hoy);
+    if (rango) { setInicio(rango.inicio); setFin(rango.fin); }
+  };
+
+  // Rango dentro del trimestre activo -- mismo criterio que exige el
+  // servidor (0089): el borrado por rango solo procede si Desde/Hasta
+  // caen completos dentro de [fecha_inicio, fecha_fin] del activo.
+  const rangoFueraDeVigencia = !trimestreActivoInfo?.fecha_inicio || !trimestreActivoInfo?.fecha_fin
+    || inicio < trimestreActivoInfo.fecha_inicio || fin > trimestreActivoInfo.fecha_fin;
 
   // ARCH-4: ref al AbortController del fetch en curso. fetchRango se dispara
   // de nuevo cada vez que cambian inicio/fin/turno/programa; si el usuario
@@ -252,8 +278,9 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
           {permisos.puedeBorrarReportes && (
             <button
               onClick={() => setConfirmBorrar(true)}
-              disabled={totalRegistros === 0}
-              className={`ra-btn ra-btn--sm ra-btn-borrar-rango${totalRegistros === 0 ? ' ra-btn-borrar-rango--disabled' : ''}`}
+              disabled={totalRegistros === 0 || rangoFueraDeVigencia}
+              title={rangoFueraDeVigencia ? "Solo se puede borrar dentro del trimestre activo -- los trimestres cerrados son de solo lectura" : undefined}
+              className={`ra-btn ra-btn--sm ra-btn-borrar-rango${(totalRegistros === 0 || rangoFueraDeVigencia) ? ' ra-btn-borrar-rango--disabled' : ''}`}
             >
               <i className="ti ti-trash ra-btn-icon" aria-hidden="true" />
               Borrar rango
@@ -263,10 +290,32 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
       </div>
 
       <div className="ra-filtros">
+        {/* ASIST-4: preset de trimestre -- salta Desde/Hasta al rango del
+            trimestre elegido (clamp a hoy si sigue en curso, ver
+            rangoTrimestre() en utils/lapso.js). No reemplaza los campos
+            Desde/Hasta, es un atajo -- se puede seguir ajustando a mano
+            después de elegirlo. */}
+        {!cargandoTrimestres && trimestres.length > 0 && (
+          <label className="ra-filtro-label">
+            <span className="ra-filtro-label-text">Trimestre</span>
+            <select
+              value={trimestreFiltro}
+              onChange={e => handleTrimestreFiltro(e.target.value)}
+              className="s-select"
+            >
+              <option value="">Rango libre</option>
+              {trimestres.map(t => (
+                <option key={t.lapso} value={t.lapso}>
+                  {formatLapso(t.lapso)}{t.lapso === trimestreActivo ? " (actual)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {[["Desde", inicio, setInicio, {}], ["Hasta", fin, setFin, { max: hoy }]].map(([lbl, val, fn, extra]) => (
           <label key={lbl} className="ra-filtro-label">
             <span className="ra-filtro-label-text">{lbl}</span>
-            <input type="date" value={val} onChange={e => fn(e.target.value)} {...extra} className="s-input ra-input-date" />
+            <input type="date" value={val} onChange={e => { fn(e.target.value); setTrimestreFiltro(""); }} {...extra} className="s-input ra-input-date" />
           </label>
         ))}
         <label className="ra-filtro-label">

@@ -311,7 +311,23 @@ se incluye aquí porque el código ya usa el mismo formato de comentario.
 
 ---
 
-## 🏢 Sistema multi-sede (`SEDE-N`)
+## 🗓️ Trimestre activo en Asistencias (`ASIST-N`)
+
+Esquema `ASIST-N`, agregado el 12 de agosto: pedido directo de LS — el
+módulo de Asistencias debe abrir por defecto en el trimestre actual, y
+los trimestres cerrados deben quedar como historial de solo consulta,
+igual que ya funcionaba en Horarios.
+
+| ID | Descripción | Archivo(s) clave | Migración | Estado |
+|---|---|---|---|---|
+| **ASIST-1** | Hook compartido `useTrimestreActivo()`, fuente de verdad única sobre el trimestre activo/seleccionado. De paso corrige un bug real encontrado en la auditoría: el `lapso` inicial de Horarios (`App.jsx`) se calculaba con `getCurrentLapso()` — heurística por fecha de calendario — en vez de consultar `trimestres` de verdad. LS confirmó que los trimestres reales NO siguen el calendario fijo que asume esa heurística; con los datos de prueba actuales (trimestre "2-2026" cerrado el mismo 11 de agosto, activo real "3-2026" arranca 28-sep) la heurística sigue apuntando al cerrado — cualquiera que abriera Horarios caía en `modoConsulta = true` por defecto sin saberlo | `hooks/useTrimestreActivo.js` (nuevo), `App.jsx` | — | ✅ Cerrado (12 ago) — 535/535 tests, 0 errores/warnings de lint |
+| **ASIST-2** | Aviso + bloqueo en Panel QR (`AdminQRPanel.jsx`) cuando la fecha de hoy cae fuera del rango de fechas del trimestre activo (mismo caso real que `ASIST-1`: un trimestre se cierra y el siguiente aún no arranca). `PlanillaQR.jsx` migrado al hook compartido (elimina el fetch duplicado a `trimestres` que tenía desde `ARCH-41`) | `AdminQRPanel.jsx`, `PlanillaQR.jsx`, `AsistenciasModulo.jsx` | — | ✅ Cerrado (12 ago) — 535/535 tests. Alcance reducido tras revisar el código real: el selector de fecha de `AdminQRPanel` está fijo a hoy (`min=max=hoy`), así que no hay forma de navegar ahí a sesiones QR de trimestres pasados — el riesgo de "borrar sesión de un histórico" que motivó el ticket no es alcanzable hoy. `ReporteAsistencias`/`EstadisticasAcademicas` ya son de solo consulta (confirmado en `ARCH-44`: no existe flujo de edición de `asistencias_diarias`) pero no tienen selector de trimestre — decisión consciente de no agregarlo hasta revisar su modelo de filtrado (ver `ASIST-4`) |
+| **ASIST-4** | Selector de trimestre ("preset") en `ReporteAsistencias`, `ReporteRango` y `EstadisticasAcademicas`: salta Desde/Hasta (o Fecha, en la vista diaria) al rango del trimestre elegido — no reemplaza los campos, es un atajo editable después. Nuevo helper `rangoTrimestre()` en `utils/lapso.js` (recorta `fin` a hoy si el trimestre sigue en curso, evita devolver un rango invertido en el caso real detectado en `ASIST-1`: trimestre activo cuya `fecha_inicio` aún no llegó) | `ReporteAsistencias/index.jsx`, `ReporteRango.jsx`, `EstadisticasAcademicas/index.jsx`, `utils/lapso.js` (+ `rangoTrimestre()`, 4 tests) | — | ✅ Cerrado (12 ago) — 539/539 tests |
+| **ASIST-5** | Hallazgo real durante `ASIST-4`, no solo UX: `admin_borrar_asistencias_rango()` (borrado real de `asistencias_diarias` por rango, solo admin) no validaba el trimestre en absoluto — un admin podía borrar asistencias de cualquier fecha, incluidas las de un trimestre cerrado hace meses. Guard agregado en servidor (rechaza si el rango no cae completo dentro del trimestre activo) + guard en cliente (botón "Borrar rango" deshabilitado con tooltip explicativo cuando el rango elegido no está vigente) | `ReporteRango.jsx` | `0089_asist4_5_guard_trimestre_borrar_asistencias_rango.sql` | ✅ Cerrado (12 ago) — aplicada en producción (Supabase project `fcrrtpujuncxruwxpckq`) y verificada |
+
+---
+
+
 
 Esquema `SEDE-N`, agregado el 6 de agosto para cerrar `ARCH-37`: el sistema
 de Sedes (independencia entre sedes de UNERMB — Cabimas, y las que se

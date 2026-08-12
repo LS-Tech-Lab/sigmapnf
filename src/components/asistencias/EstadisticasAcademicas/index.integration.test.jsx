@@ -28,7 +28,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 
 vi.mock("../../../lib/supabase", () => ({
-  supabase: { rpc: vi.fn() },
+  supabase: { rpc: vi.fn(), from: vi.fn() },
 }));
 
 import { supabase } from "../../../lib/supabase";
@@ -72,6 +72,19 @@ function makeRpcMock(result) {
   return builder;
 }
 
+// ASIST-4: este componente ahora también consume useTrimestreActivo(),
+// que llama a supabase.from("trimestres") -- se mockea aparte para no
+// afectar las aserciones existentes sobre supabase.rpc(). Vacío (sin
+// trimestres) es un resultado válido -- el hook cae a su fallback
+// defensivo (ver useTrimestreActivo.js) y el componente sigue
+// funcionando igual que antes de ASIST-4, solo sin el selector visible.
+function makeTrimestresQueryMock() {
+  const builder = {};
+  ["select", "in", "order"].forEach((m) => { builder[m] = vi.fn(() => builder); });
+  builder.then = (resolve) => Promise.resolve({ data: [], error: null }).then(resolve);
+  return builder;
+}
+
 function mockRpc({ data = DATOS_OK, error = null } = {}) {
   supabase.rpc.mockImplementation((fn) => {
     if (fn === "reporte_estadisticas_academicas") {
@@ -97,6 +110,8 @@ function renderDashboard(overrides = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   Object.defineProperty(navigator, "onLine", { value: true, writable: true, configurable: true });
+  // ASIST-4: supabase.from("trimestres") -- ver makeTrimestresQueryMock().
+  supabase.from.mockImplementation(() => makeTrimestresQueryMock());
 });
 
 afterEach(() => {

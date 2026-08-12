@@ -111,3 +111,24 @@ export function compareLapsos(a, b) {
   if (ya !== yb) return ya - yb;
   return na - nb;
 }
+
+/**
+ * ASIST-4: rango de fechas [inicio, fin] "seguro para consultar" de un
+ * trimestre, a partir de la fila real de `trimestres` (fecha_inicio/
+ * fecha_fin -- ver useTrimestreActivo.js). Pensado para presets de
+ * reportes ("ver todo el trimestre X"): si el trimestre sigue en curso,
+ * `fin` se recorta a `hoy` -- pedir asistencias hasta fecha_fin de un
+ * trimestre activo (que suele ser una fecha futura) siempre devolvería
+ * vacío para los días que aún no pasaron, y confundiría al usuario más
+ * que ayudarlo. Para un trimestre cerrado, se usa el rango completo tal
+ * cual quedó.
+ * @param {{fecha_inicio: string|null, fecha_fin: string|null, estado?: string}} trimestreInfo
+ * @param {string} hoy - fecha de hoy en formato YYYY-MM-DD (ver fechaHoyVE())
+ * @returns {{inicio: string, fin: string}|null} null si el trimestre no
+ *   trae fechas (fallback heurístico sin fila real en `trimestres`).
+ */
+export function rangoTrimestre(trimestreInfo, hoy) {
+  if (!trimestreInfo?.fecha_inicio || !trimestreInfo?.fecha_fin) return null;
+  const fin = trimestreInfo.fecha_fin < hoy ? trimestreInfo.fecha_fin : hoy;
+  return { inicio: trimestreInfo.fecha_inicio, fin: fin < trimestreInfo.fecha_inicio ? trimestreInfo.fecha_inicio : fin };
+}

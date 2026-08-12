@@ -25,6 +25,8 @@ import { supabase } from "../../../lib/supabase";
 import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../../constants";
 import { fechaHoyVE } from "../../../utils/time";
 import { useSedeContext } from "../../../context/SedeContext";
+import useTrimestreActivo from "../../../hooks/useTrimestreActivo";
+import { formatLapso, rangoTrimestre } from "../../../utils/lapso";
 import { CHART_COLORS, restarDias, formatFechaCorta, topN } from "./helpers";
 import "./index.css";
 
@@ -45,6 +47,21 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState(null);
   const [isOffline, setIsOffline] = useState(false);
+
+  // ASIST-4: mismo preset de trimestre que ReporteRango.jsx -- esta vista
+  // es de solo consulta (no borra nada), así que no necesita el guard de
+  // vigencia, solo el atajo para saltar Desde/Hasta al rango de un
+  // trimestre completo en vez de picarlo a mano.
+  const { trimestres, trimestreActivo, cargando: cargandoTrimestres } = useTrimestreActivo();
+  const [trimestreFiltro, setTrimestreFiltro] = useState("");
+
+  const handleTrimestreFiltro = (lapsoElegido) => {
+    setTrimestreFiltro(lapsoElegido);
+    if (!lapsoElegido) return;
+    const info = trimestres.find(t => t.lapso === lapsoElegido);
+    const rango = rangoTrimestre(info, hoy);
+    if (rango) { setInicio(rango.inicio); setFin(rango.fin); }
+  };
 
   const abortControllerRef = useRef(null);
 
@@ -144,10 +161,27 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
       </div>
 
       <div className="est-filtros">
+        {!cargandoTrimestres && trimestres.length > 0 && (
+          <label className="est-filtro-label">
+            <span className="est-filtro-label-text">Trimestre</span>
+            <select
+              value={trimestreFiltro}
+              onChange={e => handleTrimestreFiltro(e.target.value)}
+              className="s-select"
+            >
+              <option value="">Rango libre</option>
+              {trimestres.map(t => (
+                <option key={t.lapso} value={t.lapso}>
+                  {formatLapso(t.lapso)}{t.lapso === trimestreActivo ? " (actual)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {[["Desde", inicio, setInicio, {}], ["Hasta", fin, setFin, { max: hoy }]].map(([lbl, val, fn, extra]) => (
           <label key={lbl} className="est-filtro-label">
             <span className="est-filtro-label-text">{lbl}</span>
-            <input type="date" value={val} onChange={e => fn(e.target.value)} {...extra} className="s-input est-input-date" />
+            <input type="date" value={val} onChange={e => { fn(e.target.value); setTrimestreFiltro(""); }} {...extra} className="s-input est-input-date" />
           </label>
         ))}
         <label className="est-filtro-label">

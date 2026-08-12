@@ -40,7 +40,10 @@ function renderReporte(props = {}) {
 
 function makeQueryMock(result) {
   const builder = {};
-  ["select", "eq", "order", "maybeSingle"].forEach((m) => { builder[m] = vi.fn(() => builder); });
+  // ASIST-4: agregado "in" -- useTrimestreActivo() (que esta vista ahora
+  // consume para el selector de trimestre) lo usa para filtrar
+  // trimestres por estado ('activo'/'cerrado').
+  ["select", "eq", "in", "order", "maybeSingle"].forEach((m) => { builder[m] = vi.fn(() => builder); });
   builder.then = (resolve) => Promise.resolve(result).then(resolve);
   return builder;
 }

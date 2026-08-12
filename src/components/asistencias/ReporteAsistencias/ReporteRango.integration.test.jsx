@@ -60,12 +60,21 @@ const AGREGADO_DOCENTE_1 = [
 // proyecto (ver DocenteScan.flow.test.jsx).
 function makeQueryMock(result) {
   const builder = {};
-  ["select", "gte", "lte", "eq", "order", "range", "abortSignal"].forEach((m) => {
+  // ASIST-4/5: agregado "in" -- useTrimestreActivo() (que ReporteRango
+  // ahora consume, tanto para el preset de trimestre como para el guard
+  // de "Borrar rango") filtra por estado con .in().
+  ["select", "gte", "lte", "eq", "in", "order", "range", "abortSignal"].forEach((m) => {
     builder[m] = vi.fn(() => builder);
   });
   builder.then = (resolve) => Promise.resolve(result).then(resolve);
   return builder;
 }
+
+// ASIST-4/5: trimestre activo de prueba cuyo rango cubre INICIO..FIN --
+// si no cubriera el rango, el guard de "Borrar rango" (rangoFueraDeVigencia,
+// ver ReporteRango.jsx) lo deshabilitaría y romperían los tests de borrado
+// de este archivo, que no son sobre ese guard sino sobre el flujo de RPC.
+const TRIMESTRE_ACTIVO_MOCK = { lapso: "2-2026", estado: "activo", fecha_inicio: "2026-05-11", fecha_fin: "2026-08-31" };
 
 // La RPC no encadena filtros como .from() — solo necesita ser "thenable"
 // tras .abortSignal(), igual que la llama fetchRango().
@@ -89,6 +98,7 @@ function mockReporteYConteo({ agregado = AGREGADO_DOCENTE_1, total = agregado.le
     throw new Error(`RPC inesperada en el test: ${fn}`);
   });
   supabase.from.mockImplementation((tabla) => {
+    if (tabla === "trimestres") return makeQueryMock({ data: [TRIMESTRE_ACTIVO_MOCK], error: null });
     expect(tabla).toBe("asistencias_diarias");
     return makeQueryMock({ count: total, error: null });
   });

@@ -18,6 +18,8 @@ import ReporteRango from "./ReporteRango";
 import { guardarReporteEnIDB, cargarReporteDeIDB } from "../../../utils/reporteCache";
 import { useReporteConfig } from "../../../hooks/useReporteConfig";
 import { useSedeContext } from "../../../context/SedeContext";
+import useTrimestreActivo from "../../../hooks/useTrimestreActivo";
+import { formatLapso } from "../../../utils/lapso";
 import "./index.css";
 
 export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showToast }) {
@@ -51,6 +53,26 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
   // color institucional) — carga con fallback seguro a los valores por
   // defecto, ver useReporteConfig.js.
   const { config: reporteConfig } = useReporteConfig();
+
+  // ASIST-4: selector de trimestre para esta vista de un solo día -- al
+  // elegir un trimestre, `fecha` salta a su fecha_inicio (o a hoy si es
+  // el trimestre activo y hoy cae dentro de su rango) y el input queda
+  // acotado (min/max) a ese trimestre, para no tener que adivinar qué
+  // fechas pertenecen a cuál. Sigue siendo de solo consulta -- no hay
+  // flujo de edición de asistencias_diarias (confirmado en ARCH-44).
+  const { trimestres, trimestreActivo, cargando: cargandoTrimestres } = useTrimestreActivo();
+  const [trimestreFiltro, setTrimestreFiltro] = useState("");
+
+  const trimestreFiltroInfo = trimestres.find(t => t.lapso === trimestreFiltro) || null;
+
+  const handleTrimestreFiltro = (lapsoElegido) => {
+    setTrimestreFiltro(lapsoElegido);
+    if (!lapsoElegido) return;
+    const info = trimestres.find(t => t.lapso === lapsoElegido);
+    if (!info?.fecha_inicio || !info?.fecha_fin) return;
+    const dentroDeHoy = hoy >= info.fecha_inicio && hoy <= info.fecha_fin;
+    setFecha(dentroDeHoy ? hoy : info.fecha_inicio);
+  };
 
   // PROG-3 (fase 2): clamp defensivo, mismo criterio que App.jsx/
   // PlanillaQR.jsx -- si `programa` queda fuera del conjunto permitido
@@ -219,9 +241,33 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
 
       {/* Filtros */}
       <div className="ra-filtros">
+        {!cargandoTrimestres && trimestres.length > 0 && (
+          <label className="ra-filtro-label">
+            <span className="ra-filtro-label-text">Trimestre</span>
+            <select
+              value={trimestreFiltro}
+              onChange={e => handleTrimestreFiltro(e.target.value)}
+              className="s-select"
+            >
+              <option value="">Cualquier fecha</option>
+              {trimestres.map(t => (
+                <option key={t.lapso} value={t.lapso}>
+                  {formatLapso(t.lapso)}{t.lapso === trimestreActivo ? " (actual)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="ra-filtro-label">
           <span className="ra-filtro-label-text">Fecha</span>
-          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} className="s-input ra-input-date" />
+          <input
+            type="date"
+            value={fecha}
+            onChange={e => setFecha(e.target.value)}
+            min={trimestreFiltroInfo?.fecha_inicio || undefined}
+            max={trimestreFiltroInfo?.fecha_fin || undefined}
+            className="s-input ra-input-date"
+          />
         </label>
         <label className="ra-filtro-label">
           <span className="ra-filtro-label-text">Turno</span>

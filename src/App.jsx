@@ -7,11 +7,11 @@ import useSyncPendientes from "./hooks/useSyncPendientes";
 import usePerfilEfectivo from "./hooks/usePerfilEfectivo";
 import useModuloActivo from "./hooks/useModuloActivo";
 import useAppShell from "./hooks/useAppShell";
+import useTrimestreActivo from "./hooks/useTrimestreActivo";
 import LoginScreen from "./components/LoginScreen";
 import ModuleSelector from "./components/ModuleSelector";
 import DocenteScan from "./components/asistencias/DocenteScan";
-import { getCurrentLapso } from "./utils/lapso";
-import { supabase, supabaseConfigError } from "./lib/supabase";
+import { supabaseConfigError } from "./lib/supabase";
 import useSedes from "./hooks/useSedes";
 import useSedeActiva from "./hooks/useSedeActiva";
 
@@ -125,8 +125,12 @@ export default function App() {
   const [docenteNav,  setDocenteNav]  = useState(null);
   const [materiaNav,  setMateriaNav]  = useState(null);
   const [horariosTab, setHorariosTab] = useState(null);
-  const [lapso,       setLapso]       = useState(() => getCurrentLapso());
-  const [modoConsulta,setModoConsulta]= useState(false);
+  // ASIST-1: lapso/modoConsulta ahora vienen de useTrimestreActivo(), que
+  // consulta la tabla `trimestres` real en vez de calcular por fecha de
+  // calendario (ver JSDoc del hook para el bug que esto corrige).
+  const {
+    lapso, setLapso, modoConsulta, volverAlActivo,
+  } = useTrimestreActivo();
 
   // ── Datos ─────────────────────────────────────────────────────────────────
   const appData = useAppData(lapso, logAudit, user?.id, sedeActiva);
@@ -175,19 +179,6 @@ export default function App() {
     prevUserIdRef.current = currentId;
   }, [user?.id, setModuloActivo, setAdminOpen, setUserMenuOpen]);
 
-  // ── Modo consulta histórica ───────────────────────────────────────────────
-  useEffect(() => {
-    const check = async () => {
-      const { data } = await supabase
-        .from("trimestres")
-        .select("estado")
-        .eq("lapso", lapso)
-        .single();
-      setModoConsulta(data?.estado === "cerrado" || data?.estado === "archivado");
-    };
-    check();
-  }, [lapso]);
-
   // Restringir programa para secretarios — PROG-3 (fase 2): con más de un
   // programa asignado, solo se fuerza la selección cuando la actual no es
   // (o dejó de ser) una de las permitidas, para no pisarle al usuario un
@@ -212,7 +203,7 @@ export default function App() {
     // ARCH-4: resetear filtros al cambiar lapso — evita que quede una
     // sección/trayecto del lapso anterior que no exista en el nuevo.
     resetFilters();
-  }, [resetFilters]);
+  }, [resetFilters, setLapso]);
 
   // Fix (bug "no puedo volver al trimestre activo" tras cerrar un
   // trimestre): los botones "Volver al trimestre activo" usaban
@@ -220,27 +211,17 @@ export default function App() {
   // (ver ARCH-41 en utils/lapso.js), no el trimestre realmente activo en
   // la tabla `trimestres`. Cerrar un trimestre solo le pone
   // estado='cerrado' — NO activa automáticamente el siguiente (eso es la
-  // acción separada "Nuevo trimestre" en HistorialView). Si el trimestre
-  // recién cerrado es justo el que la fecha de hoy calcularía como
-  // "actual" (caso típico: se cierra antes de que cambie el rango de
-  // fecha orientativo), el botón reenviaba al usuario exactamente al
-  // mismo trimestre cerrado — el check de modoConsulta lo detectaba
-  // cerrado otra vez y el usuario quedaba atrapado en modo lectura.
-  // Ahora se consulta la tabla `trimestres` por estado='activo' en el
-  // momento del clic (siempre fresco, sin caché); si no hay ninguno
-  // activo (instalación que no gestiona `trimestres`, o quedó sin
-  // activar el siguiente tras cerrar), cae al heurístico anterior como
-  // fallback para no romper el comportamiento existente.
+  // acción separada "Nuevo trimestre" en HistorialView). ASIST-1: la
+  // consulta fresca a `trimestres` por estado='activo' ahora vive en
+  // useTrimestreActivo().volverAlActivo() (compartida con Asistencias),
+  // aquí solo se encadena el reset de vista/filtros que ya hacía
+  // handleCambiarLapso.
   const handleVolverActivo = useCallback(async () => {
-    const { data } = await supabase
-      .from("trimestres")
-      .select("lapso")
-      .eq("estado", "activo")
-      .order("lapso", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    handleCambiarLapso(data?.lapso || getCurrentLapso());
-  }, [handleCambiarLapso]);
+    const destino = await volverAlActivo();
+    setView("resumen");
+    resetFilters();
+    return destino;
+  }, [volverAlActivo, resetFilters]);
 
   const handleFileUploadAuditado = async (file) => {
     await appData.handleFileUpload(file);
