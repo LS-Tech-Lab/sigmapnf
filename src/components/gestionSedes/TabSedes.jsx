@@ -227,30 +227,33 @@ export default function TabSedes({ showToast, logAudit, onCambio }) {
 
       {error && <div className="gs-error">{error}</div>}
 
-      {/* UX-37 (LS, 12 ago 2026): reemplaza la <table> por filas en grid.
-          Motivo: una tabla necesita el ancho de TODAS sus columnas en una
-          sola línea; en monitores angostos o en móvil eso fuerza scroll
-          horizontal aunque haya de sobra en vertical. Con grid, cada celda
-          es libre de envolver texto o (en el breakpoint móvil) apilarse
-          en su propia línea con una etiqueta -- nunca necesita ancho
-          extra que no esté disponible. Mismo patrón en TabProgramas.jsx. */}
+      {/* UX-39 (LS, 13 ago 2026): reemplaza el grid de columnas fijas
+          (minmax 160/140-200/70/110/80 ≈ 600px de mínimo) por filas en
+          flex-wrap, sin ningún ancho mínimo por "columna". El grid
+          anterior (UX-37) ya no forzaba scroll horizontal, pero seguía
+          exigiendo ~600px para caber sin desbordar -- por debajo de eso
+          el contenido se salía de `.s-card` y `overflow:hidden` lo
+          recortaba en silencio (el bug real: "IDENTIFICADOR" cortado a
+          media palabra en capturas de LS, con la tarjeta mucho más
+          angosta que esos 600px). flex-wrap no tiene ese piso: cada
+          fila reacomoda nombre/id a la izquierda e id/orden/estado/
+          acciones a la derecha en el ancho que haya, sin importar
+          cuánto sea -- mismo criterio que ya usa TabAsignacion.jsx
+          (chips) y por eso esa pestaña nunca mostró el bug. */}
       <div className="s-card gs-list-card">
-        <div className="gs-list-head" aria-hidden="true">
-          <span>Sede</span><span>Identificador</span><span>Orden</span><span>Estado</span><span></span>
-        </div>
         {sedes.length === 0 ? (
           <p className="gs-td-empty">Sin sedes registradas todavía.</p>
         ) : sedes.map(sede => (
-          <div key={sede.id} className={`gs-list-row ${sede.activa ? "" : "gs-row--inactiva"}`}>
-            <span className="gs-list-cell gs-list-cell--nombre" data-label="Sede">{sede.nombre}</span>
-            <span className="gs-list-cell" data-label="Identificador"><code className="gs-id">{sede.id}</code></span>
-            <span className="gs-list-cell" data-label="Orden">{sede.orden}</span>
-            <span className="gs-list-cell" data-label="Estado">
+          <div key={sede.id} className={`gs-row ${sede.activa ? "" : "gs-row--inactiva"}`}>
+            <div className="gs-row-main">
+              <span className="gs-row-nombre">{sede.nombre}</span>
+              <code className="gs-id">{sede.id}</code>
+            </div>
+            <div className="gs-row-meta">
+              <span className="gs-row-orden" title="Orden en el selector">Orden {sede.orden}</span>
               <span className={`s-badge ${sede.activa ? "gs-badge--activa" : "gs-badge--inactiva"}`}>
                 {sede.activa ? "Activa" : "Inactiva"}
               </span>
-            </span>
-            <span className="gs-list-cell gs-list-cell--actions" data-label="Acciones">
               <div className="gs-actions">
                 <button
                   onClick={() => abrirEditar(sede)}
@@ -263,7 +266,7 @@ export default function TabSedes({ showToast, logAudit, onCambio }) {
                   className={`gs-action-btn ${sede.activa ? "gs-action-btn--desactivar" : "gs-action-btn--activar"}`}
                 ><i className={`ti ${sede.activa ? "ti-toggle-right" : "ti-toggle-left"}`} aria-hidden="true" /></button>
               </div>
-            </span>
+            </div>
           </div>
         ))}
       </div>
