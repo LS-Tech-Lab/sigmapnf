@@ -20,7 +20,14 @@
 
 .gs-loading { display: flex; align-items: center; gap: 8px; padding: 40px; justify-content: center; color: var(--color-text-mid); }
 
-.gs-table-card { overflow-x: auto; }
+/* Compuesto con .s-card (no solo .gs-table-card) a propósito: .s-card
+   trae overflow:hidden (src/index.css) con la misma especificidad que
+   un selector de una sola clase, así que el orden del CSS final decide
+   cuál gana -- en esta build gana .s-card y recorta el contenido que se
+   sale del ancho de la tarjeta (identificador largo, matriz con muchas
+   columnas). Mismo criterio que .s-card.mv-list-card (MateriasView.css)
+   y .s-card.dv-list-card (DocentesView.css). */
+.s-card.gs-table-card { overflow-x: auto; }
 .gs-table { width: 100%; border-collapse: collapse; }
 .gs-th--right { text-align: right; }
 .gs-td-empty { text-align: center; padding: 24px !important; color: var(--color-text-mid); }
@@ -81,7 +88,10 @@
 .gs-tab-panel { min-height: 120px; }
 
 /* PROG-4 — matriz sede × programa (pestaña Asignación) */
-.gs-matriz-wrap { overflow-x: auto; }
+/* Mismo motivo que .s-card.gs-table-card arriba: este wrapper también
+   lleva la clase .s-card (ver TabAsignacion.jsx), así que necesita el
+   selector compuesto para ganarle a overflow:hidden de forma confiable. */
+.s-card.gs-matriz-wrap { overflow-x: auto; }
 .gs-matriz { min-width: 100%; }
 .gs-matriz-esquina { white-space: nowrap; }
 .gs-matriz-col { text-align: center; white-space: nowrap; }
