@@ -330,49 +330,48 @@ export default function TabPlantillas({ showToast, logAudit }) {
 
       {error && <div className="gs-error">{error}</div>}
 
-      <div className="s-card gs-table-card">
-        <table className="gs-table">
-          <thead>
-            <tr>
-              <th className="s-th">Plantilla</th>
-              <th className="s-th">Columnas visibles</th>
-              <th className="s-th">Estado</th>
-              <th className="s-th gs-th--right"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {plantillas.length === 0 ? (
-              <tr><td colSpan={4} className="s-td gs-td-empty">Sin plantillas todavía.</td></tr>
-            ) : plantillas.map(p => (
-              <tr key={p.id}>
-                <td className="s-td gs-nombre">{p.nombre}</td>
-                <td className="s-td">{(p.columnas || []).filter(c => c.visible !== false).length} de {CAMPOS_PLANILLA_TURNO.length}</td>
-                <td className="s-td">
-                  {p.es_default
-                    ? <span className="s-badge gs-badge--activa">Predeterminada</span>
-                    : <span className="s-badge gs-badge--inactiva">—</span>}
-                </td>
-                <td className="s-td gs-td-right">
-                  <div className="gs-actions">
-                    <button
-                      onClick={() => abrirEditorColumnas(p)}
-                      title="Editar columnas"
-                      className="gs-action-btn"
-                    ><i className="ti ti-columns" aria-hidden="true" /></button>
-                    {!p.es_default && (
-                      <button
-                        onClick={() => handleMarcarDefault(p)}
-                        disabled={marcandoDefault === p.id}
-                        title="Marcar como predeterminada"
-                        className="gs-action-btn gs-action-btn--activar"
-                      ><i className="ti ti-star" aria-hidden="true" /></button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* UX-39 aplicado también acá (13 ago, mismo pedido de LS): esta
+          tabla usaba clases (gs-table/gs-nombre/gs-table-card/etc.) que
+          quedaron sin CSS propio cuando GestionSedes.css se reescribió
+          a flex-wrap -- un <table> sin ningún control de ancho, dentro
+          de .s-card{overflow:hidden}, se recortaba en silencio apenas
+          la tarjeta no alcanzaba el ancho natural de sus 4 columnas
+          (bug reportado por LS con capturas: "ESTA[DO]" cortado a media
+          palabra). Mismas filas .gs-row/.gs-row-main/.gs-row-meta que
+          TabSedes.jsx/TabProgramas.jsx -- sin ancho mínimo por fila. */}
+      <div className="s-card gs-list-card">
+        {plantillas.length === 0 ? (
+          <p className="gs-td-empty">Sin plantillas todavía.</p>
+        ) : plantillas.map(p => (
+          <div key={p.id} className="gs-row">
+            <div className="gs-row-main">
+              <span className="gs-row-nombre">{p.nombre}</span>
+              <span className="gs-row-orden">
+                {(p.columnas || []).filter(c => c.visible !== false).length} de {CAMPOS_PLANILLA_TURNO.length} columnas
+              </span>
+            </div>
+            <div className="gs-row-meta">
+              {p.es_default
+                ? <span className="s-badge gs-badge--activa">Predeterminada</span>
+                : <span className="s-badge gs-badge--inactiva">—</span>}
+              <div className="gs-actions">
+                <button
+                  onClick={() => abrirEditorColumnas(p)}
+                  title="Editar columnas"
+                  className="gs-action-btn"
+                ><i className="ti ti-columns" aria-hidden="true" /></button>
+                {!p.es_default && (
+                  <button
+                    onClick={() => handleMarcarDefault(p)}
+                    disabled={marcandoDefault === p.id}
+                    title="Marcar como predeterminada"
+                    className="gs-action-btn gs-action-btn--activar"
+                  ><i className="ti ti-star" aria-hidden="true" /></button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="tp-asignacion-header">
@@ -382,39 +381,31 @@ export default function TabPlantillas({ showToast, logAudit }) {
         </p>
       </div>
 
-      <div className="s-card gs-table-card">
-        <table className="gs-table">
-          <thead>
-            <tr>
-              <th className="s-th">Sede</th>
-              <th className="s-th">Plantilla</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sedes.length === 0 ? (
-              <tr><td colSpan={2} className="s-td gs-td-empty">No hay sedes activas.</td></tr>
-            ) : sedes.map(sede => {
-              const asignacion = asignaciones.find(a => a.sede_id === sede.id);
-              return (
-                <tr key={sede.id}>
-                  <td className="s-td gs-nombre">{sede.nombre}</td>
-                  <td className="s-td">
-                    <select
-                      className="s-input"
-                      value={asignacion?.plantilla_id || ""}
-                      onChange={e => handleAsignar(sede, e.target.value)}
-                    >
-                      <option value="">Predeterminada ({plantillas.find(p => p.es_default)?.nombre || "—"})</option>
-                      {plantillas.filter(p => !p.es_default).map(p => (
-                        <option key={p.id} value={p.id}>{p.nombre}</option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="s-card gs-list-card">
+        {sedes.length === 0 ? (
+          <p className="gs-td-empty">No hay sedes activas.</p>
+        ) : sedes.map(sede => {
+          const asignacion = asignaciones.find(a => a.sede_id === sede.id);
+          return (
+            <div key={sede.id} className="gs-row">
+              <div className="gs-row-main">
+                <span className="gs-row-nombre">{sede.nombre}</span>
+              </div>
+              <div className="gs-row-meta">
+                <select
+                  className="s-input tp-asignacion-select"
+                  value={asignacion?.plantilla_id || ""}
+                  onChange={e => handleAsignar(sede, e.target.value)}
+                >
+                  <option value="">Predeterminada ({plantillas.find(p => p.es_default)?.nombre || "—"})</option>
+                  {plantillas.filter(p => !p.es_default).map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {modalNuevo && (
