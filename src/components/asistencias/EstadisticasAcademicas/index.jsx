@@ -2,10 +2,13 @@
  * EstadisticasAcademicas — dashboard de estadísticas y analítica académica
  * (ESTAD-1, §4.2 de RESUMEN_PENDIENTES.md).
  *
- * Consume el RPC reporte_estadisticas_academicas (0084), que devuelve las
- * 4 series ya agregadas en el servidor en una sola llamada: tendencia
- * (asistencias por día), por_docente, por_materia (inferida cruzando con
- * el horario del docente — ver comentario en la migración) y por_sede.
+ * Consume el RPC reporte_estadisticas_academicas (0084, reemplazo de
+ * por_materia en 0089/ESTAD-2), que devuelve las 5 series ya agregadas en
+ * el servidor en una sola llamada: tendencia (asistencias por día),
+ * por_docente, por_dia_semana, por_puntualidad y por_sede — las 4 últimas
+ * se calculan solo con asistencias_diarias, sin JOIN a horarios/
+ * trimestres/docentes (a diferencia de la vieja por_materia, no pueden
+ * quedar vacías por un desfase de turno/trimestre).
  *
  * Gate de acceso: mismo permiso que el Reporte de Asistencias
  * (puedeVerReporteAsistencias), controlado en AsistenciasModulo.jsx — no
@@ -43,7 +46,7 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
   const misProgramas = permisos.puedeVerSoloSuPrograma ? (permisos.programasRestringidos || []) : [];
   const [programa, setPrograma] = useState(misProgramas[0] || "");
 
-  const [datos,    setDatos]    = useState({ tendencia: [], por_docente: [], por_materia: [], por_sede: [] });
+  const [datos,    setDatos]    = useState({ tendencia: [], por_docente: [], por_dia_semana: [], por_puntualidad: [], por_sede: [] });
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState(null);
   const [isOffline, setIsOffline] = useState(false);
@@ -84,7 +87,7 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
 
     if (!navigator.onLine) {
       setIsOffline(true);
-      setDatos({ tendencia: [], por_docente: [], por_materia: [], por_sede: [] });
+      setDatos({ tendencia: [], por_docente: [], por_dia_semana: [], por_puntualidad: [], por_sede: [] });
       setLoading(false);
       return;
     }
@@ -109,16 +112,17 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
 
       if (err) {
         setError(err.message);
-        setDatos({ tendencia: [], por_docente: [], por_materia: [], por_sede: [] });
+        setDatos({ tendencia: [], por_docente: [], por_dia_semana: [], por_puntualidad: [], por_sede: [] });
         setLoading(false);
         return;
       }
 
       setDatos({
-        tendencia:   data?.tendencia   || [],
-        por_docente: data?.por_docente || [],
-        por_materia: data?.por_materia || [],
-        por_sede:    data?.por_sede    || [],
+        tendencia:       data?.tendencia       || [],
+        por_docente:     data?.por_docente     || [],
+        por_dia_semana:  data?.por_dia_semana  || [],
+        por_puntualidad: data?.por_puntualidad || [],
+        por_sede:        data?.por_sede        || [],
       });
       setLoading(false);
     } catch (e) {
@@ -142,8 +146,19 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
   );
 
   const topDocentes = useMemo(() => topN(datos.por_docente, MAX_BARRAS, "dias_asistidos", "nombre"), [datos.por_docente]);
-  const topMaterias  = useMemo(() => topN(datos.por_materia, MAX_BARRAS, "dias_asistidos", "nombre"), [datos.por_materia]);
   const porSede       = useMemo(() => topN(datos.por_sede, MAX_BARRAS, "dias_asistidos", "sede_id"), [datos.por_sede]);
+
+  // por_dia_semana/por_puntualidad (ESTAD-2) ya vienen del servidor en un
+  // conjunto fijo y chico (<=7 días, 4 franjas) -- a diferencia de docente/
+  // sede no necesitan topN/truncado, solo el número asegurado como Number().
+  const porDiaSemana = useMemo(
+    () => (datos.por_dia_semana || []).map(d => ({ ...d, total_asistencias: Number(d.total_asistencias || 0) })),
+    [datos.por_dia_semana]
+  );
+  const porPuntualidad = useMemo(
+    () => (datos.por_puntualidad || []).map(p => ({ ...p, total_docentes: Number(p.total_docentes || 0) })),
+    [datos.por_puntualidad]
+  );
 
   const totalAsistencias = datos.tendencia.reduce((acc, t) => acc + Number(t.total_asistencias || 0), 0);
   const docentesUnicos   = datos.por_docente.length;
@@ -277,22 +292,41 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
         </section>
 
         <section className="s-card est-chart-card">
-          <h2 className="est-chart-title">Asistencia por materia (inferida) {datos.por_materia.length > MAX_BARRAS ? `(top ${MAX_BARRAS})` : ""}</h2>
+          <h2 className="est-chart-title">Asistencia por día de la semana</h2>
+          {loading ? (
+            <div className="est-chart-skeleton" />
+          ) : porDiaSemana.length === 0 ? (
+            <p className="est-empty-msg">No hay datos para este período.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={porDiaSemana} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-tertiary, #e2e8f0)" />
+                <XAxis dataKey="dia_nombre" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="total_asistencias" name="Asistencias" fill={CHART_COLORS[2]} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </section>
+
+        <section className="s-card est-chart-card">
+          <h2 className="est-chart-title">Puntualidad</h2>
           <p className="est-chart-note">
-            Aproximado: se cruza con el horario del docente ese día. Si dicta 2+ materias en el mismo turno, se cuenta en cada una.
+            Compara la hora de marcaje de ENTRADA contra la hora de inicio del turno filtrado (5 min de gracia).
           </p>
           {loading ? (
             <div className="est-chart-skeleton" />
-          ) : topMaterias.length === 0 ? (
-            <p className="est-empty-msg">Sin datos de materia inferible para este período/filtro.</p>
+          ) : porPuntualidad.length === 0 ? (
+            <p className="est-empty-msg">No hay entradas registradas para este período/turno.</p>
           ) : (
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={topMaterias} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+              <BarChart data={porPuntualidad} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-tertiary, #e2e8f0)" />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-                <YAxis type="category" dataKey="etiqueta" width={140} tick={{ fontSize: 11 }} />
+                <XAxis dataKey="etiqueta" tick={{ fontSize: 11 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Bar dataKey="dias_asistidos" name="Días asistidos" fill={CHART_COLORS[2]} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="total_docentes" name="Docentes" fill={CHART_COLORS[4]} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
