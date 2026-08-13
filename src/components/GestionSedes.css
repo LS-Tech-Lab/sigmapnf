@@ -26,51 +26,43 @@
 
 .gs-error { background: var(--color-error-bg, #FEF2F2); color: var(--color-error-text, #B91C1C); border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; margin-bottom: 16px; }
 
+/* UX-39: red de seguridad -- flex-wrap ya evita el desborde en
+   prácticamente cualquier caso, pero si algún dato (nombre sin
+   espacios, id larguísimo) igual lo forzara, mejor un scroll visible
+   que un recorte invisible como el bug de UX-37. */
+.gs-list-card { overflow-x: auto; }
+
 .gs-loading { display: flex; align-items: center; gap: 8px; padding: 40px; justify-content: center; color: var(--color-text-mid); }
 
-/* UX-37 (LS, 12 ago 2026): listas de Sedes/Programas en grid, no
-   <table>. Una tabla exige el ancho de TODAS sus columnas en una sola
-   línea; en grid cada celda puede envolver texto y, debajo del
-   breakpoint móvil, apilarse en su propia línea -- nunca fuerza scroll
-   horizontal, sin importar el ancho de pantalla. Columnas: Sede/
-   Programa (flexible) | Identificador | Orden | Estado | Acciones. */
-.gs-list-head, .gs-list-row {
-  display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(140px, 200px) 70px 110px 80px;
-  gap: 10px; align-items: center; padding: 11px 14px;
+/* UX-39 (13 ago 2026): filas en flex-wrap para Sedes/Programas, sin
+   ningún ancho mínimo por "columna" -- reemplaza el grid de UX-37
+   (minmax 160/140-200/70/110/80 ≈ 600px de mínimo), que por debajo de
+   ese ancho se desbordaba de `.s-card` y `overflow:hidden` lo recortaba
+   en silencio en vez de reacomodarlo (bug real reportado por LS: el
+   identificador cortado a media palabra con la tarjeta más angosta que
+   esos 600px). Con flex-wrap cada fila reparte nombre+id a la
+   izquierda y orden+estado+acciones a la derecha, envolviendo lo que
+   haga falta -- nunca exige un ancho mínimo que no esté disponible.
+   Mismo criterio que .gs-asig-chips en TabAsignacion.jsx (que por eso
+   nunca mostró este bug). Ya no hace falta un breakpoint móvil aparte
+   (el viejo @media 640px de .gs-list-row) porque flex-wrap ya reacomoda
+   solo en cualquier ancho. */
+.gs-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 8px 16px; padding: 12px 16px; border-top: 1px solid var(--color-background-tertiary);
+  font-size: var(--font-size-13);
 }
-.gs-list-head {
-  font-size: var(--font-size-11); font-weight: 700; color: var(--color-text-secondary);
-  text-transform: uppercase; letter-spacing: 0.06em; background: var(--color-background-secondary);
-  border-bottom: 1px solid var(--color-border-tertiary);
-}
-.gs-list-row { border-top: 1px solid var(--color-background-tertiary); font-size: var(--font-size-13); }
-.gs-list-row:first-of-type { border-top: none; }
-.gs-list-cell { min-width: 0; overflow-wrap: break-word; }
-.gs-list-cell--actions { display: flex; justify-content: flex-end; }
-.gs-td-empty { text-align: center; padding: 24px; color: var(--color-text-mid); margin: 0; }
-
-.gs-list-cell--nombre { font-weight: 600; color: var(--color-text-primary); }
-.gs-id { font-size: var(--font-size-12); background: var(--color-background-secondary); padding: 2px 6px; border-radius: 4px; color: var(--color-text-mid); overflow-wrap: anywhere; }
+.gs-row:first-of-type { border-top: none; }
+.gs-row-main  { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.gs-row-meta  { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.gs-row-nombre { font-weight: 600; color: var(--color-text-primary); }
+.gs-row-orden  { font-size: var(--font-size-12); color: var(--color-text-mid); white-space: nowrap; }
 
 .gs-row--inactiva { opacity: 0.55; }
-.gs-row--inactiva .gs-list-cell--nombre { text-decoration: line-through; }
+.gs-row--inactiva .gs-row-nombre { text-decoration: line-through; }
 
-/* Debajo de 640px: cada fila pasa de una línea de 5 columnas a un
-   bloque apilado de label+valor -- mismo breakpoint que .dv-list-card/
-   .mv-list-card (DocentesView.css/MateriasView.css) para consistencia. */
-@media (max-width: 640px) {
-  .gs-list-head { display: none; }
-  .gs-list-row { grid-template-columns: 1fr 1fr; gap: 8px 12px; padding: 12px 14px; }
-  .gs-list-cell { display: flex; flex-direction: column; gap: 2px; }
-  .gs-list-cell::before {
-    content: attr(data-label); font-size: var(--font-size-10); font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-tertiary);
-  }
-  .gs-list-cell--nombre, .gs-list-cell--actions { grid-column: 1 / -1; }
-  .gs-list-cell--actions { flex-direction: row; align-items: center; }
-  .gs-list-cell--actions::before { display: none; }
-}
+.gs-id { font-size: var(--font-size-12); background: var(--color-background-secondary); padding: 2px 6px; border-radius: 4px; color: var(--color-text-mid); overflow-wrap: anywhere; }
+.gs-td-empty { text-align: center; padding: 24px; color: var(--color-text-mid); margin: 0; }
 
 .gs-badge--activa   { background: var(--color-success-bg); color: var(--color-success-text, #047857); }
 .gs-badge--inactiva { background: var(--color-background-secondary); color: var(--color-text-mid); }
