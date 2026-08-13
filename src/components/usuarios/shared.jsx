@@ -63,6 +63,7 @@ export const GRUPOS_PERMISOS = [
       { key: "puedeConfigurarReportes", label: "Configurar reportes", desc: "Personalizar logo, colores y textos del membrete de los reportes imprimibles" },
       { key: "puedeVerTodasLasSedes",  label: "Ver todas las sedes", desc: "Acceder y gestionar todas las sedes en vez de quedar fijo a una sola (SEDE-1/2)" },
       { key: "puedeGestionarSedes",    label: "Gestionar sedes",     desc: "Crear sedes nuevas, renombrarlas, reordenarlas y activarlas/desactivarlas (SEDE-17)" },
+      { key: "puedeGestionarPlantillas", label: "Gestionar plantillas de planillas", desc: "Configurar las columnas y el formato de impresión de las planillas de asistencia, por sede" },
     ],
   },
 ];

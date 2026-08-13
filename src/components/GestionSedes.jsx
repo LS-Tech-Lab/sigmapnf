@@ -21,16 +21,26 @@ import React, { useState, useCallback } from "react";
 import TabSedes from "./gestionSedes/TabSedes";
 import TabProgramas from "./gestionSedes/TabProgramas";
 import TabAsignacion from "./gestionSedes/TabAsignacion";
+import TabPlantillas from "./gestionSedes/TabPlantillas";
 import "./GestionSedes.css";
 
+// TabPlantillas (Fase 1 del editor de plantillas, 12 ago 2026): a
+// diferencia de las otras 3, no depende de `refrescarClave` -- gestiona
+// su propio catálogo (plantillas_impresion / sede_plantillas, migración
+// 0091), sin relación con altas de sedes o programas. Vive detrás de su
+// propio permiso (puedeGestionarPlantillas) en vez de puedeGestionarSedes
+// -- alguien con solo ese permiso llega a este panel (ver AdminModulo.jsx)
+// pero solo ve esta pestaña, no las otras 3.
 const PESTANAS = [
-  { id: "sedes",      label: "Sedes",      icono: "ti-building-community" },
-  { id: "programas",  label: "Programas",  icono: "ti-school" },
-  { id: "asignacion", label: "Asignación", icono: "ti-grid-dots" },
+  { id: "sedes",       label: "Sedes",       icono: "ti-building-community", permiso: "puedeGestionarSedes" },
+  { id: "programas",   label: "Programas",   icono: "ti-school",             permiso: "puedeGestionarSedes" },
+  { id: "asignacion",  label: "Asignación",  icono: "ti-grid-dots",          permiso: "puedeGestionarSedes" },
+  { id: "plantillas",  label: "Plantillas",  icono: "ti-layout-grid",        permiso: "puedeGestionarPlantillas" },
 ];
 
-export default function GestionSedes({ showToast, logAudit }) {
-  const [pestanaActiva, setPestanaActiva] = useState("sedes");
+export default function GestionSedes({ showToast, logAudit, permisos = {} }) {
+  const pestanasVisibles = PESTANAS.filter(p => permisos[p.permiso]);
+  const [pestanaActiva, setPestanaActiva] = useState(pestanasVisibles[0]?.id || "sedes");
   const [refrescarClave, setRefrescarClave] = useState(0);
 
   const notificarCambioCatalogo = useCallback(() => {
@@ -40,7 +50,7 @@ export default function GestionSedes({ showToast, logAudit }) {
   return (
     <div className="gs-root">
       <div className="gs-tabs" role="tablist" aria-label="Configuración de sedes y programas">
-        {PESTANAS.map(p => (
+        {pestanasVisibles.map(p => (
           <button
             key={p.id}
             type="button"
@@ -63,6 +73,9 @@ export default function GestionSedes({ showToast, logAudit }) {
         )}
         {pestanaActiva === "asignacion" && (
           <TabAsignacion showToast={showToast} logAudit={logAudit} refrescarClave={refrescarClave} />
+        )}
+        {pestanaActiva === "plantillas" && (
+          <TabPlantillas showToast={showToast} logAudit={logAudit} />
         )}
       </div>
     </div>

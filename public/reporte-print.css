@@ -27,6 +27,26 @@
 .rp-color--ambar  { --rp-primario: #92400E; --rp-primario-claro: #FFFBEB; }
 
 @page { size: A4 landscape; margin: 14mm 12mm; }
+
+/* Fase 2 del editor de plantillas (12 ago, migración 0091): tamaño/
+   orientación reales por plantilla, en vez del A4 horizontal fijo de
+   arriba. "Oficio" acá es 215.9mm × 330mm (tamaño usado habitualmente en
+   Venezuela para este tipo de planilla) -- NO es el "Legal" de EE.UU.
+   (215.9 × 355.6mm); si tu impresora/fotocopiadora usa otra medida de
+   "oficio", ajusta los 4 valores de aquí abajo, es la única fuente. Solo
+   se activa si el caller de plantillaReporte() pasa orientacion/
+   tamanoPagina explícitamente (ver reportePlantilla.js) -- sin eso, el
+   @page sin nombre de arriba sigue aplicando tal cual. */
+@page carta-vertical    { size: 215.9mm 279.4mm; margin: 14mm 12mm; }
+@page carta-horizontal  { size: 279.4mm 215.9mm; margin: 12mm 14mm; }
+@page oficio-vertical   { size: 215.9mm 330mm;   margin: 14mm 12mm; }
+@page oficio-horizontal { size: 330mm 215.9mm;   margin: 12mm 14mm; }
+
+.rp-page--carta-vertical    { page: carta-vertical; }
+.rp-page--carta-horizontal  { page: carta-horizontal; }
+.rp-page--oficio-vertical   { page: oficio-vertical; }
+.rp-page--oficio-horizontal { page: oficio-horizontal; }
+
 * { box-sizing: border-box; }
 body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1a1a1a; margin: 0; }
 

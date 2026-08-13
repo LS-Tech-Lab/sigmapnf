@@ -4,17 +4,29 @@
 // "UNERMB"/una "U" de placeholder hardcodeados). Único punto donde se arma
 // el membrete HTML de los 3 documentos imprimibles del sistema: Reporte
 // Diario, Reporte por Rango (ambos en exportPDF.js) y Planilla Imprimible
-// (PlanillaImprimibleBase.jsx, que antes tenía su propia plantilla HTML
-// duplicada con estilos <style> INLINE — casi con certeza bloqueados en
-// silencio por el mismo CSP `style-src 'self'` que forzó externalizar
-// reporte-print.css el 14 de julio, ver ese comentario ahí. Unificar acá
-// corrige ese bug latente como efecto colateral, no solo evita la
-// duplicación).
+// (PlanillaImprimibleBase.jsx).
 //
 // Diseñado para ser reusable por futuros documentos institucionales
 // (constancias, etc.) — cualquier módulo nuevo que necesite el mismo
 // membrete solo tiene que llamar a plantillaReporte() con su propio
 // `seccionesHtml`.
+//
+// Corrección (12 ago, Fase 3 del editor de plantillas): un comentario
+// anterior acá decía que color_clase usaba una clase CSS "porque el CSP
+// style-src 'self' bloquea estilos inline". Verificado y es INCORRECTO:
+// esta ventana se abre con `window.open("", "_blank")` + `document.write()`
+// -- no hay respuesta HTTP de por medio, así que las cabeceras CSP de
+// vercel.json (que solo aplican a rutas servidas por Vercel) nunca le
+// llegan, y el HTML generado tampoco trae su propio `<meta
+// http-equiv="Content-Security-Policy">`. Inline `style=""` funciona sin
+// problema en esta ventana. El motivo real de usar clases en vez de
+// inline es higiene contra inyección: `config` viene de una tabla
+// editable por un admin (configuracion_reportes) y un valor de texto
+// arbitrario interpolado crudo dentro de un `style="color:${valor}"`
+// podría romper el atributo o el documento igual que cualquier otro caso
+// sin ESC() (mismo espíritu que SEC-25) -- mapear a una clase conocida
+// (o, para `layout` más abajo, validar que sea un número finito) es lo
+// que cierra esa puerta, no el CSP.
 //
 // Seguridad: todo texto de `config` (nombre_institucion, subtitulo_1/2,
 // pie_texto, firma_label) pasa por ESC() antes de interpolarse, exactamente
@@ -46,6 +58,86 @@ const CLASES_COLOR_VALIDAS = new Set([
   "rp-color--morado", "rp-color--rojo", "rp-color--ambar",
 ]);
 
+// Fase 2 del editor de plantillas (12 ago, migración 0091): `orientacion`/
+// `tamano_pagina` ya existían en plantillas_impresion desde la Fase 1
+// pero nada los leía todavía -- el @page de reporte-print.css quedaba
+// fijo en A4 horizontal sin importar lo que dijera la plantilla. Mismo
+// truco que color_clase (mapear a una clase conocida en vez de
+// interpolar el valor crudo -- ver la corrección de arriba, no es por
+// CSP): una clase rp-page--<tamaño>-<orientacion> definida en
+// reporte-print.css vía @page con nombre. Completamente opcional --
+// ReporteAsistencias/ReporteRango (exportPDF.js) no pasan estos
+// parámetros y siguen usando el @page sin nombre de siempre (A4
+// horizontal), cero cambio de comportamiento para ellos.
+const PAGINAS_VALIDAS = new Set([
+  "rp-page--carta-vertical", "rp-page--carta-horizontal",
+  "rp-page--oficio-vertical", "rp-page--oficio-horizontal",
+]);
+function resolverClasePagina(tamanoPagina, orientacion) {
+  if (!tamanoPagina && !orientacion) return null; // caller no pidió nada -- sin cambio de @page
+  const tamano = tamanoPagina === "oficio" ? "oficio" : "carta"; // default: carta
+  const orient = orientacion === "vertical" ? "vertical" : "horizontal"; // default: horizontal
+  const clase = `rp-page--${tamano}-${orient}`;
+  return PAGINAS_VALIDAS.has(clase) ? clase : null;
+}
+
+// Fase 3 del editor de plantillas (12 ago, migración 0091, columna
+// `layout` reservada desde la Fase 1): reposiciona libremente los 3
+// bloques del membrete/pie -- `izq` (logo + texto institucional), `der`
+// (título/subtítulo/fecha) y `pie` (texto de pie + firma). El resto del
+// documento (la tabla de datos) sigue en flujo normal, sin reposicionar
+// -- mover eso libremente no lo pidió LS y complica mucho el diseñador
+// para poco beneficio real.
+//
+// SEGURO interpolar `x`/`y` directo en `style="left:${x}mm"` porque acá
+// SÍ se valida que sean números finitos dentro del canvas antes de
+// tocar el string -- lo que evita la inyección no es el mecanismo (clase
+// vs. inline) sino la validación. Un valor inválido para un bloque hace
+// que ESE bloque caiga a su posición por defecto (sin `style`, ver
+// `layoutStyleInline`) en vez de romper todo el documento.
+const ALTURA_MEMBRETE_MM = 40;
+const ALTURA_PIE_MM = 30;
+
+function sanitizarMm(valor, maximoMm) {
+  const n = typeof valor === "number" ? valor : Number(valor);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(Math.max(n, 0), maximoMm);
+}
+
+/** Construye el atributo `style=""` (con el espacio inicial incluido, o
+ *  cadena vacía) para un bloque de `layout.bloques`, o cadena vacía si
+ *  no hay layout, el bloque no está definido, o sus coordenadas no son
+ *  números válidos -- en todos esos casos el bloque cae al flujo normal
+ *  (flex) de reporte-print.css, exactamente el comportamiento previo a
+ *  la Fase 3. `anchoMm`/`altoMm` acotan el arrastre al tamaño real del
+ *  canvas de esa plantilla (varía con orientación/tamaño de página).
+ */
+function layoutStyleInline(bloques, nombreBloque, anchoMm, altoMm) {
+  const punto = bloques?.[nombreBloque];
+  if (!punto) return "";
+  const x = sanitizarMm(punto.x, anchoMm);
+  const y = sanitizarMm(punto.y, altoMm);
+  if (x === null || y === null) return "";
+  return ` style="position:absolute;left:${x}mm;top:${y}mm"`;
+}
+
+// Dimensiones de página en mm y márgenes reales del @page con nombre
+// correspondiente (reporte-print.css) -- de acá sale el ancho/alto de
+// "lienzo" disponible para el layout libre de la Fase 3. Si algún día se
+// tocan los márgenes de reporte-print.css, hay que actualizar esta tabla
+// también (es la única duplicación real entre los dos archivos).
+const PAGINA_MM = {
+  "carta-vertical":    { w: 215.9, h: 279.4, marginX: 12, marginY: 14 },
+  "carta-horizontal":  { w: 279.4, h: 215.9, marginX: 14, marginY: 12 },
+  "oficio-vertical":   { w: 215.9, h: 330,   marginX: 12, marginY: 14 },
+  "oficio-horizontal": { w: 330,   h: 215.9, marginX: 14, marginY: 12 },
+};
+export function anchoContenidoMm(tamanoPagina, orientacion) {
+  const tamano = tamanoPagina === "oficio" ? "oficio" : "carta";
+  const orient = orientacion === "vertical" ? "vertical" : "horizontal";
+  return PAGINA_MM[`${tamano}-${orient}`].w - PAGINA_MM[`${tamano}-${orient}`].marginX * 2;
+}
+
 /**
  * plantillaReporte({ config, titulo, subtitulo, seccionesHtml, pie })
  *
@@ -57,7 +149,7 @@ const CLASES_COLOR_VALIDAS = new Set([
  * CONFIG_REPORTE_DEFAULT campo por campo (no todo-o-nada), para que un
  * admin que solo cambió el logo no pierda los textos por defecto.
  */
-export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml, pie }) {
+export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml, pie, orientacion, tamanoPagina, layout }) {
   const cfg = { ...CONFIG_REPORTE_DEFAULT, ...config };
 
   // Defensa en profundidad: aunque la tabla ya tiene un CHECK constraint
@@ -66,6 +158,18 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
   // test, un fallback mal armado, etc.) — si no es una clase conocida, cae
   // al default en vez de emitir una clase arbitraria en el HTML.
   const colorClase = CLASES_COLOR_VALIDAS.has(cfg.color_clase) ? cfg.color_clase : CONFIG_REPORTE_DEFAULT.color_clase;
+  const paginaClase = resolverClasePagina(tamanoPagina, orientacion);
+  const bodyClase = paginaClase ? `${colorClase} ${paginaClase}` : colorClase;
+
+  // Fase 3: mismo ancho de "lienzo" que ve el admin en el editor de
+  // TabPlantillas.jsx -- si esto y ese ancho difieren, el bloque se
+  // vería en un lugar distinto al que el admin arrastró.
+  const anchoMm = anchoContenidoMm(tamanoPagina, orientacion);
+  const membreteWrapperStyle = layout?.bloques ? ` style="position:relative;height:${ALTURA_MEMBRETE_MM}mm"` : "";
+  const pieWrapperStyle = layout?.bloques ? ` style="position:relative;height:${ALTURA_PIE_MM}mm"` : "";
+  const izqStyle = layoutStyleInline(layout?.bloques, "izq", anchoMm, ALTURA_MEMBRETE_MM);
+  const derStyle = layoutStyleInline(layout?.bloques, "der", anchoMm, ALTURA_MEMBRETE_MM);
+  const pieStyle = layoutStyleInline(layout?.bloques, "pie", anchoMm, ALTURA_PIE_MM);
 
   const ahora = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
 
@@ -84,9 +188,9 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
   <title>${ESC(titulo)}</title>
   <link rel="stylesheet" href="/reporte-print.css"/>
 </head>
-<body class="${colorClase}">
-  <div class="membrete">
-    <div class="membrete-izq">
+<body class="${bodyClase}">
+  <div class="membrete"${membreteWrapperStyle}>
+    <div class="membrete-izq"${izqStyle}>
       ${logoHtml}
       <div class="membrete-texto">
         <h1>${ESC(cfg.nombre_institucion)}</h1>
@@ -94,7 +198,7 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
         <p>${ESC(cfg.subtitulo_2)}</p>
       </div>
     </div>
-    <div class="membrete-der">
+    <div class="membrete-der"${derStyle}>
       <div>${ESC(titulo)}</div>
       <div class="pdf-subtitulo-valor">${ESC(subtitulo)}</div>
       <div>Generado: ${ahora}</div>
@@ -103,11 +207,13 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
 
   ${seccionesHtml}
 
-  <div class="pie">
-    <div>${ESC(pie ?? cfg.pie_texto)}</div>
-    <div class="firma-bloque">
-      <div class="firma-linea"></div>
-      <div class="pdf-firma-label">${ESC(cfg.firma_label)}</div>
+  <div class="rp-pie-canvas"${pieWrapperStyle}>
+    <div class="pie"${pieStyle}>
+      <div>${ESC(pie ?? cfg.pie_texto)}</div>
+      <div class="firma-bloque">
+        <div class="firma-linea"></div>
+        <div class="pdf-firma-label">${ESC(cfg.firma_label)}</div>
+      </div>
     </div>
   </div>
 

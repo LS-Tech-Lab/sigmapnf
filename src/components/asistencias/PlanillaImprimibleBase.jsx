@@ -6,57 +6,84 @@
 // Asistencias QR). Antes también existía como submenú dentro del módulo
 // Horarios (AsistenciasView.jsx), eliminado por redundante: la misma
 // planilla ya es accesible desde Asistencias QR.
+//
+// Fase 1 del editor de plantillas (12 ago, migración 0090): las columnas
+// de la tabla ya no están fijas en este archivo -- se leen de `plantilla`
+// (la fila de plantillas_impresion resuelta para la sede activa, ver
+// usePlantillasImpresion.js), con DEFAULT_COLUMNAS_BLOQUE como respaldo
+// si no se pasa ninguna (tabla borrada a mano, o -- como en los tests de
+// este componente -- un caller que todavía no pasa la prop). El set de
+// filas pasó de "una fila por docente" a "una fila por bloque de horario
+// programado ese día/turno" (`agrupacion: 'bloque'`), para calzar con el
+// formato en papel que LS trajo de referencia ("ASISTENCIA DIARIA EDUC
+// ESPECIAL", columnas HORA/ASIGNATURA/SECCIÓN/PROFESOR/ACTIVIDAD/FIRMA
+// ENTRADA/FIRMA SALIDA/AULA/OBSERVACIÓN). Este componente sigue siendo
+// puramente presentacional a propósito -- NO llama a Supabase ni a
+// useSedeContext directamente; quien lo monta (PlanillaQR.jsx) es quien
+// resuelve `plantilla` y se la pasa por prop, igual que ya hace con
+// `reporteConfig`.
 import React, { useState, useMemo } from 'react';
-import { DAYS, trayectoClass, TURNOS_CONFIG } from '../../constants';
+import { DAYS, TURNOS_CONFIG } from '../../constants';
 import { getTurnoDeRegistro } from '../../utils/turno';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../../utils/time';
 import { parseClase } from '../../utils/parsing';
 import { getCurrentLapso } from '../../utils/lapso';
 import { plantillaReporte, abrirVentanaImpresion } from '../../utils/reportePlantilla';
-import Avatar from '../Avatar';
+import { DEFAULT_COLUMNAS_BLOQUE } from '../../utils/plantillasImpresion';
 import './PlanillaImprimibleBase.css';
 
 // Fix SEC-25 (CodeQL, 15 de julio — "DOM text reinterpreted as HTML"):
 // `handlePrint` arma un string de HTML e imprime vía `document.write()`
-// sobre una ventana nueva del mismo origen. A diferencia de exportPDF.js
-// (que ya escapaba todo con su propio `ESC()`), este archivo interpolaba
-// `programaActual`, `getDocName(rd)`, `c.materia` y `c.seccion` sin
-// escapar — y esos 4 valores salen de datos reales de `horarios`
-// (nombre de docente/materia/programa), que llegan a la BD vía carga
-// masiva de Excel (`useUpload.js`/`parseClase`). Un nombre de docente o
-// materia cargado con HTML/script en el archivo (por error o a
-// propósito) se ejecutaría en el origen autenticado de la app al
-// imprimir esta planilla — XSS almacenado de segundo orden, no un falso
-// positivo (a diferencia del hallazgo hermano en exportPDF.js, ver nota
-// ahí). Mismo helper `ESC()` que ya usa exportPDF.js.
-//
-// ADMIN-6 (1 ago): este componente tenía su propia plantilla HTML con un
-// <style> INLINE en el <head> del documento impreso — el mismo CSP
-// `style-src 'self'` (sin unsafe-inline) que forzó externalizar
-// reporte-print.css el 14 de julio casi con certeza bloqueaba ese bloque
-// en silencio también acá (bug latente nunca reportado, encontrado al
-// unificar). Ahora usa la misma plantilla compartida que exportPDF.js
-// (reportePlantilla.js), con CSS externo — y de paso gana el membrete
-// institucional configurable (antes esta planilla no tenía logo/nombre
-// de institución en absoluto).
+// sobre una ventana nueva del mismo origen. Todo valor derivado de datos
+// reales (nombre de docente/materia/programa/sección, que llegan a la BD
+// vía carga masiva de Excel — ver useUpload.js/parseClase) pasa por
+// ESC() antes de interpolarse — ver PlanillaImprimibleBase.security.test.jsx.
 const ESC = s => String(s ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-// Fix (caso PNF Agroalimentación, turno MIXTO): antes el selector de
-// turno era un array fijo ["DIURNO", "VESPERTINO"] — un coordinador de
-// Agroalimentación no podía generar esta planilla en absoluto, porque su
-// turno (MIXTO) ni siquiera aparecía como opción. Ahora sale de
-// TURNOS_CONFIG (misma fuente que ya usan TURNOS_VISIBLES en QRDisplay.jsx
-// y TURNOS_FILTRO en el reporte) — cualquier turno nuevo que se habilite
-// a futuro aparece automáticamente, sin tocar este archivo.
+// Fix (caso PNF Agroalimentación, turno MIXTO): el selector de turno sale
+// de TURNOS_CONFIG (misma fuente que TURNOS_VISIBLES/TURNOS_FILTRO en el
+// resto del módulo) en vez de un array fijo -- cualquier turno nuevo que
+// se habilite a futuro aparece automáticamente, sin tocar este archivo.
 const TURNOS_PLANILLA = TURNOS_CONFIG.filter(t => t.habilitado);
 const turnoIcon = (id) => (id === "VESPERTINO" || id === "NOCTURNO") ? "ti-moon" : "ti-sun";
 
-export default function PlanillaImprimibleBase({ data, getDocName, getMateriaName, catalogoDocentes = [], lapso, reporteConfig }) {
+// Registro de campos disponibles para agrupacion 'bloque'. DEFAULT_COLUMNAS_BLOQUE
+// (respaldo si `plantilla` no llega) vive en utils/plantillasImpresion.js,
+// compartido con el panel admin -- ver el comentario de ese archivo. `blank: true`
+// = celda en blanco para llenar a mano (igual que en el papel); el resto
+// se resuelve desde el bloque de horario. Un `campo` en la plantilla que
+// no esté acá (dato corrupto, o una plantilla pensada para otra
+// agrupación) se ignora en vez de romper el render.
+const CAMPOS_BLOQUE = {
+  hora:          { getValor: b => b.hora },
+  asignatura:    { getValor: b => b.asignatura },
+  seccion:       { getValor: b => b.seccion, center: true },
+  profesor:      { getValor: b => b.profesor },
+  actividad:     { blank: true },
+  firma_entrada: { blank: true },
+  firma_salida:  { blank: true },
+  aula:          { getValor: b => b.aula || "" },
+  observacion:   { blank: true },
+};
+
+function resolverColumnas(plantilla) {
+  const fuente = Array.isArray(plantilla?.columnas) && plantilla.columnas.length
+    ? plantilla.columnas
+    : DEFAULT_COLUMNAS_BLOQUE;
+  return fuente
+    .filter(c => c.visible !== false && CAMPOS_BLOQUE[c.campo])
+    .slice()
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+}
+
+export default function PlanillaImprimibleBase({ data, getDocName, getMateriaName, catalogoDocentes = [], lapso, reporteConfig, plantilla = null }) {
   const lapsoActual = lapso || getCurrentLapso();
   const [turno, setTurno] = useState(TURNOS_PLANILLA[0]?.id || "DIURNO"), [selectedDay, setSelectedDay] = useState(DAYS[0]);
   const turnoConf = TURNOS_CONFIG.find(t => t.id === turno);
   const turnoLabel = turnoConf?.label || turno;
+
+  const columnasActivas = useMemo(() => resolverColumnas(plantilla), [plantilla]);
 
   const programaActual = useMemo(() => {
     const programas = [...new Set(data.map(d => d.programa).filter(Boolean))];
@@ -65,50 +92,52 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
     return "Sin programa";
   }, [data]);
 
-  const docentesDelDia = useMemo(() => {
-    const map = {};
-    data.filter(d => getTurnoDeRegistro(d) === turno && d.dia === selectedDay).forEach(d => {
-      const { materia, docente: docenteParseado } = parseClase(d.clase, catalogoDocentes);
-      // Prioridad: relación real docentes.nombre_raw (garantizada por FK,
-      // inmune a variaciones de tipeo) > parseClase con catálogo fuzzy
-      // como respaldo para filas legacy sin docente_id vinculado.
-      const docente = d.docentes?.nombre_raw || docenteParseado;
-      if (!docente) return;
-      if (!map[docente]) map[docente] = { clases: [] };
-      map[docente].clases.push({
-        materia: getMateriaName(d.materias?.nombre_raw || materia),
-        hora: getHoraDisplayDeRegistro(d),
-        horaMin: getHoraMin(d),
-        seccion: d.sheet.trim(),
-        trayecto: d.trayecto,
-        aula: d.aula
+  // Una fila por CLASE programada ese día/turno (no por docente) -- así
+  // una misma sección/profesor puede aparecer más de una vez si tiene más
+  // de un bloque, igual que en la planilla en papel de referencia.
+  const bloquesDelDia = useMemo(() => {
+    const bloques = data
+      .filter(d => getTurnoDeRegistro(d) === turno && d.dia === selectedDay)
+      .map(d => {
+        const { materia, docente: docenteParseado } = parseClase(d.clase, catalogoDocentes);
+        // Mismo criterio que antes: relación real docentes.nombre_raw
+        // (garantizada por FK) tiene prioridad sobre parseClase con
+        // catálogo fuzzy, que queda como respaldo para filas legacy sin
+        // docente_id vinculado.
+        const docenteRaw = d.docentes?.nombre_raw || docenteParseado;
+        return {
+          horaMin:   getHoraMin(d),
+          hora:      getHoraDisplayDeRegistro(d),
+          asignatura: getMateriaName(d.materias?.nombre_raw || materia),
+          seccion:   (d.sheet || "").trim(),
+          profesor:  docenteRaw ? getDocName(docenteRaw) : "—",
+          aula:      d.aula || "",
+        };
       });
-    });
-    Object.values(map).forEach(v => { v.clases.sort((a, b) => a.horaMin - b.horaMin); });
-    return Object.entries(map).sort((a, b) => getDocName(a[0]).localeCompare(getDocName(b[0])));
+    bloques.sort((a, b) => a.horaMin - b.horaMin || a.seccion.localeCompare(b.seccion));
+    return bloques;
   }, [data, turno, selectedDay, getDocName, getMateriaName, catalogoDocentes]);
 
   const handlePrint = () => {
     const diaLabel = selectedDay.charAt(0) + selectedDay.slice(1).toLowerCase();
 
-    const filas = docentesDelDia.map(([rd, info], idx) => `<tr>
-      <td class="td-center">${idx + 1}</td>
-      <td class="docente-name-cell">${ESC(getDocName(rd))}</td>
-      <td>${info.clases.map(c => `${ESC(c.materia)} — ${ESC(c.seccion)}`).join("<br>")}</td>
-      <td>${info.clases.map(c => ESC(c.hora)).join("<br>")}</td>
-      <td class="td-center"><div class="firma-box"></div></td>
-      <td class="td-center"><div class="firma-box"></div></td>
-      <td class="td-center"><div class="firma-box"></div></td>
-    </tr>`).join("");
+    const theadHtml = columnasActivas.map(col => `<th>${ESC(col.etiqueta)}</th>`).join("");
+
+    const filas = bloquesDelDia.map(b => {
+      const celdas = columnasActivas.map(col => {
+        const spec = CAMPOS_BLOQUE[col.campo];
+        if (spec.blank) return `<td class="td-center"><div class="firma-box"></div></td>`;
+        const valor = ESC(spec.getValor(b));
+        return `<td${spec.center ? ' class="td-center"' : ''}>${valor}</td>`;
+      }).join("");
+      return `<tr>${celdas}</tr>`;
+    }).join("");
 
     const seccionesHtml = `
       <div class="subtitulo">${ESC(programaActual)} · ${ESC(diaLabel)} · Turno: ${ESC(turnoLabel)} · Trimestre ${ESC(lapsoActual)}</div>
       <table>
-        <thead><tr>
-          <th>N°</th><th>Docente</th><th>Materia(s) / Sección(es)</th>
-          <th>Horario</th><th>Entrada</th><th>Salida</th><th>Firma</th>
-        </tr></thead>
-        <tbody>${filas || `<tr><td colspan="7" class="td-empty">Sin docentes registrados</td></tr>`}</tbody>
+        <thead><tr>${theadHtml}</tr></thead>
+        <tbody>${filas || `<tr><td colspan="${columnasActivas.length}" class="td-empty">Sin clases programadas</td></tr>`}</tbody>
       </table>`;
 
     const html = plantillaReporte({
@@ -116,7 +145,10 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
       titulo: "Control de Asistencia Docentes",
       subtitulo: `${diaLabel} · ${turnoLabel}`,
       seccionesHtml,
-      pie: `Total docentes: ${docentesDelDia.length} · Total clases: ${docentesDelDia.reduce((a, [, v]) => a + v.clases.length, 0)}`,
+      pie: `Total de bloques: ${bloquesDelDia.length}`,
+      orientacion: plantilla?.orientacion,
+      tamanoPagina: plantilla?.tamano_pagina,
+      layout: plantilla?.layout,
     });
 
     if (!abrirVentanaImpresion(html, { autoPrint: true })) {
@@ -160,53 +192,35 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
           <div className="pib-table-title">Control de Asistencia Docentes</div>
           <div className="pib-table-sub">{programaActual} · {selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: {turnoLabel} ({turnoConf?.hora || ""}) · Trimestre {lapsoActual}</div>
         </div>
-        {!docentesDelDia.length ? <div className="pib-empty">No hay docentes registrados.</div> : (
+        {!bloquesDelDia.length ? <div className="pib-empty">No hay clases programadas.</div> : (
           <table className="pib-table">
             <thead>
               <tr>
-                <th className="s-th">N°</th>
-                <th className="s-th">Docente</th>
-                <th className="s-th">Materia(s) / Sección(es)</th>
-                <th className="s-th">Horario</th>
-                <th className="s-th">Entrada</th>
-                <th className="s-th">Salida</th>
-                <th className="s-th">Firma</th>
+                {columnasActivas.map(col => <th key={col.campo} className="s-th">{col.etiqueta}</th>)}
               </tr>
             </thead>
             <tbody>
-              {docentesDelDia.map(([rd, info], idx) => (
-                <tr key={rd}>
-                  <td className="s-td pib-td-num">{idx+1}</td>
-                  <td className="s-td">
-                    <div className="pib-doc-cell">
-                      <Avatar name={getDocName(rd)} size={30} />
-                      <span className="pib-doc-name">{getDocName(rd)}</span>
-                    </div>
-                  </td>
-                  <td className="s-td pib-materias-cell">
-                    {info.clases.map((c, i) => (
-                      <div key={i} className="pib-materia-row">
-                        <span className="pib-materia-name">{c.materia}</span>
-                        <span className="pib-materia-seccion">— {c.seccion}</span>
-                        {c.trayecto && <span className={`pib-materia-trayecto ${trayectoClass(c.trayecto)}`}>T.{c.trayecto}</span>}
-                      </div>
-                    ))}
-                  </td>
-                  <td className="s-td pib-hora-cell">
-                    {info.clases.map((c, i) => <div key={i} className="pib-hora-row">{c.hora}</div>)}
-                  </td>
-                  <td className="s-td pib-firma-cell"></td>
-                  <td className="s-td pib-firma-cell"></td>
-                  <td className="s-td pib-firma-cell"></td>
+              {bloquesDelDia.map((b, idx) => (
+                <tr key={idx}>
+                  {columnasActivas.map(col => {
+                    const spec = CAMPOS_BLOQUE[col.campo];
+                    if (spec.blank) {
+                      return <td key={col.campo} className="s-td pib-cell-blank"><div className="pib-cell-blank-box" /></td>;
+                    }
+                    return (
+                      <td key={col.campo} className={`s-td${spec.center ? ' pib-td-center' : ''}`}>
+                        {spec.getValor(b)}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-        {docentesDelDia.length > 0 && (
+        {bloquesDelDia.length > 0 && (
           <div className="pib-footer">
-            <div>Total docentes: <strong className="pib-footer-strong">{docentesDelDia.length}</strong></div>
-            <div>Total clases: <strong className="pib-footer-strong">{docentesDelDia.reduce((a, [, v]) => a + v.clases.length, 0)}</strong></div>
+            <div>Total de bloques: <strong className="pib-footer-strong">{bloquesDelDia.length}</strong></div>
           </div>
         )}
       </div>

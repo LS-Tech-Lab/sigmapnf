@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { suscribirCambiosRemotos } from '../../lib/realtime';
 import { getCurrentLapso, formatLapso } from '../../utils/lapso';
 import { useReporteConfig } from '../../hooks/useReporteConfig';
+import usePlantillasImpresion from '../../hooks/usePlantillasImpresion';
 import { useSedeContext } from '../../context/SedeContext';
 import useTrimestreActivo from '../../hooks/useTrimestreActivo';
 import PlanillaImprimibleBase from './PlanillaImprimibleBase';
@@ -55,6 +56,10 @@ export default function PlanillaQR({ permisos = {}, profile }) {
   const [error, setError] = useState(null);
   // ADMIN-6: branding del membrete impreso — ver useReporteConfig.js.
   const { config: reporteConfig } = useReporteConfig();
+  // Fase 1 del editor de plantillas (12 ago, migración 0091): columnas de
+  // la planilla, resueltas para sedeActiva (con fallback a la default del
+  // tipo si esta sede no tiene una asignación propia en sede_plantillas).
+  const { plantillaActiva } = usePlantillasImpresion("planilla_asistencia_turno", sedeActiva);
 
   const getDocName = useCallback((raw) => docenteNames[raw] || raw, [docenteNames]);
   const getMateriaName = useCallback((raw) => materiaNames[raw] || raw, [materiaNames]);
@@ -244,6 +249,7 @@ export default function PlanillaQR({ permisos = {}, profile }) {
           catalogoDocentes={catalogoDocentes}
           lapso={lapso}
           reporteConfig={reporteConfig}
+          plantilla={plantillaActiva}
         />
       )}
     </div>

@@ -88,7 +88,13 @@ export default function AdminModulo({
     // mismo criterio que "Reportes": permiso granular propio
     // (puedeGestionarSedes), no puedeVerTodasLasSedes (una cosa es VER
     // todas las sedes en los reportes, otra ADMINISTRAR el catálogo).
-    ...(permisos.puedeGestionarSedes
+    // Fase 1 del editor de plantillas (12 ago): la pestaña "Plantillas"
+    // vive dentro de este mismo panel (GestionSedes.jsx) pero detrás de
+    // su propio permiso (puedeGestionarPlantillas) — alguien con SOLO
+    // ese permiso también necesita ver esta entrada de nav para poder
+    // llegar a su pestaña; GestionSedes decide adentro cuáles de sus 4
+    // sub-pestañas mostrar según qué permiso puntual tenga cada quien.
+    ...(permisos.puedeGestionarSedes || permisos.puedeGestionarPlantillas
       ? [{ id: "sedes", icon: "ti-building-community", label: "Sedes" }]
       : []),
     { id: "historial", icon: "ti-archive", label: "Historial" },
@@ -168,8 +174,8 @@ export default function AdminModulo({
               <ConfiguracionReportes showToast={appData.showToast} logAudit={appData.logAudit} />
             )}
 
-            {tab === "sedes" && permisos.puedeGestionarSedes && (
-              <GestionSedes showToast={appData.showToast} logAudit={appData.logAudit} />
+            {tab === "sedes" && (permisos.puedeGestionarSedes || permisos.puedeGestionarPlantillas) && (
+              <GestionSedes showToast={appData.showToast} logAudit={appData.logAudit} permisos={permisos} />
             )}
 
             {tab === "historial" && (
