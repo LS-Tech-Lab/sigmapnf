@@ -28,24 +28,49 @@
 
 .gs-loading { display: flex; align-items: center; gap: 8px; padding: 40px; justify-content: center; color: var(--color-text-mid); }
 
-/* Compuesto con .s-card (no solo .gs-table-card) a propósito: .s-card
-   trae overflow:hidden (src/index.css) con la misma especificidad que
-   un selector de una sola clase, así que el orden del CSS final decide
-   cuál gana -- en esta build gana .s-card y recorta el contenido que se
-   sale del ancho de la tarjeta (identificador largo, matriz con muchas
-   columnas). Mismo criterio que .s-card.mv-list-card (MateriasView.css)
-   y .s-card.dv-list-card (DocentesView.css). */
-.s-card.gs-table-card { overflow-x: auto; }
-.gs-table { width: 100%; border-collapse: collapse; }
-.gs-th--right { text-align: right; }
-.gs-td-empty { text-align: center; padding: 24px !important; color: var(--color-text-mid); }
-.gs-td-right { text-align: right; }
+/* UX-37 (LS, 12 ago 2026): listas de Sedes/Programas en grid, no
+   <table>. Una tabla exige el ancho de TODAS sus columnas en una sola
+   línea; en grid cada celda puede envolver texto y, debajo del
+   breakpoint móvil, apilarse en su propia línea -- nunca fuerza scroll
+   horizontal, sin importar el ancho de pantalla. Columnas: Sede/
+   Programa (flexible) | Identificador | Orden | Estado | Acciones. */
+.gs-list-head, .gs-list-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(140px, 200px) 70px 110px 80px;
+  gap: 10px; align-items: center; padding: 11px 14px;
+}
+.gs-list-head {
+  font-size: var(--font-size-11); font-weight: 700; color: var(--color-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.06em; background: var(--color-background-secondary);
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+.gs-list-row { border-top: 1px solid var(--color-background-tertiary); font-size: var(--font-size-13); }
+.gs-list-row:first-of-type { border-top: none; }
+.gs-list-cell { min-width: 0; overflow-wrap: break-word; }
+.gs-list-cell--actions { display: flex; justify-content: flex-end; }
+.gs-td-empty { text-align: center; padding: 24px; color: var(--color-text-mid); margin: 0; }
 
-.gs-nombre { font-weight: 600; color: var(--color-text-primary); }
-.gs-id { font-size: var(--font-size-12); background: var(--color-background-secondary); padding: 2px 6px; border-radius: 4px; color: var(--color-text-mid); }
+.gs-list-cell--nombre { font-weight: 600; color: var(--color-text-primary); }
+.gs-id { font-size: var(--font-size-12); background: var(--color-background-secondary); padding: 2px 6px; border-radius: 4px; color: var(--color-text-mid); overflow-wrap: anywhere; }
 
 .gs-row--inactiva { opacity: 0.55; }
-.gs-row--inactiva .gs-nombre { text-decoration: line-through; }
+.gs-row--inactiva .gs-list-cell--nombre { text-decoration: line-through; }
+
+/* Debajo de 640px: cada fila pasa de una línea de 5 columnas a un
+   bloque apilado de label+valor -- mismo breakpoint que .dv-list-card/
+   .mv-list-card (DocentesView.css/MateriasView.css) para consistencia. */
+@media (max-width: 640px) {
+  .gs-list-head { display: none; }
+  .gs-list-row { grid-template-columns: 1fr 1fr; gap: 8px 12px; padding: 12px 14px; }
+  .gs-list-cell { display: flex; flex-direction: column; gap: 2px; }
+  .gs-list-cell::before {
+    content: attr(data-label); font-size: var(--font-size-10); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-tertiary);
+  }
+  .gs-list-cell--nombre, .gs-list-cell--actions { grid-column: 1 / -1; }
+  .gs-list-cell--actions { flex-direction: row; align-items: center; }
+  .gs-list-cell--actions::before { display: none; }
+}
 
 .gs-badge--activa   { background: var(--color-success-bg); color: var(--color-success-text, #047857); }
 .gs-badge--inactiva { background: var(--color-background-secondary); color: var(--color-text-mid); }
@@ -95,29 +120,35 @@
 
 .gs-tab-panel { min-height: 120px; }
 
-/* PROG-4 — matriz sede × programa (pestaña Asignación) */
-/* Mismo motivo que .s-card.gs-table-card arriba: este wrapper también
-   lleva la clase .s-card (ver TabAsignacion.jsx), así que necesita el
-   selector compuesto para ganarle a overflow:hidden de forma confiable. */
-.s-card.gs-matriz-wrap { overflow-x: auto; }
-.gs-matriz { min-width: 100%; }
-.gs-matriz-esquina { white-space: nowrap; }
-.gs-matriz-col { text-align: center; white-space: nowrap; }
-.gs-matriz-fila { white-space: nowrap; }
-.gs-matriz-celda { text-align: center; }
-
-.gs-matriz-toggle {
-  width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--color-border-tertiary);
-  background: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
+/* UX-37 (LS, 12 ago 2026) — pestaña Asignación: reemplaza la matriz
+   sede × programa por una lista de sedes con sus programas como chips
+   en flex-wrap. Una matriz necesita el ancho de TODOS los programas en
+   una sola fila; con flex-wrap cada chip se envuelve a la siguiente
+   línea solo, así que nunca hace falta scroll horizontal sin importar
+   cuántas sedes o programas haya. A cambio la lista crece en vertical,
+   que es justamente lo que el navegador ya sabe scrollear bien. */
+.gs-asig-buscador {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  color: var(--color-text-tertiary); font-size: var(--font-size-15);
 }
-.gs-matriz-toggle:disabled { opacity: 0.6; cursor: default; }
-.gs-matriz-toggle--activo {
+.gs-asig-buscador .s-input { flex: 1; }
+
+.gs-asig-lista { display: flex; flex-direction: column; gap: 10px; }
+.gs-asig-sede { padding: 14px 16px; }
+.gs-asig-sede-nombre { font-weight: 700; color: var(--color-text-primary); margin-bottom: 10px; font-size: var(--font-size-14); }
+.gs-asig-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.gs-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--color-border-tertiary);
+  background: #fff; cursor: pointer; font-size: var(--font-size-13); font-weight: 500;
+  color: var(--color-text-mid); transition: all 0.15s;
+}
+.gs-chip:disabled { opacity: 0.6; cursor: default; }
+.gs-chip--activo {
   background: var(--color-success-bg, #ECFDF5); color: var(--color-success-text, #047857);
   border-color: rgba(4,120,87,0.3);
 }
-.gs-matriz-toggle--inactivo {
-  background: var(--color-background-secondary); color: var(--color-text-mid);
-}
-.gs-matriz-toggle--activo:hover   { background: rgba(4,120,87,0.18); }
-.gs-matriz-toggle--inactivo:hover { color: var(--color-error-text, #B91C1C); border-color: rgba(185,28,28,0.3); }
+.gs-chip--inactivo { color: var(--color-text-tertiary); }
+.gs-chip--activo:hover   { background: rgba(4,120,87,0.18); }
+.gs-chip--inactivo:hover { color: var(--color-error-text, #B91C1C); border-color: rgba(185,28,28,0.3); }
