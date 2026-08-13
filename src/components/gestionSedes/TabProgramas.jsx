@@ -194,25 +194,24 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
 
       {error && <div className="gs-error">{error}</div>}
 
-      {/* UX-37 (LS, 12 ago 2026): filas en grid en vez de <table> — ver
-          el comentario detallado en TabSedes.jsx, mismo motivo exacto. */}
+      {/* UX-39 (LS, 13 ago 2026): filas en flex-wrap en vez de grid de
+          columnas fijas — ver el comentario detallado en TabSedes.jsx,
+          mismo motivo exacto (el grid de UX-37 seguía exigiendo ~600px
+          de mínimo y se recortaba en silencio por debajo de eso). */}
       <div className="s-card gs-list-card">
-        <div className="gs-list-head" aria-hidden="true">
-          <span>Programa</span><span>Identificador</span><span>Orden</span><span>Estado</span><span></span>
-        </div>
         {programas.length === 0 ? (
           <p className="gs-td-empty">Sin programas registrados todavía.</p>
         ) : programas.map(programa => (
-          <div key={programa.id} className={`gs-list-row ${programa.activa ? "" : "gs-row--inactiva"}`}>
-            <span className="gs-list-cell gs-list-cell--nombre" data-label="Programa">{programa.nombre}</span>
-            <span className="gs-list-cell" data-label="Identificador"><code className="gs-id">{programa.id}</code></span>
-            <span className="gs-list-cell" data-label="Orden">{programa.orden}</span>
-            <span className="gs-list-cell" data-label="Estado">
+          <div key={programa.id} className={`gs-row ${programa.activa ? "" : "gs-row--inactiva"}`}>
+            <div className="gs-row-main">
+              <span className="gs-row-nombre">{programa.nombre}</span>
+              <code className="gs-id">{programa.id}</code>
+            </div>
+            <div className="gs-row-meta">
+              <span className="gs-row-orden" title="Orden en los selectores">Orden {programa.orden}</span>
               <span className={`s-badge ${programa.activa ? "gs-badge--activa" : "gs-badge--inactiva"}`}>
                 {programa.activa ? "Activo" : "Inactivo"}
               </span>
-            </span>
-            <span className="gs-list-cell gs-list-cell--actions" data-label="Acciones">
               <div className="gs-actions">
                 <button
                   onClick={() => abrirEditar(programa)}
@@ -225,7 +224,7 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
                   className={`gs-action-btn ${programa.activa ? "gs-action-btn--desactivar" : "gs-action-btn--activar"}`}
                 ><i className={`ti ${programa.activa ? "ti-toggle-right" : "ti-toggle-left"}`} aria-hidden="true" /></button>
               </div>
-            </span>
+            </div>
           </div>
         ))}
       </div>
