@@ -25,6 +25,7 @@ export default function TabAsignacion({ showToast, logAudit, refrescarClave }) {
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState(null);
   const [guardando, setGuardando] = useState(null); // clave "sedeId::programaId" en vuelo
+  const [busqueda,  setBusqueda]  = useState(""); // UX-37: filtro por nombre de sede
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -108,50 +109,70 @@ export default function TabAsignacion({ showToast, logAudit, refrescarClave }) {
       {error && <div className="gs-error">{error}</div>}
 
       {sedes.length === 0 || programas.length === 0 ? (
-        <div className="s-card gs-table-card">
-          <p className="s-td gs-td-empty">
+        <div className="s-card gs-list-card">
+          <p className="gs-td-empty">
             Hace falta al menos una sede y un programa activos para configurar la asignación.
           </p>
         </div>
       ) : (
-        <div className="s-card gs-table-card gs-matriz-wrap">
-          <table className="gs-table gs-matriz">
-            <thead>
-              <tr>
-                <th className="s-th gs-matriz-esquina">Sede \ Programa</th>
-                {programas.map(p => (
-                  <th key={p.id} className="s-th gs-matriz-col">{p.nombre}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sedes.map(sede => (
-                <tr key={sede.id}>
-                  <td className="s-td gs-nombre gs-matriz-fila">{sede.nombre}</td>
-                  {programas.map(programa => {
-                    const clave = `${sede.id}::${programa.id}`;
-                    const activo = activos[clave] ?? true;
-                    const enVuelo = guardando === clave;
-                    return (
-                      <td key={programa.id} className="s-td gs-matriz-celda">
+        <>
+          {/* UX-37 (LS, 12 ago 2026): la matriz sede×programa se reemplazó
+              por una lista de sedes, cada una con sus programas como
+              chips en flex-wrap. Una matriz necesita el ancho de TODOS
+              los programas en una sola fila -- con 5+ programas eso ya
+              obligaba a scroll horizontal aunque sobrara pantalla a los
+              lados (medido con Playwright: 1065px de contenido vs 858px
+              disponibles a max-width:900px, y seguía pidiendo scroll
+              incluso ampliado a 1200px en ventanas angostas o en
+              móvil). Los chips en cambio se envuelven a la siguiente
+              línea solos -- nunca necesitan más ancho del que hay, sin
+              importar cuántas sedes o programas se agreguen a futuro.
+              El buscador es nuevo: con 11 sedes la lista ya es larga
+              verticalmente, y encontrar una sede por nombre es más
+              rápido que desplazarse. */}
+          {sedes.length > 5 && (
+            <div className="gs-asig-buscador">
+              <i className="ti ti-search" aria-hidden="true" />
+              <input
+                type="text"
+                className="s-input s-input--full"
+                placeholder="Buscar sede…"
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+              />
+            </div>
+          )}
+          <div className="gs-asig-lista">
+            {sedes
+              .filter(sede => sede.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()))
+              .map(sede => (
+                <div key={sede.id} className="s-card gs-asig-sede">
+                  <div className="gs-asig-sede-nombre">{sede.nombre}</div>
+                  <div className="gs-asig-chips">
+                    {programas.map(programa => {
+                      const clave = `${sede.id}::${programa.id}`;
+                      const activo = activos[clave] ?? true;
+                      const enVuelo = guardando === clave;
+                      return (
                         <button
+                          key={programa.id}
                           type="button"
                           disabled={enVuelo}
                           onClick={() => toggle(sede, programa)}
                           title={`${programa.nombre} en ${sede.nombre}: ${activo ? "activo" : "inactivo"}`}
                           aria-pressed={activo}
-                          className={`gs-matriz-toggle ${activo ? "gs-matriz-toggle--activo" : "gs-matriz-toggle--inactivo"}`}
+                          className={`gs-chip ${activo ? "gs-chip--activo" : "gs-chip--inactivo"}`}
                         >
                           <i className={`ti ${activo ? "ti-check" : "ti-x"}`} aria-hidden="true" />
+                          {programa.nombre}
                         </button>
-                      </td>
-                    );
-                  })}
-                </tr>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
