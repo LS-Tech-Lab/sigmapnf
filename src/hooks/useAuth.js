@@ -289,6 +289,28 @@ export default function useAuth() {
     let initialHandled = false;
     let cancelado = false;
 
+    // Fix "pantalla de carga al volver de otra pestaña" (LS, 12-ago-2026):
+    // supabase-js re-emite SIGNED_IN al recuperar la sesión cuando la
+    // pestaña vuelve a estar visible (visibilitychange interno de
+    // GoTrueClient), aunque sea EXACTAMENTE el mismo usuario ya
+    // autenticado -- no es un login nuevo. El código de abajo trataba
+    // cualquier SIGNED_IN como login fresco: recargaba el perfil entero
+    // (=> <FullScreenSpinner label="Cargando perfil…"/> reemplaza todo el
+    // árbol de la app, así que cualquier estado que viviera en un
+    // componente hijo -- qué menú/pestaña estaba abierta dentro de
+    // Horarios/Sistema, por ejemplo -- se perdía al desmontar y volver a
+    // montar) y además reiniciaba el reloj de inactividad/time-box
+    // (SEC-21/SEC-12), lo cual es un problema de seguridad aparte: un
+    // usuario que alterna pestañas periódicamente nunca llegaría a
+    // vencer su sesión por time-box.
+    // lastUserId (variable de closure, no useRef -- este efecto corre una
+    // sola vez por el ciclo de vida del hook, ver deps [cargarProfile] más
+    // abajo) guarda el id del usuario ya autenticado para poder distinguir
+    // "login genuino" (id distinto o no había nadie logueado) de
+    // "re-emisión del mismo usuario" (mismo id) sin depender del estado
+    // `user` de React, que dentro de este closure quedaría obsoleto.
+    let lastUserId = null;
+
     // Fix "micro refresh" en login (LS, 3-ago-2026): antes, cuando la
     // sesión persistida ya había superado el idle-timeout o el time-box
     // (SEC-21) mientras la pestaña estaba cerrada, la app igual pasaba
@@ -335,6 +357,7 @@ export default function useAuth() {
       }
 
       if (!cancelado) {
+        lastUserId = authUser?.id ?? null;
         setUser(authUser);
         cargarProfile(authUser);
       }
@@ -357,13 +380,28 @@ export default function useAuth() {
         }
 
         setUser(authUser);
+        // Sesión cerrada (SIGNED_OUT u otro evento sin usuario): limpiar
+        // lastUserId para que, si el MISMO usuario vuelve a loguearse en
+        // esta misma pestaña más tarde, su próximo SIGNED_IN se trate
+        // como login genuino y no como re-emisión espuria.
+        if (!authUser) lastUserId = null;
+
+        // Ver comentario de lastUserId arriba: un SIGNED_IN para el
+        // mismo usuario que ya estaba autenticado (típicamente al volver
+        // de otra pestaña) no es un login real -- se ignoran sus efectos
+        // (recarga de perfil, reinicio de idle/time-box, log de login)
+        // y solo se deja el setUser(authUser) de arriba, que no rompe
+        // nada por ser el mismo valor.
+        const esMismoUsuarioYaAutenticado =
+          event === "SIGNED_IN" && authUser && lastUserId === authUser.id;
+        if (event === "SIGNED_IN" && authUser) lastUserId = authUser.id;
 
         // Fix #18: el log de SIGNED_IN se registra DESPUÉS de que
         // cargarProfile resuelva exitosamente, para evitar huecos en
         // la auditoría cuando el perfil falla (como ocurrió con el
         // error PGRST201 del fix #3). El setTimeout anterior no
         // garantizaba esto — solo añadía un delay arbitrario.
-        if (event === "SIGNED_IN" && authUser) {
+        if (event === "SIGNED_IN" && authUser && !esMismoUsuarioYaAutenticado) {
           // Fix "refresh a los segundos de loguear" (LS, 3-ago-2026):
           // handleLogout() limpia ACTIVIDAD_KEY/SESSION_START_KEY, pero un
           // login nuevo vía LoginScreen (signInWithPassword) llega aquí
@@ -390,6 +428,12 @@ export default function useAuth() {
               } catch (_) { /* no-op: los logs no deben bloquear */ }
             })();
           });
+        } else if (esMismoUsuarioYaAutenticado) {
+          // SIGNED_IN repetido para el mismo usuario (ver comentario arriba
+          // de esMismoUsuarioYaAutenticado): no-op a propósito. Sin esta
+          // rama, la condición cae al `else` final de la cadena y vuelve a
+          // llamar cargarProfile(authUser), reproduciendo el mismo bug que
+          // esta guarda existe para evitar.
         } else if (event === "TOKEN_REFRESHED" && authUser) {
           // Mejora 2 (auditoría Junio 2026): registrar primera renovación del día.
           // No recargamos profile — el token se renovó, el usuario no cambió.
