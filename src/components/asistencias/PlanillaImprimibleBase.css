@@ -10,6 +10,7 @@
 
 .pib-title { margin: 0 0 20px; font-size: var(--font-size-18); font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .pib-title-icon { font-size: var(--font-size-20); }
+.pib-logo-coordinacion { height: 28px; width: auto; max-width: 90px; object-fit: contain; }
 
 /* ── Barra de filtros (turno / día / imprimir) ────────────────────────────── */
 .pib-toolbar { padding: 14px 20px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -26,7 +27,6 @@
 /* ── Cabecera de la tabla ──────────────────────────────────────────────────── */
 .pib-table-header { padding: 14px 20px; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
 .pib-table-title { font-size: var(--font-size-16); font-weight: 700; color: var(--color-text-primary); }
-.pib-table-sub { font-size: var(--font-size-13); color: var(--color-text-secondary); margin-top: 2px; font-weight: 500; }
 
 .pib-empty { padding: 40px 20px; text-align: center; color: var(--color-text-secondary); font-size: var(--font-size-15); font-weight: 500; }
 
@@ -36,6 +36,9 @@
    ser fijo -- ya no hay reglas nth-child por posición acá; el ancho de
    cada columna queda a criterio del navegador (tabla fluida). */
 .pib-table { width: 100%; border-collapse: collapse; }
+
+.pib-table .s-th { text-align: center; padding: 6px 8px; }
+.pib-table .s-td { padding: 4px 8px; text-transform: uppercase; }
 
 .pib-table tbody tr:nth-child(even) { background: var(--color-background-secondary); }
 .pib-table tbody tr:nth-child(odd) { background: #fff; }

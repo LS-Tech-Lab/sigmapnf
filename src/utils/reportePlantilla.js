@@ -50,6 +50,9 @@ export const CONFIG_REPORTE_DEFAULT = {
   pie_texto: "Documento generado automáticamente por el sistema SigmaPNF",
   firma_label: "Firma y sello del Coordinador(a)",
   logo_base64: null,
+  // Migración 0092 (13 ago): segundo logo, distinto del institucional --
+  // se muestra junto al ícono de la Planilla de Asistencia por Turno.
+  logo_coordinacion_base64: null,
   color_clase: "rp-color--azul",
 };
 

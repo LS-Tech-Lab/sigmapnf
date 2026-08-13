@@ -17,30 +17,27 @@
 // vuelva a cargar sin depender de que el usuario cambie de pestaña y
 // vuelva -- si no, quedaría mostrando la matriz vieja tras un alta
 // reciente hasta un refresh manual de página.
+//
+// Nota (13 ago): la pestaña "Plantillas" que vivió acá brevemente (Fase 1
+// del editor de plantillas, 12 ago) se mudó a Reportes -- ver
+// GestionReportes.jsx -- porque encajaba mejor ahí temáticamente
+// (columnas/formato de impresión, no altas de sedes). Este archivo vuelve
+// a depender solo de puedeGestionarSedes, sin el filtrado por pestaña que
+// hizo falta mientras Plantillas vivió acá con su propio permiso.
 import React, { useState, useCallback } from "react";
 import TabSedes from "./gestionSedes/TabSedes";
 import TabProgramas from "./gestionSedes/TabProgramas";
 import TabAsignacion from "./gestionSedes/TabAsignacion";
-import TabPlantillas from "./gestionSedes/TabPlantillas";
 import "./GestionSedes.css";
 
-// TabPlantillas (Fase 1 del editor de plantillas, 12 ago 2026): a
-// diferencia de las otras 3, no depende de `refrescarClave` -- gestiona
-// su propio catálogo (plantillas_impresion / sede_plantillas, migración
-// 0091), sin relación con altas de sedes o programas. Vive detrás de su
-// propio permiso (puedeGestionarPlantillas) en vez de puedeGestionarSedes
-// -- alguien con solo ese permiso llega a este panel (ver AdminModulo.jsx)
-// pero solo ve esta pestaña, no las otras 3.
 const PESTANAS = [
-  { id: "sedes",       label: "Sedes",       icono: "ti-building-community", permiso: "puedeGestionarSedes" },
-  { id: "programas",   label: "Programas",   icono: "ti-school",             permiso: "puedeGestionarSedes" },
-  { id: "asignacion",  label: "Asignación",  icono: "ti-grid-dots",          permiso: "puedeGestionarSedes" },
-  { id: "plantillas",  label: "Plantillas",  icono: "ti-layout-grid",        permiso: "puedeGestionarPlantillas" },
+  { id: "sedes",       label: "Sedes",       icono: "ti-building-community" },
+  { id: "programas",   label: "Programas",   icono: "ti-school" },
+  { id: "asignacion",  label: "Asignación",  icono: "ti-grid-dots" },
 ];
 
-export default function GestionSedes({ showToast, logAudit, permisos = {} }) {
-  const pestanasVisibles = PESTANAS.filter(p => permisos[p.permiso]);
-  const [pestanaActiva, setPestanaActiva] = useState(pestanasVisibles[0]?.id || "sedes");
+export default function GestionSedes({ showToast, logAudit }) {
+  const [pestanaActiva, setPestanaActiva] = useState("sedes");
   const [refrescarClave, setRefrescarClave] = useState(0);
 
   const notificarCambioCatalogo = useCallback(() => {
@@ -50,7 +47,7 @@ export default function GestionSedes({ showToast, logAudit, permisos = {} }) {
   return (
     <div className="gs-root">
       <div className="gs-tabs" role="tablist" aria-label="Configuración de sedes y programas">
-        {pestanasVisibles.map(p => (
+        {PESTANAS.map(p => (
           <button
             key={p.id}
             type="button"
@@ -73,9 +70,6 @@ export default function GestionSedes({ showToast, logAudit, permisos = {} }) {
         )}
         {pestanaActiva === "asignacion" && (
           <TabAsignacion showToast={showToast} logAudit={logAudit} refrescarClave={refrescarClave} />
-        )}
-        {pestanaActiva === "plantillas" && (
-          <TabPlantillas showToast={showToast} logAudit={logAudit} />
         )}
       </div>
     </div>

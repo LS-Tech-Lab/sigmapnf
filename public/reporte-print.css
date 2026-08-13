@@ -152,7 +152,16 @@ tr:nth-child(even) td { background: #F8FAFC; }
 
 /* ── Planilla Imprimible (ADMIN-6, unificada con la misma plantilla) ── */
 .docente-name-cell { font-weight: 700; }
-.firma-box { width: 120px; height: 45px; border: 1px solid #999; margin: 0 auto; }
+.firma-box { width: 100px; height: 28px; border: 1px solid #999; margin: 0 auto; }
+
+/* Pedido de LS (13 ago): criterio de texto uniforme (todo mayúscula),
+   encabezados centrados y menos espaciado por fila para que quepan más
+   bloques de horario en una hoja. Con clase propia (.rp-planilla-table)
+   en vez de tocar las reglas genéricas `table th/td` de más arriba --
+   esas las comparten Reporte Diario y Reporte por Rango (exportPDF.js),
+   que NO pidieron este cambio. */
+.rp-planilla-table th { text-align: center; text-transform: uppercase; padding: 3px 6px; }
+.rp-planilla-table td { text-transform: uppercase; padding: 2px 6px; }
 
 
 

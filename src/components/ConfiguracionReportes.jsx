@@ -46,6 +46,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState(null);
   const fileInputRef = useRef(null);
+  const fileInputCoordinacionRef = useRef(null); // migración 0092 (13 ago)
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -53,7 +54,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
     try {
       const { data, error: err } = await supabase
         .from("configuracion_reportes")
-        .select("nombre_institucion, subtitulo_1, subtitulo_2, pie_texto, firma_label, logo_base64, color_clase")
+        .select("nombre_institucion, subtitulo_1, subtitulo_2, pie_texto, firma_label, logo_base64, logo_coordinacion_base64, color_clase")
         .eq("id", 1)
         .maybeSingle();
       if (err) { setError(err.message); }
@@ -71,7 +72,10 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
 
   const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }));
 
-  const handleLogoChange = (e) => {
+  // Migración 0092 (13 ago): parametrizado por `campo` para reutilizarlo
+  // en los 2 logos (institucional y de la coordinación) en vez de
+  // duplicar la validación PNG/JPG/WEBP + 1.5MB dos veces.
+  const handleLogoChange = (campo) => (e) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // permite volver a elegir el mismo archivo después
     if (!file) return;
@@ -86,7 +90,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
     }
 
     const reader = new FileReader();
-    reader.onload = () => set("logo_base64")(reader.result);
+    reader.onload = () => set(campo)(reader.result);
     reader.onerror = () => showToast?.("No se pudo leer el archivo.", "error");
     reader.readAsDataURL(file);
   };
@@ -105,6 +109,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
         pie_texto:           (form.pie_texto || "").trim(),
         firma_label:         (form.firma_label || "").trim(),
         logo_base64:         form.logo_base64 || null,
+        logo_coordinacion_base64: form.logo_coordinacion_base64 || null,
         color_clase:         form.color_clase,
         updated_at:          new Date().toISOString(),
         updated_by:          userData?.user?.id || null,
@@ -138,7 +143,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
   };
 
   const handleDescartar = () => setForm(original);
-  const handleQuitarLogo = () => set("logo_base64")(null);
+  const handleQuitarLogo = (campo) => () => set(campo)(null);
 
   if (loading) {
     return (
@@ -165,7 +170,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
       <div className="cr-layout">
         {/* Formulario */}
         <div className="cr-form s-card">
-          {/* Logo */}
+          {/* Logo institucional */}
           <div className="cr-field">
             <label className="cr-field-label">Logo institucional</label>
             <div className="cr-logo-row">
@@ -180,7 +185,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
                     {form.logo_base64 ? "Cambiar logo" : "Subir logo"}
                   </button>
                   {form.logo_base64 && (
-                    <button type="button" className="s-btn s-btn--sm s-btn--cancel" onClick={handleQuitarLogo}>
+                    <button type="button" className="s-btn s-btn--sm s-btn--cancel" onClick={handleQuitarLogo("logo_base64")}>
                       Quitar
                     </button>
                   )}
@@ -190,9 +195,43 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
                   ref={fileInputRef}
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
-                  onChange={handleLogoChange}
+                  onChange={handleLogoChange("logo_base64")}
                   className="cr-file-input"
                   aria-label="Subir logo institucional"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Logo de la coordinación (migración 0092, 13 ago) — se muestra
+              junto al ícono de la Planilla de Asistencia por Turno. */}
+          <div className="cr-field">
+            <label className="cr-field-label">Logo de la coordinación</label>
+            <div className="cr-logo-row">
+              <div className="cr-logo-preview">
+                {form.logo_coordinacion_base64
+                  ? <img src={form.logo_coordinacion_base64} alt="Logo de la coordinación actual" className="cr-logo-img" />
+                  : <div className="cr-logo-placeholder"><i className="ti ti-flag-2" aria-hidden="true" /></div>}
+              </div>
+              <div className="cr-logo-actions">
+                <div className="cr-logo-actions-row">
+                  <button type="button" className="s-btn s-btn--sm" onClick={() => fileInputCoordinacionRef.current?.click()}>
+                    {form.logo_coordinacion_base64 ? "Cambiar logo" : "Subir logo"}
+                  </button>
+                  {form.logo_coordinacion_base64 && (
+                    <button type="button" className="s-btn s-btn--sm s-btn--cancel" onClick={handleQuitarLogo("logo_coordinacion_base64")}>
+                      Quitar
+                    </button>
+                  )}
+                </div>
+                <p className="cr-field-hint">PNG, JPG o WEBP, máx. 1.5 MB. Opcional — si no se sube, no se muestra nada junto al ícono.</p>
+                <input
+                  ref={fileInputCoordinacionRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleLogoChange("logo_coordinacion_base64")}
+                  className="cr-file-input"
+                  aria-label="Subir logo de la coordinación"
                 />
               </div>
             </div>

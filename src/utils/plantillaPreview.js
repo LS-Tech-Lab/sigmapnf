@@ -69,8 +69,7 @@ export function construirHtmlPreview({ columnas, orientacion, tamanoPagina, layo
   }).join("");
 
   const seccionesHtml = `
-    <div class="subtitulo">Vista previa · Lunes · Turno: Diurno · Trimestre 2-2026</div>
-    <table>
+    <table class="rp-planilla-table">
       <thead><tr>${theadHtml || '<th>Sin columnas visibles</th>'}</tr></thead>
       <tbody>${filas || `<tr><td class="td-empty">Sin columnas visibles</td></tr>`}</tbody>
     </table>`;
@@ -78,7 +77,7 @@ export function construirHtmlPreview({ columnas, orientacion, tamanoPagina, layo
   return plantillaReporte({
     config: reporteConfig,
     titulo: "Control de Asistencia Docentes",
-    subtitulo: "Vista previa",
+    subtitulo: "Vista previa · Lunes · Turno: Diurno · Trim. 2-2026",
     seccionesHtml,
     pie: `Total de bloques: ${BLOQUES_MUESTRA.length}`,
     orientacion,

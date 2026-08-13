@@ -52,7 +52,7 @@ function renderGestion({ sedes = SEDES_DB, refetchSedes = vi.fn(), showToast = v
   }));
   const utils = render(
     <SedeProvider value={{ sedeActiva: "cabimas", sedes: [], setSedeActiva: vi.fn(), refetchSedes }}>
-      <GestionSedes showToast={showToast} logAudit={logAudit} permisos={{ puedeGestionarSedes: true }} />
+      <GestionSedes showToast={showToast} logAudit={logAudit} />
     </SedeProvider>
   );
   return { ...utils, showToast, logAudit, refetchSedes };

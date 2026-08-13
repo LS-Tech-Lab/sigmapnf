@@ -133,9 +133,13 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
       return `<tr>${celdas}</tr>`;
     }).join("");
 
+    // Pedido de LS (13 ago): quitar la barra de subtítulo (programa/día/
+    // turno/trimestre) del cuerpo del documento para ganar espacio -- el
+    // programa no se pierde, se suma a la línea de membrete-der (no sale
+    // fila nueva, ver PAYLOAD_PROGRAMA en PlanillaImprimibleBase.security.test.jsx,
+    // que sigue verificando que llegue escapado ahí).
     const seccionesHtml = `
-      <div class="subtitulo">${ESC(programaActual)} · ${ESC(diaLabel)} · Turno: ${ESC(turnoLabel)} · Trimestre ${ESC(lapsoActual)}</div>
-      <table>
+      <table class="rp-planilla-table">
         <thead><tr>${theadHtml}</tr></thead>
         <tbody>${filas || `<tr><td colspan="${columnasActivas.length}" class="td-empty">Sin clases programadas</td></tr>`}</tbody>
       </table>`;
@@ -143,7 +147,7 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
     const html = plantillaReporte({
       config: reporteConfig,
       titulo: "Control de Asistencia Docentes",
-      subtitulo: `${diaLabel} · ${turnoLabel}`,
+      subtitulo: `${programaActual} · ${diaLabel} · ${turnoLabel} · Trim. ${lapsoActual}`,
       seccionesHtml,
       pie: `Total de bloques: ${bloquesDelDia.length}`,
       orientacion: plantilla?.orientacion,
@@ -159,7 +163,10 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
   return (
     <div className="pib-root">
       <h1 className="pib-title">
-        <i className="ti ti-printer pib-title-icon" aria-hidden="true" />
+        <i className="ti ti-flag-2 pib-title-icon" aria-hidden="true" />
+        {reporteConfig?.logo_coordinacion_base64 && (
+          <img src={reporteConfig.logo_coordinacion_base64} alt="Logo de la coordinación" className="pib-logo-coordinacion" />
+        )}
         Asistencias Diarias por Turno
       </h1>
       <div className="s-card pib-toolbar">
@@ -189,8 +196,7 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
       </div>
       <div className="s-card">
         <div className="pib-table-header">
-          <div className="pib-table-title">Control de Asistencia Docentes</div>
-          <div className="pib-table-sub">{programaActual} · {selectedDay.charAt(0)+selectedDay.slice(1).toLowerCase()} · Turno: {turnoLabel} ({turnoConf?.hora || ""}) · Trimestre {lapsoActual}</div>
+          <div className="pib-table-title">Control de Asistencia Docentes — {programaActual}</div>
         </div>
         {!bloquesDelDia.length ? <div className="pib-empty">No hay clases programadas.</div> : (
           <table className="pib-table">
