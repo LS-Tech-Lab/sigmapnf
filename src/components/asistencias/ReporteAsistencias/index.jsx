@@ -19,7 +19,7 @@ import { guardarReporteEnIDB, cargarReporteDeIDB } from "../../../utils/reporteC
 import { useReporteConfig } from "../../../hooks/useReporteConfig";
 import { useSedeContext } from "../../../context/SedeContext";
 import useTrimestreActivo from "../../../hooks/useTrimestreActivo";
-import { formatLapso } from "../../../utils/lapso";
+import { formatLapso, lapsoParaFecha } from "../../../utils/lapso";
 import "./index.css";
 
 export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showToast }) {
@@ -64,6 +64,14 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
   const [trimestreFiltro, setTrimestreFiltro] = useState("");
 
   const trimestreFiltroInfo = trimestres.find(t => t.lapso === trimestreFiltro) || null;
+
+  // BUG (ausentes-trimestre-cerrado): el `lapso` real que cubre `fecha`,
+  // usado para que VistaAusentes filtre `horarios` por trimestre en vez
+  // de mezclar el vigente con uno ya cerrado. Si el usuario ya eligió un
+  // trimestre explícito en el selector, se usa ese directamente (fecha
+  // fue sincronizada a su rango en handleTrimestreFiltro); si no, se
+  // resuelve por rango de fechas contra `trimestres`.
+  const lapsoDeFecha = trimestreFiltro || lapsoParaFecha(fecha, trimestres);
 
   const handleTrimestreFiltro = (lapsoElegido) => {
     setTrimestreFiltro(lapsoElegido);
@@ -437,7 +445,7 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
 
       {/* Vista Ausentes */}
       {tab === "ausentes" && (
-        <VistaAusentes fecha={fecha} programa={programa} cedulasPresentes={cedulasPresentes} onAusentesChange={setAusentesParaPDF} sedeActiva={sedeActiva} />
+        <VistaAusentes fecha={fecha} programa={programa} cedulasPresentes={cedulasPresentes} onAusentesChange={setAusentesParaPDF} sedeActiva={sedeActiva} lapso={lapsoDeFecha} />
       )}
     </div>
   );

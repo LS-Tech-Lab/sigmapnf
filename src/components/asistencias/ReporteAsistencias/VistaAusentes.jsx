@@ -7,7 +7,7 @@ import { guardarAusentesEnIDB, cargarAusentesDeIDB } from "../../../utils/report
 import "./index.css";
 import "./VistaAusentes.css";
 
-function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange, sedeActiva = null }) {
+function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange, sedeActiva = null, lapso = null }) {
   const [ausentes,    setAusentes]    = useState([]);
   const [loading,     setLoading]     = useState(false);
   const [modoOffline, setModoOffline] = useState(false);
@@ -19,6 +19,27 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange, se
     const fetch = async () => {
       setLoading(true);
       setModoOffline(false);
+
+      // BUG (ausentes-trimestre-cerrado, ago 2026): antes esta vista
+      // consultaba `horarios` filtrando solo por `dia`, sin importar de
+      // qué trimestre (`lapso`) venía cada fila. Las filas de un
+      // trimestre CERRADO nunca se borran (se conservan para reportes
+      // históricos vía ReporteRango), así que en cuanto el trimestre
+      // activo no tenía todavía horario cargado (típico: se cerró uno y
+      // el siguiente aún no empezó, o su Excel no se ha subido), la
+      // consulta seguía encontrando y mostrando el horario del trimestre
+      // YA CERRADO como si fuera el de hoy -- exactamente el síntoma
+      // reportado ("en ausentes sigue mostrando docentes del II-2026").
+      // Ahora, si no hay un `lapso` resuelto para la fecha consultada
+      // (ver lapsoParaFecha en utils/lapso.js, calculado por el padre),
+      // no se ejecuta ninguna consulta y se muestra un estado explícito
+      // en vez de datos obsoletos.
+      if (!lapso) {
+        setAusentes([]);
+        if (onAusentesChange) onAusentesChange([]);
+        setLoading(false);
+        return;
+      }
 
       // Sin red: cargar desde IDB
       if (!navigator.onLine) {
@@ -54,7 +75,11 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange, se
       let query = supabase
         .from("horarios")
         .select("clase, programa, sheet, hora, trayecto, docente_id, docentes(nombre_raw, nombre_display, cedula)")
-        .eq("dia", dia);
+        .eq("dia", dia)
+        // BUG (ausentes-trimestre-cerrado): sin este filtro se mezclaban
+        // horarios de trimestres cerrados con los del vigente -- ver
+        // comentario arriba.
+        .eq("lapso", lapso);
 
       if (programa) query = query.eq("programa", programa);
       // SEDE-16: sin este filtro, un rol con puedeVerTodasLasSedes vería
@@ -134,7 +159,7 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange, se
     };
 
     fetch();
-  }, [fecha, programa, dia, cedulasPresentes, onAusentesChange, sedeActiva]);
+  }, [fecha, programa, dia, cedulasPresentes, onAusentesChange, sedeActiva, lapso]);
 
   if (modoOffline && !fechaCache && (dia !== "SÁBADO" && dia !== "DOMINGO")) {
     return (
@@ -150,6 +175,20 @@ function VistaAusentes({ fecha, programa, cedulasPresentes, onAusentesChange, se
     return (
       <div className="va-weekend">
         No hay clases asignadas los fines de semana.
+      </div>
+    );
+  }
+
+  if (!lapso && !loading) {
+    return (
+      <div className="s-card va-offline-card">
+        <i className="ti ti-calendar-off va-offline-icon" aria-hidden="true" />
+        <div className="va-offline-title">Sin trimestre para esta fecha</div>
+        <div className="va-offline-desc">
+          Ningún trimestre configurado cubre el {fecha}. Puede ser un hueco entre el
+          cierre de un trimestre y el inicio del siguiente, o que aún no se cargue el
+          horario del trimestre vigente.
+        </div>
       </div>
     );
   }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { rangoTrimestre } from "./lapso";
+import { rangoTrimestre, lapsoParaFecha } from "./lapso";
 
 describe("rangoTrimestre (ASIST-4)", () => {
   it("recorta fin a hoy cuando el trimestre sigue en curso (fecha_fin futura)", () => {
@@ -24,5 +24,27 @@ describe("rangoTrimestre (ASIST-4)", () => {
   it("devuelve null si el trimestre no trae fechas (fallback heurístico sin fila real)", () => {
     expect(rangoTrimestre({ fecha_inicio: null, fecha_fin: null }, "2026-08-12")).toBeNull();
     expect(rangoTrimestre(null, "2026-08-12")).toBeNull();
+  });
+});
+
+describe("lapsoParaFecha (bug ausentes-trimestre-cerrado, ago 2026)", () => {
+  const trimestres = [
+    { lapso: "3-2026", estado: "activo",  fecha_inicio: "2026-09-28", fecha_fin: "2026-12-11" },
+    { lapso: "2-2026", estado: "cerrado", fecha_inicio: "2026-05-11", fecha_fin: "2026-07-31" },
+  ];
+
+  it("resuelve el lapso cuyo rango cubre la fecha", () => {
+    expect(lapsoParaFecha("2026-06-15", trimestres)).toBe("2-2026");
+    expect(lapsoParaFecha("2026-10-01", trimestres)).toBe("3-2026");
+  });
+
+  it("caso real (12-13 ago 2026): hoy cae en el hueco entre el cierre de 2-2026 y el inicio de 3-2026 -- ningún lapso lo cubre", () => {
+    expect(lapsoParaFecha("2026-08-13", trimestres)).toBeNull();
+  });
+
+  it("devuelve null con entradas vacías o inválidas, sin reventar", () => {
+    expect(lapsoParaFecha("2026-08-13", [])).toBeNull();
+    expect(lapsoParaFecha(null, trimestres)).toBeNull();
+    expect(lapsoParaFecha("2026-08-13", null)).toBeNull();
   });
 });

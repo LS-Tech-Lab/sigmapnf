@@ -68,7 +68,7 @@ describe("VistaAusentes — fetch condicional del catálogo de docentes (ARCH-26
       throw new Error(`Tabla inesperada: ${tabla}`);
     });
 
-    render(<VistaAusentes fecha={FECHA} programa="" cedulasPresentes={new Set()} onAusentesChange={vi.fn()} />);
+    render(<VistaAusentes fecha={FECHA} programa="" cedulasPresentes={new Set()} onAusentesChange={vi.fn()} lapso="2-2026" />);
 
     await waitFor(() => screen.getByText("Prof. Ana García"));
     expect(screen.getByText("11111111")).toBeTruthy();
@@ -96,7 +96,7 @@ describe("VistaAusentes — fetch condicional del catálogo de docentes (ARCH-26
       throw new Error(`Tabla inesperada: ${tabla}`);
     });
 
-    render(<VistaAusentes fecha={FECHA} programa="" cedulasPresentes={new Set()} onAusentesChange={vi.fn()} />);
+    render(<VistaAusentes fecha={FECHA} programa="" cedulasPresentes={new Set()} onAusentesChange={vi.fn()} lapso="2-2026" />);
 
     await waitFor(() => screen.getByText("22222222"));
 
@@ -125,11 +125,64 @@ describe("VistaAusentes — fetch condicional del catálogo de docentes (ARCH-26
         programa=""
         cedulasPresentes={new Set(["11111111"])}
         onAusentesChange={vi.fn()}
+        lapso="2-2026"
       />
     );
 
     await waitFor(() =>
       screen.getByText("Todos los docentes con clases hoy marcaron asistencia.")
     );
+  });
+});
+
+describe("VistaAusentes — filtro por lapso (bug ausentes-trimestre-cerrado, ago 2026)", () => {
+  it("filtra horarios por el lapso resuelto, no solo por día", async () => {
+    const clases = [
+      {
+        clase: "Programación I\nProf. García Ana", programa: "PNF INFORMATICA",
+        sheet: "A", hora: "8:00-10:00", trayecto: "I",
+        docente_id: "d1",
+        docentes: { nombre_raw: "García, Ana", nombre_display: "Prof. Ana García", cedula: "11111111" },
+      },
+    ];
+
+    supabase.from.mockImplementation((tabla) => {
+      if (tabla === "horarios") return makeQueryMock({ data: clases, error: null });
+      return makeQueryMock({ data: [], error: null });
+    });
+
+    render(
+      <VistaAusentes
+        fecha={FECHA}
+        programa=""
+        cedulasPresentes={new Set()}
+        onAusentesChange={vi.fn()}
+        lapso="3-2026"
+      />
+    );
+
+    await waitFor(() => screen.getByText("Prof. Ana García"));
+
+    const builder = supabase.from.mock.results.find(r => r.value?.select).value;
+    expect(builder.eq).toHaveBeenCalledWith("lapso", "3-2026");
+  });
+
+  it("sin un lapso que cubra la fecha, NO consulta horarios y muestra estado explícito (antes mostraba el horario de un trimestre cerrado)", async () => {
+    supabase.from.mockImplementation((tabla) => {
+      throw new Error(`No debería consultarse ninguna tabla sin lapso resuelto, se intentó: ${tabla}`);
+    });
+
+    render(
+      <VistaAusentes
+        fecha={FECHA}
+        programa=""
+        cedulasPresentes={new Set()}
+        onAusentesChange={vi.fn()}
+        lapso={null}
+      />
+    );
+
+    await waitFor(() => screen.getByText("Sin trimestre para esta fecha"));
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 });

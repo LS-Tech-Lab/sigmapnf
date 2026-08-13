@@ -132,3 +132,33 @@ export function rangoTrimestre(trimestreInfo, hoy) {
   const fin = trimestreInfo.fecha_fin < hoy ? trimestreInfo.fecha_fin : hoy;
   return { inicio: trimestreInfo.fecha_inicio, fin: fin < trimestreInfo.fecha_inicio ? trimestreInfo.fecha_inicio : fin };
 }
+
+/**
+ * BUG (ausentes-trimestre-cerrado, ago 2026): resuelve a qué `lapso` real
+ * (fila de `trimestres` con fecha_inicio/fecha_fin) pertenece una fecha
+ * dada, en vez de asumir "el horario de hoy es el que coincide con el
+ * día de la semana" sin importar de qué trimestre viene.
+ *
+ * Sin esto, una vista que arma el horario del día consultando `horarios`
+ * solo por `dia` (ej. VistaAusentes.jsx) sigue mostrando el horario de
+ * un trimestre YA CERRADO indefinidamente, porque esas filas nunca se
+ * borran (se conservan para reportes históricos) y nada las descarta.
+ * `horario_docente_hoy()` (SQL, usado al escanear el QR) ya hace este
+ * join contra `trimestres` con `estado = 'activo'` -- esta función lleva
+ * el mismo criterio al front, pero por RANGO DE FECHAS en vez de solo
+ * "activo", para que también sirva al consultar una fecha histórica
+ * dentro de un trimestre ya cerrado (modo consulta).
+ *
+ * @param {string} fecha - YYYY-MM-DD
+ * @param {Array<{lapso: string, fecha_inicio: string|null, fecha_fin: string|null}>} trimestres
+ * @returns {string|null} el `lapso` que cubre esa fecha, o null si ninguno
+ *   la cubre (ej. el hueco entre el cierre de un trimestre y el inicio
+ *   del siguiente).
+ */
+export function lapsoParaFecha(fecha, trimestres) {
+  if (!fecha || !Array.isArray(trimestres)) return null;
+  const fila = trimestres.find(t =>
+    t.fecha_inicio && t.fecha_fin && fecha >= t.fecha_inicio && fecha <= t.fecha_fin
+  );
+  return fila?.lapso || null;
+}
