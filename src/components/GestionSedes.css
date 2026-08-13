@@ -4,7 +4,15 @@
    Sin colores libres inline: el CSP style-src 'self' de la app no tiene
    'unsafe-inline', así que todo color vive en clases fijas acá. */
 
-.gs-root { max-width: 900px; margin: 0 auto; padding: 20px; }
+/* max-width ampliado de 900px a 1200px (LS, 12 ago 2026): las otras
+   pantallas de Sistema que también reutilizan .s-card (Usuarios,
+   Reportes, Historial) son de lectura/formularios y 900px les alcanza
+   sobra, pero acá viven tablas de datos (nombre + identificador) y la
+   matriz sede × programa de TabAsignacion.jsx, que con 900px ya
+   necesitaba scroll horizontal incluso con pocas columnas mientras
+   sobraba pantalla a los lados. 1200px les da aire real sin perder el
+   límite de ancho en monitores ultrawide. */
+.gs-root { max-width: 1200px; margin: 0 auto; padding: 20px; }
 
 .gs-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .gs-title { display: flex; align-items: center; gap: 8px; font-size: 1.25rem; margin: 0 0 4px; }
