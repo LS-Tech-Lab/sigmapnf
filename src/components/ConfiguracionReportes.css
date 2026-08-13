@@ -15,8 +15,23 @@
 .cr-subtitle { color: var(--color-text-mid); font-size: 0.9rem; margin: 0; }
 .cr-loading { display: flex; align-items: center; gap: 8px; padding: 40px; justify-content: center; color: var(--color-text-mid); }
 
-.cr-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
-@media (max-width: 800px) { .cr-layout { grid-template-columns: 1fr; } }
+/* UX-39 (13 ago, mismo pedido de LS que en Sedes/Programas): antes era
+   `display:grid; grid-template-columns: 1fr 320px` con un
+   `@media (max-width:800px)` para apilar a una columna. El problema:
+   ese media query mira el ANCHO DEL VIEWPORT, no el ancho real que
+   `.cr-layout` termina teniendo disponible -- si por lo que sea el
+   contenedor renderiza más angosto de lo que el viewport permitiría
+   (mismo síntoma que ya se vio en Sedes/Programas antes de UX-39), la
+   columna `1fr` se exprimía hasta un ancho absurdo sin que el media
+   query llegara a activarse, y las etiquetas de campo ("Logo
+   institucional") terminaban partidas letra por letra. flex-wrap
+   reacciona al ancho REAL disponible del contenedor, no al del
+   viewport -- si no entran los 320px de la vista previa al lado, el
+   formulario simplemente pasa a ocupar toda la línea y la vista previa
+   baja a la siguiente, sin necesitar ningún breakpoint. */
+.cr-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.cr-form   { flex: 1 1 420px; min-width: 0; }
+.cr-preview { flex: 0 1 320px; min-width: 260px; }
 
 .cr-form { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
 .cr-field { display: flex; flex-direction: column; gap: 6px; }
