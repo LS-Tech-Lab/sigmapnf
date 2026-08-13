@@ -18,7 +18,7 @@
 // =====================================================================
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 
 function makeQueryBuilder(result) {
   const builder = {
@@ -106,6 +106,71 @@ describe("useAuth — flujo de sesión sin fila en user_profiles", () => {
     expect(result.current.profile).toBeNull();
     // Sin perfil → todos los permisos deben quedar en false, nunca undefined.
     expect(result.current.permisos.puedeGestionarUsuarios).toBe(false);
+  });
+});
+
+describe("useAuth — SIGNED_IN repetido para el mismo usuario (regresar de otra pestaña)", () => {
+  it("no vuelve a mostrar el spinner de perfil ni recarga el perfil (supabase-js re-emite SIGNED_IN al recuperar la sesión en visibilitychange)", async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: authUser } } });
+    supabase.from.mockReturnValue(
+      makeQueryBuilder({
+        data: {
+          id: authUser.id,
+          activo: true,
+          rol: "coordinador",
+          rol_info: { nombre: "coordinador", label: "Coordinador", restringe_programa: false, permisos: {} },
+        },
+        error: null,
+      })
+    );
+
+    const { result } = renderHook(() => useAuth());
+    await waitFor(() => expect(result.current.loadingProfile).toBe(false));
+
+    const llamadasAntes = supabase.from.mock.calls.length;
+    const onAuthStateChangeCallback = supabase.auth.onAuthStateChange.mock.calls[0][0];
+
+    // Simula lo que dispara supabase-js internamente al volver a la
+    // pestaña: un SIGNED_IN para el usuario que YA estaba autenticado,
+    // no un login nuevo.
+    act(() => {
+      onAuthStateChangeCallback("SIGNED_IN", { user: authUser });
+    });
+
+    // No debe pasar por loadingProfile=true en ningún momento observable
+    // ni volver a pedir el perfil a Supabase.
+    expect(result.current.loadingProfile).toBe(false);
+    expect(supabase.from.mock.calls.length).toBe(llamadasAntes);
+    expect(result.current.user).toEqual(authUser);
+  });
+
+  it("sí recarga el perfil si el SIGNED_IN trae un usuario distinto (cambio real de sesión)", async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: authUser } } });
+    supabase.from.mockReturnValue(
+      makeQueryBuilder({
+        data: {
+          id: authUser.id,
+          activo: true,
+          rol: "coordinador",
+          rol_info: { nombre: "coordinador", label: "Coordinador", restringe_programa: false, permisos: {} },
+        },
+        error: null,
+      })
+    );
+
+    const { result } = renderHook(() => useAuth());
+    await waitFor(() => expect(result.current.loadingProfile).toBe(false));
+
+    const llamadasAntes = supabase.from.mock.calls.length;
+    const onAuthStateChangeCallback = supabase.auth.onAuthStateChange.mock.calls[0][0];
+    const otroUsuario = { id: "user-2", email: "otro@unermb.edu.ve" };
+
+    await act(async () => {
+      await onAuthStateChangeCallback("SIGNED_IN", { user: otroUsuario });
+    });
+
+    await waitFor(() => expect(supabase.from.mock.calls.length).toBeGreaterThan(llamadasAntes));
+    expect(result.current.user).toEqual(otroUsuario);
   });
 });
 
