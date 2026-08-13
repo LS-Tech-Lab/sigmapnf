@@ -133,7 +133,15 @@
 }
 .gs-asig-buscador .s-input { flex: 1; }
 
-.gs-asig-lista { display: flex; flex-direction: column; gap: 10px; }
+/* UX-38 (LS, 13 ago 2026): grid en vez de columna única. Cada
+   tarjeta de sede solo necesita una línea de chips -- apilarlas de a
+   una desperdicia todo el ancho sobrante en pantallas de escritorio y
+   obliga a bajar mucho para ver las últimas sedes. auto-fill hace que
+   quepan tantas columnas como el ancho disponible permita (mínimo
+   320px cada una) sin media queries: en un monitor ancho caben 3-4
+   sedes por fila, en un celular cae solo a 1 columna de forma natural
+   porque no entra una segunda de 320px. */
+.gs-asig-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; align-items: start; }
 .gs-asig-sede { padding: 14px 16px; }
 .gs-asig-sede-nombre { font-weight: 700; color: var(--color-text-primary); margin-bottom: 10px; font-size: var(--font-size-14); }
 .gs-asig-chips { display: flex; flex-wrap: wrap; gap: 8px; }
