@@ -227,48 +227,45 @@ export default function TabSedes({ showToast, logAudit, onCambio }) {
 
       {error && <div className="gs-error">{error}</div>}
 
-      <div className="s-card gs-table-card">
-        <table className="gs-table">
-          <thead>
-            <tr>
-              <th className="s-th">Sede</th>
-              <th className="s-th">Identificador</th>
-              <th className="s-th">Orden</th>
-              <th className="s-th">Estado</th>
-              <th className="s-th gs-th--right"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {sedes.length === 0 ? (
-              <tr><td colSpan={5} className="s-td gs-td-empty">Sin sedes registradas todavía.</td></tr>
-            ) : sedes.map(sede => (
-              <tr key={sede.id} className={sede.activa ? "" : "gs-row--inactiva"}>
-                <td className="s-td gs-nombre">{sede.nombre}</td>
-                <td className="s-td"><code className="gs-id">{sede.id}</code></td>
-                <td className="s-td">{sede.orden}</td>
-                <td className="s-td">
-                  <span className={`s-badge ${sede.activa ? "gs-badge--activa" : "gs-badge--inactiva"}`}>
-                    {sede.activa ? "Activa" : "Inactiva"}
-                  </span>
-                </td>
-                <td className="s-td gs-td-right">
-                  <div className="gs-actions">
-                    <button
-                      onClick={() => abrirEditar(sede)}
-                      title="Editar"
-                      className="gs-action-btn"
-                    ><i className="ti ti-pencil" aria-hidden="true" /></button>
-                    <button
-                      onClick={() => setConfirm({ sede, nuevaActiva: !sede.activa })}
-                      title={sede.activa ? "Desactivar" : "Activar"}
-                      className={`gs-action-btn ${sede.activa ? "gs-action-btn--desactivar" : "gs-action-btn--activar"}`}
-                    ><i className={`ti ${sede.activa ? "ti-toggle-right" : "ti-toggle-left"}`} aria-hidden="true" /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* UX-37 (LS, 12 ago 2026): reemplaza la <table> por filas en grid.
+          Motivo: una tabla necesita el ancho de TODAS sus columnas en una
+          sola línea; en monitores angostos o en móvil eso fuerza scroll
+          horizontal aunque haya de sobra en vertical. Con grid, cada celda
+          es libre de envolver texto o (en el breakpoint móvil) apilarse
+          en su propia línea con una etiqueta -- nunca necesita ancho
+          extra que no esté disponible. Mismo patrón en TabProgramas.jsx. */}
+      <div className="s-card gs-list-card">
+        <div className="gs-list-head" aria-hidden="true">
+          <span>Sede</span><span>Identificador</span><span>Orden</span><span>Estado</span><span></span>
+        </div>
+        {sedes.length === 0 ? (
+          <p className="gs-td-empty">Sin sedes registradas todavía.</p>
+        ) : sedes.map(sede => (
+          <div key={sede.id} className={`gs-list-row ${sede.activa ? "" : "gs-row--inactiva"}`}>
+            <span className="gs-list-cell gs-list-cell--nombre" data-label="Sede">{sede.nombre}</span>
+            <span className="gs-list-cell" data-label="Identificador"><code className="gs-id">{sede.id}</code></span>
+            <span className="gs-list-cell" data-label="Orden">{sede.orden}</span>
+            <span className="gs-list-cell" data-label="Estado">
+              <span className={`s-badge ${sede.activa ? "gs-badge--activa" : "gs-badge--inactiva"}`}>
+                {sede.activa ? "Activa" : "Inactiva"}
+              </span>
+            </span>
+            <span className="gs-list-cell gs-list-cell--actions" data-label="Acciones">
+              <div className="gs-actions">
+                <button
+                  onClick={() => abrirEditar(sede)}
+                  title="Editar"
+                  className="gs-action-btn"
+                ><i className="ti ti-pencil" aria-hidden="true" /></button>
+                <button
+                  onClick={() => setConfirm({ sede, nuevaActiva: !sede.activa })}
+                  title={sede.activa ? "Desactivar" : "Activar"}
+                  className={`gs-action-btn ${sede.activa ? "gs-action-btn--desactivar" : "gs-action-btn--activar"}`}
+                ><i className={`ti ${sede.activa ? "ti-toggle-right" : "ti-toggle-left"}`} aria-hidden="true" /></button>
+              </div>
+            </span>
+          </div>
+        ))}
       </div>
 
       {/* Modal alta/edición */}
