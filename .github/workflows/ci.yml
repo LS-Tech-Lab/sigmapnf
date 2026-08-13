@@ -128,22 +128,20 @@ jobs:
       - name: Correr tests visuales
         run: npm run test:visual
 
-      - name: Cross-browser WebKit (fix UX-35, piloto no bloqueante)
-        # A diferencia del paso de arriba, este SÍ puede fallar sin
-        # bloquear el check: es la primera corrida contra estas imágenes
-        # base, mismo criterio que UX-11 usó originalmente para Chromium
-        # (continue-on-error hasta confirmar N corridas reales sin falsos
-        # positivos, después se gradúa a bloqueante quitando esta línea).
+      - name: Cross-browser WebKit (fix UX-35)
+        # Graduado a bloqueante (12 ago, run 85855045178): baselines de
+        # mobile-webkit-375/tablet-webkit-768/desktop-webkit-1280
+        # commiteadas y confirmadas limpias en corrida real de CI
+        # (9/9 passed, sin falsos positivos) — ya no necesita
+        # continue-on-error, mismo criterio que UX-11 usó para graduar
+        # Chromium en su momento.
         run: npm run test:visual:webkit
-        continue-on-error: true
 
-      - name: Accesibilidad WCAG — axe-core (fix UX-35, piloto no bloqueante)
-        # Mismo criterio que el paso de arriba: primera corrida real,
-        # no verificada contra el código real en este entorno (sin salida
-        # de red hacia navegadores reales) — no debe bloquear el build
-        # hasta que LS confirme que no hay falsos positivos.
+      - name: Accesibilidad WCAG — axe-core (fix UX-35)
+        # Graduado a bloqueante (12 ago, run 85855045178): confirmado
+        # limpio en corrida real de CI (3/3 passed, sin violaciones
+        # WCAG critical/serious) — ya no necesita continue-on-error.
         run: npm run test:a11y
-        continue-on-error: true
 
       - name: Subir reporte HTML (si hubo diffs)
         if: failure()
