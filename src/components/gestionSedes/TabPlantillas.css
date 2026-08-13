@@ -6,6 +6,11 @@
 .tp-asignacion-header { margin: 28px 0 12px; }
 .tp-asignacion-title { margin: 0 0 4px; font-size: 1.05rem; }
 
+/* UX-39 (13 ago): el <select> de asignación vive dentro de .gs-row-meta
+   (flex-wrap, ver GestionSedes.css) -- sin un ancho mínimo propio se
+   aplastaría hasta ser ilegible en filas angostas. */
+.tp-asignacion-select { min-width: 220px; }
+
 .tp-modal-columnas { max-width: 780px; width: 96vw; }
 
 /* Fase 2 (12 ago): editor de columnas a la izquierda, preview en vivo a
