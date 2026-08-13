@@ -55,8 +55,13 @@ const DATOS_OK = {
     { cedula: "12345678", nombre: "Prof. Ana Pérez", dias_asistidos: 4 },
     { cedula: "87654321", nombre: "Prof. Beto Ríos", dias_asistidos: 2 },
   ],
-  por_materia: [
-    { materia_id: 1, nombre: "Programación I", dias_asistidos: 3 },
+  por_dia_semana: [
+    { dia_iso: 1, dia_nombre: "Lunes",  total_asistencias: 3, docentes_distintos: 2 },
+    { dia_iso: 2, dia_nombre: "Martes", total_asistencias: 5, docentes_distintos: 3 },
+  ],
+  por_puntualidad: [
+    { orden: 1, etiqueta: "A tiempo",        total_docentes: 6 },
+    { orden: 2, etiqueta: "5–15 min tarde",  total_docentes: 2 },
   ],
   por_sede: [
     { sede_id: "cabimas", dias_asistidos: 6, docentes_distintos: 3 },
@@ -135,6 +140,19 @@ describe("EstadisticasAcademicas — carga real vía RPC agregada en el servidor
     expect(screen.getByText("2")).toBeTruthy();
     // 1 sede con actividad
     expect(screen.getAllByText("1").length).toBeGreaterThan(0);
+
+    // ESTAD-2: día de la semana y puntualidad reemplazan a "por materia"
+    // -- confirmar que ambas secciones nuevas están y que la sección vieja
+    // ya no existe. No se puede verificar el texto de los ticks del eje
+    // (ResponsiveContainer mide 0 de ancho en jsdom, igual que el resto de
+    // los charts de este archivo) -- lo que sí es verificable es que NO
+    // aparece el mensaje de "sin datos" de cada sección, prueba indirecta
+    // de que datos.por_dia_semana/por_puntualidad llegaron con filas.
+    expect(screen.getByText("Asistencia por día de la semana")).toBeTruthy();
+    expect(screen.getByText("Puntualidad")).toBeTruthy();
+    expect(screen.queryByText("No hay datos para este período.")).toBeNull();
+    expect(screen.queryByText("No hay entradas registradas para este período/turno.")).toBeNull();
+    expect(screen.queryByText(/Asistencia por materia/)).toBeNull();
   });
 
   it("cambiar el rango de fechas dispara una nueva llamada con los nuevos filtros", async () => {
