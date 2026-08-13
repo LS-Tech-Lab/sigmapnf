@@ -5,6 +5,7 @@ export const CHART_COLORS = [
   "#059669", // --color-success
   "#7C3AED", // --color-role-coord
   "#d97706", // --color-warning
+  "#dc2626", // --color-danger (quinto color, ESTAD-2 -- solo un color de paleta, no implica "error")
 ];
 
 // Resta `n` días a una fecha "YYYY-MM-DD", anclada en UTC -- mismo patrón
