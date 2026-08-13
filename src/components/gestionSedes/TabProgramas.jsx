@@ -194,48 +194,40 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
 
       {error && <div className="gs-error">{error}</div>}
 
-      <div className="s-card gs-table-card">
-        <table className="gs-table">
-          <thead>
-            <tr>
-              <th className="s-th">Programa</th>
-              <th className="s-th">Identificador</th>
-              <th className="s-th">Orden</th>
-              <th className="s-th">Estado</th>
-              <th className="s-th gs-th--right"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {programas.length === 0 ? (
-              <tr><td colSpan={5} className="s-td gs-td-empty">Sin programas registrados todavía.</td></tr>
-            ) : programas.map(programa => (
-              <tr key={programa.id} className={programa.activa ? "" : "gs-row--inactiva"}>
-                <td className="s-td gs-nombre">{programa.nombre}</td>
-                <td className="s-td"><code className="gs-id">{programa.id}</code></td>
-                <td className="s-td">{programa.orden}</td>
-                <td className="s-td">
-                  <span className={`s-badge ${programa.activa ? "gs-badge--activa" : "gs-badge--inactiva"}`}>
-                    {programa.activa ? "Activo" : "Inactivo"}
-                  </span>
-                </td>
-                <td className="s-td gs-td-right">
-                  <div className="gs-actions">
-                    <button
-                      onClick={() => abrirEditar(programa)}
-                      title="Editar"
-                      className="gs-action-btn"
-                    ><i className="ti ti-pencil" aria-hidden="true" /></button>
-                    <button
-                      onClick={() => setConfirm({ programa, nuevaActiva: !programa.activa })}
-                      title={programa.activa ? "Desactivar" : "Activar"}
-                      className={`gs-action-btn ${programa.activa ? "gs-action-btn--desactivar" : "gs-action-btn--activar"}`}
-                    ><i className={`ti ${programa.activa ? "ti-toggle-right" : "ti-toggle-left"}`} aria-hidden="true" /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* UX-37 (LS, 12 ago 2026): filas en grid en vez de <table> — ver
+          el comentario detallado en TabSedes.jsx, mismo motivo exacto. */}
+      <div className="s-card gs-list-card">
+        <div className="gs-list-head" aria-hidden="true">
+          <span>Programa</span><span>Identificador</span><span>Orden</span><span>Estado</span><span></span>
+        </div>
+        {programas.length === 0 ? (
+          <p className="gs-td-empty">Sin programas registrados todavía.</p>
+        ) : programas.map(programa => (
+          <div key={programa.id} className={`gs-list-row ${programa.activa ? "" : "gs-row--inactiva"}`}>
+            <span className="gs-list-cell gs-list-cell--nombre" data-label="Programa">{programa.nombre}</span>
+            <span className="gs-list-cell" data-label="Identificador"><code className="gs-id">{programa.id}</code></span>
+            <span className="gs-list-cell" data-label="Orden">{programa.orden}</span>
+            <span className="gs-list-cell" data-label="Estado">
+              <span className={`s-badge ${programa.activa ? "gs-badge--activa" : "gs-badge--inactiva"}`}>
+                {programa.activa ? "Activo" : "Inactivo"}
+              </span>
+            </span>
+            <span className="gs-list-cell gs-list-cell--actions" data-label="Acciones">
+              <div className="gs-actions">
+                <button
+                  onClick={() => abrirEditar(programa)}
+                  title="Editar"
+                  className="gs-action-btn"
+                ><i className="ti ti-pencil" aria-hidden="true" /></button>
+                <button
+                  onClick={() => setConfirm({ programa, nuevaActiva: !programa.activa })}
+                  title={programa.activa ? "Desactivar" : "Activar"}
+                  className={`gs-action-btn ${programa.activa ? "gs-action-btn--desactivar" : "gs-action-btn--activar"}`}
+                ><i className={`ti ${programa.activa ? "ti-toggle-right" : "ti-toggle-left"}`} aria-hidden="true" /></button>
+              </div>
+            </span>
+          </div>
+        ))}
       </div>
 
       {(modalNuevo || modalEditar) && (
