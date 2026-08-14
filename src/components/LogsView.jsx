@@ -70,7 +70,9 @@ export default function LogsView({ permisos, showToast }) {
       )}
 
       {tab === "sesiones"  && permisos.puedeVerLogs      && <TabSesiones  permisos={permisos} showToast={showToast} />}
-      {tab === "auditoria" && permisos.puedeVerAuditoria  && <TabAuditoria permisos={permisos} />}
+      {/* ADMIN-3: TabAuditoria ahora también borra (admin_borrar_audit_logs),
+          necesita showToast igual que TabSesiones. */}
+      {tab === "auditoria" && permisos.puedeVerAuditoria  && <TabAuditoria permisos={permisos} showToast={showToast} />}
     </div>
   );
 }
