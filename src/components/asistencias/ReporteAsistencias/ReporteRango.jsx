@@ -5,6 +5,7 @@ import { fechaHoyVE } from "../../../utils/time";
 import { rangoFechas } from "./helpers";
 import { exportarPDFRango } from "./exportPDF";
 import { exportarCSVRango } from "./exportCSV";
+import { exportarRespaldoPrevioABorrado } from "../../../utils/exportRespaldo";
 import { ModalConfirm } from "../../usuarios/shared";
 import { useReporteConfig } from "../../../hooks/useReporteConfig";
 import { useSedeContext } from "../../../context/SedeContext";
@@ -207,8 +208,21 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permisos.puedeVerSoloSuPrograma, JSON.stringify(misProgramas)]);
 
+  // ADMIN-3 (14 ago, pedido por LS): respaldo automático CSV+JSON antes de
+  // borrar. `filtrados` ya es exactamente lo que está en pantalla (mismo
+  // agregado por docente que devuelve reporte_asistencias_rango_agregado,
+  // ver ARCH-27) -- no se vuelve a pedir al servidor filas crudas, eso
+  // reintroduciría el problema que ARCH-27 resolvió (hasta 20.000 filas
+  // transferidas al cliente). El respaldo es del reporte agregado que el
+  // admin ya está viendo, no de cada fila individual de asistencias_diarias.
   const handleBorrarRango = async () => {
     setBorrando(true);
+
+    exportarRespaldoPrevioABorrado(
+      filtrados,
+      `respaldo_asistencias_${turno.toLowerCase()}_${inicio}_${fin}`
+    );
+
     const { data: cantidad, error } = await supabase.rpc("admin_borrar_asistencias_rango", {
       p_fecha_desde: inicio,
       p_fecha_hasta: fin,
@@ -221,7 +235,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
     if (error) {
       showToast?.(error.message ? mensajeAmigable(error) : "No se pudieron borrar los registros.", "error");
     } else {
-      showToast?.(`Se borraron ${cantidad ?? 0} registro(s) de asistencia.`, "success");
+      showToast?.(`Se borraron ${cantidad ?? 0} registro(s) de asistencia. Se descargó un respaldo CSV/JSON.`, "success");
       fetchRango();
     }
   };
@@ -425,7 +439,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
       {confirmBorrar && (
         <ModalConfirm
           titulo="¿Borrar reporte de asistencia?"
-          mensaje={`Se borrarán ${totalRegistros} registro${totalRegistros !== 1 ? "s" : ""} de asistencia entre ${inicio} y ${fin}${turno ? ` (turno ${turno})` : ""}${programa ? `, programa ${programa.replace("PNF ", "")}` : ""}. Esta acción no se puede deshacer.`}
+          mensaje={`Se descargará un respaldo CSV/JSON y luego se borrarán ${totalRegistros} registro${totalRegistros !== 1 ? "s" : ""} de asistencia entre ${inicio} y ${fin}${turno ? ` (turno ${turno})` : ""}${programa ? `, programa ${programa.replace("PNF ", "")}` : ""}. Esta acción no se puede deshacer.`}
           onConfirm={borrando ? undefined : handleBorrarRango}
           onCancel={borrando ? undefined : () => setConfirmBorrar(false)}
           peligro
