@@ -53,6 +53,20 @@ configurarIdentidadPWA();
 // a propósito: debe poder mostrarse en CUALQUIER pantalla (login incluido,
 // donde el árbol de React todavía no monta el <Toast> de la app).
 import { registerSW } from 'virtual:pwa-register'
+import { registrarEventoDiagnostico } from './utils/diagnosticoColgadas'
+
+// DIAG-1: reporte de que la app se cuelga sin patrón fijo y que F5 NO lo
+// libera (solo cerrar la pestaña). Eso sobrevivir al F5 es la pista de
+// que el Service Worker (NetworkFirst para el endpoint de Supabase)
+// podría quedar esperando una petición de red que nunca responde. Este
+// listener no arregla nada -- solo deja constancia de cuándo el
+// controller del SW cambia, para poder correlacionarlo con reportes de
+// colgado si coinciden en el tiempo.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    registrarEventoDiagnostico('sw_controllerchange', {});
+  });
+}
 
 function mostrarBannerActualizacion(updateSW) {
   if (document.getElementById('sw-update-banner')) return; // ya visible
@@ -82,6 +96,10 @@ const updateSW = registerSW({
   },
   onOfflineReady() {
     logger.info('[SIGMA PWA] App lista para funcionar sin conexión.');
+  },
+  onRegisterError(error) {
+    logger.error('[SIGMA PWA] Error registrando el Service Worker:', error);
+    registrarEventoDiagnostico('sw_register_error', { mensaje: String(error?.message || error) });
   },
 })
 
