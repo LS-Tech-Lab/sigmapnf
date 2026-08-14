@@ -280,3 +280,80 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
           </Seccion>
 
           <Seccion id="color" titulo="Color institucional" icono="ti ti-brush" abierta={abiertas.color} onToggle={toggleSeccion}>
+            <div className="cr-color-row">
+              {COLORES_REPORTE.map(c => (
+                <button
+                  key={c.clase}
+                  type="button"
+                  title={c.label}
+                  aria-label={c.label}
+                  onClick={() => set("color_clase")(c.clase)}
+                  className={`cr-color-swatch cr-swatch--${colorSuffix(c.clase)}${form.color_clase === c.clase ? " cr-color-swatch--active" : ""}`}
+                >
+                  {form.color_clase === c.clase && <i className="ti ti-check" aria-hidden="true" />}
+                </button>
+              ))}
+            </div>
+          </Seccion>
+
+          <Seccion id="textos" titulo="Textos" icono="ti ti-typography" abierta={abiertas.textos} onToggle={toggleSeccion}>
+            {CAMPOS_TEXTO.map(campo => (
+              <div className="cr-field" key={campo.key}>
+                <label htmlFor={`cr-${campo.key}`} className="cr-field-label">{campo.label}</label>
+                <input
+                  id={`cr-${campo.key}`}
+                  className="s-input s-input--full"
+                  value={form[campo.key] || ""}
+                  maxLength={campo.maxLength}
+                  onChange={e => set(campo.key)(e.target.value)}
+                />
+              </div>
+            ))}
+          </Seccion>
+
+          {error && <div className="cr-error">{error}</div>}
+
+          <div className="cr-footer">
+            <button
+              type="button"
+              className="s-btn s-btn--cancel"
+              onClick={handleDescartar}
+              disabled={!hayCambios || saving}
+            >
+              Descartar cambios
+            </button>
+            <button
+              type="button"
+              className="cr-btn-guardar"
+              onClick={handleGuardar}
+              disabled={!hayCambios || saving}
+            >
+              {saving ? "Guardando…" : "Guardar cambios"}
+            </button>
+          </div>
+        </div>
+
+        {/* Vista previa */}
+        <div className="cr-preview">
+          <p className="cr-preview-label">Vista previa</p>
+          <div className={`cr-preview-card s-card cr-swatch--${suffix}`}>
+            <div className="cr-preview-membrete">
+              <div className="cr-preview-logo">
+                {form.logo_base64
+                  ? <img src={form.logo_base64} alt="Logo" />
+                  : inicial}
+              </div>
+              <div>
+                <div className="cr-preview-nombre">{form.nombre_institucion || "—"}</div>
+                <div className="cr-preview-sub">{form.subtitulo_1 || "—"}</div>
+                <div className="cr-preview-sub">{form.subtitulo_2 || "—"}</div>
+              </div>
+            </div>
+            <div className="cr-preview-pie">{form.pie_texto || "—"}</div>
+            <div className="cr-preview-pie">{form.firma_label || "—"}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
