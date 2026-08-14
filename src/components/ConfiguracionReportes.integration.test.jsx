@@ -59,6 +59,28 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// UX-41 (rama paralela, 14 ago): el componente ahora llama
+// window.matchMedia("(max-width: 859px)") al montar, para decidir la
+// vista compacta/sticky del preview -- jsdom no lo implementa, así que
+// sin este mock CUALQUIER test que monte <ConfiguracionReportes /> revienta
+// con "window.matchMedia is not a function" antes de llegar a renderizar
+// nada (falla en el primer useState). No hay setupFile global en
+// vitest.config.js (cada test agrega lo que necesita), así que el mock
+// vive acá; si otro componente empieza a usar matchMedia, esto debería
+// moverse a un setupFile compartido en vez de duplicarse por archivo.
+beforeEach(() => {
+  window.matchMedia = vi.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+});
+
 describe("ConfiguracionReportes — carga inicial", () => {
   it("carga la fila real y la muestra en el formulario y la vista previa", async () => {
     mockCargaOk();
@@ -115,6 +137,24 @@ describe("ConfiguracionReportes — guardar cambios", () => {
 
     await waitFor(() => expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ accion: "CONFIGURAR_REPORTES" })));
     await waitFor(() => expect(showToast).toHaveBeenCalledWith("Configuración de reportes guardada.", "success"));
+  });
+
+  it("14 ago: nombre_institucion se puede dejar vacío (ya no se fuerza de vuelta a 'UNERMB')", async () => {
+    const updateBuilder = makeUpdateBuilder({ data: null, error: null });
+    supabase.from.mockImplementation((tabla) => {
+      expect(tabla).toBe("configuracion_reportes");
+      return { ...makeSelectBuilder({ data: FILA_DB, error: null }), ...updateBuilder };
+    });
+
+    render(<ConfiguracionReportes showToast={vi.fn()} logAudit={vi.fn()} />);
+    await waitFor(() => screen.getByDisplayValue("UNERMB"));
+
+    fireEvent.change(screen.getByDisplayValue("UNERMB"), { target: { value: "" } });
+    fireEvent.click(screen.getByText("Guardar cambios"));
+
+    await waitFor(() => expect(updateBuilder.update).toHaveBeenCalled());
+    const payload = updateBuilder.update.mock.calls[0][0];
+    expect(payload.nombre_institucion).toBe("");
   });
 
   it("descartar cambios restaura el valor original sin llamar a Supabase", async () => {
