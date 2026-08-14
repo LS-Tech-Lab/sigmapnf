@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { logger } from '../utils/logger'
+import { instrumentarSupabase } from '../utils/diagnosticoColgadas'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -17,7 +18,10 @@ if (supabaseConfigError) {
   logger.error(`❌ ${supabaseConfigError}`)
 }
 
-export const supabase = createClient(
+// DIAG-1: instrumentado para detectar consultas/RPCs que se cuelgan
+// (nunca resuelven) -- ver src/utils/diagnosticoColgadas.js. Diagnóstico
+// temporal, no cambia el comportamiento normal de las consultas.
+export const supabase = instrumentarSupabase(createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-anon-key'
-)
+))
