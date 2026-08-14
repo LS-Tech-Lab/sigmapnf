@@ -1,103 +1,282 @@
-/* ConfiguracionReportes.css — ADMIN-6 (1 ago 2026)
-   Reutiliza las clases globales s-input/s-btn/s-card (ver ModalRol.css para
-   el mismo criterio). Los swatches de color son clases fijas, NO
-   style={{background}} inline — mismo motivo que roleColorClass() en
-   constants/index.js: el CSP style-src 'self' de la app no tiene
-   'unsafe-inline', así que un color libre inline quedaría bloqueado. Los 6
-   hex de acá son intencionalmente los mismos que .rp-color--* en
-   public/reporte-print.css (archivo aparte: ese lo sirve el CSP como
-   estático para la ventana de impresión, este lo empaqueta Vite para la
-   app) — si se agrega un color nuevo, replicar en ambos lugares. */
+// ConfiguracionReportes.jsx — ADMIN-6 (auditoría 1 ago 2026)
+// UX-40 (14 ago): rediseño para móvil — secciones en acordeón, logos en
+// fila compacta, texto de ayuda movido a tooltip por ícono (i).
+//
+// Pantalla admin-only (permiso puedeConfigurarReportes) para personalizar
+// el membrete de los 3 documentos imprimibles del sistema (Reporte Diario,
+// Reporte por Rango, Planilla Imprimible): logo, color institucional y
+// textos. Vive dentro de AdminModulo.jsx ("Sistema").
+//
+// La vista previa NO reutiliza reportePlantilla.js/reporte-print.css
+// directamente (esa plantilla es HTML crudo para una ventana de impresión
+// aislada, pensada para tamaño A4) — se re-implementa como JSX simple con
+// las clases de ConfiguracionReportes.css, misma idea visual (membrete con
+// logo + nombre + color), sin necesidad de un <iframe>.
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "../lib/supabase";
+import { CONFIG_REPORTE_DEFAULT } from "../utils/reportePlantilla";
+import "./ConfiguracionReportes.css";
 
-.cr-root { max-width: 900px; margin: 0 auto; padding: 20px; }
-.cr-header { margin-bottom: 20px; }
-.cr-title { display: flex; align-items: center; gap: 8px; font-size: 1.25rem; margin: 0 0 4px; }
-.cr-subtitle { color: var(--color-text-mid); font-size: 0.9rem; margin: 0; }
-.cr-loading { display: flex; align-items: center; gap: 8px; padding: 40px; justify-content: center; color: var(--color-text-mid); }
+const COLORES_REPORTE = [
+  { clase: "rp-color--azul",   label: "Azul" },
+  { clase: "rp-color--verde",  label: "Verde" },
+  { clase: "rp-color--teal",   label: "Teal" },
+  { clase: "rp-color--morado", label: "Morado" },
+  { clase: "rp-color--rojo",   label: "Rojo" },
+  { clase: "rp-color--ambar",  label: "Ámbar" },
+];
+const colorSuffix = (claseCompleta) => (claseCompleta || "").replace("rp-color--", "") || "azul";
 
-/* UX-39 (13 ago, mismo pedido de LS que en Sedes/Programas): antes era
-   `display:grid; grid-template-columns: 1fr 320px` con un
-   `@media (max-width:800px)` para apilar a una columna. El problema:
-   ese media query mira el ANCHO DEL VIEWPORT, no el ancho real que
-   `.cr-layout` termina teniendo disponible -- si por lo que sea el
-   contenedor renderiza más angosto de lo que el viewport permitiría
-   (mismo síntoma que ya se vio en Sedes/Programas antes de UX-39), la
-   columna `1fr` se exprimía hasta un ancho absurdo sin que el media
-   query llegara a activarse, y las etiquetas de campo ("Logo
-   institucional") terminaban partidas letra por letra. flex-wrap
-   reacciona al ancho REAL disponible del contenedor, no al del
-   viewport -- si no entran los 320px de la vista previa al lado, el
-   formulario simplemente pasa a ocupar toda la línea y la vista previa
-   baja a la siguiente, sin necesitar ningún breakpoint. */
-.cr-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
-.cr-form   { flex: 1 1 420px; min-width: 0; }
-.cr-preview { flex: 0 1 320px; min-width: 260px; }
+const LOGO_TIPOS_VALIDOS = ["image/png", "image/jpeg", "image/webp"];
+// Mismo límite que el CHECK logo_tamano_maximo de la migración 0056
+// (2.000.000 caracteres en base64 ≈ 1.5MB binario) — se valida también acá
+// para dar feedback inmediato en vez de esperar el rechazo del INSERT/UPDATE.
+const LOGO_TAMANO_MAXIMO_BINARIO = 1_500_000;
 
-.cr-form { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
-.cr-field { display: flex; flex-direction: column; gap: 6px; }
-.cr-field-label { font-weight: 600; font-size: 0.85rem; color: var(--color-text-primary); }
-.cr-field-hint { font-size: 0.75rem; color: var(--color-text-mid); margin: 0; }
+const CAMPOS_TEXTO = [
+  { key: "nombre_institucion", label: "Nombre de la institución", maxLength: 80 },
+  { key: "subtitulo_1",        label: "Subtítulo 1",              maxLength: 100 },
+  { key: "subtitulo_2",        label: "Subtítulo 2",              maxLength: 100 },
+  { key: "pie_texto",          label: "Texto de pie de página",   maxLength: 150 },
+  { key: "firma_label",        label: "Etiqueta de la firma",     maxLength: 80 },
+];
 
-/* Logo */
-/* UX-40 (14 ago): mismo síntoma que UX-39 pero un nivel más adentro. El
-   contenedor .cr-logo-row nunca tenía flex-wrap, y .cr-logo-actions (sin
-   min-width:0) se comportaba como un item flex "rígido": el texto largo
-   de .cr-field-hint ("PNG, JPG o WEBP, máx. 1.5 MB. Opcional — si no se
-   sube...") lo empujaba a su ancho de contenido natural en vez de
-   encogerse al espacio real disponible, desbordando la tarjeta en
-   viewports angostos (botones y texto cortados a la derecha). Con
-   flex-wrap + min-width:0 el bloque de acciones baja debajo del logo
-   cuando no entra, en vez de forzar el overflow horizontal. */
-.cr-logo-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.cr-logo-preview {
-  width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--color-border, #E5E7EB); background: #fff; overflow: hidden;
+// UX-40: ícono (i) con tooltip accesible (title nativo + popover en focus/hover)
+// en vez del párrafo de ayuda que antes se repetía debajo de cada logo.
+function InfoTip({ texto }) {
+  return (
+    <span className="cr-info-wrap">
+      <button type="button" className="cr-info-btn" aria-label="Más información" title={texto}>
+        <i className="ti ti-info-circle" aria-hidden="true" />
+      </button>
+      <span className="cr-info-tip" role="tooltip">{texto}</span>
+    </span>
+  );
 }
-.cr-logo-img { width: 100%; height: 100%; object-fit: contain; }
-.cr-logo-placeholder {
-  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-  background: var(--brand-600, #1E3A8A); color: #fff; font-size: 1.4rem; font-weight: 900;
-}
-.cr-logo-actions {
-  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
-  flex: 1 1 200px; min-width: 0;
-}
-.cr-logo-actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.cr-field-hint { word-wrap: break-word; overflow-wrap: break-word; }
-.cr-file-input { display: none; }
 
-/* Color */
-.cr-color-row { display: flex; gap: 10px; }
-.cr-color-swatch {
-  width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
-  border: 3px solid transparent; box-sizing: border-box;
-  background: var(--cr-swatch-color, #888);
-  display: flex; align-items: center; justify-content: center; color: #fff;
+// UX-40: acordeón simple por sección — reduce el scroll inicial dejando que
+// el usuario colapse lo que no necesita editar en ese momento.
+function Seccion({ id, titulo, icono, abierta, onToggle, children }) {
+  return (
+    <div className="cr-section">
+      <button
+        type="button"
+        className="cr-section-header"
+        onClick={() => onToggle(id)}
+        aria-expanded={abierta}
+      >
+        <span className="cr-section-title">
+          <i className={icono} aria-hidden="true" /> {titulo}
+        </span>
+        <i
+          className={`ti ti-chevron-down cr-section-chevron${abierta ? " cr-section-chevron--open" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+      {abierta && <div className="cr-section-body">{children}</div>}
+    </div>
+  );
 }
-.cr-color-swatch--active { border-color: var(--color-text-primary); }
-.cr-swatch--azul   { --cr-swatch-color: #1E3A8A; }
-.cr-swatch--verde  { --cr-swatch-color: #065F46; }
-.cr-swatch--teal   { --cr-swatch-color: #0F766E; }
-.cr-swatch--morado { --cr-swatch-color: #581C87; }
-.cr-swatch--rojo   { --cr-swatch-color: #9F1239; }
-.cr-swatch--ambar  { --cr-swatch-color: #92400E; }
 
-.cr-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
-.cr-btn-guardar {
-  padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer;
-  background: var(--brand-600, #1E3A8A); color: #fff; font-weight: 600; font-size: var(--font-size-13, 13px);
-}
-.cr-btn-guardar:disabled { opacity: 0.5; cursor: default; }
-.cr-error { color: var(--color-danger, #DC2626); font-size: 0.85rem; }
+export default function ConfiguracionReportes({ showToast, logAudit }) {
+  const [form, setForm]         = useState(CONFIG_REPORTE_DEFAULT);
+  const [original, setOriginal] = useState(CONFIG_REPORTE_DEFAULT);
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState(null);
+  const [abiertas, setAbiertas] = useState({ logos: true, color: true, textos: true });
+  const fileInputRef = useRef(null);
+  const fileInputCoordinacionRef = useRef(null); // migración 0092 (13 ago)
 
-/* ── Vista previa ── */
-.cr-preview { position: sticky; top: 20px; }
-.cr-preview-label { font-weight: 600; font-size: 0.8rem; color: var(--color-text-mid); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
-.cr-preview-card { padding: 16px; }
-.cr-preview-membrete { display: flex; align-items: center; gap: 10px; border-bottom: 3px solid var(--cr-swatch-color, #1E3A8A); padding-bottom: 10px; margin-bottom: 10px; }
-.cr-preview-logo { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--cr-swatch-color, #1E3A8A); color: #fff; font-weight: 900; }
-.cr-preview-logo img { width: 100%; height: 100%; object-fit: contain; }
-.cr-preview-nombre { font-weight: 700; font-size: 0.95rem; color: var(--cr-swatch-color, #1E3A8A); }
-.cr-preview-sub { font-size: 0.75rem; color: var(--color-text-mid); }
-.cr-preview-pie { font-size: 0.7rem; color: var(--color-text-mid); margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border, #E5E7EB); }
+  const toggleSeccion = (id) => setAbiertas(a => ({ ...a, [id]: !a[id] }));
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: err } = await supabase
+        .from("configuracion_reportes")
+        .select("nombre_institucion, subtitulo_1, subtitulo_2, pie_texto, firma_label, logo_base64, logo_coordinacion_base64, color_clase")
+        .eq("id", 1)
+        .maybeSingle();
+      if (err) { setError(err.message); }
+      else if (data) { setForm(data); setOriginal(data); }
+      // Sin fila (data null, sin error): se queda con el default — no
+      // debería pasar (la migración 0056 siembra la fila), pero no rompe
+      // la pantalla si pasara.
+    } catch (e) {
+      setError(e.message || "No se pudo cargar la configuración.");
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Migración 0092 (13 ago): parametrizado por `campo` para reutilizarlo
+  // en los 2 logos (institucional y de la coordinación) en vez de
+  // duplicar la validación PNG/JPG/WEBP + 1.5MB dos veces.
+  const handleLogoChange = (campo) => (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite volver a elegir el mismo archivo después
+    if (!file) return;
+
+    if (!LOGO_TIPOS_VALIDOS.includes(file.type)) {
+      showToast?.("Formato no soportado. Usa PNG, JPG o WEBP.", "error");
+      return;
+    }
+    if (file.size > LOGO_TAMANO_MAXIMO_BINARIO) {
+      showToast?.("El logo no puede pesar más de 1.5 MB.", "error");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => set(campo)(reader.result);
+    reader.onerror = () => showToast?.("No se pudo leer el archivo.", "error");
+    reader.readAsDataURL(file);
+  };
+
+  const hayCambios = JSON.stringify(form) !== JSON.stringify(original);
+
+  const handleGuardar = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const payload = {
+        nombre_institucion: (form.nombre_institucion || "").trim() || CONFIG_REPORTE_DEFAULT.nombre_institucion,
+        subtitulo_1:         (form.subtitulo_1 || "").trim(),
+        subtitulo_2:         (form.subtitulo_2 || "").trim(),
+        pie_texto:           (form.pie_texto || "").trim(),
+        firma_label:         (form.firma_label || "").trim(),
+        logo_base64:         form.logo_base64 || null,
+        logo_coordinacion_base64: form.logo_coordinacion_base64 || null,
+        color_clase:         form.color_clase,
+        updated_at:          new Date().toISOString(),
+        updated_by:          userData?.user?.id || null,
+      };
+
+      const { error: err } = await supabase
+        .from("configuracion_reportes")
+        .update(payload)
+        .eq("id", 1);
+      if (err) throw err;
+
+      await logAudit?.({
+        accion:        "CONFIGURAR_REPORTES",
+        entidad:       "configuracion_reportes",
+        entidad_id:    "1",
+        resumen:       "Se actualizó la configuración de branding de los reportes.",
+        datos_antes:   original,
+        datos_despues: payload,
+      });
+
+      const nuevaConfig = { ...form, ...payload };
+      setForm(nuevaConfig);
+      setOriginal(nuevaConfig);
+      showToast?.("Configuración de reportes guardada.", "success");
+    } catch (e) {
+      const msg = e.message || "No se pudo guardar la configuración.";
+      setError(msg);
+      showToast?.(msg, "error");
+    }
+    setSaving(false);
+  };
+
+  const handleDescartar = () => setForm(original);
+  const handleQuitarLogo = (campo) => () => set(campo)(null);
+
+  if (loading) {
+    return (
+      <div className="cr-loading">
+        <i className="ti ti-loader-2 lazy-spin" aria-hidden="true" /> Cargando configuración…
+      </div>
+    );
+  }
+
+  const suffix = colorSuffix(form.color_clase);
+  const inicial = (form.nombre_institucion || "?").trim().charAt(0).toUpperCase() || "?";
+
+  return (
+    <div className="cr-root">
+      <div className="cr-header">
+        <h2 className="cr-title">
+          <i className="ti ti-palette" aria-hidden="true" /> Configuración de Reportes
+        </h2>
+        <p className="cr-subtitle">
+          Logo, color y textos del membrete de los reportes imprimibles (Reporte Diario, Reporte por Rango y Planilla Imprimible).
+        </p>
+      </div>
+
+      <div className="cr-layout">
+        {/* Formulario */}
+        <div className="cr-form s-card">
+          <Seccion id="logos" titulo="Logos" icono="ti ti-photo" abierta={abiertas.logos} onToggle={toggleSeccion}>
+            <div className="cr-logos-row">
+              {/* Logo institucional */}
+              <div className="cr-logo-compact">
+                <div className="cr-logo-compact-header">
+                  <span className="cr-field-label">Logo institucional</span>
+                  <InfoTip texto="PNG, JPG o WEBP, máx. 1.5 MB." />
+                </div>
+                <div className="cr-logo-preview cr-logo-preview--sm">
+                  {form.logo_base64
+                    ? <img src={form.logo_base64} alt="Logo actual" className="cr-logo-img" />
+                    : <div className="cr-logo-placeholder">{inicial}</div>}
+                </div>
+                <div className="cr-logo-compact-actions">
+                  <button type="button" className="s-btn s-btn--sm" onClick={() => fileInputRef.current?.click()}>
+                    {form.logo_base64 ? "Cambiar logo" : "Subir logo"}
+                  </button>
+                  {form.logo_base64 && (
+                    <button type="button" className="cr-link-quitar" onClick={handleQuitarLogo("logo_base64")}>
+                      Quitar
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleLogoChange("logo_base64")}
+                  className="cr-file-input"
+                  aria-label="Subir logo institucional"
+                />
+              </div>
+
+              {/* Logo de la coordinación (migración 0092, 13 ago) — se muestra
+                  junto al ícono de la Planilla de Asistencia por Turno. */}
+              <div className="cr-logo-compact">
+                <div className="cr-logo-compact-header">
+                  <span className="cr-field-label">Logo de la coordinación</span>
+                  <InfoTip texto="PNG, JPG o WEBP, máx. 1.5 MB. Opcional — si no se sube, no se muestra nada junto al ícono." />
+                </div>
+                <div className="cr-logo-preview cr-logo-preview--sm">
+                  {form.logo_coordinacion_base64
+                    ? <img src={form.logo_coordinacion_base64} alt="Logo de la coordinación actual" className="cr-logo-img" />
+                    : <div className="cr-logo-placeholder"><i className="ti ti-flag-2" aria-hidden="true" /></div>}
+                </div>
+                <div className="cr-logo-compact-actions">
+                  <button type="button" className="s-btn s-btn--sm" onClick={() => fileInputCoordinacionRef.current?.click()}>
+                    {form.logo_coordinacion_base64 ? "Cambiar logo" : "Subir logo"}
+                  </button>
+                  {form.logo_coordinacion_base64 && (
+                    <button type="button" className="cr-link-quitar" onClick={handleQuitarLogo("logo_coordinacion_base64")}>
+                      Quitar
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={fileInputCoordinacionRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleLogoChange("logo_coordinacion_base64")}
+                  className="cr-file-input"
+                  aria-label="Subir logo de la coordinación"
+                />
+              </div>
+            </div>
+          </Seccion>
+
+          <Seccion id="color" titulo="Color institucional" icono="ti ti-brush" abierta={abiertas.color} onToggle={toggleSeccion}>
