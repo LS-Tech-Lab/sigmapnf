@@ -4,6 +4,7 @@ import { supabase } from "../../../lib/supabase";
 // Fix SEC-38 (auditoría de estrés operacional, 10 de agosto): bypasseaba
 // el filtro de errorMessages.js.
 import { mensajeAmigable } from "../../../utils/errorMessages";
+import { exportarRespaldoPrevioABorrado } from "../../../utils/exportRespaldo";
 import ConfirmBorrarSesionModal from "./ConfirmBorrarSesionModal";
 
 // Fix ARCH-18 (auditoría 12 de julio): extraído de AdminQRPanel.jsx sin
@@ -59,9 +60,21 @@ export default function HistorialSesiones({ fecha, sessionIdActiva, permisos = {
     fetchHistorial();
   }, [fecha, expandido, sessionIdActiva, sedeActiva]);
 
+  // ADMIN-3 (14 ago, pedido por LS): respaldo JSON/CSV de la sesión (más sus
+  // conteos de entradas/salidas) antes de borrarla. Las asistencias_diarias
+  // asociadas NO se borran (qr_session_id -> NULL, ver 0006/0053) -- lo que
+  // se pierde al borrar es solo el metadato de la sesión en sí, que es
+  // justamente lo que este respaldo preserva.
   const handleBorrar = async () => {
     if (!confirmBorrar) return;
     setBorrando(true);
+
+    const c = conteosPorId[confirmBorrar.id] || { entradas: 0, salidas: 0 };
+    exportarRespaldoPrevioABorrado(
+      [{ ...confirmBorrar, entradas: c.entradas, salidas: c.salidas }],
+      `respaldo_sesion_qr_${fecha}_${confirmBorrar.id}`
+    );
+
     const { error } = await supabase.rpc("admin_borrar_qr_sesiones", {
       p_ids: [confirmBorrar.id],
     });
@@ -70,7 +83,7 @@ export default function HistorialSesiones({ fecha, sessionIdActiva, permisos = {
       showToast?.(error.message ? mensajeAmigable(error) : "No se pudo borrar la sesión.", "error");
     } else {
       setSesiones(prev => prev.filter(s => s.id !== confirmBorrar.id));
-      showToast?.("Sesión QR borrada.", "success");
+      showToast?.("Sesión QR borrada. Se descargó un respaldo CSV/JSON.", "success");
     }
     setConfirmBorrar(null);
   };
