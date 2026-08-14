@@ -62,15 +62,30 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1a1a
   display: flex; align-items: center; justify-content: center;
   font-size: 22pt; font-weight: 900; color: #fff; flex-shrink: 0;
 }
-/* Logo real (imagen subida por el admin) en vez del placeholder de letra —
-   mismo círculo/tamaño, object-fit para no deformar logos no cuadrados. */
+/* Logo real (imagen subida por el admin) en vez del placeholder de letra.
+   Pedido de LS (14 ago): el banner institucional es alargado (ej. el
+   membrete horizontal de UNERMB), no un ícono cuadrado/circular -- el
+   círculo de abajo queda solo para el placeholder de letra (.membrete-logo,
+   sin imagen real todavía). object-fit:contain conserva la proporción
+   original del banner subido, altura fija y ancho libre hasta un tope
+   razonable para no invadir el título/fecha de membrete-der. */
 .membrete-logo-img {
-  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
-  object-fit: contain; background: #fff; border: 1px solid #E5E7EB;
+  height: 52px; width: auto; max-width: 220px; flex-shrink: 0;
+  object-fit: contain;
 }
 .membrete-texto h1 { margin: 0; font-size: 13pt; color: var(--rp-primario); }
 .membrete-texto p  { margin: 2px 0 0; font-size: 8.5pt; color: #555; }
 .membrete-der { text-align: right; font-size: 8.5pt; color: #555; line-height: 1.6; }
+
+/* Logo de la coordinación (migración 0092, 13 ago) -- a la derecha del
+   banner institucional dentro de membrete-izq. Separador sutil para no
+   confundirse visualmente con el logo institucional. Más chico que el
+   institucional a propósito: es secundario en la jerarquía del membrete. */
+.membrete-logo-coordinacion-img {
+  height: 40px; width: auto; max-width: 140px; flex-shrink: 0;
+  object-fit: contain; margin-left: 14px; padding-left: 14px;
+  border-left: 1px solid #E5E7EB;
+}
 
 /* ── Subtítulo del reporte ── */
 .subtitulo {
@@ -162,6 +177,3 @@ tr:nth-child(even) td { background: #F8FAFC; }
    que NO pidieron este cambio. */
 .rp-planilla-table th { text-align: center; text-transform: uppercase; padding: 3px 6px; }
 .rp-planilla-table td { text-transform: uppercase; padding: 2px 6px; }
-
-
-
