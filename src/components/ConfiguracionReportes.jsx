@@ -1,4 +1,6 @@
 // ConfiguracionReportes.jsx — ADMIN-6 (auditoría 1 ago 2026)
+// UX-40 (14 ago): rediseño para móvil — secciones en acordeón, logos en
+// fila compacta, texto de ayuda movido a tooltip por ícono (i).
 //
 // Pantalla admin-only (permiso puedeConfigurarReportes) para personalizar
 // el membrete de los 3 documentos imprimibles del sistema (Reporte Diario,
@@ -39,14 +41,54 @@ const CAMPOS_TEXTO = [
   { key: "firma_label",        label: "Etiqueta de la firma",     maxLength: 80 },
 ];
 
+// UX-40: ícono (i) con tooltip accesible (title nativo + popover en focus/hover)
+// en vez del párrafo de ayuda que antes se repetía debajo de cada logo.
+function InfoTip({ texto }) {
+  return (
+    <span className="cr-info-wrap">
+      <button type="button" className="cr-info-btn" aria-label="Más información" title={texto}>
+        <i className="ti ti-info-circle" aria-hidden="true" />
+      </button>
+      <span className="cr-info-tip" role="tooltip">{texto}</span>
+    </span>
+  );
+}
+
+// UX-40: acordeón simple por sección — reduce el scroll inicial dejando que
+// el usuario colapse lo que no necesita editar en ese momento.
+function Seccion({ id, titulo, icono, abierta, onToggle, children }) {
+  return (
+    <div className="cr-section">
+      <button
+        type="button"
+        className="cr-section-header"
+        onClick={() => onToggle(id)}
+        aria-expanded={abierta}
+      >
+        <span className="cr-section-title">
+          <i className={icono} aria-hidden="true" /> {titulo}
+        </span>
+        <i
+          className={`ti ti-chevron-down cr-section-chevron${abierta ? " cr-section-chevron--open" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+      {abierta && <div className="cr-section-body">{children}</div>}
+    </div>
+  );
+}
+
 export default function ConfiguracionReportes({ showToast, logAudit }) {
   const [form, setForm]         = useState(CONFIG_REPORTE_DEFAULT);
   const [original, setOriginal] = useState(CONFIG_REPORTE_DEFAULT);
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState(null);
+  const [abiertas, setAbiertas] = useState({ logos: true, color: true, textos: true });
   const fileInputRef = useRef(null);
   const fileInputCoordinacionRef = useRef(null); // migración 0092 (13 ago)
+
+  const toggleSeccion = (id) => setAbiertas(a => ({ ...a, [id]: !a[id] }));
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -170,27 +212,29 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
       <div className="cr-layout">
         {/* Formulario */}
         <div className="cr-form s-card">
-          {/* Logo institucional */}
-          <div className="cr-field">
-            <label className="cr-field-label">Logo institucional</label>
-            <div className="cr-logo-row">
-              <div className="cr-logo-preview">
-                {form.logo_base64
-                  ? <img src={form.logo_base64} alt="Logo actual" className="cr-logo-img" />
-                  : <div className="cr-logo-placeholder">{inicial}</div>}
-              </div>
-              <div className="cr-logo-actions">
-                <div className="cr-logo-actions-row">
+          <Seccion id="logos" titulo="Logos" icono="ti ti-photo" abierta={abiertas.logos} onToggle={toggleSeccion}>
+            <div className="cr-logos-row">
+              {/* Logo institucional */}
+              <div className="cr-logo-compact">
+                <div className="cr-logo-compact-header">
+                  <span className="cr-field-label">Logo institucional</span>
+                  <InfoTip texto="PNG, JPG o WEBP, máx. 1.5 MB." />
+                </div>
+                <div className="cr-logo-preview cr-logo-preview--sm">
+                  {form.logo_base64
+                    ? <img src={form.logo_base64} alt="Logo actual" className="cr-logo-img" />
+                    : <div className="cr-logo-placeholder">{inicial}</div>}
+                </div>
+                <div className="cr-logo-compact-actions">
                   <button type="button" className="s-btn s-btn--sm" onClick={() => fileInputRef.current?.click()}>
                     {form.logo_base64 ? "Cambiar logo" : "Subir logo"}
                   </button>
                   {form.logo_base64 && (
-                    <button type="button" className="s-btn s-btn--sm s-btn--cancel" onClick={handleQuitarLogo("logo_base64")}>
+                    <button type="button" className="cr-link-quitar" onClick={handleQuitarLogo("logo_base64")}>
                       Quitar
                     </button>
                   )}
                 </div>
-                <p className="cr-field-hint">PNG, JPG o WEBP, máx. 1.5 MB.</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -200,31 +244,29 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
                   aria-label="Subir logo institucional"
                 />
               </div>
-            </div>
-          </div>
 
-          {/* Logo de la coordinación (migración 0092, 13 ago) — se muestra
-              junto al ícono de la Planilla de Asistencia por Turno. */}
-          <div className="cr-field">
-            <label className="cr-field-label">Logo de la coordinación</label>
-            <div className="cr-logo-row">
-              <div className="cr-logo-preview">
-                {form.logo_coordinacion_base64
-                  ? <img src={form.logo_coordinacion_base64} alt="Logo de la coordinación actual" className="cr-logo-img" />
-                  : <div className="cr-logo-placeholder"><i className="ti ti-flag-2" aria-hidden="true" /></div>}
-              </div>
-              <div className="cr-logo-actions">
-                <div className="cr-logo-actions-row">
+              {/* Logo de la coordinación (migración 0092, 13 ago) — se muestra
+                  junto al ícono de la Planilla de Asistencia por Turno. */}
+              <div className="cr-logo-compact">
+                <div className="cr-logo-compact-header">
+                  <span className="cr-field-label">Logo de la coordinación</span>
+                  <InfoTip texto="PNG, JPG o WEBP, máx. 1.5 MB. Opcional — si no se sube, no se muestra nada junto al ícono." />
+                </div>
+                <div className="cr-logo-preview cr-logo-preview--sm">
+                  {form.logo_coordinacion_base64
+                    ? <img src={form.logo_coordinacion_base64} alt="Logo de la coordinación actual" className="cr-logo-img" />
+                    : <div className="cr-logo-placeholder"><i className="ti ti-flag-2" aria-hidden="true" /></div>}
+                </div>
+                <div className="cr-logo-compact-actions">
                   <button type="button" className="s-btn s-btn--sm" onClick={() => fileInputCoordinacionRef.current?.click()}>
                     {form.logo_coordinacion_base64 ? "Cambiar logo" : "Subir logo"}
                   </button>
                   {form.logo_coordinacion_base64 && (
-                    <button type="button" className="s-btn s-btn--sm s-btn--cancel" onClick={handleQuitarLogo("logo_coordinacion_base64")}>
+                    <button type="button" className="cr-link-quitar" onClick={handleQuitarLogo("logo_coordinacion_base64")}>
                       Quitar
                     </button>
                   )}
                 </div>
-                <p className="cr-field-hint">PNG, JPG o WEBP, máx. 1.5 MB. Opcional — si no se sube, no se muestra nada junto al ícono.</p>
                 <input
                   ref={fileInputCoordinacionRef}
                   type="file"
@@ -235,84 +277,6 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
                 />
               </div>
             </div>
-          </div>
+          </Seccion>
 
-          {/* Color */}
-          <div className="cr-field">
-            <label className="cr-field-label">Color institucional</label>
-            <div className="cr-color-row">
-              {COLORES_REPORTE.map(c => (
-                <button
-                  key={c.clase}
-                  type="button"
-                  title={c.label}
-                  aria-label={c.label}
-                  onClick={() => set("color_clase")(c.clase)}
-                  className={`cr-color-swatch cr-swatch--${colorSuffix(c.clase)}${form.color_clase === c.clase ? " cr-color-swatch--active" : ""}`}
-                >
-                  {form.color_clase === c.clase && <i className="ti ti-check" aria-hidden="true" />}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Textos */}
-          {CAMPOS_TEXTO.map(campo => (
-            <div className="cr-field" key={campo.key}>
-              <label htmlFor={`cr-${campo.key}`} className="cr-field-label">{campo.label}</label>
-              <input
-                id={`cr-${campo.key}`}
-                className="s-input s-input--full"
-                value={form[campo.key] || ""}
-                maxLength={campo.maxLength}
-                onChange={e => set(campo.key)(e.target.value)}
-              />
-            </div>
-          ))}
-
-          {error && <div className="cr-error">{error}</div>}
-
-          <div className="cr-footer">
-            <button
-              type="button"
-              className="s-btn s-btn--cancel"
-              onClick={handleDescartar}
-              disabled={!hayCambios || saving}
-            >
-              Descartar cambios
-            </button>
-            <button
-              type="button"
-              className="cr-btn-guardar"
-              onClick={handleGuardar}
-              disabled={!hayCambios || saving}
-            >
-              {saving ? "Guardando…" : "Guardar cambios"}
-            </button>
-          </div>
-        </div>
-
-        {/* Vista previa */}
-        <div className="cr-preview">
-          <p className="cr-preview-label">Vista previa</p>
-          <div className={`cr-preview-card s-card cr-swatch--${suffix}`}>
-            <div className="cr-preview-membrete">
-              <div className="cr-preview-logo">
-                {form.logo_base64
-                  ? <img src={form.logo_base64} alt="Logo" />
-                  : inicial}
-              </div>
-              <div>
-                <div className="cr-preview-nombre">{form.nombre_institucion || "—"}</div>
-                <div className="cr-preview-sub">{form.subtitulo_1 || "—"}</div>
-                <div className="cr-preview-sub">{form.subtitulo_2 || "—"}</div>
-              </div>
-            </div>
-            <div className="cr-preview-pie">{form.pie_texto || "—"}</div>
-            <div className="cr-preview-pie">{form.firma_label || "—"}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+          <Seccion id="color" titulo="Color institucional" icono="ti ti-brush" abierta={abiertas.color} onToggle={toggleSeccion}>
