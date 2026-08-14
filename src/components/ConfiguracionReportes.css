@@ -9,7 +9,19 @@
    estático para la ventana de impresión, este lo empaqueta Vite para la
    app) — si se agrega un color nuevo, replicar en ambos lugares. */
 
-.cr-root { max-width: 900px; margin: 0 auto; padding: 20px; }
+/* UX-42 (14 ago 2026, pedido de LS): se elimina el max-width propio de
+   900px. Este componente vive DENTRO de .gs-tab-panel/.gs-root
+   (GestionReportes.jsx), que ya limita el ancho a 1200px con su propio
+   centrado -- el max-width:900 de acá creaba una segunda caja centrada
+   dentro de la primera, más angosta que su contenedor, dejando franjas
+   vacías a los lados sin motivo (mismo síntoma que Registros/LogsView
+   NO tiene, porque .lv-root es el único límite de ancho en esa pantalla).
+   Ahora .cr-root ocupa el 100% del panel que ya le da .gs-root, igual
+   que TabSedes/TabProgramas/TabAsignacion/TabPlantillas -- el límite de
+   1200px en pantallas ultrawide lo sigue poniendo .gs-root. Padding
+   alineado a Registros (lv-root: 24px 28px) para que los 4 paneles de
+   Sistema respiren igual. */
+.cr-root { padding: 24px 28px; }
 .cr-header { margin-bottom: 20px; }
 .cr-title { display: flex; align-items: center; gap: 8px; font-size: 1.25rem; margin: 0 0 4px; }
 .cr-subtitle { color: var(--color-text-mid); font-size: 0.9rem; margin: 0; }
@@ -29,11 +41,11 @@
    viewport -- si no entran los 320px de la vista previa al lado, el
    formulario simplemente pasa a ocupar toda la línea y la vista previa
    baja a la siguiente, sin necesitar ningún breakpoint. */
-.cr-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
-.cr-form   { flex: 1 1 420px; min-width: 0; }
-.cr-preview { flex: 0 1 320px; min-width: 260px; }
+.cr-layout { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.cr-form   { flex: 1 1 480px; min-width: 0; }
+.cr-preview { flex: 0 1 340px; min-width: 260px; }
 
-.cr-form { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.cr-form { padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
 .cr-field { display: flex; flex-direction: column; gap: 4px; }
 .cr-field-label { font-weight: 600; font-size: 0.85rem; color: var(--color-text-primary); }
 .cr-field-hint { font-size: 0.75rem; color: var(--color-text-mid); margin: 0; word-wrap: break-word; overflow-wrap: break-word; }
