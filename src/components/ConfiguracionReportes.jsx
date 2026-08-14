@@ -88,6 +88,26 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
   const fileInputRef = useRef(null);
   const fileInputCoordinacionRef = useRef(null); // migración 0092 (13 ago)
 
+  // UX-41 (14 ago): en pantallas angostas .cr-layout manda la vista previa
+  // al final (después del formulario completo, ver flex-wrap en el CSS),
+  // así que el usuario tenía que bajar hasta el fondo para ver el efecto
+  // de un cambio y volver a subir para seguir editando. Con matchMedia se
+  // decide en JS (no solo CSS) porque el comportamiento cambia de verdad
+  // -- no es solo reflow de layout, es una vista sticky+colapsable
+  // distinta a la columna fija de desktop, con su propio estado de
+  // abierto/cerrado.
+  const [esCompacta, setEsCompacta] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 859px)").matches : false
+  );
+  const [previewAbierta, setPreviewAbierta] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 859px)");
+    const handler = (e) => setEsCompacta(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const toggleSeccion = (id) => setAbiertas(a => ({ ...a, [id]: !a[id] }));
 
   const cargar = useCallback(async () => {
@@ -198,6 +218,27 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
   const suffix = colorSuffix(form.color_clase);
   const inicial = (form.nombre_institucion || "?").trim().charAt(0).toUpperCase() || "?";
 
+  // Compartido entre la columna fija de desktop y el panel sticky de
+  // móvil (UX-41) — mismo membrete, dos contenedores distintos.
+  const renderPreviewCard = () => (
+    <div className={`cr-preview-card s-card cr-swatch--${suffix}`}>
+      <div className="cr-preview-membrete">
+        <div className="cr-preview-logo">
+          {form.logo_base64
+            ? <img src={form.logo_base64} alt="Logo" />
+            : inicial}
+        </div>
+        <div>
+          <div className="cr-preview-nombre">{form.nombre_institucion || "—"}</div>
+          <div className="cr-preview-sub">{form.subtitulo_1 || "—"}</div>
+          <div className="cr-preview-sub">{form.subtitulo_2 || "—"}</div>
+        </div>
+      </div>
+      <div className="cr-preview-pie">{form.pie_texto || "—"}</div>
+      <div className="cr-preview-pie">{form.firma_label || "—"}</div>
+    </div>
+  );
+
   return (
     <div className="cr-root">
       <div className="cr-header">
@@ -208,6 +249,35 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
           Logo, color y textos del membrete de los reportes imprimibles (Reporte Diario, Reporte por Rango y Planilla Imprimible).
         </p>
       </div>
+
+      {/* UX-41: en móvil la vista previa vive acá, ANTES del formulario y
+          fuera de .cr-layout, como barra sticky compacta -- así queda
+          visible mientras se hace scroll por las secciones del acordeón,
+          en vez de solo aparecer al final de la página. En desktop no se
+          renderiza (la columna fija de .cr-layout hace ese trabajo). */}
+      {esCompacta && (
+        <div className="cr-preview-sticky">
+          <button
+            type="button"
+            className="cr-preview-sticky-bar"
+            onClick={() => setPreviewAbierta(v => !v)}
+            aria-expanded={previewAbierta}
+          >
+            <span className={`cr-preview-sticky-avatar cr-swatch--${suffix}`}>
+              {form.logo_base64 ? <img src={form.logo_base64} alt="" /> : inicial}
+            </span>
+            <span className="cr-preview-sticky-info">
+              <span className="cr-preview-sticky-nombre">{form.nombre_institucion || "—"}</span>
+              <span className="cr-preview-sticky-label">Vista previa</span>
+            </span>
+            <i
+              className={`ti ti-chevron-down cr-section-chevron${previewAbierta ? " cr-section-chevron--open" : ""}`}
+              aria-hidden="true"
+            />
+          </button>
+          {previewAbierta && renderPreviewCard()}
+        </div>
+      )}
 
       <div className="cr-layout">
         {/* Formulario */}
@@ -333,26 +403,14 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
           </div>
         </div>
 
-        {/* Vista previa */}
-        <div className="cr-preview">
-          <p className="cr-preview-label">Vista previa</p>
-          <div className={`cr-preview-card s-card cr-swatch--${suffix}`}>
-            <div className="cr-preview-membrete">
-              <div className="cr-preview-logo">
-                {form.logo_base64
-                  ? <img src={form.logo_base64} alt="Logo" />
-                  : inicial}
-              </div>
-              <div>
-                <div className="cr-preview-nombre">{form.nombre_institucion || "—"}</div>
-                <div className="cr-preview-sub">{form.subtitulo_1 || "—"}</div>
-                <div className="cr-preview-sub">{form.subtitulo_2 || "—"}</div>
-              </div>
-            </div>
-            <div className="cr-preview-pie">{form.pie_texto || "—"}</div>
-            <div className="cr-preview-pie">{form.firma_label || "—"}</div>
+        {/* Vista previa — solo en desktop; en móvil la reemplaza la barra
+            sticky de arriba (UX-41). */}
+        {!esCompacta && (
+          <div className="cr-preview">
+            <p className="cr-preview-label">Vista previa</p>
+            {renderPreviewCard()}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
