@@ -68,8 +68,17 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1a1a
    círculo de abajo queda solo para el placeholder de letra (.membrete-logo,
    sin imagen real todavía). object-fit:contain conserva la proporción
    original del banner subido, altura fija y ancho libre hasta un tope
-   razonable para no invadir el título/fecha de membrete-der. */
-.membrete-logo-img {
+   razonable para no invadir el título/fecha de membrete-der.
+
+   14 ago: los 3 logos posibles del membrete (institucional, coordinación,
+   UNERMB -- migración 0094) comparten esta misma regla base a propósito,
+   pedido explícito de LS de que "los tres logos mantengan la proporción".
+   Un selector agrupado en vez de repetir las 4 declaraciones en 3 bloques
+   separados evita que alguien cambie el tamaño de uno solo por error en
+   un ajuste futuro. */
+.membrete-logo-img,
+.membrete-logo-coordinacion-img,
+.membrete-logo-unermb-img {
   height: 52px; width: auto; max-width: 220px; flex-shrink: 0;
   object-fit: contain;
 }
@@ -78,17 +87,23 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1a1a
 .membrete-der { text-align: right; font-size: 8.5pt; color: #555; line-height: 1.6; }
 
 /* Logo de la coordinación (migración 0092, 13 ago) -- a la derecha del
-   banner institucional dentro de membrete-izq. 14 ago: LS pidió que tenga
-   el mismo tamaño/proporción que el banner institucional (antes era más
-   chico -- 40px/140px -- y se veía en desventaja visual); ahora comparte
-   exactamente las mismas medidas que .membrete-logo-img, también "tipo
-   banner" (altura fija, ancho libre hasta el mismo tope). Se mantiene el
-   separador sutil para distinguirlo del logo institucional sin depender
-   del tamaño para eso. */
+   banner institucional dentro de membrete-izq. El tamaño ya sale de la
+   regla agrupada de arriba (misma proporción que los otros 2); acá solo
+   queda el separador sutil para distinguirlo visualmente del logo
+   institucional sin depender del tamaño para eso. */
 .membrete-logo-coordinacion-img {
-  height: 52px; width: auto; max-width: 220px; flex-shrink: 0;
-  object-fit: contain; margin-left: 14px; padding-left: 14px;
+  margin-left: 14px; padding-left: 14px;
   border-left: 1px solid #E5E7EB;
+}
+
+/* Logo de UNERMB (migración 0094, 14 ago) -- reemplaza el <h1> de texto
+   (nombre_institucion) dentro de membrete-texto cuando está configurado.
+   membrete-texto es un div simple (sin flex), así que h1/p/img ya caen en
+   columna por comportamiento de bloque normal -- solo hace falta
+   display:block explícito porque <img> es inline por defecto, y un margen
+   inferior para separarlo de los subtítulos que puedan venir debajo. */
+.membrete-logo-unermb-img {
+  display: block; margin-bottom: 2px;
 }
 
 /* ── Subtítulo del reporte ── */
@@ -181,3 +196,12 @@ tr:nth-child(even) td { background: #F8FAFC; }
    que NO pidieron este cambio. */
 .rp-planilla-table th { text-align: center; text-transform: uppercase; padding: 3px 6px; }
 .rp-planilla-table td { text-transform: uppercase; padding: 2px 6px; }
+
+/* Pedido de LS (14 ago): la columna Hora ("07:30 – 09:45 AM") partía en
+   2 líneas -- nowrap + un ancho mínimo que alcanza para el caso más largo
+   ("HH:MM – HH:MM AM/PM") sin que el navegador la comprima al repartir
+   el ancho de la tabla entre columnas más anchas (Asignatura, Profesor).
+   font-size levemente menor que el resto para que ese ancho mínimo no le
+   quite demasiado espacio a esas columnas. */
+.th-hora, .td-hora { white-space: nowrap; }
+.td-hora { font-size: 7.5pt; }
