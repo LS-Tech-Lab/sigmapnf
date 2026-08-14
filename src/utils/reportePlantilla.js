@@ -184,6 +184,14 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
     ? `<img class="membrete-logo-img" src="${ESC(cfg.logo_base64)}" alt="${ESC(cfg.nombre_institucion)}" />`
     : `<div class="membrete-logo">${inicial}</div>`;
 
+  // Migración 0092 (13 ago): logo de la coordinación, a la derecha del
+  // banner institucional dentro de membrete-izq -- a diferencia del logo
+  // institucional (que siempre muestra algo, real o placeholder), este es
+  // puramente opcional y no se renderiza nada si no se configuró.
+  const logoCoordinacionHtml = cfg.logo_coordinacion_base64
+    ? `<img class="membrete-logo-coordinacion-img" src="${ESC(cfg.logo_coordinacion_base64)}" alt="Logo de la coordinación" />`
+    : "";
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -200,6 +208,7 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
         <p>${ESC(cfg.subtitulo_1)}</p>
         <p>${ESC(cfg.subtitulo_2)}</p>
       </div>
+      ${logoCoordinacionHtml}
     </div>
     <div class="membrete-der"${derStyle}>
       <div>${ESC(titulo)}</div>
