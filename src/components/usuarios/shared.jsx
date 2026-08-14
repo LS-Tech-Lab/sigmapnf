@@ -60,6 +60,11 @@ export const GRUPOS_PERMISOS = [
       { key: "puedeGestionarRoles",    label: "Gestionar roles",    desc: "Crear/editar roles y definir sus permisos" },
       { key: "puedeVerLogs",           label: "Ver registros",      desc: "Consultar el historial de acciones del sistema" },
       { key: "puedeVerAuditoria",      label: "Ver auditoría",      desc: "Ver quién hizo qué y cuándo" },
+      // ADMIN-3 (14 ago): faltaba en este catálogo -- se agregó a
+      // PERMISOS_BASE (useAuth.js) y al rol admin en la migración 0096,
+      // pero no acá, así que ModalRol.jsx contaba 22 permisos marcados
+      // contra un total de 21 (TODOS_LOS_PERMISOS no lo incluía).
+      { key: "puedeBorrarAuditoria",   label: "Borrar auditoría",   desc: "Eliminar registros de auditoría (audit_logs). La purga se auto-registra como nuevo evento de auditoría." },
       { key: "puedeConfigurarReportes", label: "Configurar reportes", desc: "Personalizar logo, colores y textos del membrete de los reportes imprimibles" },
       { key: "puedeVerTodasLasSedes",  label: "Ver todas las sedes", desc: "Acceder y gestionar todas las sedes en vez de quedar fijo a una sola (SEDE-1/2)" },
       { key: "puedeGestionarSedes",    label: "Gestionar sedes",     desc: "Crear sedes nuevas, renombrarlas, reordenarlas y activarlas/desactivarlas (SEDE-17)" },
