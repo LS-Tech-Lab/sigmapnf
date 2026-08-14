@@ -192,6 +192,18 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
     ? `<img class="membrete-logo-coordinacion-img" src="${ESC(cfg.logo_coordinacion_base64)}" alt="Logo de la coordinación" />`
     : "";
 
+  // 14 ago: si el admin dejó nombre_institucion vacío a propósito (típico
+  // cuando el logo institucional ya trae el nombre impreso, como el
+  // membrete oficial de UNERMB), no imprimir un <h1></h1> vacío -- deja
+  // hueco en el layout igual que un párrafo vacío. Los subtítulos ya se
+  // comportaban así (sin fallback forzado, ver ConfiguracionReportes.jsx);
+  // acá se pareja el mismo criterio para el nombre.
+  const nombreHtml = cfg.nombre_institucion
+    ? `<h1>${ESC(cfg.nombre_institucion)}</h1>`
+    : "";
+  const subtitulo1Html = cfg.subtitulo_1 ? `<p>${ESC(cfg.subtitulo_1)}</p>` : "";
+  const subtitulo2Html = cfg.subtitulo_2 ? `<p>${ESC(cfg.subtitulo_2)}</p>` : "";
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -204,9 +216,9 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
     <div class="membrete-izq"${izqStyle}>
       ${logoHtml}
       <div class="membrete-texto">
-        <h1>${ESC(cfg.nombre_institucion)}</h1>
-        <p>${ESC(cfg.subtitulo_1)}</p>
-        <p>${ESC(cfg.subtitulo_2)}</p>
+        ${nombreHtml}
+        ${subtitulo1Html}
+        ${subtitulo2Html}
       </div>
       ${logoCoordinacionHtml}
     </div>
