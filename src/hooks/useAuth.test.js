@@ -220,6 +220,7 @@ describe("PERMISOS_BASE", () => {
       "puedeVerReporteAsistencias",
       "puedeBorrarSesiones",
       "puedeBorrarReportes",
+      "puedeBorrarAuditoria",
       "puedeVerTodasLasSedes",
     ];
     expect(Object.keys(PERMISOS_BASE).sort()).toEqual(clavesEsperadas.sort());
