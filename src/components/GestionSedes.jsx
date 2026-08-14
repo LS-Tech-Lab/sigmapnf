@@ -28,6 +28,10 @@ import React, { useState, useCallback } from "react";
 import TabSedes from "./gestionSedes/TabSedes";
 import TabProgramas from "./gestionSedes/TabProgramas";
 import TabAsignacion from "./gestionSedes/TabAsignacion";
+import "./usuarios/index.css"; // rediseño 14 ago 2026 (pedido LS): reutiliza
+// uv-header/uv-title/uv-subtitle/uv-tabs TAL CUAL de Usuarios y Roles, en
+// vez de reinventar un header propio -- ver GestionSedes.css para el
+// resto (gs-root/gs-tab-panel siguen viviendo ahí).
 import "./GestionSedes.css";
 
 const PESTANAS = [
@@ -46,14 +50,30 @@ export default function GestionSedes({ showToast, logAudit }) {
 
   return (
     <div className="gs-root">
-      <div className="gs-tabs" role="tablist" aria-label="Configuración de sedes y programas">
+      {/* Encabezado único de página — mismo patrón que uv-header
+          (usuarios/index.jsx) y lv-header (LogsView.jsx): un solo título
+          arriba de todo, nada de repetirlo dentro de cada pestaña (los
+          gs-header por pestaña que había antes en TabSedes/TabProgramas/
+          TabAsignacion se quitaron por esto mismo). */}
+      <div className="uv-header">
+        <h1 className="uv-title">
+          <i className="ti ti-building-community uv-title-icon" aria-hidden="true" />
+          Sedes y Programas
+        </h1>
+        <p className="uv-subtitle">
+          Administra el catálogo de sedes y programas, y qué programas están activos en cada sede.
+        </p>
+      </div>
+
+      {/* Pestañas — mismas clases (uv-tabs/uv-tab) que Usuarios y Roles */}
+      <div className="uv-tabs" role="tablist" aria-label="Configuración de sedes y programas">
         {PESTANAS.map(p => (
           <button
             key={p.id}
             type="button"
             role="tab"
             aria-selected={pestanaActiva === p.id}
-            className={`gs-tab ${pestanaActiva === p.id ? "gs-tab--activa" : ""}`}
+            className={`uv-tab${pestanaActiva === p.id ? " uv-tab--active" : ""}`}
             onClick={() => setPestanaActiva(p.id)}
           >
             <i className={`ti ${p.icono}`} aria-hidden="true" /> {p.label}

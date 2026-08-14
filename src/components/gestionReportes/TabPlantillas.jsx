@@ -32,6 +32,7 @@ import { anchoContenidoMm } from "../../utils/reportePlantilla";
 import { CAMPOS_PLANILLA_TURNO, DEFAULT_COLUMNAS_BLOQUE } from "../../utils/plantillasImpresion";
 import { construirHtmlPreview, DIMENSIONES_PAGINA_PX } from "../../utils/plantillaPreview";
 import "../GestionSedes.css"; // reutiliza clases genéricas gs-*/s-* de panel admin, no exclusivas de "sedes"
+import "../usuarios/PestanaUsuarios.css"; // rediseño 14 ago 2026: pu-toolbar/pu-table, ver TabSedes.jsx
 import "./TabPlantillas.css";
 
 const TIPO_REPORTE = "planilla_asistencia_turno";
@@ -312,100 +313,115 @@ export default function TabPlantillas({ showToast, logAudit }) {
 
   return (
     <div>
-      <div className="gs-header">
-        <div>
-          <h2 className="gs-title">
-            <i className="ti ti-layout-grid" aria-hidden="true" /> Plantillas
-          </h2>
-          <p className="gs-subtitle">
-            Configura qué columnas trae la planilla de asistencia diaria por
-            turno y en qué orden. Cada sede puede usar la plantilla
-            predeterminada o una propia.
-          </p>
-        </div>
-        <button type="button" className="gs-btn-nuevo" onClick={abrirNueva}>
+      {/* Rediseño 14 ago 2026 (pedido LS): mismo patrón de
+          PestanaUsuarios.jsx que ya usan TabSedes.jsx/TabProgramas.jsx
+          -- toolbar con el botón de alta + tabla real (pu-table) en vez
+          de las filas gs-row en flex-wrap. Sin título propio: lo
+          muestra el header único de GestionReportes.jsx. */}
+      <p className="uv-subtitle gs-hint">
+        Configura qué columnas trae la planilla de asistencia diaria por
+        turno y en qué orden. Cada sede puede usar la plantilla
+        predeterminada o una propia.
+      </p>
+
+      <div className="pu-toolbar">
+        <button type="button" className="pu-btn-nuevo" onClick={abrirNueva}>
           <i className="ti ti-plus" aria-hidden="true" /> Nueva plantilla
         </button>
       </div>
 
       {error && <div className="gs-error">{error}</div>}
 
-      {/* UX-39 aplicado también acá (13 ago, mismo pedido de LS): esta
-          tabla usaba clases (gs-table/gs-nombre/gs-table-card/etc.) que
-          quedaron sin CSS propio cuando GestionSedes.css se reescribió
-          a flex-wrap -- un <table> sin ningún control de ancho, dentro
-          de .s-card{overflow:hidden}, se recortaba en silencio apenas
-          la tarjeta no alcanzaba el ancho natural de sus 4 columnas
-          (bug reportado por LS con capturas: "ESTA[DO]" cortado a media
-          palabra). Mismas filas .gs-row/.gs-row-main/.gs-row-meta que
-          TabSedes.jsx/TabProgramas.jsx -- sin ancho mínimo por fila. */}
-      <div className="s-card gs-list-card">
-        {plantillas.length === 0 ? (
-          <p className="gs-td-empty">Sin plantillas todavía.</p>
-        ) : plantillas.map(p => (
-          <div key={p.id} className="gs-row">
-            <div className="gs-row-main">
-              <span className="gs-row-nombre">{p.nombre}</span>
-              <span className="gs-row-orden">
-                {(p.columnas || []).filter(c => c.visible !== false).length} de {CAMPOS_PLANILLA_TURNO.length} columnas
-              </span>
-            </div>
-            <div className="gs-row-meta">
-              {p.es_default
-                ? <span className="s-badge gs-badge--activa">Predeterminada</span>
-                : <span className="s-badge gs-badge--inactiva">—</span>}
-              <div className="gs-actions">
-                <button
-                  onClick={() => abrirEditorColumnas(p)}
-                  title="Editar columnas"
-                  className="gs-action-btn"
-                ><i className="ti ti-columns" aria-hidden="true" /></button>
-                {!p.es_default && (
-                  <button
-                    onClick={() => handleMarcarDefault(p)}
-                    disabled={marcandoDefault === p.id}
-                    title="Marcar como predeterminada"
-                    className="gs-action-btn gs-action-btn--activar"
-                  ><i className="ti ti-star" aria-hidden="true" /></button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="s-card pu-table-card">
+        <table className="pu-table">
+          <thead>
+            <tr>
+              {["Plantilla", "Columnas", "Estado", ""].map((h, i) => (
+                <th key={i} className={`s-th${i === 3 ? " pu-th--right" : ""}`}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {plantillas.length === 0 ? (
+              <tr><td colSpan={4} className="s-td pu-td-empty">Sin plantillas todavía.</td></tr>
+            ) : plantillas.map(p => (
+              <tr key={p.id}>
+                <td className="s-td">
+                  <div className="pu-user-name">{p.nombre}</div>
+                </td>
+                <td className="s-td">
+                  <span className="pu-programa">
+                    {(p.columnas || []).filter(c => c.visible !== false).length} de {CAMPOS_PLANILLA_TURNO.length}
+                  </span>
+                </td>
+                <td className="s-td">
+                  {p.es_default
+                    ? <span className="s-badge pu-badge-estado--activo">Predeterminada</span>
+                    : <span className="s-badge pu-badge-estado--inactivo">—</span>}
+                </td>
+                <td className="s-td pu-td-right">
+                  <div className="pu-actions">
+                    <button onClick={() => abrirEditorColumnas(p)} title="Editar columnas" className="pu-action-btn">
+                      <i className="ti ti-columns" aria-hidden="true" />
+                    </button>
+                    {!p.es_default && (
+                      <button
+                        onClick={() => handleMarcarDefault(p)}
+                        disabled={marcandoDefault === p.id}
+                        title="Marcar como predeterminada"
+                        className="pu-action-btn pu-action-btn--activar"
+                      ><i className="ti ti-star" aria-hidden="true" /></button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div className="tp-asignacion-header">
         <h3 className="tp-asignacion-title">Asignación por sede</h3>
-        <p className="gs-subtitle">
+        <p className="uv-subtitle gs-hint">
           Sin elegir nada, la sede usa la plantilla predeterminada.
         </p>
       </div>
 
-      <div className="s-card gs-list-card">
-        {sedes.length === 0 ? (
-          <p className="gs-td-empty">No hay sedes activas.</p>
-        ) : sedes.map(sede => {
-          const asignacion = asignaciones.find(a => a.sede_id === sede.id);
-          return (
-            <div key={sede.id} className="gs-row">
-              <div className="gs-row-main">
-                <span className="gs-row-nombre">{sede.nombre}</span>
-              </div>
-              <div className="gs-row-meta">
-                <select
-                  className="s-input tp-asignacion-select"
-                  value={asignacion?.plantilla_id || ""}
-                  onChange={e => handleAsignar(sede, e.target.value)}
-                >
-                  <option value="">Predeterminada ({plantillas.find(p => p.es_default)?.nombre || "—"})</option>
-                  {plantillas.filter(p => !p.es_default).map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          );
-        })}
+      <div className="s-card pu-table-card">
+        <table className="pu-table">
+          <thead>
+            <tr>
+              <th className="s-th">Sede</th>
+              <th className="s-th">Plantilla asignada</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sedes.length === 0 ? (
+              <tr><td colSpan={2} className="s-td pu-td-empty">No hay sedes activas.</td></tr>
+            ) : sedes.map(sede => {
+              const asignacion = asignaciones.find(a => a.sede_id === sede.id);
+              return (
+                <tr key={sede.id}>
+                  <td className="s-td">
+                    <div className="pu-user-name">{sede.nombre}</div>
+                  </td>
+                  <td className="s-td">
+                    <select
+                      className="s-input tp-asignacion-select"
+                      value={asignacion?.plantilla_id || ""}
+                      onChange={e => handleAsignar(sede, e.target.value)}
+                    >
+                      <option value="">Predeterminada ({plantillas.find(p => p.es_default)?.nombre || "—"})</option>
+                      {plantillas.filter(p => !p.es_default).map(p => (
+                        <option key={p.id} value={p.id}>{p.nombre}</option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {modalNuevo && (

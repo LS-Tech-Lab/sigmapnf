@@ -22,6 +22,9 @@
 import React, { useState } from "react";
 import ConfiguracionReportes from "./ConfiguracionReportes";
 import TabPlantillas from "./gestionReportes/TabPlantillas";
+import "./usuarios/index.css"; // rediseño 14 ago 2026 (pedido LS): mismo
+// header + pestañas tipo pill que Usuarios y Roles/Registros — ver
+// GestionSedes.jsx para el mismo criterio aplicado a Sedes.
 import "./GestionSedes.css";
 
 const PESTANAS = [
@@ -35,20 +38,32 @@ export default function GestionReportes({ showToast, logAudit, permisos = {} }) 
 
   return (
     <div className="gs-root">
-      <div className="gs-tabs" role="tablist" aria-label="Configuración de reportes">
-        {pestanasVisibles.map(p => (
-          <button
-            key={p.id}
-            type="button"
-            role="tab"
-            aria-selected={pestanaActiva === p.id}
-            className={`gs-tab ${pestanaActiva === p.id ? "gs-tab--activa" : ""}`}
-            onClick={() => setPestanaActiva(p.id)}
-          >
-            <i className={`ti ${p.icono}`} aria-hidden="true" /> {p.label}
-          </button>
-        ))}
+      <div className="uv-header">
+        <h1 className="uv-title">
+          <i className="ti ti-palette uv-title-icon" aria-hidden="true" />
+          Reportes
+        </h1>
+        <p className="uv-subtitle">
+          Personaliza el membrete de los documentos imprimibles y las plantillas de planillas por sede.
+        </p>
       </div>
+
+      {pestanasVisibles.length > 1 && (
+        <div className="uv-tabs" role="tablist" aria-label="Configuración de reportes">
+          {pestanasVisibles.map(p => (
+            <button
+              key={p.id}
+              type="button"
+              role="tab"
+              aria-selected={pestanaActiva === p.id}
+              className={`uv-tab${pestanaActiva === p.id ? " uv-tab--active" : ""}`}
+              onClick={() => setPestanaActiva(p.id)}
+            >
+              <i className={`ti ${p.icono}`} aria-hidden="true" /> {p.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="gs-tab-panel">
         {pestanaActiva === "membrete" && (

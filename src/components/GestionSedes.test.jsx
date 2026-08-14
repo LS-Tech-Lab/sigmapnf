@@ -74,7 +74,7 @@ describe("GestionSedes — carga inicial", () => {
 
   it("muestra un estado vacío si no hay sedes registradas", async () => {
     renderGestion({ sedes: [] });
-    await waitFor(() => expect(screen.getByText("Sin sedes registradas todavía.")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Sin sedes que coincidan.")).toBeTruthy());
   });
 });
 

@@ -99,21 +99,19 @@
 }
 .gs-btn-guardar:disabled { opacity: 0.6; cursor: default; }
 
-/* PROG-4 — pestañas del shell (Sedes / Programas / Asignación) */
-.gs-tabs {
-  display: flex; gap: 4px; margin-bottom: 24px;
-  border-bottom: 1px solid var(--color-border-tertiary);
-}
-.gs-tab {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 16px; border: none; background: none; cursor: pointer;
-  font-size: var(--font-size-13); font-weight: 600; color: var(--color-text-mid);
-  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s;
-}
-.gs-tab:hover { color: var(--color-text-primary); }
-.gs-tab--activa { color: var(--brand-500); border-bottom-color: var(--brand-500); }
-
+/* Rediseño 14 ago 2026 (pedido LS): las pestañas del shell (Sedes /
+   Programas / Asignación / Membrete / Plantillas) ya no usan estas
+   clases -- GestionSedes.jsx/GestionReportes.jsx reutilizan uv-tabs
+   (usuarios/index.css), el mismo control segmentado de Usuarios y
+   Roles, en vez de un estilo de pestañas propio. Se deja gs-tab-panel
+   porque sigue envolviendo el contenido de cada pestaña. */
 .gs-tab-panel { min-height: 120px; }
+
+/* Hint suelto dentro de una pestaña sin su propio título (TabAsignacion.jsx) --
+   uv-subtitle trae margin-top:6px pensado para ir debajo de un uv-title;
+   acá va solo, así que necesita su propio margen inferior antes del
+   buscador/tabla. */
+.gs-hint { margin: 0 0 16px; max-width: none; }
 
 /* UX-37 (LS, 12 ago 2026) — pestaña Asignación: reemplaza la matriz
    sede × programa por una lista de sedes con sus programas como chips

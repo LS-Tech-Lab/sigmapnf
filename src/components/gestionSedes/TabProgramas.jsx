@@ -10,6 +10,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { ModalConfirm } from "../usuarios/shared";
+import "../usuarios/PestanaUsuarios.css"; // rediseño 14 ago 2026 — ver TabSedes.jsx
 import "../GestionSedes.css";
 
 function slugify(nombre) {
@@ -28,6 +29,7 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
   const [programas, setProgramas] = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState(null);
+  const [busqueda,  setBusqueda]  = useState("");
 
   const [modalNuevo,  setModalNuevo]  = useState(false);
   const [modalEditar, setModalEditar] = useState(null);
@@ -174,59 +176,89 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
     );
   }
 
+  const programasFiltrados = programas.filter(p => {
+    const q = busqueda.trim().toLowerCase();
+    return !q || p.nombre.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+  });
+  const totalActivos = programas.filter(p => p.activa).length;
+
   return (
     <div>
-      <div className="gs-header">
-        <div>
-          <h2 className="gs-title">
-            <i className="ti ti-school" aria-hidden="true" /> Programas
-          </h2>
-          <p className="gs-subtitle">
-            Catálogo de PNF de la institución. Desactivar un programa lo
-            retira de los selectores; ajusta en qué sedes está activo
-            desde la pestaña "Asignación".
-          </p>
-        </div>
-        <button type="button" className="gs-btn-nuevo" onClick={abrirNuevo}>
+      {/* Rediseño 14 ago 2026 — mismo patrón de PestanaUsuarios.jsx, ver
+          el comentario grande en TabSedes.jsx. */}
+      <div className="pu-toolbar">
+        <input
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre o identificador…"
+          className="s-input pu-search-input"
+        />
+        <button type="button" className="pu-btn-nuevo" onClick={abrirNuevo}>
           <i className="ti ti-plus" aria-hidden="true" /> Nuevo programa
         </button>
       </div>
 
+      <div className="pu-stats">
+        <div className="pu-stat pu-stat--total">
+          <span className="pu-stat-value">{programas.length}</span>
+          <span className="pu-stat-label">Total</span>
+        </div>
+        <div className="pu-stat pu-stat--activos">
+          <span className="pu-stat-value">{totalActivos}</span>
+          <span className="pu-stat-label">Activos</span>
+        </div>
+        <div className="pu-stat pu-stat--inactivos">
+          <span className="pu-stat-value">{programas.length - totalActivos}</span>
+          <span className="pu-stat-label">Inactivos</span>
+        </div>
+      </div>
+
       {error && <div className="gs-error">{error}</div>}
 
-      {/* UX-39 (LS, 13 ago 2026): filas en flex-wrap en vez de grid de
-          columnas fijas — ver el comentario detallado en TabSedes.jsx,
-          mismo motivo exacto (el grid de UX-37 seguía exigiendo ~600px
-          de mínimo y se recortaba en silencio por debajo de eso). */}
-      <div className="s-card gs-list-card">
-        {programas.length === 0 ? (
-          <p className="gs-td-empty">Sin programas registrados todavía.</p>
-        ) : programas.map(programa => (
-          <div key={programa.id} className={`gs-row ${programa.activa ? "" : "gs-row--inactiva"}`}>
-            <div className="gs-row-main">
-              <span className="gs-row-nombre">{programa.nombre}</span>
-              <code className="gs-id">{programa.id}</code>
-            </div>
-            <div className="gs-row-meta">
-              <span className="gs-row-orden" title="Orden en los selectores">Orden {programa.orden}</span>
-              <span className={`s-badge ${programa.activa ? "gs-badge--activa" : "gs-badge--inactiva"}`}>
-                {programa.activa ? "Activo" : "Inactivo"}
-              </span>
-              <div className="gs-actions">
-                <button
-                  onClick={() => abrirEditar(programa)}
-                  title="Editar"
-                  className="gs-action-btn"
-                ><i className="ti ti-pencil" aria-hidden="true" /></button>
-                <button
-                  onClick={() => setConfirm({ programa, nuevaActiva: !programa.activa })}
-                  title={programa.activa ? "Desactivar" : "Activar"}
-                  className={`gs-action-btn ${programa.activa ? "gs-action-btn--desactivar" : "gs-action-btn--activar"}`}
-                ><i className={`ti ${programa.activa ? "ti-toggle-right" : "ti-toggle-left"}`} aria-hidden="true" /></button>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="s-card pu-table-card">
+        <table className="pu-table">
+          <thead>
+            <tr>
+              {["Programa", "Orden", "Estado", ""].map((h, i) => (
+                <th key={i} className={`s-th${i === 3 ? " pu-th--right" : ""}`}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {programasFiltrados.length === 0 ? (
+              <tr><td colSpan={4} className="s-td pu-td-empty">Sin programas que coincidan.</td></tr>
+            ) : programasFiltrados.map(programa => (
+              <tr key={programa.id} className={programa.activa ? "" : "pu-row--inactivo"}>
+                <td className="s-td">
+                  <div className="pu-user-name">{programa.nombre}</div>
+                  <div className="pu-user-email"><code className="gs-id">{programa.id}</code></div>
+                </td>
+                <td className="s-td">
+                  <span className="pu-programa">{programa.orden}</span>
+                </td>
+                <td className="s-td">
+                  <span className={`s-badge ${programa.activa ? "pu-badge-estado--activo" : "pu-badge-estado--inactivo"}`}>
+                    {programa.activa ? "Activo" : "Inactivo"}
+                  </span>
+                </td>
+                <td className="s-td pu-td-right">
+                  <div className="pu-actions">
+                    <button onClick={() => abrirEditar(programa)} title="Editar" className="pu-action-btn">
+                      <i className="ti ti-pencil" aria-hidden="true" />
+                    </button>
+                    <button
+                      onClick={() => setConfirm({ programa, nuevaActiva: !programa.activa })}
+                      title={programa.activa ? "Desactivar" : "Activar"}
+                      className={`pu-action-btn ${programa.activa ? "pu-action-btn--desactivar" : "pu-action-btn--activar"}`}
+                    >
+                      <i className={`ti ${programa.activa ? "ti-toggle-right" : "ti-toggle-left"}`} aria-hidden="true" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {(modalNuevo || modalEditar) && (

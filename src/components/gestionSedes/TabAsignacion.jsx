@@ -16,6 +16,7 @@
 // upsert en vez de fallar.
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
+import "../usuarios/PestanaUsuarios.css"; // rediseño 14 ago 2026: pu-toolbar/pu-search-input
 import "../GestionSedes.css";
 
 export default function TabAsignacion({ showToast, logAudit, refrescarClave }) {
@@ -92,19 +93,18 @@ export default function TabAsignacion({ showToast, logAudit, refrescarClave }) {
 
   return (
     <div>
-      <div className="gs-header">
-        <div>
-          <h2 className="gs-title">
-            <i className="ti ti-grid-dots" aria-hidden="true" /> Asignación
-          </h2>
-          <p className="gs-subtitle">
-            Marca qué programas están activos en cada sede. Un programa
-            desactivado en una sede deja de ofrecerse ahí (selectores de
-            usuarios, panel QR, etc.) sin afectar su historial ni a las
-            demás sedes.
-          </p>
-        </div>
-      </div>
+      {/* Rediseño 14 ago 2026 (pedido LS): sin título propio -- lo
+          muestra el header único de GestionSedes.jsx (mismo criterio
+          que TabSedes.jsx/TabProgramas.jsx). Queda solo la línea de
+          ayuda, como hint suelto (mismo estilo que uv-subtitle), y el
+          buscador pasa a pu-toolbar/pu-search-input para verse igual
+          que la barra de búsqueda de Usuarios y Roles. */}
+      <p className="uv-subtitle gs-hint">
+        Marca qué programas están activos en cada sede. Un programa
+        desactivado en una sede deja de ofrecerse ahí (selectores de
+        usuarios, panel QR, etc.) sin afectar su historial ni a las
+        demás sedes.
+      </p>
 
       {error && <div className="gs-error">{error}</div>}
 
@@ -131,11 +131,10 @@ export default function TabAsignacion({ showToast, logAudit, refrescarClave }) {
               verticalmente, y encontrar una sede por nombre es más
               rápido que desplazarse. */}
           {sedes.length > 5 && (
-            <div className="gs-asig-buscador">
-              <i className="ti ti-search" aria-hidden="true" />
+            <div className="pu-toolbar">
               <input
                 type="text"
-                className="s-input s-input--full"
+                className="s-input pu-search-input"
                 placeholder="Buscar sede…"
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}

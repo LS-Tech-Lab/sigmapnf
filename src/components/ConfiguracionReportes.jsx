@@ -15,6 +15,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { CONFIG_REPORTE_DEFAULT } from "../utils/reportePlantilla";
+import "./usuarios/index.css"; // rediseño 14 ago 2026: uv-subtitle, ver comentario en el render
+import "./GestionSedes.css"; // .gs-hint
 import "./ConfiguracionReportes.css";
 
 const COLORES_REPORTE = [
@@ -254,14 +256,13 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
 
   return (
     <div className="cr-root">
-      <div className="cr-header">
-        <h2 className="cr-title">
-          <i className="ti ti-palette" aria-hidden="true" /> Configuración de Reportes
-        </h2>
-        <p className="cr-subtitle">
-          Logo, color y textos del membrete de los reportes imprimibles (Reporte Diario, Reporte por Rango y Planilla Imprimible).
-        </p>
-      </div>
+      {/* Rediseño 14 ago 2026 (pedido LS): se quita el título propio de
+          "Membrete" -- lo muestra el header único de GestionReportes.jsx
+          (mismo criterio que TabSedes.jsx/TabProgramas.jsx). Queda solo
+          la línea de ayuda, como hint suelto. */}
+      <p className="uv-subtitle gs-hint">
+        Logo, color y textos del membrete de los reportes imprimibles (Reporte Diario, Reporte por Rango y Planilla Imprimible).
+      </p>
 
       {/* UX-41: en móvil la vista previa vive acá, ANTES del formulario y
           fuera de .cr-layout, como barra sticky compacta -- así queda

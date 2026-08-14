@@ -22,9 +22,9 @@
    alineado a Registros (lv-root: 24px 28px) para que los 4 paneles de
    Sistema respiren igual. */
 .cr-root { padding: 24px 28px; }
-.cr-header { margin-bottom: 20px; }
-.cr-title { display: flex; align-items: center; gap: 8px; font-size: 1.25rem; margin: 0 0 4px; }
-.cr-subtitle { color: var(--color-text-mid); font-size: 0.9rem; margin: 0; }
+/* cr-header/cr-title/cr-subtitle quitados en el rediseño del 14 ago 2026:
+   el título propio de esta pestaña se eliminó (ver ConfiguracionReportes.jsx),
+   ahora usa uv-subtitle/gs-hint (reutilizadas de Usuarios y Roles). */
 .cr-loading { display: flex; align-items: center; gap: 8px; padding: 40px; justify-content: center; color: var(--color-text-mid); }
 
 /* UX-39 (13 ago, mismo pedido de LS que en Sedes/Programas): antes era

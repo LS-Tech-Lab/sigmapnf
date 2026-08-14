@@ -33,6 +33,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { ModalConfirm } from "../usuarios/shared";
 import { useSedeContext } from "../../context/SedeContext";
+import "../usuarios/PestanaUsuarios.css"; // rediseño 14 ago 2026: reutiliza
+// pu-toolbar/pu-stats/pu-table TAL CUAL de Usuarios y Roles en vez de la
+// lista de tarjetas en flex-wrap que había antes -- ver el comentario
+// grande en el return() de abajo.
 import "../GestionSedes.css";
 
 function slugify(nombre) {
@@ -53,6 +57,7 @@ export default function TabSedes({ showToast, logAudit, onCambio }) {
   const [sedes,   setSedes]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
+  const [busqueda, setBusqueda] = useState("");
 
   const [modalNuevo,  setModalNuevo]  = useState(false);
   const [modalEditar, setModalEditar] = useState(null); // sede completa o null
@@ -208,67 +213,94 @@ export default function TabSedes({ showToast, logAudit, onCambio }) {
     );
   }
 
+  const sedesFiltradas = sedes.filter(s => {
+    const q = busqueda.trim().toLowerCase();
+    return !q || s.nombre.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
+  });
+  const totalActivas = sedes.filter(s => s.activa).length;
+
   return (
     <div>
-      <div className="gs-header">
-        <div>
-          <h2 className="gs-title">
-            <i className="ti ti-building-community" aria-hidden="true" /> Sedes
-          </h2>
-          <p className="gs-subtitle">
-            Crea sedes nuevas y administra cuáles están activas. Desactivar
-            una sede la retira del selector, sin borrar sus datos históricos.
-          </p>
-        </div>
-        <button type="button" className="gs-btn-nuevo" onClick={abrirNuevo}>
+      {/* Rediseño 14 ago 2026 (pedido LS): mismo patrón que
+          PestanaUsuarios.jsx (Sistema → Usuarios y Roles) -- toolbar de
+          búsqueda + botón de alta, tarjetas de estadística, y una tabla
+          real (pu-table) en vez de la lista de filas en flex-wrap que
+          había antes. Sin título propio acá: el título de la pestaña ya
+          lo muestra el header único de GestionSedes.jsx, igual que
+          PestanaUsuarios no repite "Usuarios" dentro de su contenido. */}
+      <div className="pu-toolbar">
+        <input
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre o identificador…"
+          className="s-input pu-search-input"
+        />
+        <button type="button" className="pu-btn-nuevo" onClick={abrirNuevo}>
           <i className="ti ti-plus" aria-hidden="true" /> Nueva sede
         </button>
       </div>
 
+      <div className="pu-stats">
+        <div className="pu-stat pu-stat--total">
+          <span className="pu-stat-value">{sedes.length}</span>
+          <span className="pu-stat-label">Total</span>
+        </div>
+        <div className="pu-stat pu-stat--activos">
+          <span className="pu-stat-value">{totalActivas}</span>
+          <span className="pu-stat-label">Activas</span>
+        </div>
+        <div className="pu-stat pu-stat--inactivos">
+          <span className="pu-stat-value">{sedes.length - totalActivas}</span>
+          <span className="pu-stat-label">Inactivas</span>
+        </div>
+      </div>
+
       {error && <div className="gs-error">{error}</div>}
 
-      {/* UX-39 (LS, 13 ago 2026): reemplaza el grid de columnas fijas
-          (minmax 160/140-200/70/110/80 ≈ 600px de mínimo) por filas en
-          flex-wrap, sin ningún ancho mínimo por "columna". El grid
-          anterior (UX-37) ya no forzaba scroll horizontal, pero seguía
-          exigiendo ~600px para caber sin desbordar -- por debajo de eso
-          el contenido se salía de `.s-card` y `overflow:hidden` lo
-          recortaba en silencio (el bug real: "IDENTIFICADOR" cortado a
-          media palabra en capturas de LS, con la tarjeta mucho más
-          angosta que esos 600px). flex-wrap no tiene ese piso: cada
-          fila reacomoda nombre/id a la izquierda e id/orden/estado/
-          acciones a la derecha en el ancho que haya, sin importar
-          cuánto sea -- mismo criterio que ya usa TabAsignacion.jsx
-          (chips) y por eso esa pestaña nunca mostró el bug. */}
-      <div className="s-card gs-list-card">
-        {sedes.length === 0 ? (
-          <p className="gs-td-empty">Sin sedes registradas todavía.</p>
-        ) : sedes.map(sede => (
-          <div key={sede.id} className={`gs-row ${sede.activa ? "" : "gs-row--inactiva"}`}>
-            <div className="gs-row-main">
-              <span className="gs-row-nombre">{sede.nombre}</span>
-              <code className="gs-id">{sede.id}</code>
-            </div>
-            <div className="gs-row-meta">
-              <span className="gs-row-orden" title="Orden en el selector">Orden {sede.orden}</span>
-              <span className={`s-badge ${sede.activa ? "gs-badge--activa" : "gs-badge--inactiva"}`}>
-                {sede.activa ? "Activa" : "Inactiva"}
-              </span>
-              <div className="gs-actions">
-                <button
-                  onClick={() => abrirEditar(sede)}
-                  title="Editar"
-                  className="gs-action-btn"
-                ><i className="ti ti-pencil" aria-hidden="true" /></button>
-                <button
-                  onClick={() => setConfirm({ sede, nuevaActiva: !sede.activa })}
-                  title={sede.activa ? "Desactivar" : "Activar"}
-                  className={`gs-action-btn ${sede.activa ? "gs-action-btn--desactivar" : "gs-action-btn--activar"}`}
-                ><i className={`ti ${sede.activa ? "ti-toggle-right" : "ti-toggle-left"}`} aria-hidden="true" /></button>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="s-card pu-table-card">
+        <table className="pu-table">
+          <thead>
+            <tr>
+              {["Sede", "Orden", "Estado", ""].map((h, i) => (
+                <th key={i} className={`s-th${i === 3 ? " pu-th--right" : ""}`}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sedesFiltradas.length === 0 ? (
+              <tr><td colSpan={4} className="s-td pu-td-empty">Sin sedes que coincidan.</td></tr>
+            ) : sedesFiltradas.map(sede => (
+              <tr key={sede.id} className={sede.activa ? "" : "pu-row--inactivo"}>
+                <td className="s-td">
+                  <div className="pu-user-name">{sede.nombre}</div>
+                  <div className="pu-user-email"><code className="gs-id">{sede.id}</code></div>
+                </td>
+                <td className="s-td">
+                  <span className="pu-programa">{sede.orden}</span>
+                </td>
+                <td className="s-td">
+                  <span className={`s-badge ${sede.activa ? "pu-badge-estado--activo" : "pu-badge-estado--inactivo"}`}>
+                    {sede.activa ? "Activa" : "Inactiva"}
+                  </span>
+                </td>
+                <td className="s-td pu-td-right">
+                  <div className="pu-actions">
+                    <button onClick={() => abrirEditar(sede)} title="Editar" className="pu-action-btn">
+                      <i className="ti ti-pencil" aria-hidden="true" />
+                    </button>
+                    <button
+                      onClick={() => setConfirm({ sede, nuevaActiva: !sede.activa })}
+                      title={sede.activa ? "Desactivar" : "Activar"}
+                      className={`pu-action-btn ${sede.activa ? "pu-action-btn--desactivar" : "pu-action-btn--activar"}`}
+                    >
+                      <i className={`ti ${sede.activa ? "ti-toggle-right" : "ti-toggle-left"}`} aria-hidden="true" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Modal alta/edición */}
