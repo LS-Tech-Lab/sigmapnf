@@ -82,6 +82,61 @@ describe("plantillaReporte — logo de la coordinación (migración 0092)", () =
   });
 });
 
+describe("plantillaReporte — logo de UNERMB (migración 0094, reemplaza el nombre en texto)", () => {
+  it("con logo_unermb_base64 configurado, renderiza <img> en vez del <h1> de texto", () => {
+    const logo = "data:image/png;base64,iVBORw0KGgoUnermb=";
+    const html = plantillaReporte({
+      config: { nombre_institucion: "UNERMB", logo_unermb_base64: logo },
+      titulo: "T", subtitulo: "S", seccionesHtml: "",
+    });
+    expect(html).toContain(`src="${logo}"`);
+    expect(html).toContain("membrete-logo-unermb-img");
+    expect(html).not.toContain("<h1>");
+  });
+
+  it("sin logo_unermb_base64, cae al <h1> de texto de siempre (compatibilidad hacia atrás)", () => {
+    const html = plantillaReporte({
+      config: { nombre_institucion: "UNERMB" },
+      titulo: "T", subtitulo: "S", seccionesHtml: "",
+    });
+    expect(html).toContain("<h1>UNERMB</h1>");
+    expect(html).not.toContain("membrete-logo-unermb-img");
+  });
+
+  it("con logo_unermb_base64 Y nombre_institucion, el logo gana -- no se muestran los dos", () => {
+    const logo = "data:image/png;base64,iVBORw0KGgoUnermb=";
+    const html = plantillaReporte({
+      config: { nombre_institucion: "UNERMB", logo_unermb_base64: logo },
+      titulo: "T", subtitulo: "S", seccionesHtml: "",
+    });
+    expect(html).not.toContain("<h1>UNERMB</h1>");
+    expect(html).not.toContain("<h1>");
+  });
+
+  it("un logo_unermb_base64 con formato inesperado igual se interpola dentro de un atributo escapado", () => {
+    const html = plantillaReporte({
+      config: { logo_unermb_base64: 'data:image/png;base64,x" onerror="alert(1)' },
+      titulo: "T", subtitulo: "S", seccionesHtml: "",
+    });
+    expect(html).toContain("&quot;");
+    expect(html).not.toContain('x" onerror="alert(1)"');
+  });
+});
+
+describe("plantillaReporte — los 3 logos comparten la misma proporción (14 ago)", () => {
+  it("institucional, coordinación y UNERMB usan la misma regla agrupada de tamaño en reporte-print.css", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const cssPath = path.resolve(__dirname, "../../public/reporte-print.css");
+    const css = fs.readFileSync(cssPath, "utf-8");
+    // Las 3 clases deben estar agrupadas bajo el mismo selector combinado
+    // (no 3 bloques con los mismos valores repetidos a mano), para que no
+    // se puedan desincronizar en un ajuste futuro.
+    const reglaAgrupada = /\.membrete-logo-img,\s*\.membrete-logo-coordinacion-img,\s*\.membrete-logo-unermb-img\s*{/;
+    expect(css).toMatch(reglaAgrupada);
+  });
+});
+
 describe("plantillaReporte — nombre_institucion vacío (14 ago: el admin debe poder borrarlo)", () => {
   it("con nombre_institucion vacío, no imprime un <h1> vacío", () => {
     const html = plantillaReporte({
