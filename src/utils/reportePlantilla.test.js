@@ -82,6 +82,32 @@ describe("plantillaReporte — logo de la coordinación (migración 0092)", () =
   });
 });
 
+describe("plantillaReporte — nombre_institucion vacío (14 ago: el admin debe poder borrarlo)", () => {
+  it("con nombre_institucion vacío, no imprime un <h1> vacío", () => {
+    const html = plantillaReporte({
+      config: { nombre_institucion: "" },
+      titulo: "T", subtitulo: "S", seccionesHtml: "",
+    });
+    expect(html).not.toContain("<h1>");
+  });
+
+  it("con nombre_institucion configurado, sí imprime el <h1>", () => {
+    const html = plantillaReporte({
+      config: { nombre_institucion: "UNERMB" },
+      titulo: "T", subtitulo: "S", seccionesHtml: "",
+    });
+    expect(html).toContain("<h1>UNERMB</h1>");
+  });
+
+  it("subtitulo_1/2 vacíos tampoco imprimen <p> vacíos", () => {
+    const html = plantillaReporte({
+      config: { nombre_institucion: "", subtitulo_1: "", subtitulo_2: "" },
+      titulo: "T", subtitulo: "S", seccionesHtml: "",
+    });
+    expect(html).not.toContain("<p></p>");
+  });
+});
+
 describe("plantillaReporte — color_clase fuera del enum (defensa en profundidad)", () => {
   it("un color_clase desconocido cae al default en vez de emitirse tal cual en el HTML", () => {
     const html = plantillaReporte({
