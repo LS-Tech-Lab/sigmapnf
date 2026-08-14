@@ -165,7 +165,14 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
     try {
       const { data: userData } = await supabase.auth.getUser();
       const payload = {
-        nombre_institucion: (form.nombre_institucion || "").trim() || CONFIG_REPORTE_DEFAULT.nombre_institucion,
+        // Antes: si el campo quedaba vacío, se forzaba de vuelta a
+        // CONFIG_REPORTE_DEFAULT.nombre_institucion ("UNERMB") -- el admin
+        // no podía borrarlo nunca (ej. porque ya subió un logo que trae el
+        // nombre de la institución impreso y el texto duplicado sobra).
+        // La columna es NOT NULL DEFAULT 'UNERMB' en la migración 0056,
+        // pero eso solo evita NULL -- '' (string vacío) es un valor válido
+        // y reportePlantilla.js ya no imprime la línea si está vacía.
+        nombre_institucion: (form.nombre_institucion || "").trim(),
         subtitulo_1:         (form.subtitulo_1 || "").trim(),
         subtitulo_2:         (form.subtitulo_2 || "").trim(),
         pie_texto:           (form.pie_texto || "").trim(),
