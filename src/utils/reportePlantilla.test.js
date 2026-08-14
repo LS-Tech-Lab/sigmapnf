@@ -49,6 +49,39 @@ describe("plantillaReporte — logo real vs placeholder", () => {
   });
 });
 
+describe("plantillaReporte — logo de la coordinación (migración 0092)", () => {
+  it("con logo_coordinacion_base64 configurado, renderiza <img> aparte, a la derecha del banner institucional", () => {
+    const logoCoordinacion = "data:image/png;base64,iVBORw0KGgoCoord=";
+    const html = plantillaReporte({
+      config: { logo_coordinacion_base64: logoCoordinacion },
+      titulo: "T", subtitulo: "S", seccionesHtml: "",
+    });
+    expect(html).toContain(`src="${logoCoordinacion}"`);
+    expect(html).toContain("membrete-logo-coordinacion-img");
+    // Vive dentro de membrete-izq, después de membrete-texto -- a la
+    // derecha del banner institucional, no en membrete-der (título/fecha).
+    const idxTexto = html.indexOf("membrete-texto");
+    const idxCoordinacion = html.indexOf("membrete-logo-coordinacion-img");
+    const idxDer = html.indexOf("membrete-der");
+    expect(idxTexto).toBeLessThan(idxCoordinacion);
+    expect(idxCoordinacion).toBeLessThan(idxDer);
+  });
+
+  it("sin logo_coordinacion_base64, no renderiza nada (es opcional, a diferencia del institucional)", () => {
+    const html = plantillaReporte({ titulo: "T", subtitulo: "S", seccionesHtml: "" });
+    expect(html).not.toContain("membrete-logo-coordinacion-img");
+  });
+
+  it("un logo_coordinacion_base64 con formato inesperado igual se interpola dentro de un atributo escapado", () => {
+    const html = plantillaReporte({
+      config: { logo_coordinacion_base64: 'data:image/png;base64,x" onerror="alert(1)' },
+      titulo: "T", subtitulo: "S", seccionesHtml: "",
+    });
+    expect(html).toContain("&quot;");
+    expect(html).not.toContain('x" onerror="alert(1)"');
+  });
+});
+
 describe("plantillaReporte — color_clase fuera del enum (defensa en profundidad)", () => {
   it("un color_clase desconocido cae al default en vez de emitirse tal cual en el HTML", () => {
     const html = plantillaReporte({
