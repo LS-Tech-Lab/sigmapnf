@@ -251,7 +251,7 @@ describe("ReporteRango — borrado de rango (ADMIN-2)", () => {
     );
 
     await waitFor(() =>
-      expect(showToast).toHaveBeenCalledWith("Se borraron 2 registro(s) de asistencia.", "success")
+      expect(showToast).toHaveBeenCalledWith("Se borraron 2 registro(s) de asistencia. Se descargó un respaldo CSV/JSON.", "success")
     );
     // fetchRango() se vuelve a disparar tras el borrado exitoso
     await waitFor(() => expect(supabase.rpc.mock.calls.length).toBeGreaterThan(llamadasAntesDeBorrar));
