@@ -164,9 +164,6 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
     <div className="pib-root">
       <h1 className="pib-title">
         <i className="ti ti-flag-2 pib-title-icon" aria-hidden="true" />
-        {reporteConfig?.logo_coordinacion_base64 && (
-          <img src={reporteConfig.logo_coordinacion_base64} alt="Logo de la coordinación" className="pib-logo-coordinacion" />
-        )}
         Asistencias Diarias por Turno
       </h1>
       <div className="s-card pib-toolbar">
