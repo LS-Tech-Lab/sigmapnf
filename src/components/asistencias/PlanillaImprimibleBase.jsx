@@ -121,11 +121,19 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
   const handlePrint = () => {
     const diaLabel = selectedDay.charAt(0) + selectedDay.slice(1).toLowerCase();
 
-    const theadHtml = columnasActivas.map(col => `<th>${ESC(col.etiqueta)}</th>`).join("");
+    const theadHtml = columnasActivas.map(col =>
+      `<th${col.campo === 'hora' ? ' class="th-hora"' : ''}>${ESC(col.etiqueta)}</th>`
+    ).join("");
 
     const filas = bloquesDelDia.map(b => {
       const celdas = columnasActivas.map(col => {
         const spec = CAMPOS_BLOQUE[col.campo];
+        // Pedido de LS (14 ago): la columna Hora ("07:30 – 09:45 AM")
+        // partía en 2 líneas dentro de la celda -- td-hora fuerza una
+        // sola línea (white-space: nowrap en reporte-print.css) en vez
+        // de dejar que el ancho de columna, calculado junto al resto de
+        // columnas más anchas (Asignatura, Profesor), la comprima.
+        if (col.campo === 'hora') return `<td class="td-hora">${ESC(spec.getValor(b))}</td>`;
         if (spec.blank) return `<td class="td-center"><div class="firma-box"></div></td>`;
         const valor = ESC(spec.getValor(b));
         return `<td${spec.center ? ' class="td-center"' : ''}>${valor}</td>`;
