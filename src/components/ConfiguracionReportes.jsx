@@ -87,6 +87,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
   const [abiertas, setAbiertas] = useState({ logos: true, color: true, textos: true });
   const fileInputRef = useRef(null);
   const fileInputCoordinacionRef = useRef(null); // migración 0092 (13 ago)
+  const fileInputUnermbRef = useRef(null); // migración 0094 (14 ago)
 
   // UX-41 (14 ago): en pantallas angostas .cr-layout manda la vista previa
   // al final (después del formulario completo, ver flex-wrap en el CSS),
@@ -116,7 +117,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
     try {
       const { data, error: err } = await supabase
         .from("configuracion_reportes")
-        .select("nombre_institucion, subtitulo_1, subtitulo_2, pie_texto, firma_label, logo_base64, logo_coordinacion_base64, color_clase")
+        .select("nombre_institucion, subtitulo_1, subtitulo_2, pie_texto, firma_label, logo_base64, logo_coordinacion_base64, logo_unermb_base64, color_clase")
         .eq("id", 1)
         .maybeSingle();
       if (err) { setError(err.message); }
@@ -179,6 +180,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
         firma_label:         (form.firma_label || "").trim(),
         logo_base64:         form.logo_base64 || null,
         logo_coordinacion_base64: form.logo_coordinacion_base64 || null,
+        logo_unermb_base64: form.logo_unermb_base64 || null,
         color_clase:         form.color_clase,
         updated_at:          new Date().toISOString(),
         updated_by:          userData?.user?.id || null,
@@ -236,7 +238,11 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
             : inicial}
         </div>
         <div>
-          <div className="cr-preview-nombre">{form.nombre_institucion || "—"}</div>
+          <div className="cr-preview-nombre">
+            {form.logo_unermb_base64
+              ? <img src={form.logo_unermb_base64} alt="Logo de UNERMB" className="cr-preview-logo-unermb" />
+              : (form.nombre_institucion || "—")}
+          </div>
           <div className="cr-preview-sub">{form.subtitulo_1 || "—"}</div>
           <div className="cr-preview-sub">{form.subtitulo_2 || "—"}</div>
         </div>
@@ -322,12 +328,16 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
                 />
               </div>
 
-              {/* Logo de la coordinación (migración 0092, 13 ago) — se muestra
-                  junto al ícono de la Planilla de Asistencia por Turno. */}
+              {/* Logo de la coordinación (migración 0092, 13 ago) -- se
+                  muestra en el membrete impreso, a la derecha del banner
+                  institucional. (14 ago: ya no se muestra también en
+                  pantalla junto al título "Asistencias Diarias por Turno"
+                  -- se quitó de ahí por pedido de LS; el reporte impreso
+                  sigue siendo el único lugar donde aparece.) */}
               <div className="cr-logo-compact">
                 <div className="cr-logo-compact-header">
                   <span className="cr-field-label">Logo de la coordinación</span>
-                  <InfoTip texto="PNG, JPG o WEBP, máx. 1.5 MB. Opcional — si no se sube, no se muestra nada junto al ícono." />
+                  <InfoTip texto="PNG, JPG o WEBP, máx. 1.5 MB. Opcional — si no se sube, no ocupa espacio en el membrete." />
                 </div>
                 <div className="cr-logo-preview cr-logo-preview--sm">
                   {form.logo_coordinacion_base64
@@ -351,6 +361,40 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
                   onChange={handleLogoChange("logo_coordinacion_base64")}
                   className="cr-file-input"
                   aria-label="Subir logo de la coordinación"
+                />
+              </div>
+
+              {/* Logo de UNERMB (migración 0094, 14 ago) -- reemplaza el
+                  nombre de la institución (texto) en el membrete impreso.
+                  Si no se sube, el membrete sigue mostrando el nombre en
+                  texto como siempre (ver reportePlantilla.js). */}
+              <div className="cr-logo-compact">
+                <div className="cr-logo-compact-header">
+                  <span className="cr-field-label">Logo de UNERMB</span>
+                  <InfoTip texto="PNG, JPG o WEBP, máx. 1.5 MB. Reemplaza el nombre de la institución (texto) en el membrete. Si no se sube, se sigue mostrando el nombre en texto." />
+                </div>
+                <div className="cr-logo-preview cr-logo-preview--sm">
+                  {form.logo_unermb_base64
+                    ? <img src={form.logo_unermb_base64} alt="Logo de UNERMB actual" className="cr-logo-img" />
+                    : <div className="cr-logo-placeholder">{inicial}</div>}
+                </div>
+                <div className="cr-logo-compact-actions">
+                  <button type="button" className="s-btn s-btn--sm" onClick={() => fileInputUnermbRef.current?.click()}>
+                    {form.logo_unermb_base64 ? "Cambiar logo" : "Subir logo"}
+                  </button>
+                  {form.logo_unermb_base64 && (
+                    <button type="button" className="cr-link-quitar" onClick={handleQuitarLogo("logo_unermb_base64")}>
+                      Quitar
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={fileInputUnermbRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleLogoChange("logo_unermb_base64")}
+                  className="cr-file-input"
+                  aria-label="Subir logo de UNERMB"
                 />
               </div>
             </div>
