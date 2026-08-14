@@ -140,7 +140,39 @@
 .cr-btn-guardar:disabled { opacity: 0.5; cursor: default; }
 .cr-error { color: var(--color-danger, #DC2626); font-size: 0.85rem; }
 
-/* ── Vista previa ── */
+/* ── Vista previa sticky compacta (móvil, UX-41) ──
+   Reemplaza a .cr-preview cuando esCompacta=true (JS, ver matchMedia en
+   el componente -- el umbral de 859px replica el punto donde .cr-layout
+   deja de tener sitio real para los 320px de columna fija más 420px
+   mínimos de formulario, mismo criterio que motivó el flex-wrap de
+   UX-39). `top: var(--cr-topbar-offset)` por si el layout de la app
+   (AdminModulo/HorariosLayout) tiene su propio header sticky por encima:
+   ajustar esa variable a la altura real de ese header si llegara a
+   superponerse -- por defecto 0 porque no se conoce esa altura desde
+   este componente. */
+.cr-preview-sticky {
+  position: sticky; top: var(--cr-topbar-offset, 0px); z-index: 15;
+  background: var(--color-bg, #fff);
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: 10px; margin-bottom: 14px; overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.cr-preview-sticky-bar {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: none; border: none; cursor: pointer; text-align: left;
+}
+.cr-preview-sticky-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--cr-swatch-color, #1E3A8A); color: #fff; font-weight: 900; font-size: 0.8rem;
+}
+.cr-preview-sticky-avatar img { width: 100%; height: 100%; object-fit: contain; }
+.cr-preview-sticky-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cr-preview-sticky-nombre { font-weight: 600; font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-preview-sticky-label { font-size: 0.68rem; color: var(--color-text-mid); text-transform: uppercase; letter-spacing: 0.03em; }
+.cr-preview-sticky .cr-preview-card { border: none; border-top: 1px solid var(--color-border, #E5E7EB); border-radius: 0; }
+
+/* ── Vista previa (columna fija, desktop) ── */
 .cr-preview { position: sticky; top: 20px; }
 .cr-preview-label { font-weight: 600; font-size: 0.8rem; color: var(--color-text-mid); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
 .cr-preview-card { padding: 16px; }
