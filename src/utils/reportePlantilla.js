@@ -51,8 +51,12 @@ export const CONFIG_REPORTE_DEFAULT = {
   firma_label: "Firma y sello del Coordinador(a)",
   logo_base64: null,
   // Migración 0092 (13 ago): segundo logo, distinto del institucional --
-  // se muestra junto al ícono de la Planilla de Asistencia por Turno.
+  // se muestra en el membrete impreso, a la derecha del banner institucional.
   logo_coordinacion_base64: null,
+  // Migración 0094 (14 ago): tercer logo -- reemplaza el <h1> de texto
+  // (nombre_institucion) cuando está configurado. Si es null, se sigue
+  // mostrando el texto plano (ver nombreHtml más abajo).
+  logo_unermb_base64: null,
   color_clase: "rp-color--azul",
 };
 
@@ -198,9 +202,16 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
   // hueco en el layout igual que un párrafo vacío. Los subtítulos ya se
   // comportaban así (sin fallback forzado, ver ConfiguracionReportes.jsx);
   // acá se pareja el mismo criterio para el nombre.
-  const nombreHtml = cfg.nombre_institucion
-    ? `<h1>${ESC(cfg.nombre_institucion)}</h1>`
-    : "";
+  //
+  // Migración 0094 (14 ago): si además hay un logo_unermb_base64
+  // configurado, ese logo reemplaza por completo el <h1> de texto (fue
+  // pedido explícito de LS: "donde salía el nombre de Unermb, agregar el
+  // logo en su lugar") -- el logo tiene prioridad sobre el texto, no se
+  // muestran los dos. Si no hay logo, se cae al comportamiento de texto
+  // de siempre (con el mismo criterio de "vacío no imprime nada" de arriba).
+  const nombreHtml = cfg.logo_unermb_base64
+    ? `<img class="membrete-logo-unermb-img" src="${ESC(cfg.logo_unermb_base64)}" alt="${ESC(cfg.nombre_institucion) || "UNERMB"}" />`
+    : (cfg.nombre_institucion ? `<h1>${ESC(cfg.nombre_institucion)}</h1>` : "");
   const subtitulo1Html = cfg.subtitulo_1 ? `<p>${ESC(cfg.subtitulo_1)}</p>` : "";
   const subtitulo2Html = cfg.subtitulo_2 ? `<p>${ESC(cfg.subtitulo_2)}</p>` : "";
 
