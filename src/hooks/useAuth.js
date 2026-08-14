@@ -44,6 +44,10 @@ export const PERMISOS_BASE = {
   puedeVerReporteAsistencias: false,
   puedeBorrarSesiones:       false,
   puedeBorrarReportes:       false,
+  // ADMIN-3 (14 ago): borra audit_logs -- ver migración 0094 y el
+  // precedente SEC-8 (0049) sobre por qué esto es una excepción deliberada,
+  // no el patrón por defecto.
+  puedeBorrarAuditoria:      false,
   // SEDE-1/SEDE-2: acceso a todas las sedes en vez de quedar fijo a una
   // sola. Se asigna por rol (0062), mismo patrón dinámico que el resto.
   puedeVerTodasLasSedes:     false,
