@@ -19,7 +19,7 @@ export function useReporteConfig() {
     try {
       const { data, error: err } = await supabase
         .from("configuracion_reportes")
-        .select("nombre_institucion, subtitulo_1, subtitulo_2, pie_texto, firma_label, logo_base64, logo_coordinacion_base64, color_clase")
+        .select("nombre_institucion, subtitulo_1, subtitulo_2, pie_texto, firma_label, logo_base64, logo_coordinacion_base64, logo_unermb_base64, color_clase")
         .eq("id", 1)
         .maybeSingle();
 
