@@ -180,6 +180,11 @@
 .cr-preview-logo { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--cr-swatch-color, #1E3A8A); color: #fff; font-weight: 900; }
 .cr-preview-logo img { width: 100%; height: 100%; object-fit: contain; }
 .cr-preview-nombre { font-weight: 700; font-size: 0.95rem; color: var(--cr-swatch-color, #1E3A8A); }
+/* Migración 0094 (14 ago): logo de UNERMB en vez del nombre en texto,
+   dentro de este preview compacto -- max-height acotado a la altura de
+   línea aproximada del texto que reemplaza, para no desbalancear la
+   tarjeta de vista previa. */
+.cr-preview-logo-unermb { display: block; max-height: 22px; width: auto; object-fit: contain; }
 .cr-preview-sub { font-size: 0.75rem; color: var(--color-text-mid); }
 .cr-preview-pie { font-size: 0.7rem; color: var(--color-text-mid); margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border, #E5E7EB); }
 
