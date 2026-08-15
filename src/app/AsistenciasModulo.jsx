@@ -62,6 +62,33 @@ export default function AsistenciasModulo({
   const [headerVisible,     setHeaderVisible]     = useState(true);
   const headerTimerRef = useRef(null);
 
+  // UX-39 (auditoría responsive, 15 ago 2026): .asm-tabs se desplaza
+  // horizontalmente en móvil (fix UX-34) pero sin ninguna pista visual de
+  // que hay más pestañas fuera de vista -- el usuario solo lo descubre
+  // por accidente al deslizar. Se agrega un fade en los bordes que solo
+  // aparece cuando efectivamente hay contenido oculto hacia ese lado
+  // (mismo criterio que los indicadores de carrusel ya usados en otras
+  // partes de la app), en vez de un gradiente estático que taparía la
+  // primera/última pestaña incluso sin scroll pendiente.
+  const tabsRef = useRef(null);
+  const [tabsOverflow, setTabsOverflow] = useState({ left: false, right: false });
+
+  const checkTabsOverflow = () => {
+    const el = tabsRef.current;
+    if (!el) return;
+    setTabsOverflow({
+      left: el.scrollLeft > 4,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
+    });
+  };
+
+  useEffect(() => {
+    checkTabsOverflow();
+    window.addEventListener("resize", checkTabsOverflow);
+    return () => window.removeEventListener("resize", checkTabsOverflow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subView]);
+
   // ASIST-2: hook compartido (mismo que usa Horarios en App.jsx) -- se usa
   // aquí solo para el aviso en Panel QR cuando "hoy" cae fuera del rango
   // de fechas del trimestre activo (caso real: un trimestre se cierra y
@@ -160,17 +187,25 @@ export default function AsistenciasModulo({
           </button>
         )}
 
-        {/* Pestañas internas */}
-        <div className="asm-tabs">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setSubView(tab.id)}
-              className={`asm-tab ${subView === tab.id ? "asm-tab--active" : ""}`}
-            >
-              <i className={`ti ${tab.icon}`} aria-hidden="true" /> {tab.label}
-            </button>
-          ))}
+        {/* Pestañas internas.
+            UX-39: envueltas en .asm-tabs-wrap para poder posicionar el
+            fade de scroll (::before/::after) sin que se desplace junto
+            con el contenido -- el wrapper se queda fijo, solo .asm-tabs
+            (el hijo) hace scroll. */}
+        <div
+          className={`asm-tabs-wrap ${tabsOverflow.left ? "asm-tabs-wrap--overflow-left" : ""} ${tabsOverflow.right ? "asm-tabs-wrap--overflow-right" : ""}`}
+        >
+          <div className="asm-tabs" ref={tabsRef} onScroll={checkTabsOverflow}>
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setSubView(tab.id)}
+                className={`asm-tab ${subView === tab.id ? "asm-tab--active" : ""}`}
+              >
+                <i className={`ti ${tab.icon}`} aria-hidden="true" /> {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Indicador de sesión QR activa */}
