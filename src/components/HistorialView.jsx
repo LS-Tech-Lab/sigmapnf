@@ -308,7 +308,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
                 </div>
               )}
             </div>
-            <StatusBadge estado="activo" />
+            <StatusBadge estado={trimestreActual?.estado} />
           </div>
         </div>
 
