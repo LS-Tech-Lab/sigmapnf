@@ -120,6 +120,13 @@ export default function AdminModulo({
     });
   };
 
+  // UX-39 (ajuste 15 ago): ver comentario equivalente en
+  // AsistenciasModulo.jsx -- flechas reales en vez de depender solo del
+  // fade, que resultaba invisible sobre el fondo blanco de .asm-topbar.
+  const scrollTabs = (dir) => {
+    tabsRef.current?.scrollBy({ left: dir * 130, behavior: "smooth" });
+  };
+
   useEffect(() => {
     checkTabsOverflow();
     window.addEventListener("resize", checkTabsOverflow);
@@ -143,8 +150,13 @@ export default function AdminModulo({
       <header className="asm-topbar">
         {/* Volver al selector — solo si también tiene acceso a otro módulo */}
         {(tieneHorarios || tieneQR) && (
-          <button onClick={onVolverSelector} className="topbar-back-btn">
-            <i className="ti ti-arrow-left" aria-hidden="true" /> Módulos
+          <button
+            onClick={onVolverSelector}
+            className="topbar-back-btn"
+            title="Volver a Módulos"
+            aria-label="Volver a Módulos"
+          >
+            <i className="ti ti-arrow-left" aria-hidden="true" /> <span className="topbar-back-label">Módulos</span>
           </button>
         )}
 
@@ -152,6 +164,16 @@ export default function AdminModulo({
         <div
           className={`asm-tabs-wrap ${tabsOverflow.left ? "asm-tabs-wrap--overflow-left" : ""} ${tabsOverflow.right ? "asm-tabs-wrap--overflow-right" : ""}`}
         >
+          {tabsOverflow.left && (
+            <button
+              type="button"
+              className="asm-tabs-arrow asm-tabs-arrow--left"
+              onClick={() => scrollTabs(-1)}
+              aria-label="Ver pestañas anteriores"
+            >
+              <i className="ti ti-chevron-left" aria-hidden="true" />
+            </button>
+          )}
           <div className="asm-tabs" ref={tabsRef} onScroll={checkTabsOverflow}>
             {TABS.map((t) => (
               <button
@@ -163,6 +185,16 @@ export default function AdminModulo({
               </button>
             ))}
           </div>
+          {tabsOverflow.right && (
+            <button
+              type="button"
+              className="asm-tabs-arrow asm-tabs-arrow--right"
+              onClick={() => scrollTabs(1)}
+              aria-label="Ver más pestañas"
+            >
+              <i className="ti ti-chevron-right" aria-hidden="true" />
+            </button>
+          )}
         </div>
 
         {/* Menú de usuario */}
