@@ -86,14 +86,16 @@ export const FAKE_PROFILE_ADMIN = {
     nombre: 'qa_visual_admin',
     label: 'QA Visual Admin',
     emoji: '🧪',
-    // Fix UX-41 (15 ago, CI real): '#7C3AED' no es uno de los 10
-    // COLORES_PRESET válidos (ModalRol.jsx los restringió desde
-    // UX-5/SEC-3, 5 jul) — roleColorClass() lo resolvía a
-    // .role-color--default, un fallback pensado para datos legados que
-    // resultó tener contraste insuficiente (ver index.css). Se usa acá
-    // el preset real "sb-admin" (#A78BFA) en vez de inventar un color:
-    // más realista para un perfil de prueba admin, y ya no dispara el
-    // fallback.
+    // Fix UX-41 (15 ago): '#7C3AED' no es uno de los 10 COLORES_PRESET
+    // válidos (ModalRol.jsx los restringió desde UX-5/SEC-3, 5 jul) —
+    // caía en .role-color--default, un fallback con contraste
+    // insuficiente (ver index.css).
+    // Fix UX-42 (15 ago): se usa a propósito 'sb-admin' (#A78BFA) — es
+    // uno de los 7 presets que antes fallaban 4.5:1 como texto plano
+    // (.um-role/.shared-badge usaban --role-color directo). Con
+    // --role-text ya corregido en src/index.css, este es exactamente el
+    // caso que antes rompía: si UX-42 se revierte alguna vez sin querer,
+    // este test vuelve a fallar y avisa.
     color: '#A78BFA',
     restringe_programa: false,
     permisos: {
