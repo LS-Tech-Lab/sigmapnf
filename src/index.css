@@ -1188,8 +1188,15 @@ textarea:focus-visible,
 .role-color--purple     { --role-color: #9333EA; --role-bg: rgba(147,51,234,0.12); --role-border: rgba(147,51,234,0.25); --role-tint-5: rgba(147,51,234,0.05); }
 .role-color--pink       { --role-color: #BE185D; --role-bg: rgba(190,24,93,0.12);  --role-border: rgba(190,24,93,0.25); --role-tint-5: rgba(190,24,93,0.05); }
 /* Color no reconocido (fuera de las 14 conocidas) — mismo fallback que cada
-   componente ya usaba en su `|| valor` original. */
-.role-color--default    { --role-color: var(--color-text-tertiary); --role-bg: var(--color-background-subtle); --role-border: var(--color-border); --role-tint-5: var(--color-background-subtle); }
+   componente ya usaba en su `|| valor` original.
+   Fix UX-41 (15 ago, CI real vía axe-core): var(--color-text-tertiary)
+   #64748b sobre --role-bg (--color-background-subtle #f3f4f6) da 4.32:1,
+   por debajo del 4.5:1 exigido a texto normal — relevante porque, como ya
+   documenta el párrafo de arriba, este fallback SÍ es alcanzable en
+   producción con datos legados (rol creado antes de UX-5/SEC-3 con un
+   color fuera del picker) mientras la migración 0052 siga pendiente.
+   var(--color-text-mid) #374151 da 9.41:1 sobre el mismo fondo. */
+.role-color--default    { --role-color: var(--color-text-mid); --role-bg: var(--color-background-subtle); --role-border: var(--color-border); --role-tint-5: var(--color-background-subtle); }
 
 /* ──────────────────────────────────────────────────────────────────────────
    Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, Fase 4) — Ancho bucketizado (5%).
