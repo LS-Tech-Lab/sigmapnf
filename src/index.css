@@ -718,6 +718,17 @@ textarea:focus-visible,
   .um-sede-badge { display: none; }
 }
 
+/* UX-39: en móvil angosto (Panel QR es el caso real reportado) el bloque
+   nombre+rol le quita ~90-110px al grupo de pestañas, que es lo que el
+   usuario realmente necesita alcanzar sin deslizar. Se colapsa a solo
+   avatar+chevron -- nombre/rol/email siguen disponibles de inmediato en
+   el dropdown (.um-menu-header ya los muestra), así que no se pierde
+   información, solo se saca de la vista compacta. */
+@media (max-width: 480px) {
+  .um-info { display: none; }
+  .um-trigger-btn { padding: 4px 6px; gap: 0; }
+}
+
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
 
 /* SinPerfilAsignado.jsx / CuentaDesactivada.jsx — pantallas de bloqueo compartidas (UX-5, auditoría 2026-07-05) */
@@ -809,8 +820,26 @@ textarea:focus-visible,
    se replicó acá. Ahora el grupo de pestañas es su propio contenedor con
    scroll horizontal (swipe en móvil), y cada pestaña no se comprime
    (flex-shrink: 0) para no truncar el label a la mitad. */
+/* UX-39: wrapper fijo (no scrollea) que aloja el fade -- ver comentario
+   en AsistenciasModulo.jsx. min-width: 0 se mueve acá desde .asm-tabs
+   para que el wrapper (y no el hijo) sea el que se encoge en flexbox. */
+.asm-tabs-wrap { position: relative; min-width: 0; }
+.asm-tabs-wrap::before,
+.asm-tabs-wrap::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 18px;
+  pointer-events: none; opacity: 0; transition: opacity 0.15s ease; z-index: 1;
+}
+.asm-tabs-wrap::before {
+  left: 0; background: linear-gradient(to right, #fff, rgba(255,255,255,0));
+}
+.asm-tabs-wrap::after {
+  right: 0; background: linear-gradient(to left, #fff, rgba(255,255,255,0));
+}
+.asm-tabs-wrap--overflow-left::before  { opacity: 1; }
+.asm-tabs-wrap--overflow-right::after  { opacity: 1; }
+
 .asm-tabs {
-  display: flex; gap: 4px; min-width: 0; overflow-x: auto;
+  display: flex; gap: 4px; overflow-x: auto;
   -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
 .asm-tabs::-webkit-scrollbar { display: none; }
