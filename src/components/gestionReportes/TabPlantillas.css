@@ -38,9 +38,18 @@
 
 /* Recorta la hoja "de tamaño real" (dimensionada en px por
    DIMENSIONES_PAGINA_PX) a un marco fijo, con sombra de "papel" --
-   ver plantillaPreview.js para la lógica de escala. */
+   ver plantillaPreview.js para la lógica de escala.
+   Fix (verificado por LS, 15 ago): faltaba `max-width: 100%` -- en
+   viewports angostos (~320-340px) el modal solo tiene ~260-300px de
+   ancho de contenido disponible (.gs-modal max-width:780px/96vw menos
+   padding), y este `width: 300px` fijo forzaba el desborde que el
+   propio comentario de arriba (fase 2, línea 16-19) decía que no debía
+   pasar. `overflow: hidden` ya recortaba visualmente la hoja escalada,
+   pero no evitaba que la CAJA del contenedor empujara al modal/backdrop
+   a desbordar horizontalmente, porque no tenía ningún límite superior
+   ligado al ancho real disponible. */
 .tp-preview-wrap {
-  width: 300px; overflow: hidden; border-radius: 4px;
+  width: 300px; max-width: 100%; overflow: hidden; border-radius: 4px;
   box-shadow: 0 1px 4px rgba(15,23,42,0.25); background: #fff;
 }
 .tp-preview-iframe { border: none; transform-origin: top left; display: block; }
