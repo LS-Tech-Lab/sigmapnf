@@ -31,6 +31,10 @@ import { useSedeContext } from "../../../context/SedeContext";
 import useTrimestreActivo from "../../../hooks/useTrimestreActivo";
 import { formatLapso, rangoTrimestre } from "../../../utils/lapso";
 import { CHART_COLORS, restarDias, formatFechaCorta, topN } from "./helpers";
+// FIX (turno-todos-estadisticas): reutiliza el mismo sentinel "TODOS" +
+// lista de turnos habilitados que ya usan ReporteRango.jsx y
+// ReporteAsistencias/index.jsx, en vez de duplicar la lista acá.
+import { TURNOS_FILTRO } from "../ReporteAsistencias/helpers";
 import "./index.css";
 
 const MAX_BARRAS = 10;
@@ -97,11 +101,17 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
     setError(null);
 
     try {
+      // "TODOS" (sentinel de UI) -> NULL; reporte_estadisticas_academicas
+      // (0097) trata p_turno NULL como "sin filtro" (por_puntualidad sale
+      // '[]' en ese caso, ver comentario en la función -- no hay una hora
+      // de inicio de turno única que comparar cuando no hay filtro).
+      const turnoFiltro = turno === "TODOS" ? null : turno;
+
       const { data, error: err } = await supabase
         .rpc("reporte_estadisticas_academicas", {
           p_fecha_desde: inicio,
           p_fecha_hasta: fin,
-          p_turno:       turno,
+          p_turno:       turnoFiltro,
           p_programa:    programa || null,
           p_sede_id:     sedeActiva || null,
         })
@@ -202,7 +212,11 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
         <label className="est-filtro-label">
           <span className="est-filtro-label-text">Turno</span>
           <select value={turno} onChange={e => setTurno(e.target.value)} className="s-select">
-            {TURNOS_CONFIG.filter(t => t.habilitado).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+            {TURNOS_FILTRO.map(t => (
+              <option key={t} value={t}>
+                {t === "TODOS" ? "Todos los turnos" : (TURNOS_CONFIG.find(c => c.id === t)?.label || t)}
+              </option>
+            ))}
           </select>
         </label>
         <label className="est-filtro-label">
@@ -314,11 +328,16 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
           <h2 className="est-chart-title">Puntualidad</h2>
           <p className="est-chart-note">
             Compara la hora de marcaje de ENTRADA contra la hora de inicio del turno filtrado (5 min de gracia).
+            {turno === "TODOS" && " Selecciona un turno específico para ver este gráfico (con \"Todos los turnos\" no hay una única hora de inicio con la cual comparar)."}
           </p>
           {loading ? (
             <div className="est-chart-skeleton" />
           ) : porPuntualidad.length === 0 ? (
-            <p className="est-empty-msg">No hay entradas registradas para este período/turno.</p>
+            <p className="est-empty-msg">
+              {turno === "TODOS"
+                ? "Selecciona un turno específico para ver la puntualidad."
+                : "No hay entradas registradas para este período/turno."}
+            </p>
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={porPuntualidad} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
