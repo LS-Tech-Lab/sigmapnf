@@ -50,7 +50,7 @@
 
 /* ── Búsqueda / estados vacíos ──────────────────────────────────────────── */
 .hist-search { width: 100%; box-sizing: border-box; margin-bottom: 16px; font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); outline: none; font-weight: 500; }
-.hist-loading, .hist-empty { text-align: center; padding: 48px; color: #94A3B8; font-size: var(--font-size-14); }
+.hist-loading, .hist-empty { text-align: center; padding: 48px; color: var(--color-text-tertiary); font-size: var(--font-size-14); }
 .hist-empty__icon { font-size: var(--font-size-32); color: #CBD5E1; display: block; margin-bottom: 12px; }
 .hist-empty__text { font-size: var(--font-size-14); color: var(--color-text-tertiary); }
 
@@ -64,14 +64,14 @@
 .hist-card__title { font-size: var(--font-size-15); font-weight: 700; color: var(--color-text-primary); }
 .hist-card__meta { display: flex; gap: 14px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
 .hist-card__meta-item { font-size: var(--font-size-11); color: var(--color-text-tertiary); display: flex; align-items: center; gap: 3px; }
-.hist-card__meta-item--muted { color: #94A3B8; }
-.hist-card__chevron { color: #94A3B8; font-size: var(--font-size-14); }
+.hist-card__meta-item--muted { color: var(--color-text-tertiary); }
+.hist-card__chevron { color: var(--color-text-tertiary); font-size: var(--font-size-14); }
 
 .hist-card__detail { border-top: 1px solid var(--color-background-tertiary); padding: 16px 18px; }
 .hist-card__note { background: var(--color-warning-bg); border: 1px solid var(--color-warning-border); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: var(--font-size-12); color: var(--color-warning-text); display: flex; align-items: flex-start; gap: 6px; }
 .hist-card__note-icon { flex-shrink: 0; margin-top: 1px; }
 
-.hist-detail-loading, .hist-detail-empty { color: #94A3B8; font-size: var(--font-size-13); }
+.hist-detail-loading, .hist-detail-empty { color: var(--color-text-tertiary); font-size: var(--font-size-13); }
 
 .hist-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
 .hist-stat { background: var(--color-background-secondary); border-radius: 8px; padding: 10px 14px; }
@@ -101,7 +101,7 @@
 
 .hist-field__input { width: 100%; box-sizing: border-box; font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); outline: none; font-weight: 500; }
 .hist-field__input--textarea { resize: vertical; font-family: inherit; }
-.hist-field__hint { font-size: var(--font-size-11); color: #94A3B8; margin-top: 4px; display: block; }
+.hist-field__hint { font-size: var(--font-size-11); color: var(--color-text-tertiary); margin-top: 4px; display: block; }
 .hist-field__hint--accent { color: var(--color-accent); }
 
 .hist-label { font-size: var(--font-size-12); font-weight: 600; color: var(--color-text-secondary); display: block; margin-bottom: 5px; }
@@ -113,12 +113,12 @@
 .hist-modal__confirm { flex: 2; padding: 10px 0; border-radius: 8px; border: none; font-size: var(--font-size-13); font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .hist-modal__confirm--crear { background: var(--brand-500); color: #fff; cursor: pointer; }
 .hist-modal__confirm--cerrar { background: var(--color-danger); color: #fff; cursor: pointer; }
-.hist-modal__confirm--disabled { background: var(--color-border-tertiary); color: #94A3B8; cursor: not-allowed; }
+.hist-modal__confirm--disabled { background: var(--color-border-tertiary); color: var(--color-text-tertiary); cursor: not-allowed; }
 .hist-modal__confirm-icon { font-size: var(--font-size-15); }
 
 /* ── Comparador de trimestres ────────────────────────────────────────────── */
 .hist-comp-card { padding: 20px; }
-.hist-comp-empty { text-align: center; padding: 32px 0; color: #94A3B8; font-size: var(--font-size-13); }
+.hist-comp-empty { text-align: center; padding: 32px 0; color: var(--color-text-tertiary); font-size: var(--font-size-13); }
 .hist-comp-selectors { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
 .hist-comp-select { width: 100%; font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; background: #fff; color: var(--color-text-primary); cursor: pointer; font-weight: 500; border: 1px solid; }
 .hist-comp-select--a { border-color: var(--color-accent); }
@@ -157,10 +157,10 @@
 .hist-comp-prog-title--comun { color: #166534; }
 .hist-comp-prog-title--a { color: var(--brand-600); }
 .hist-comp-prog-title--b { color: #6D28D9; }
-.hist-comp-prog-empty { font-size: var(--font-size-11); color: #94A3B8; }
+.hist-comp-prog-empty { font-size: var(--font-size-11); color: var(--color-text-tertiary); }
 .hist-comp-prog-item { font-size: var(--font-size-11); margin-bottom: 2px; }
 .hist-comp-prog-item--comun { color: #166534; }
 .hist-comp-prog-item--a { color: var(--brand-600); }
 .hist-comp-prog-item--b { color: #6D28D9; }
 
-.hist-comp-footer-hint { font-size: var(--font-size-12); color: #94A3B8; margin-top: 12px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.hist-comp-footer-hint { font-size: var(--font-size-12); color: var(--color-text-tertiary); margin-top: 12px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; }
