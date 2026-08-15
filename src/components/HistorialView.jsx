@@ -216,15 +216,18 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
   );
 
   const trimestreActual = trimestres.find(t => t.lapso === lapsoActivo);
-  // ASIST-7 (seguimiento al fix del badge hardcodeado): lapsoActivo es el
-  // lapso que la app tiene SELECCIONADO en este momento (viene de
-  // useTrimestreActivo() vía App.jsx), no necesariamente el que tiene
-  // estado='activo' en la tabla `trimestres`. "Cerrar trimestre activo"
-  // manda siempre lapsoSugerido=lapsoActivo sin permitir editarlo (ver
-  // ModalTrimestre), así que si se deja visible mientras se ve un lapso
-  // ya cerrado, el botón "cierra" un trimestre que ya estaba cerrado
-  // (sobreescribe cerrado_en/cerrado_por) sin tocar el que sí sigue
-  // activo -- confuso y potencialmente engañoso para el usuario.
+  // Fix UX-40 (auditoría 15 ago): lapsoActivo es el lapso que la app
+  // tiene SELECCIONADO en este momento (viene de useTrimestreActivo()
+  // vía App.jsx), no necesariamente el que tiene estado='activo' en la
+  // tabla `trimestres`. Dos bugs de fondo detectados juntos: (1) el
+  // badge de la tarjeta "Trimestre en curso" estaba hardcodeado a
+  // estado="activo" sin leer el estado real (ver StatusBadge más abajo);
+  // (2) "Cerrar trimestre activo" manda siempre lapsoSugerido=lapsoActivo
+  // sin permitir editarlo (ver ModalTrimestre), así que si se deja
+  // visible mientras se ve un lapso ya cerrado, el botón "cierra" un
+  // trimestre que ya estaba cerrado (sobreescribe cerrado_en/cerrado_por)
+  // sin tocar el que sí sigue activo -- confuso y potencialmente
+  // engañoso para el usuario.
   const viendoElTrimestreActivo = trimestreActual?.estado === "activo";
 
   return (
