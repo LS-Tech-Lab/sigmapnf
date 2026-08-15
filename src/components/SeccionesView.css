@@ -42,7 +42,7 @@
 }
 
 .sv-stats-row { display: flex; gap: 24px; flex-wrap: wrap; }
-.sv-stat-label { font-size: var(--font-size-11); color: #94A3B8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.sv-stat-label { font-size: var(--font-size-11); color: var(--color-text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 .sv-stat-value { font-size: var(--font-size-15); font-weight: 600; color: var(--color-text-primary); margin-top: 3px; }
 
 .sv-days-header { display: grid; grid-template-columns: repeat(5,1fr); border-bottom: 2px solid var(--color-border-tertiary); }
