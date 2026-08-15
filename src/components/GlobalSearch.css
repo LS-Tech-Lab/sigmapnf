@@ -2,8 +2,16 @@
    GlobalSearch.css
    Migración UX-5 (auditoría 2026-07-05): estilos extraídos de GlobalSearch.jsx.
    La clase "global-search" ya tenía reglas responsive en src/index.css
-   (max-width en breakpoints) — se conserva intacta, junto a "gs-root" para
-   el resto del estilo.
+   (max-width en breakpoints) — se conserva intacta, junto a "gsearch-root"
+   para el resto del estilo.
+   Fix UX-44 (14 ago 2026): renombrado de "gs-root" a "gsearch-root". "gs-"
+   ya lo usa GestionSedes.css/GestionReportes.jsx (.gs-root del shell de
+   Sistema → Sedes/Reportes, max-width:1200px) para un contenedor
+   totalmente distinto. Al compartir la misma clase, el width:280px de
+   acá se sumaba (no pisaba, son propiedades distintas) al max-width:1200
+   de aquel, dejando el panel de Sedes/Reportes encogido a 280px de ancho
+   con franjas vacías a los lados. Nombre único para que ambas reglas
+   dejen de colisionar.
    El separador entre resultados (`borderTop: i > 0 ? ... : none`) dependía
    solo de la posición del índice, no de datos reales — se resuelve con
    `:not(:first-child)` en CSS puro.
@@ -13,7 +21,7 @@
    --tag-bg/--tag-color.
    ────────────────────────────────────────────────────────────────────────────── */
 
-.gs-root { position: relative; width: 280px; }
+.gsearch-root { position: relative; width: 280px; }
 
 .gs-box {
   display: flex; align-items: center; gap: 8px;
