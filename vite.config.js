@@ -25,6 +25,24 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,ico,png,woff,woff2,webmanifest}'],
           runtimeCaching: [
             {
+              // BUG (lapso-viejo-tras-login, ago 2026): `trimestres` es la
+              // fuente de verdad de useTrimestreActivo() para decidir cuál
+              // es el lapso activo (ver src/hooks/useTrimestreActivo.js).
+              // Si esta consulta específica cae en el NetworkFirst de abajo
+              // (regla genérica para *toda* la API de Supabase) y la red
+              // tarda más de networkTimeoutSeconds, el Service Worker
+              // devuelve la respuesta cacheada más reciente que tenga --
+              // sin error, así que el hook no tiene forma de saber que el
+              // dato es viejo. Síntoma real: al loguearse se ve un lapso
+              // desactualizado (ej. de una sesión/seed vieja) y solo se
+              // corrige al refrescar, cuando la red sí llega a tiempo.
+              // Esta regla debe ir ANTES que la genérica: Workbox usa la
+              // primera coincidencia, y el patrón genérico de abajo también
+              // matchea esta URL.
+              urlPattern: new RegExp(`^https://${supabaseHost}/rest/v1/trimestres.*`, 'i'),
+              handler: 'NetworkOnly',
+            },
+            {
               urlPattern: new RegExp(`^https://${supabaseHost}/.*`, 'i'),
               handler: 'NetworkFirst',
               options: {
