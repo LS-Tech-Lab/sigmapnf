@@ -129,6 +129,20 @@
   --space-10px: 10px;
   --space-14px: 14px;
 
+  /* ── Padding de botones/campos (Fix UX-38, auditoría UI/UX 14 ago) ────
+     .s-btn/.eb-btn/.bs-btn/.s-select/.s-input tenían el mismo concepto
+     (padding de control interactivo) repetido como literal en 3+ lugares
+     sin variable compartida — cambiar el tamaño "estándar" implicaba
+     grep manual. Se nombran por valor real (mismo criterio que
+     --space-Npx arriba), sin fusionar tamaños que hoy son distintos
+     a propósito (ej. --btn-pad-cancel vs --btn-pad-md) — solo da un
+     punto único de verdad, no cambia ningún tamaño visible hoy. ──────── */
+  --field-pad: 7px 12px;
+  --btn-pad-sm: 4px 10px;
+  --btn-pad-md: 7px 16px;
+  --btn-pad-cancel: 9px 20px;
+  --btn-pad-lg: 10px 24px;
+
   /* ── Radios y sombras ────────────────────────────────────────────────── */
   --border-radius-sm: 6px;
   --border-radius-md: 8px;
@@ -474,17 +488,17 @@ textarea:focus-visible,
 
 .s-td { padding: 11px 14px; font-size: var(--font-size-13); border-top: 1px solid var(--color-background-tertiary); color: var(--color-text-mid); }
 
-.s-select { font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); cursor: pointer; font-weight: 500; }
+.s-select { font-size: var(--font-size-13); padding: var(--field-pad); border-radius: var(--border-radius-md); border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); cursor: pointer; font-weight: 500; }
 .s-select--full { width: 100%; }
 
-.s-input { font-size: var(--font-size-13); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); outline: none; font-weight: 500; }
+.s-input { font-size: var(--font-size-13); padding: var(--field-pad); border-radius: var(--border-radius-md); border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); outline: none; font-weight: 500; }
 .s-input--full { width: 100%; box-sizing: border-box; }
 
 /* S.btn(active) — dos variantes según el booleano `active` */
-.s-btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--color-border-tertiary); background: #fff; color: var(--color-text-mid); cursor: pointer; font-size: var(--font-size-13); font-weight: 500; transition: all 0.15s; }
+.s-btn { padding: var(--btn-pad-md); border-radius: var(--border-radius-md); border: 1px solid var(--color-border-tertiary); background: #fff; color: var(--color-text-mid); cursor: pointer; font-size: var(--font-size-13); font-weight: 500; transition: all 0.15s; }
 .s-btn--active { border-color: var(--brand-500); background: var(--color-background-info); color: var(--brand-600); font-weight: 600; }
-.s-btn--cancel { padding: 9px 20px; }
-.s-btn--sm { font-size: var(--font-size-12); padding: 4px 10px; }
+.s-btn--cancel { padding: var(--btn-pad-cancel); }
+.s-btn--sm { font-size: var(--font-size-12); padding: var(--btn-pad-sm); }
 
 /* Fix UX-37 (auditoría UI/UX 14 ago): .s-btn/.s-select/.s-input rondaban
    27-30px de alto real (padding 7px + font-size 13px), por debajo del
@@ -556,7 +570,7 @@ textarea:focus-visible,
 .eb-title { margin: 0; font-size: var(--font-size-20); font-weight: 600; color: var(--color-background-tertiary); }
 .eb-desc { margin: 0; font-size: var(--font-size-14); color: #94A3B8; max-width: 420px; line-height: 1.6; }
 .eb-stack { margin-top: 12px; padding: 12px 16px; background: var(--navy-800); border-radius: 8px; font-size: var(--font-size-10); color: var(--color-border-secondary); text-align: left; overflow-x: auto; max-width: 100%; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; }
-.eb-btn { margin-top: 8px; padding: 10px 24px; border-radius: 8px; border: none; background: var(--color-accent); color: #fff; font-size: var(--font-size-14); font-weight: 600; cursor: pointer; }
+.eb-btn { margin-top: 8px; padding: var(--btn-pad-lg); border-radius: var(--border-radius-md); border: none; background: var(--color-accent); color: #fff; font-size: var(--font-size-14); font-weight: 600; cursor: pointer; }
 
 /* AlertaSinVincular.jsx */
 .asv-box { background: var(--color-warning-bg); border: 1px solid var(--color-warning-border); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; }
@@ -723,7 +737,7 @@ textarea:focus-visible,
 .bs-icon--danger { color: #EF4444; }
 .bs-title { margin: 0 0 8px; font-size: var(--font-size-20); color: #111827; }
 .bs-desc { margin: 0 0 24px; font-size: var(--font-size-14); color: #6B7280; line-height: 1.6; }
-.bs-btn { padding: 10px 24px; border-radius: 8px; border: none; color: #fff; cursor: pointer; font-size: var(--font-size-14); font-weight: 600; }
+.bs-btn { padding: var(--btn-pad-lg); border-radius: var(--border-radius-md); border: none; color: #fff; cursor: pointer; font-size: var(--font-size-14); font-weight: 600; }
 .bs-btn--dark { background: #374151; }
 .bs-btn--primary { background: #2563EB; }
 
