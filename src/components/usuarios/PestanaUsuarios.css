@@ -32,8 +32,20 @@
 .pu-stat-value { font-size: var(--font-size-22); font-weight: 800; }
 .pu-stat-label { font-size: var(--font-size-12); font-weight: 600; }
 .pu-stat--total .pu-stat-value, .pu-stat--total .pu-stat-label { color: var(--brand-500); }
-.pu-stat--activos .pu-stat-value, .pu-stat--activos .pu-stat-label { color: var(--color-success); }
-.pu-stat--inactivos .pu-stat-value, .pu-stat--inactivos .pu-stat-label { color: var(--color-danger); }
+/* Fix UX-40 (14 ago, CI real): .pu-stat-value (22px/800) SÍ cumple WCAG a
+   3:1 como "texto grande en negrita" con estos mismos colores, pero
+   .pu-stat-label (12px/600) necesita 4.5:1 y no llegaba —
+   var(--color-success) #059669 daba 3.58:1 sobre --color-success-bg
+   #ecfdf5, var(--color-danger) #dc2626 daba 4.41:1 sobre --color-danger-bg
+   #fef2f2. Se separa el color del label del valor: el valor mantiene el
+   tono "de marca" (success/danger), el label usa el mismo tono ya oscuro
+   que .gs-badge--activa (#047857, 5.21:1) y el que ya usa .gs-error como
+   fallback (#B91C1C, 5.91:1) — no son colores nuevos, son los que el
+   propio proyecto ya usa en otro lado para el mismo propósito. */
+.pu-stat--activos .pu-stat-value { color: var(--color-success); }
+.pu-stat--activos .pu-stat-label { color: #047857; }
+.pu-stat--inactivos .pu-stat-value { color: var(--color-danger); }
+.pu-stat--inactivos .pu-stat-label { color: #B91C1C; }
 
 .pu-huerfanos-banner {
   background: #FEF9EC; border: 1px solid #F59E0B; border-radius: 10px;
