@@ -17,19 +17,31 @@
 // endpoint. Ampliar la cobertura a más pantallas es trabajo de
 // seguimiento, no algo que deba bloquear este fix.
 //
-// 'color-contrast' queda deshabilitado a propósito: axe-core lo calcula
-// sobre una captura estática del DOM y da falsos positivos frecuentes con
-// gradientes/overlays semi-transparentes (varios ya presentes en el
-// login) — igual que Playwright ya tolera un maxDiffPixelRatio > 0 en vez
-// de 0 para las capturas visuales (mismo criterio: un chequeo
-// perfeccionista que dispara constantemente entrena al equipo a
-// ignorarlo). El resto de las reglas de axe-core (~90, incluyendo
-// etiquetas de formulario, roles ARIA inválidos, orden de headings,
-// nombres accesibles de botones) sí corren completas.
+// 'color-contrast' queda deshabilitado a propósito EN LAS 3 PANTALLAS
+// DE ARRIBA: axe-core lo calcula sobre una captura estática del DOM y da
+// falsos positivos frecuentes con gradientes/overlays semi-transparentes
+// (varios ya presentes en el login) — igual que Playwright ya tolera un
+// maxDiffPixelRatio > 0 en vez de 0 para las capturas visuales (mismo
+// criterio: un chequeo perfeccionista que dispara constantemente entrena
+// al equipo a ignorarlo). El resto de las reglas de axe-core (~90,
+// incluyendo etiquetas de formulario, roles ARIA inválidos, orden de
+// headings, nombres accesibles de botones) sí corren completas.
+//
+// Fix UX-35 (seguimiento) + UX-39, auditoría UI/UX 14 ago: 2 pantallas
+// nuevas del módulo "Sistema" (Admin) — "Usuarios y Roles" y "Sedes y
+// Programas" — antes completamente fuera del piloto. Usan
+// FAKE_PROFILE_ADMIN (mockSupabase.js) en vez de FAKE_PROFILE, con solo
+// permisos admin para que useModuloActivo auto-seleccione el módulo
+// directo, sin depender de un click en ModuleSelector para llegar.
+// 'color-contrast' SÍ corre completo en estas 2 (a diferencia de las 3
+// de arriba): son tablas/formularios planos de fondo blanco sólido, sin
+// gradientes ni overlays semi-transparentes — el motivo original del
+// falso positivo (login) no aplica acá, así que no hay razón para
+// heredar la misma excepción sin verificarla primero.
 
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { loginComoFake } from './mockSupabase.js';
+import { loginComoFake, FAKE_PROFILE_ADMIN } from './mockSupabase.js';
 
 function sinViolacionesGraves(resultados) {
   // 'moderate' se reporta pero no bloquea el build todavía — empezar
@@ -83,6 +95,31 @@ test.describe('Accesibilidad (WCAG, axe-core) — UX-35', () => {
     const resultados = await new AxeBuilder({ page })
       .disableRules(['color-contrast'])
       .analyze();
+    sinViolacionesGraves(resultados);
+  });
+});
+
+test.describe('Accesibilidad (WCAG, axe-core) — Sistema/Admin (UX-35 seguimiento, UX-39)', () => {
+  test('usuarios y roles (pestaña por defecto): sin violaciones críticas/serias', async ({ page }) => {
+    await loginComoFake(page, { perfil: FAKE_PROFILE_ADMIN });
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: /gestión de usuarios y roles/i })).toBeVisible({ timeout: 15_000 });
+
+    // UX-39: color-contrast SÍ corre acá — fondo blanco sólido, sin los
+    // gradientes/overlays que motivaron la excepción en login.
+    const resultados = await new AxeBuilder({ page }).analyze();
+    sinViolacionesGraves(resultados);
+  });
+
+  test('sedes y programas: sin violaciones críticas/serias', async ({ page }) => {
+    await loginComoFake(page, { perfil: FAKE_PROFILE_ADMIN });
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: /gestión de usuarios y roles/i })).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole('button', { name: /sedes/i }).click();
+    await expect(page.getByRole('heading', { name: /sedes y programas/i })).toBeVisible({ timeout: 15_000 });
+
+    const resultados = await new AxeBuilder({ page }).analyze();
     sinViolacionesGraves(resultados);
   });
 });
