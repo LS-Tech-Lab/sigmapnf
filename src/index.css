@@ -494,6 +494,12 @@ textarea:focus-visible,
 .s-input { font-size: var(--font-size-13); padding: var(--field-pad); border-radius: var(--border-radius-md); border: 1px solid var(--color-border-secondary); background: #fff; color: var(--color-text-primary); outline: none; font-weight: 500; }
 .s-input--full { width: 100%; box-sizing: border-box; }
 
+/* UX-43 (auditoría UI/UX de élite, 15 ago): borde rojo para cualquier
+   .s-input/.s-select marcado aria-invalid — global en vez de por-modal,
+   para que el próximo formulario que adopte validación por campo (mismo
+   patrón que ModalUsuario) lo herede gratis sin CSS nuevo. */
+.s-input[aria-invalid="true"], .s-select[aria-invalid="true"] { border-color: var(--color-danger); }
+
 /* S.btn(active) — dos variantes según el booleano `active` */
 .s-btn { padding: var(--btn-pad-md); border-radius: var(--border-radius-md); border: 1px solid var(--color-border-tertiary); background: #fff; color: var(--color-text-mid); cursor: pointer; font-size: var(--font-size-13); font-weight: 500; transition: all 0.15s; }
 .s-btn--active { border-color: var(--brand-500); background: var(--color-background-info); color: var(--brand-600); font-weight: 600; }

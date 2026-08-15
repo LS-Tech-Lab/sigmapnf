@@ -4,16 +4,26 @@
    El estado "guardando" del botón de acción se resuelve con el pseudo-selector
    :disabled (el botón ya recibe el atributo disabled={saving}) en vez de
    lógica ternaria inline para cursor/opacity.
+
+   UX-41 (auditoría UI/UX de élite, 15 ago): `.mu-backdrop` centraba con
+   `align-items: center` y sin `overflow-y`, igual que `ModalRol.css` tenía
+   antes de su propio fix — en viewport corto (teclado virtual abierto en
+   móvil) el diálogo se recortaba sin forma de alcanzar los campos/botón
+   "Guardar" fuera de pantalla. Mismo patrón ya probado en `ModalRol.css`:
+   backdrop `flex-start` + `overflow-y: auto`, diálogo con margen vertical
+   en vez de centrado rígido.
    ────────────────────────────────────────────────────────────────────────────── */
 
 .mu-backdrop {
   position: fixed; inset: 0; background: rgba(15,23,42,0.6);
-  display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px;
+  display: flex; align-items: flex-start; justify-content: center; z-index: 1000; padding: 16px;
+  overflow-y: auto;
 }
 
 .mu-dialog {
   background: #fff; border-radius: 14px; padding: 28px; max-width: 480px; width: 100%;
   box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 18px;
+  margin: 24px auto;
 }
 
 .mu-header { display: flex; justify-content: space-between; align-items: center; }
@@ -28,6 +38,11 @@
 }
 
 .mu-field-hint { margin: 6px 0 0; font-size: var(--font-size-11); color: var(--color-text-tertiary); }
+
+/* UX-43 (auditoría UI/UX de élite, 15 ago): error de validación junto al
+   campo, en vez de un único banner genérico al final del modal. Mismo
+   color que .mu-error, sin fondo/borde propio — vive pegado al campo. */
+.mu-field-error { margin: 6px 0 0; font-size: var(--font-size-11); color: var(--color-danger); font-weight: 600; }
 
 .mu-error {
   background: var(--color-danger-bg); border: 1px solid var(--color-danger-light);

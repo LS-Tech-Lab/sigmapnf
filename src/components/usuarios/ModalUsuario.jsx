@@ -64,6 +64,15 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
+  // UX-43 (auditoría UI/UX de élite, 15 ago): antes handleSave() validaba
+  // secuencialmente con `return` en el primer campo inválido — un usuario
+  // con 3 errores a la vez necesitaba 3 intentos de "Guardar" para
+  // enterarse de todos, y el único mensaje vivía en un banner genérico al
+  // final del modal, sin `aria-invalid` ni asociación al campo. Ahora se
+  // valida todo de una vez en `validar()` y cada campo muestra su propio
+  // error junto al input. `error` queda solo para fallos del guardado en
+  // sí (red, RPC, API) — no para validación de formulario.
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const rolSeleccionado = roles.find(r => r.nombre === form.rol);
   // PROG-4: catálogo de programas filtrado a los activos en la sede
@@ -88,18 +97,34 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
     }));
   };
 
-  const handleSave = async () => {
-    setError("");
-    if (!form.email.trim())  return setError("El email es obligatorio.");
-    if (!form.nombre.trim()) return setError("El nombre es obligatorio.");
-    if (!form.rol)           return setError("Selecciona un rol.");
+  const validar = () => {
+    const errores = {};
+    if (!form.nombre.trim()) errores.nombre = "El nombre es obligatorio.";
+    if (!form.email.trim())  errores.email  = "El email es obligatorio.";
+    if (!form.rol)           errores.rol    = "Selecciona un rol.";
     if (rolSeleccionado?.restringe_programa && form.programas.length === 0)
-      return setError("Este rol requiere al menos un programa asignado.");
+      errores.programas = "Este rol requiere al menos un programa asignado.";
     if (!rolVeTodasSedes && !form.sede_id)
-      return setError("Este rol requiere una sede asignada.");
+      errores.sede_id = "Este rol requiere una sede asignada.";
     if (esNuevo) {
       const errorPwd = validarPassword(form.password);
-      if (errorPwd) return setError(errorPwd);
+      if (errorPwd) errores.password = errorPwd;
+    }
+    return errores;
+  };
+
+  const handleSave = async () => {
+    setError("");
+    const errores = validar();
+    setFieldErrors(errores);
+    if (Object.keys(errores).length > 0) {
+      // Mueve el foco al primer campo inválido en vez de dejarlo en el
+      // botón "Guardar" — el orden sigue el orden visual del formulario,
+      // no el orden en que se insertaron las claves del objeto.
+      const orden = ["nombre", "email", "password", "rol", "programas", "sede_id"];
+      const primerCampo = orden.find(f => errores[f]);
+      document.getElementById(`usr-field-${primerCampo}`)?.focus();
+      return;
     }
 
     setSaving(true);
@@ -265,7 +290,12 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
                 placeholder={placeholder}
                 type={type}
                 disabled={disabled}
+                aria-invalid={!!fieldErrors[field]}
+                aria-describedby={fieldErrors[field] ? `usr-field-${field}-error` : undefined}
               />
+              {fieldErrors[field] && (
+                <p id={`usr-field-${field}-error`} className="mu-field-error">{fieldErrors[field]}</p>
+              )}
             </div>
           ))}
 
@@ -280,16 +310,29 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
               onChange={set("password")}
               type="password"
               placeholder={esNuevo ? "Mínimo 8 caracteres" : "••••••••"}
+              aria-invalid={!!fieldErrors.password}
+              aria-describedby={fieldErrors.password ? "usr-field-password-error" : undefined}
             />
+            {fieldErrors.password && (
+              <p id="usr-field-password-error" className="mu-field-error">{fieldErrors.password}</p>
+            )}
           </div>
 
           <div>
             <label htmlFor="usr-field-rol" className="mu-field-label">Rol</label>
-            <select id="usr-field-rol" className="s-select s-select--full" value={form.rol} onChange={set("rol")}>
+            <select
+              id="usr-field-rol"
+              className="s-select s-select--full"
+              value={form.rol}
+              onChange={set("rol")}
+              aria-invalid={!!fieldErrors.rol}
+              aria-describedby={fieldErrors.rol ? "usr-field-rol-error" : undefined}
+            >
               {rolesVisibles.map(r => (
                 <option key={r.nombre} value={r.nombre}>{r.emoji} {r.label}</option>
               ))}
             </select>
+            {fieldErrors.rol && <p id="usr-field-rol-error" className="mu-field-error">{fieldErrors.rol}</p>}
             {rolSeleccionado && (
               <p className="mu-field-hint">
                 {rolSeleccionado.restringe_programa
@@ -309,7 +352,15 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
                   (0078/0079). El primero marcado queda como "principal"
                   en la columna escalar legada, sin que el orden importe
                   para el acceso real (eso lo resuelve la tabla N:N). */}
-              <div className="mu-programas-lista" role="group" aria-label="Programas asignados">
+              <div
+                id="usr-field-programas"
+                className="mu-programas-lista"
+                role="group"
+                aria-label="Programas asignados"
+                aria-invalid={!!fieldErrors.programas}
+                aria-describedby={fieldErrors.programas ? "usr-field-programas-error" : undefined}
+                tabIndex={-1}
+              >
                 {programasVisibles.map(p => (
                   <label key={p} className="mu-programa-item">
                     <input
@@ -321,19 +372,30 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
                   </label>
                 ))}
               </div>
+              {fieldErrors.programas && (
+                <p id="usr-field-programas-error" className="mu-field-error">{fieldErrors.programas}</p>
+              )}
             </div>
           )}
 
           <div>
-            <label htmlFor="usr-field-sede" className="mu-field-label">
+            <label htmlFor="usr-field-sede_id" className="mu-field-label">
               {rolVeTodasSedes ? "Sede de origen (opcional)" : "Sede asignada"}
             </label>
-            <select id="usr-field-sede" className="s-select s-select--full" value={form.sede_id} onChange={set("sede_id")}>
+            <select
+              id="usr-field-sede_id"
+              className="s-select s-select--full"
+              value={form.sede_id}
+              onChange={set("sede_id")}
+              aria-invalid={!!fieldErrors.sede_id}
+              aria-describedby={fieldErrors.sede_id ? "usr-field-sede_id-error" : undefined}
+            >
               <option value="">
                 {rolVeTodasSedes ? "— Sin sede fija (ve todas) —" : "— Seleccionar sede —"}
               </option>
               {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
             </select>
+            {fieldErrors.sede_id && <p id="usr-field-sede_id-error" className="mu-field-error">{fieldErrors.sede_id}</p>}
             <p className="mu-field-hint">
               {rolVeTodasSedes
                 ? "Este rol tiene acceso a todas las sedes — la sede es solo informativa."

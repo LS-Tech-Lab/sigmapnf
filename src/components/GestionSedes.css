@@ -80,12 +80,15 @@
 .gs-action-btn--desactivar:hover { color: var(--color-error-text, #B91C1C); border-color: rgba(185,28,28,0.3); }
 .gs-action-btn--activar:hover    { color: var(--color-success-text, #047857); border-color: rgba(4,120,87,0.3); }
 
-/* Modal alta/edición — mismo patrón visual que shared-confirm-* (ModalConfirm) */
+/* Modal alta/edición — mismo patrón visual que shared-confirm-* (ModalConfirm)
+   UX-41 (auditoría UI/UX de élite, 15 ago): backdrop sin overflow-y, mismo
+   gap que ModalUsuario — corregido con el mismo patrón (flex-start + scroll). */
 .gs-modal-backdrop {
   position: fixed; inset: 0; background: rgba(15,23,42,0.45); z-index: 1000;
-  display: flex; align-items: center; justify-content: center; padding: 16px;
+  display: flex; align-items: flex-start; justify-content: center; padding: 16px;
+  overflow-y: auto;
 }
-.gs-modal { width: 100%; max-width: 380px; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+.gs-modal { width: 100%; max-width: 380px; padding: 22px; display: flex; flex-direction: column; gap: 16px; margin: 24px auto; }
 .gs-modal-title { margin: 0; font-size: 1.05rem; }
 
 .gs-field { display: flex; flex-direction: column; gap: 6px; }

@@ -186,6 +186,14 @@
 .qrp-hist-borrar-btn { flex-shrink: 0; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-tertiary); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
 .qrp-hist-borrar-btn:hover { background: var(--color-error-bg, #FEF2F2); border-color: #FECACA; color: var(--color-error, #DC2626); }
 
+/* UX-42 (auditoría UI/UX de élite, 15 ago): 26px queda por debajo del mínimo
+   táctil de 44px (WCAG 2.5.5) — UX-37 solo cubrió .s-btn/.s-select/.s-input
+   en index.css, no los botones de icono de este panel. Mismo criterio que
+   UX-37: acotado a pointer:coarse para no inflar el botón en desktop. */
+@media (hover: none) and (pointer: coarse) {
+  .qrp-hist-borrar-btn { width: 44px; height: 44px; }
+}
+
 /* ── Modales inline (ColaOfflinePanel / confirmCierre) ───────────────────── */
 .qrp-modal-overlay   { position: fixed; inset: 0; z-index: 500; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
 .qrp-modal           { background: var(--color-surface); border-radius: 14px; padding: 28px; max-width: 380px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }

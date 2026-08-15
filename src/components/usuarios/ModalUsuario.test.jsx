@@ -218,3 +218,62 @@ describe("ModalUsuario — editar usuario existente", () => {
     expect(opciones).not.toContain("admin");
   });
 });
+
+// UX-43 (auditoría UI/UX de élite, 15 ago): handleSave() validaba
+// secuencialmente con `return` en el primer campo inválido — un usuario
+// con varios errores a la vez necesitaba un intento de "Guardar" por
+// cada uno para enterarse de todos. Ahora valida todo de una vez
+// (fieldErrors por campo) y no llama a ningún RPC hasta que el form
+// completo sea válido.
+describe("ModalUsuario — UX-43: validación por campo, todos los errores de una vez", () => {
+  it("con nombre Y sede vacíos a la vez, muestra AMBOS mensajes en el mismo intento de guardar", () => {
+    renderModal({ usuario: { ...usuarioExistente, nombre: "", sede_id: "" } });
+    fireEvent.click(screen.getByText("Guardar cambios"));
+
+    // Antes de UX-43 solo se veía "El nombre es obligatorio." — el error
+    // de sede quedaba oculto hasta un segundo intento de guardar.
+    expect(screen.getByText("El nombre es obligatorio.")).toBeTruthy();
+    expect(screen.getByText(/requiere una sede asignada/i)).toBeTruthy();
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("marca aria-invalid en cada campo inválido, no solo en un banner genérico", () => {
+    renderModal({ usuario: { ...usuarioExistente, nombre: "", sede_id: "" } });
+    fireEvent.click(screen.getByText("Guardar cambios"));
+
+    expect(screen.getByLabelText("Nombre completo").getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByLabelText("Sede asignada").getAttribute("aria-invalid")).toBe("true");
+    // Email era válido en este caso — no debe marcarse como inválido.
+    expect(screen.getByLabelText("Email").getAttribute("aria-invalid")).toBe("false");
+  });
+
+  it("mueve el foco al primer campo inválido en el orden visual del formulario", () => {
+    // nombre (primer campo del form) Y sede inválidos a la vez — el foco
+    // debe ir a nombre, no a sede, aunque sede aparezca después en el objeto.
+    renderModal({ usuario: { ...usuarioExistente, nombre: "", sede_id: "" } });
+    fireEvent.click(screen.getByText("Guardar cambios"));
+
+    expect(document.activeElement).toBe(screen.getByLabelText("Nombre completo"));
+  });
+
+  it("con el form válido, no queda ningún fieldError visible y sí llama al RPC", async () => {
+    renderModal();
+    fireEvent.click(screen.getByText("Guardar cambios"));
+
+    await waitFor(() => expect(supabase.rpc).toHaveBeenCalled());
+    expect(screen.queryByText("El nombre es obligatorio.")).toBeNull();
+    expect(screen.queryByText(/requiere una sede asignada/i)).toBeNull();
+  });
+
+  it("corregir un campo y volver a guardar limpia solo ese fieldError, no los demás pendientes", () => {
+    renderModal({ usuario: { ...usuarioExistente, nombre: "", sede_id: "" } });
+    fireEvent.click(screen.getByText("Guardar cambios"));
+    expect(screen.getByText("El nombre es obligatorio.")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Nombre completo"), { target: { value: "Nombre Corregido" } });
+    fireEvent.click(screen.getByText("Guardar cambios"));
+
+    expect(screen.queryByText("El nombre es obligatorio.")).toBeNull();
+    expect(screen.getByText(/requiere una sede asignada/i)).toBeTruthy();
+  });
+});

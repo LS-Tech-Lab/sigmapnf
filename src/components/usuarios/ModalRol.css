@@ -27,6 +27,13 @@
 .mr-color-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .mr-color-swatch { width: 24px; height: 24px; border-radius: 6px; cursor: pointer; box-sizing: border-box; border: 3px solid transparent; background: var(--role-color, #888); }
 .mr-color-swatch--active { border-color: var(--color-text-primary); }
+
+/* UX-42 (auditoría UI/UX de élite, 15 ago): mismo hueco que .qrp-hist-borrar-btn
+   — 24px por debajo del mínimo táctil de 44px. .mr-color-row ya usa flex-wrap,
+   así que agrandar el swatch en touch no rompe el layout, solo reacomoda filas. */
+@media (hover: none) and (pointer: coarse) {
+  .mr-color-swatch { width: 44px; height: 44px; }
+}
 /* .mr-color-input se eliminó (5/jul/2026, cierre de SEC-3): el <input
    type="color"> libre se quitó de ModalRol.jsx, solo quedan los 10 swatches
    del preset. */

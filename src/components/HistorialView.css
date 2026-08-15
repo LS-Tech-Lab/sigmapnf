@@ -88,8 +88,9 @@
 .hist-goto { padding: 7px 14px; border-radius: 7px; border: 1px solid var(--brand-200); background: var(--color-background-info); color: var(--brand-600); cursor: pointer; font-size: var(--font-size-12); font-weight: 600; display: flex; align-items: center; gap: 6px; }
 
 /* ── Modal (ModalTrimestre) ──────────────────────────────────────────────── */
-.hist-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; z-index: 900; padding: 24px; }
-.hist-modal { background: #fff; border-radius: 14px; padding: 28px; max-width: 460px; width: 100%; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18); }
+/* UX-41 (auditoría UI/UX de élite, 15 ago): mismo fix de scroll que ModalUsuario/GestionSedes. */
+.hist-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: flex-start; justify-content: center; z-index: 900; padding: 24px; overflow-y: auto; }
+.hist-modal { background: #fff; border-radius: 14px; padding: 28px; max-width: 460px; width: 100%; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18); margin: 24px auto; }
 .hist-modal__icon-wrap { margin-bottom: 8px; }
 .hist-modal__icon { font-size: var(--font-size-28); }
 .hist-modal__icon--crear { color: var(--brand-500); }
