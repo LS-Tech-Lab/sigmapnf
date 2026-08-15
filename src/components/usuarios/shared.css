@@ -12,7 +12,9 @@
    ────────────────────────────────────────────────────────────────────────────── */
 
 .shared-badge {
-  background: var(--role-bg, var(--color-background-subtle)); color: var(--role-color, var(--color-text-mid)); border: 1px solid var(--role-border, var(--color-border));
+  /* Fix UX-42 (15 ago): --role-text en vez de --role-color, ver
+     src/index.css junto a .role-color--* para el porqué. */
+  background: var(--role-bg, var(--color-background-subtle)); color: var(--role-text, var(--role-color, var(--color-text-mid))); border: 1px solid var(--role-border, var(--color-border));
   border-radius: 999px; padding: 2px 10px; font-size: var(--font-size-12); font-weight: 600;
   display: inline-flex; align-items: center; gap: 4px;
 }
