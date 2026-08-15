@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import { DEFAULT_PROGRAMAS, TURNOS_CONFIG, pctClass } from "../../../constants";
 import { fechaHoyVE } from "../../../utils/time";
-import { rangoFechas } from "./helpers";
+import { rangoFechas, TURNOS_FILTRO } from "./helpers";
 import { exportarPDFRango } from "./exportPDF";
 import { exportarCSVRango } from "./exportCSV";
 import { exportarRespaldoPrevioABorrado } from "../../../utils/exportRespaldo";
@@ -125,11 +125,17 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
     setLoading(true); setError(null);
 
     try {
+      // FIX (turno-todos-reporte-rango): "TODOS" es un sentinel de UI, no
+      // un turno real -- se traduce a NULL antes de llegar al servidor.
+      // reporte_asistencias_rango_agregado (0097) trata p_turno NULL como
+      // "sin filtro", mismo patrón que ya existía para p_programa.
+      const turnoFiltro = turno === "TODOS" ? null : turno;
+
       const rpcCall = supabase
         .rpc("reporte_asistencias_rango_agregado", {
           p_fecha_desde: inicio,
           p_fecha_hasta: fin,
-          p_turno:       turno,
+          p_turno:       turnoFiltro,
           p_programa:    programa || null,
           p_sede_id:     sedeActiva || null,
         })
@@ -141,8 +147,9 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
       let countQuery = supabase
         .from("asistencias_diarias")
         .select("id", { count: "exact", head: true })
-        .gte("fecha", inicio).lte("fecha", fin).eq("turno", turno)
+        .gte("fecha", inicio).lte("fecha", fin)
         .abortSignal(signal);
+      if (turnoFiltro) countQuery = countQuery.eq("turno", turnoFiltro);
       if (programa) countQuery = countQuery.eq("programa", programa);
       // SEDE-16: sin este filtro, un rol con puedeVerTodasLasSedes veía el
       // conteo (y el reporte agregado de arriba, ver p_sede_id) mezclando
@@ -176,7 +183,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
       const conf = TURNOS_CONFIG.find(t => t.id === turno);
       const horasPorDia = (conf?.inicioMin != null && conf?.finMin != null)
         ? Math.floor((conf.finMin - conf.inicioMin) / 60)
-        : 4; // fallback (ej. turno="" / sin filtro): mismo valor de siempre
+        : 4; // fallback (turno="TODOS" / sin filtro): mismo valor de siempre
 
       const agregados = (data || []).map(d => ({
         cedula: d.cedula_docente,
@@ -226,7 +233,9 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
     const { data: cantidad, error } = await supabase.rpc("admin_borrar_asistencias_rango", {
       p_fecha_desde: inicio,
       p_fecha_hasta: fin,
-      p_turno:       turno || null,
+      // "TODOS" (sentinel de UI) -> NULL; admin_borrar_asistencias_rango
+      // (0089) ya trata p_turno NULL como "sin filtro" desde antes.
+      p_turno:       turno === "TODOS" ? null : (turno || null),
       p_programa:    programa || null,
       p_sede_id:     sedeActiva || null,
     });
@@ -338,8 +347,17 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
             {/* Antes mostraba el id crudo (ej. "MIXTO") en vez de un label
                 legible — inconsistente con el resto de selects de turno de
                 la app (AdminQRPanel, ReporteAsistencias/index.jsx, etc.),
-                que sí usan TURNOS_CONFIG.label. */}
-            {TURNOS_CONFIG.filter(t => t.habilitado).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                que sí usan TURNOS_CONFIG.label.
+                FIX (turno-todos-reporte-rango): faltaba "Todos los turnos",
+                que sí existe en el Reporte Diario (ReporteAsistencias/
+                index.jsx) desde hace tiempo -- mismo TURNOS_FILTRO
+                (TURNOS_CONFIG habilitados + sentinel "TODOS") para no
+                duplicar la lista. */}
+            {TURNOS_FILTRO.map(t => (
+              <option key={t} value={t}>
+                {t === "TODOS" ? "Todos los turnos" : (TURNOS_CONFIG.find(c => c.id === t)?.label || t)}
+              </option>
+            ))}
           </select>
         </label>
         <label className="ra-filtro-label">
@@ -439,7 +457,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
       {confirmBorrar && (
         <ModalConfirm
           titulo="¿Borrar reporte de asistencia?"
-          mensaje={`Se descargará un respaldo CSV/JSON y luego se borrarán ${totalRegistros} registro${totalRegistros !== 1 ? "s" : ""} de asistencia entre ${inicio} y ${fin}${turno ? ` (turno ${turno})` : ""}${programa ? `, programa ${programa.replace("PNF ", "")}` : ""}. Esta acción no se puede deshacer.`}
+          mensaje={`Se descargará un respaldo CSV/JSON y luego se borrarán ${totalRegistros} registro${totalRegistros !== 1 ? "s" : ""} de asistencia entre ${inicio} y ${fin}${turno && turno !== "TODOS" ? ` (turno ${turno})` : ""}${programa ? `, programa ${programa.replace("PNF ", "")}` : ""}. Esta acción no se puede deshacer.`}
           onConfirm={borrando ? undefined : handleBorrarRango}
           onCancel={borrando ? undefined : () => setConfirmBorrar(false)}
           peligro
