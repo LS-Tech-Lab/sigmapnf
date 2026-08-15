@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { lazy, Suspense, useState, useRef, useEffect } from "react";
 import ErrorBoundary from "../components/ErrorBoundary";
 import ModalCambiarPassword from "../components/ModalCambiarPassword";
 import UserMenu from "./UserMenu";
@@ -104,6 +104,29 @@ export default function AdminModulo({
   const [userMenuOpen,   setUserMenuOpen]   = useState(false);
   const [cambiarPwdOpen, setCambiarPwdOpen] = useState(false);
 
+  // UX-39 (mismo fix aplicado en AsistenciasModulo.jsx, 15 ago 2026):
+  // este módulo reutiliza las clases asm-tabs/asm-tabs-wrap, así que
+  // necesita el mismo wrapper + lógica de fade para el scroll horizontal
+  // en móvil.
+  const tabsRef = useRef(null);
+  const [tabsOverflow, setTabsOverflow] = useState({ left: false, right: false });
+
+  const checkTabsOverflow = () => {
+    const el = tabsRef.current;
+    if (!el) return;
+    setTabsOverflow({
+      left: el.scrollLeft > 4,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
+    });
+  };
+
+  useEffect(() => {
+    checkTabsOverflow();
+    window.addEventListener("resize", checkTabsOverflow);
+    return () => window.removeEventListener("resize", checkTabsOverflow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
   const rolLabel = profile.rol_info?.label || "Administrador";
   const rolColor = profile.rol_info?.color || "#7C3AED";
 
@@ -126,16 +149,20 @@ export default function AdminModulo({
         )}
 
         {/* Pestañas internas */}
-        <div className="asm-tabs">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`asm-tab ${tab === t.id ? "asm-tab--active" : ""}`}
-            >
-              <i className={`ti ${t.icon}`} aria-hidden="true" /> {t.label}
-            </button>
-          ))}
+        <div
+          className={`asm-tabs-wrap ${tabsOverflow.left ? "asm-tabs-wrap--overflow-left" : ""} ${tabsOverflow.right ? "asm-tabs-wrap--overflow-right" : ""}`}
+        >
+          <div className="asm-tabs" ref={tabsRef} onScroll={checkTabsOverflow}>
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`asm-tab ${tab === t.id ? "asm-tab--active" : ""}`}
+              >
+                <i className={`ti ${t.icon}`} aria-hidden="true" /> {t.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Menú de usuario */}
