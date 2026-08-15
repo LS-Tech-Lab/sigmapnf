@@ -486,6 +486,17 @@ textarea:focus-visible,
 .s-btn--cancel { padding: 9px 20px; }
 .s-btn--sm { font-size: var(--font-size-12); padding: 4px 10px; }
 
+/* Fix UX-37 (auditoría UI/UX 14 ago): .s-btn/.s-select/.s-input rondaban
+   27-30px de alto real (padding 7px + font-size 13px), por debajo del
+   mínimo táctil de 44px (WCAG 2.5.5 / Material). Acotado a dispositivos
+   táctiles reales (pointer: coarse) en vez de por ancho de viewport, para
+   no inflar estos mismos controles en desktop/laptop donde el mouse no
+   tiene ese problema — cubre también tablets/laptops táctiles, no solo
+   móviles angostos. */
+@media (hover: none) and (pointer: coarse) {
+  .s-btn, .s-select, .s-input { min-height: 44px; }
+}
+
 /* Patrón "estado vacío" repetido tal cual en varios archivos
    (ResumenView, HorariosView...): tarjeta centrada con ícono/texto atenuado. */
 .s-empty-state { padding: 60px 20px; text-align: center; color: #94A3B8; font-size: var(--font-size-15); font-weight: 500; }
