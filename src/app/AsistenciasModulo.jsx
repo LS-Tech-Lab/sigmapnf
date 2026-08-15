@@ -82,6 +82,17 @@ export default function AsistenciasModulo({
     });
   };
 
+  // UX-39 (ajuste 15 ago): el fade por sí solo resultó invisible sobre el
+  // fondo blanco de .asm-topbar (blanco sobre blanco no se nota) y una
+  // pestaña cortada a la mitad ("Repo...") no comunica con claridad que
+  // hay más contenido. Se agregan flechas reales -- visibles siempre que
+  // haya overflow, sin importar el color de fondo detrás -- que además
+  // desplazan las pestañas al tocarlas, en vez de depender solo del
+  // gesto de swipe.
+  const scrollTabs = (dir) => {
+    tabsRef.current?.scrollBy({ left: dir * 130, behavior: "smooth" });
+  };
+
   useEffect(() => {
     checkTabsOverflow();
     window.addEventListener("resize", checkTabsOverflow);
@@ -182,8 +193,10 @@ export default function AsistenciasModulo({
           <button
             onClick={() => { qrSession.cerrarSesion(); onVolverSelector(); }}
             className="topbar-back-btn"
+            title="Volver a Módulos"
+            aria-label="Volver a Módulos"
           >
-            <i className="ti ti-arrow-left" aria-hidden="true" /> Módulos
+            <i className="ti ti-arrow-left" aria-hidden="true" /> <span className="topbar-back-label">Módulos</span>
           </button>
         )}
 
@@ -191,10 +204,22 @@ export default function AsistenciasModulo({
             UX-39: envueltas en .asm-tabs-wrap para poder posicionar el
             fade de scroll (::before/::after) sin que se desplace junto
             con el contenido -- el wrapper se queda fijo, solo .asm-tabs
-            (el hijo) hace scroll. */}
+            (el hijo) hace scroll. Las flechas (.asm-tabs-arrow) son
+            botones reales, solo se montan cuando hay overflow hacia ese
+            lado, y desplazan el contenedor un tramo fijo al tocarlas. */}
         <div
           className={`asm-tabs-wrap ${tabsOverflow.left ? "asm-tabs-wrap--overflow-left" : ""} ${tabsOverflow.right ? "asm-tabs-wrap--overflow-right" : ""}`}
         >
+          {tabsOverflow.left && (
+            <button
+              type="button"
+              className="asm-tabs-arrow asm-tabs-arrow--left"
+              onClick={() => scrollTabs(-1)}
+              aria-label="Ver pestañas anteriores"
+            >
+              <i className="ti ti-chevron-left" aria-hidden="true" />
+            </button>
+          )}
           <div className="asm-tabs" ref={tabsRef} onScroll={checkTabsOverflow}>
             {TABS.map((tab) => (
               <button
@@ -206,6 +231,16 @@ export default function AsistenciasModulo({
               </button>
             ))}
           </div>
+          {tabsOverflow.right && (
+            <button
+              type="button"
+              className="asm-tabs-arrow asm-tabs-arrow--right"
+              onClick={() => scrollTabs(1)}
+              aria-label="Ver más pestañas"
+            >
+              <i className="ti ti-chevron-right" aria-hidden="true" />
+            </button>
+          )}
         </div>
 
         {/* Indicador de sesión QR activa */}
