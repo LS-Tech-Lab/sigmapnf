@@ -723,10 +723,15 @@ textarea:focus-visible,
    usuario realmente necesita alcanzar sin deslizar. Se colapsa a solo
    avatar+chevron -- nombre/rol/email siguen disponibles de inmediato en
    el dropdown (.um-menu-header ya los muestra), así que no se pierde
-   información, solo se saca de la vista compacta. */
+   información, solo se saca de la vista compacta.
+   Ajuste 15 ago: mismo criterio para "← Módulos" -- el texto se oculta
+   y queda solo el ícono (title/aria-label lo siguen anunciando), es el
+   otro elemento fijo que compite por espacio con las pestañas. */
 @media (max-width: 480px) {
   .um-info { display: none; }
   .um-trigger-btn { padding: 4px 6px; gap: 0; }
+  .topbar-back-label { display: none; }
+  .topbar-back-btn { padding: 5px 8px; }
 }
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
@@ -820,26 +825,43 @@ textarea:focus-visible,
    se replicó acá. Ahora el grupo de pestañas es su propio contenedor con
    scroll horizontal (swipe en móvil), y cada pestaña no se comprime
    (flex-shrink: 0) para no truncar el label a la mitad. */
-/* UX-39: wrapper fijo (no scrollea) que aloja el fade -- ver comentario
-   en AsistenciasModulo.jsx. min-width: 0 se mueve acá desde .asm-tabs
-   para que el wrapper (y no el hijo) sea el que se encoge en flexbox. */
-.asm-tabs-wrap { position: relative; min-width: 0; }
-.asm-tabs-wrap::before,
-.asm-tabs-wrap::after {
-  content: ""; position: absolute; top: 0; bottom: 0; width: 18px;
-  pointer-events: none; opacity: 0; transition: opacity 0.15s ease; z-index: 1;
+/* UX-39: wrapper fijo (no scrollea) que aloja el indicador -- ver
+   comentario en AsistenciasModulo.jsx. min-width: 0 se mueve acá desde
+   .asm-tabs para que el wrapper (y no el hijo) sea el que se encoge en
+   flexbox.
+   Ajuste 15 ago: el primer intento (fade en gradiente blanco) resultó
+   invisible sobre el fondo blanco de .asm-topbar -- blanco sobre blanco
+   no se distingue. Se cambió a un `box-shadow` inset oscuro (funciona
+   como sombra, no depende de que el color de fondo coincida) más las
+   flechas reales (.asm-tabs-arrow) como affordance principal; el shadow
+   queda como refuerzo visual secundario. */
+.asm-tabs-wrap {
+  position: relative; min-width: 0; display: flex; align-items: center;
+  transition: box-shadow 0.15s ease;
 }
-.asm-tabs-wrap::before {
-  left: 0; background: linear-gradient(to right, #fff, rgba(255,255,255,0));
+.asm-tabs-wrap--overflow-left  { box-shadow: inset 10px 0 8px -8px rgba(15,23,42,0.18); }
+.asm-tabs-wrap--overflow-right { box-shadow: inset -10px 0 8px -8px rgba(15,23,42,0.18); }
+.asm-tabs-wrap--overflow-left.asm-tabs-wrap--overflow-right {
+  box-shadow: inset 10px 0 8px -8px rgba(15,23,42,0.18), inset -10px 0 8px -8px rgba(15,23,42,0.18);
 }
-.asm-tabs-wrap::after {
-  right: 0; background: linear-gradient(to left, #fff, rgba(255,255,255,0));
+
+/* Flechas de desplazamiento -- solo se montan (en JSX) cuando hay
+   overflow hacia ese lado, así que no hace falta ocultarlas por CSS.
+   Círculo compacto con su propio fondo/sombra para que se note sobre
+   cualquier color detrás (pestaña activa, blanco, etc). */
+.asm-tabs-arrow {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid var(--color-border-tertiary); background: #fff;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.15);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--navy-700); font-size: var(--font-size-13); cursor: pointer;
+  padding: 0; z-index: 2;
 }
-.asm-tabs-wrap--overflow-left::before  { opacity: 1; }
-.asm-tabs-wrap--overflow-right::after  { opacity: 1; }
+.asm-tabs-arrow--left  { margin-right: 4px; }
+.asm-tabs-arrow--right { margin-left: 4px; }
 
 .asm-tabs {
-  display: flex; gap: 4px; overflow-x: auto;
+  display: flex; gap: 4px; overflow-x: auto; min-width: 0;
   -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
 .asm-tabs::-webkit-scrollbar { display: none; }
