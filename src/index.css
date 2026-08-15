@@ -677,7 +677,7 @@ textarea:focus-visible,
 }
 .um-info { text-align: left; line-height: 1.3; }
 .um-name { font-size: var(--font-size-12); font-weight: 700; color: var(--color-text-primary); white-space: nowrap; }
-.um-role { font-size: var(--font-size-10); color: var(--role-color, var(--color-text-tertiary)); font-weight: 600; white-space: nowrap; }
+.um-role { font-size: var(--font-size-10); color: var(--role-text, var(--role-color, var(--color-text-tertiary))); font-weight: 600; white-space: nowrap; }
 
 .um-chevron { font-size: var(--font-size-12); color: var(--color-text-tertiary); transform: rotate(0deg); transition: transform .15s; }
 .um-chevron--open { transform: rotate(180deg); }
@@ -1172,21 +1172,38 @@ textarea:focus-visible,
    roles.color) — hasta que se aplique, un color insertado fuera de esta
    lista (ej. directo por API, sin pasar por el picker) cae en
    .role-color--default sin romper visualmente, pero sí sin distinguirse.
-   ────────────────────────────────────────────────────────────────────────── */
-.role-color--sb-admin          { --role-color: #A78BFA; --role-bg: rgba(167,139,250,0.12); --role-border: rgba(167,139,250,0.25); --role-tint-5: rgba(167,139,250,0.05); }
-.role-color--sb-coordinador    { --role-color: #60A5FA; --role-bg: rgba(96,165,250,0.12);   --role-border: rgba(96,165,250,0.25); --role-tint-5: rgba(96,165,250,0.05); }
-.role-color--sb-verde          { --role-color: #34D399; --role-bg: rgba(52,211,153,0.12);   --role-border: rgba(52,211,153,0.25); --role-tint-5: rgba(52,211,153,0.05); }
-.role-color--sb-administrativo { --role-color: #94A3B8; --role-bg: rgba(148,163,184,0.12);  --role-border: rgba(148,163,184,0.25); --role-tint-5: rgba(148,163,184,0.05); }
-.role-color--role-coord { --role-color: #7C3AED; --role-bg: rgba(124,58,237,0.12); --role-border: rgba(124,58,237,0.25); --role-tint-5: rgba(124,58,237,0.05); }
-.role-color--brand      { --role-color: #1D4ED8; --role-bg: rgba(29,78,216,0.12);  --role-border: rgba(29,78,216,0.25); --role-tint-5: rgba(29,78,216,0.05); }
-.role-color--teal       { --role-color: #0F766E; --role-bg: rgba(15,118,110,0.12); --role-border: rgba(15,118,110,0.25); --role-tint-5: rgba(15,118,110,0.05); }
-.role-color--mid        { --role-color: #374151; --role-bg: rgba(55,65,81,0.12);   --role-border: rgba(55,65,81,0.25); --role-tint-5: rgba(55,65,81,0.05); }
-.role-color--success    { --role-color: #059669; --role-bg: rgba(5,150,105,0.12);  --role-border: rgba(5,150,105,0.25); --role-tint-5: rgba(5,150,105,0.05); }
-.role-color--danger     { --role-color: #DC2626; --role-bg: rgba(220,38,38,0.12);  --role-border: rgba(220,38,38,0.25); --role-tint-5: rgba(220,38,38,0.05); }
-.role-color--warning    { --role-color: #D97706; --role-bg: rgba(217,119,6,0.12);  --role-border: rgba(217,119,6,0.25); --role-tint-5: rgba(217,119,6,0.05); }
-.role-color--cyan       { --role-color: #0891B2; --role-bg: rgba(8,145,178,0.12);  --role-border: rgba(8,145,178,0.25); --role-tint-5: rgba(8,145,178,0.05); }
-.role-color--purple     { --role-color: #9333EA; --role-bg: rgba(147,51,234,0.12); --role-border: rgba(147,51,234,0.25); --role-tint-5: rgba(147,51,234,0.05); }
-.role-color--pink       { --role-color: #BE185D; --role-bg: rgba(190,24,93,0.12);  --role-border: rgba(190,24,93,0.25); --role-tint-5: rgba(190,24,93,0.05); }
+   ──────────────────────────────────────────────────────────────────────────
+
+   Fix UX-42 (15 ago, CI real vía axe-core, hallazgo colateral al corregir
+   el fixture de UX-41): --role-color se pensó para fondos con tinte de
+   12% (--role-bg) y para los swatches del picker (fondo sólido) — pero
+   también se usa como color de TEXTO directo en .um-role y .shared-badge,
+   sobre blanco o casi blanco. De los 14 valores, 7 son pasteles que fallan
+   el 4.5:1 exigido a texto normal así usados: sb-admin (2.72:1),
+   sb-coordinador (2.54:1), sb-verde (1.92:1), sb-administrativo (2.56:1),
+   success (3.77:1), warning (3.19:1), cyan (3.68:1) — cualquier usuario
+   real con uno de esos 7 roles ve su etiqueta de rol con contraste
+   insuficiente en el topbar, hoy, en producción.
+   Se agrega --role-text aparte, SIN tocar --role-color: .mr-color-swatch
+   (swatch del picker, fondo sólido) y .mr-item-check (accent-color de
+   checkbox) siguen con el tono original — es la identidad visual del
+   color, no texto. --role-text es igual a --role-color en los 7 que ya
+   pasaban, y una versión más oscura de la misma familia en los 7 que
+   fallaban (todas verificadas ≥4.5:1 antes de usarlas). */
+.role-color--sb-admin          { --role-color: #A78BFA; --role-bg: rgba(167,139,250,0.12); --role-border: rgba(167,139,250,0.25); --role-tint-5: rgba(167,139,250,0.05); --role-text: #6D28D9; }
+.role-color--sb-coordinador    { --role-color: #60A5FA; --role-bg: rgba(96,165,250,0.12);   --role-border: rgba(96,165,250,0.25); --role-tint-5: rgba(96,165,250,0.05); --role-text: #1D4ED8; }
+.role-color--sb-verde          { --role-color: #34D399; --role-bg: rgba(52,211,153,0.12);   --role-border: rgba(52,211,153,0.25); --role-tint-5: rgba(52,211,153,0.05); --role-text: #047857; }
+.role-color--sb-administrativo { --role-color: #94A3B8; --role-bg: rgba(148,163,184,0.12);  --role-border: rgba(148,163,184,0.25); --role-tint-5: rgba(148,163,184,0.05); --role-text: #334155; }
+.role-color--role-coord { --role-color: #7C3AED; --role-bg: rgba(124,58,237,0.12); --role-border: rgba(124,58,237,0.25); --role-tint-5: rgba(124,58,237,0.05); --role-text: #7C3AED; }
+.role-color--brand      { --role-color: #1D4ED8; --role-bg: rgba(29,78,216,0.12);  --role-border: rgba(29,78,216,0.25); --role-tint-5: rgba(29,78,216,0.05); --role-text: #1D4ED8; }
+.role-color--teal       { --role-color: #0F766E; --role-bg: rgba(15,118,110,0.12); --role-border: rgba(15,118,110,0.25); --role-tint-5: rgba(15,118,110,0.05); --role-text: #0F766E; }
+.role-color--mid        { --role-color: #374151; --role-bg: rgba(55,65,81,0.12);   --role-border: rgba(55,65,81,0.25); --role-tint-5: rgba(55,65,81,0.05); --role-text: #374151; }
+.role-color--success    { --role-color: #059669; --role-bg: rgba(5,150,105,0.12);  --role-border: rgba(5,150,105,0.25); --role-tint-5: rgba(5,150,105,0.05); --role-text: #047857; }
+.role-color--danger     { --role-color: #DC2626; --role-bg: rgba(220,38,38,0.12);  --role-border: rgba(220,38,38,0.25); --role-tint-5: rgba(220,38,38,0.05); --role-text: #DC2626; }
+.role-color--warning    { --role-color: #D97706; --role-bg: rgba(217,119,6,0.12);  --role-border: rgba(217,119,6,0.25); --role-tint-5: rgba(217,119,6,0.05); --role-text: #92400E; }
+.role-color--cyan       { --role-color: #0891B2; --role-bg: rgba(8,145,178,0.12);  --role-border: rgba(8,145,178,0.25); --role-tint-5: rgba(8,145,178,0.05); --role-text: #155E75; }
+.role-color--purple     { --role-color: #9333EA; --role-bg: rgba(147,51,234,0.12); --role-border: rgba(147,51,234,0.25); --role-tint-5: rgba(147,51,234,0.05); --role-text: #9333EA; }
+.role-color--pink       { --role-color: #BE185D; --role-bg: rgba(190,24,93,0.12);  --role-border: rgba(190,24,93,0.25); --role-tint-5: rgba(190,24,93,0.05); --role-text: #BE185D; }
 /* Color no reconocido (fuera de las 14 conocidas) — mismo fallback que cada
    componente ya usaba en su `|| valor` original.
    Fix UX-41 (15 ago, CI real vía axe-core): var(--color-text-tertiary)
@@ -1196,7 +1213,7 @@ textarea:focus-visible,
    producción con datos legados (rol creado antes de UX-5/SEC-3 con un
    color fuera del picker) mientras la migración 0052 siga pendiente.
    var(--color-text-mid) #374151 da 9.41:1 sobre el mismo fondo. */
-.role-color--default    { --role-color: var(--color-text-mid); --role-bg: var(--color-background-subtle); --role-border: var(--color-border); --role-tint-5: var(--color-background-subtle); }
+.role-color--default    { --role-color: var(--color-text-mid); --role-bg: var(--color-background-subtle); --role-border: var(--color-border); --role-tint-5: var(--color-background-subtle); --role-text: var(--color-text-mid); }
 
 /* ──────────────────────────────────────────────────────────────────────────
    Fix UX-5/SEC-3 (auditoría QA 5/jul/2026, Fase 4) — Ancho bucketizado (5%).
