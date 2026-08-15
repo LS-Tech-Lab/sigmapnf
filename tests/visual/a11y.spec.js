@@ -53,8 +53,25 @@ function sinViolacionesGraves(resultados) {
     v => v.impact === 'critical' || v.impact === 'serious'
   );
   if (graves.length > 0) {
+    // Fix (15 ago, tras 2 rondas de ida y vuelta con error-context.md/
+    // trace.zip — artefactos aparte que no vienen en el log de texto de
+    // GitHub Actions, hay que bajarlos aparte de la sección Artifacts):
+    // se imprime selector + resumen de axe-core (trae el contraste
+    // calculado y los colores exactos que comparó) por cada nodo, directo
+    // en el log que ya se descarga con "Download log archive" — evita
+    // otra ronda de "pasame el trace.zip" la próxima vez que esto falle.
     const detalle = graves
-      .map(v => `- [${v.impact}] ${v.id}: ${v.help} (${v.nodes.length} elemento(s))`)
+      .map(v => {
+        const nodos = v.nodes
+          .map(n => {
+            const selector = Array.isArray(n.target) ? n.target.join(' ') : String(n.target);
+            const resumen = (n.failureSummary || '').replace(/\n/g, ' ');
+            const html = (n.html || '').slice(0, 200);
+            return `    · selector: ${selector}\n      resumen: ${resumen}\n      html: ${html}`;
+          })
+          .join('\n');
+        return `- [${v.impact}] ${v.id}: ${v.help} (${v.nodes.length} elemento(s))\n${nodos}`;
+      })
       .join('\n');
     throw new Error(`Violaciones de accesibilidad (WCAG) críticas/serias:\n${detalle}`);
   }
