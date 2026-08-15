@@ -38,6 +38,15 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
+  // UX-44 (auditoría UI/UX de élite, 15 ago): mismo hueco que UX-43 ya
+  // resolvió en ModalUsuario.jsx — handleSave() validaba con `return` en
+  // el primer campo inválido, un intento de "Guardar" = un solo error
+  // visible. Replicado literalmente acá: `validar()` junta todos los
+  // errores de una vez, `error` (banner) queda solo para fallos del
+  // guardado en sí (red/RPC), no para validación de formulario. El
+  // estilo `[aria-invalid="true"]` de `.s-input` ya es global desde
+  // UX-43, no requiere CSS nuevo aparte de `.mr-field-error`.
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const set    = (k) => (v) => setForm(f => ({ ...f, [k]: v }));
   const setPerm = (k) => (v) => setForm(f => ({ ...f, permisos: { ...f.permisos, [k]: v } }));
@@ -54,13 +63,28 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  const validar = () => {
+    const errores = {};
+    if (!form.label.trim()) errores.label = "El nombre del rol es obligatorio.";
+    if (esNuevo) {
+      if (!form.nombre.trim()) errores.nombre = "El identificador es obligatorio.";
+      else if (!/^[a-z0-9_]+$/.test(form.nombre.trim()))
+        errores.nombre = "El identificador solo puede tener minúsculas, números y guion bajo (sin espacios).";
+    }
+    return errores;
+  };
+
   const handleSave = async () => {
     setError("");
-    if (!form.label.trim()) return setError("El nombre del rol es obligatorio.");
-    if (esNuevo) {
-      if (!form.nombre.trim()) return setError("El identificador es obligatorio.");
-      if (!/^[a-z0-9_]+$/.test(form.nombre.trim()))
-        return setError("El identificador solo puede tener minúsculas, números y guion bajo (sin espacios).");
+    const errores = validar();
+    setFieldErrors(errores);
+    if (Object.keys(errores).length > 0) {
+      // Mismo criterio que ModalUsuario/UX-43: foco al primer campo
+      // inválido en el orden visual del formulario, no el de inserción.
+      const orden = ["nombre", "label"];
+      const primerCampo = orden.find(f => errores[f]);
+      document.getElementById(`rol-field-${primerCampo}`)?.focus();
+      return;
     }
 
     setSaving(true);
@@ -139,9 +163,15 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
                 id="rol-field-nombre"
                 ref={firstInputRef}
                 className="s-input s-input--full"
+                value={form.nombre}
                 onChange={e => set("nombre")(e.target.value.toLowerCase().replace(/\s/g, "_"))}
                 placeholder="ej: coord_informatica"
+                aria-invalid={!!fieldErrors.nombre}
+                aria-describedby={fieldErrors.nombre ? "rol-field-nombre-error" : undefined}
               />
+              {fieldErrors.nombre && (
+                <p id="rol-field-nombre-error" className="mr-field-error">{fieldErrors.nombre}</p>
+              )}
             </div>
           )}
 
@@ -151,9 +181,15 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
               id="rol-field-label"
               ref={esNuevo ? undefined : firstInputRef}
               className="s-input s-input--full"
+              value={form.label}
               onChange={e => set("label")(e.target.value)}
               placeholder="Ej: Coordinador de Informática"
+              aria-invalid={!!fieldErrors.label}
+              aria-describedby={fieldErrors.label ? "rol-field-label-error" : undefined}
             />
+            {fieldErrors.label && (
+              <p id="rol-field-label-error" className="mr-field-error">{fieldErrors.label}</p>
+            )}
           </div>
 
           {/* Emoji */}
