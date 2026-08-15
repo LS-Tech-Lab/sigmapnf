@@ -65,6 +65,36 @@ export const FAKE_PROFILE = {
   },
 };
 
+// Fix UX-35 (seguimiento, auditoría UI/UX 14 ago): perfil separado para
+// cubrir el módulo "Sistema" (Admin) en el piloto de a11y — antes acotado
+// a login/selector/escaneo QR (las 3 pantallas de UX-11), dejando afuera
+// todos los paneles de administración. Deliberadamente SOLO con permisos
+// admin (sin puedeVerTodo/puedeGestionarQR): así useModuloActivo
+// auto-selecciona directo al módulo "admin" (único acceso), sin depender
+// de un click en ModuleSelector para llegar — mismo criterio de "ancla
+// mínima y determinista" que ya usa FAKE_PROFILE. No reemplaza a
+// FAKE_PROFILE (que module-selector.spec.js necesita con exactamente 2
+// módulos) — perfil nuevo y aislado.
+export const FAKE_PROFILE_ADMIN = {
+  id: FAKE_USER_ID,
+  nombre: 'Admin Vista Previa',
+  email: 'qa-visual-admin@sigmapnf.test',
+  programa: null,
+  activo: true,
+  rol: 'qa_visual_admin',
+  rol_info: {
+    nombre: 'qa_visual_admin',
+    label: 'QA Visual Admin',
+    emoji: '🧪',
+    color: '#7C3AED',
+    restringe_programa: false,
+    permisos: {
+      puedeGestionarUsuarios: true,
+      puedeGestionarSedes: true,
+    },
+  },
+};
+
 /**
  * Deja el navegador del test en estado "logueado" antes de cualquier
  * navegación: intercepta todo /rest/v1/** con un catch-all inofensivo
@@ -78,8 +108,13 @@ export const FAKE_PROFILE = {
  * importan a una foto del selector de módulos. Enumerarlas todas acá
  * sería trabajo repetido y frágil — cualquier tabla nueva que se agregue
  * en el futuro cae en el catch-all y no rompe nada.
+ *
+ * `perfil` (fix UX-35 seguimiento, 14 ago): opcional, default FAKE_PROFILE
+ * — no rompe ningún caller existente. Permite loguear con
+ * FAKE_PROFILE_ADMIN para cubrir pantallas de Sistema/Admin sin duplicar
+ * esta función entera.
  */
-export async function loginComoFake(page, { rutasExtra = {} } = {}) {
+export async function loginComoFake(page, { rutasExtra = {}, perfil = FAKE_PROFILE } = {}) {
   await page.addInitScript(
     ({ key, session }) => {
       // Sin prefijo `window.`: mismo patrón que ya usa login.spec.js
@@ -96,7 +131,7 @@ export async function loginComoFake(page, { rutasExtra = {} } = {}) {
     const url = route.request().url();
 
     if (url.includes('/user_profiles')) {
-      return route.fulfill({ status: 200, json: FAKE_PROFILE });
+      return route.fulfill({ status: 200, json: perfil });
     }
     if (url.includes('/trimestres')) {
       // ASIST-1 (12-ago, e43ce2d): useTrimestreActivo.js consulta esta
