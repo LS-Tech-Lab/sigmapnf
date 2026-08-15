@@ -156,13 +156,3 @@
 .gs-chip--inactivo { color: var(--color-text-tertiary); }
 .gs-chip--activo:hover   { background: rgba(4,120,87,0.18); }
 .gs-chip--inactivo:hover { color: var(--color-error-text, #B91C1C); border-color: rgba(185,28,28,0.3); }
-
-/* Fix UX-46 (auditoría UI/UX de élite, 15 ago): .gs-chip (toggle programa
-   activo/inactivo por sede, ADMIN-8) ronda 27-28px de alto real, por
-   debajo del mínimo táctil de 44px — mismo hueco que UX-37/UX-42, en un
-   componente posterior (12 ago) a ese fix. .gs-asig-chips ya usa
-   flex-wrap, así que agrandar el chip en touch no rompe el layout, solo
-   reacomoda filas (mismo criterio que .mr-color-row en ModalRol.css). */
-@media (hover: none) and (pointer: coarse) {
-  .gs-chip { min-height: 44px; }
-}

@@ -20,12 +20,6 @@
 .mr-field-label { font-size: var(--font-size-12); font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 5px; }
 .mr-field-label-note { color: var(--color-text-tertiary); font-weight: 400; }
 
-/* Fix UX-44 (auditoría UI/UX de élite, 15 ago): mismo patrón que
-   .mu-field-error en ModalUsuario.css — mensaje de error por campo,
-   junto al input. El borde rojo del input ([aria-invalid="true"]) ya es
-   una regla global de .s-input/.s-select desde UX-43. */
-.mr-field-error { margin: 6px 0 0; font-size: var(--font-size-11); color: var(--color-danger); font-weight: 600; }
-
 .mr-emoji-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .mr-emoji-btn { font-size: var(--font-size-18); cursor: pointer; background: var(--color-background-secondary); border: 2px solid var(--color-border-tertiary); border-radius: 8px; padding: 4px 8px; line-height: 1; }
 .mr-emoji-btn--active { background: var(--color-background-info); border-color: var(--brand-500); }
