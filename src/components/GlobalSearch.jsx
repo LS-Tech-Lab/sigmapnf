@@ -46,7 +46,7 @@ export default function GlobalSearch({ onNavigate, docenteNames, materiaNames, d
   }, []);
 
   return (
-    <div ref={ref} className="global-search gs-root">
+    <div ref={ref} className="global-search gsearch-root">
       <div className="gs-box">
         <i className="ti ti-search gs-icon" aria-hidden="true" />
         <input
