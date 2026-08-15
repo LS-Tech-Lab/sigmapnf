@@ -59,7 +59,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// UX-41 (rama paralela, 14 ago): el componente ahora llama
+// UX-50 (rama paralela, 14 ago): el componente ahora llama
 // window.matchMedia("(max-width: 859px)") al montar, para decidir la
 // vista compacta/sticky del preview -- jsdom no lo implementa, así que
 // sin este mock CUALQUIER test que monte <ConfiguracionReportes /> revienta

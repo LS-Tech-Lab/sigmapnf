@@ -91,7 +91,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
   const fileInputCoordinacionRef = useRef(null); // migración 0092 (13 ago)
   const fileInputUnermbRef = useRef(null); // migración 0094 (14 ago)
 
-  // UX-41 (14 ago): en pantallas angostas .cr-layout manda la vista previa
+  // UX-50 (14 ago): en pantallas angostas .cr-layout manda la vista previa
   // al final (después del formulario completo, ver flex-wrap en el CSS),
   // así que el usuario tenía que bajar hasta el fondo para ver el efecto
   // de un cambio y volver a subir para seguir editando. Con matchMedia se
@@ -230,7 +230,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
   const inicial = (form.nombre_institucion || "?").trim().charAt(0).toUpperCase() || "?";
 
   // Compartido entre la columna fija de desktop y el panel sticky de
-  // móvil (UX-41) — mismo membrete, dos contenedores distintos.
+  // móvil (UX-50) — mismo membrete, dos contenedores distintos.
   const renderPreviewCard = () => (
     <div className={`cr-preview-card s-card cr-swatch--${suffix}`}>
       <div className="cr-preview-membrete">
@@ -264,7 +264,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
         Logo, color y textos del membrete de los reportes imprimibles (Reporte Diario, Reporte por Rango y Planilla Imprimible).
       </p>
 
-      {/* UX-41: en móvil la vista previa vive acá, ANTES del formulario y
+      {/* UX-50: en móvil la vista previa vive acá, ANTES del formulario y
           fuera de .cr-layout, como barra sticky compacta -- así queda
           visible mientras se hace scroll por las secciones del acordeón,
           en vez de solo aparecer al final de la página. En desktop no se
@@ -456,7 +456,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
         </div>
 
         {/* Vista previa — solo en desktop; en móvil la reemplaza la barra
-            sticky de arriba (UX-41). */}
+            sticky de arriba (UX-50). */}
         {!esCompacta && (
           <div className="cr-preview">
             <p className="cr-preview-label">Vista previa</p>

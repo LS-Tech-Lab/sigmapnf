@@ -10,6 +10,7 @@ import React, { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import { supabase } from "../lib/supabase";
 import { validarPassword } from "../utils/password";
+import useFocusTrap from "../hooks/useFocusTrap";
 import "./ModalCambiarPassword.css";
 
 // ── Pestaña activa ────────────────────────────────────────────────────
@@ -43,6 +44,13 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onCerrar]);
+
+  // Fix UX-47 (auditoría UI/UX de élite, 15 ago): Escape ya cerraba el
+  // modal, pero Tab podía escapar del diálogo hacia el contenido de
+  // fondo — el mismo hook que ya usan ModalUsuario/ModalRol/ConfirmModal
+  // desde UX-3, aplicado acá también.
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef, true);
 
   // Al cambiar de pestaña, redirigir foco al primer campo de esa pestaña
   useEffect(() => {
@@ -147,6 +155,7 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
       onClick={onCerrar}
     >
       <div
+        ref={dialogRef}
         className="mcp-dialog"
         role="dialog"
         aria-modal="true"

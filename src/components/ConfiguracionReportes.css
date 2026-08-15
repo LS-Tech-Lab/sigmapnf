@@ -152,7 +152,7 @@
 .cr-btn-guardar:disabled { opacity: 0.5; cursor: default; }
 .cr-error { color: var(--color-danger, #DC2626); font-size: 0.85rem; }
 
-/* ── Vista previa sticky compacta (móvil, UX-41) ──
+/* ── Vista previa sticky compacta (móvil, UX-50) ──
    Reemplaza a .cr-preview cuando esCompacta=true (JS, ver matchMedia en
    el componente -- el umbral de 859px replica el punto donde .cr-layout
    deja de tener sitio real para los 320px de columna fija más 420px

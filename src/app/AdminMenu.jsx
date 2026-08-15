@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 import { useAppDataContext } from "../context/AppDataContext";
 
 // ── Admin dropdown ────────────────────────────────────────────────────────────
-function AdminMenu({ onClose, modoConsulta, fileRef, backupRef, permisos }) {
+function AdminMenu({ onClose, modoConsulta, triggerRef, fileRef, backupRef, permisos }) {
   const ref = useRef(null);
   const appData = useAppDataContext();
 
@@ -25,6 +25,21 @@ function AdminMenu({ onClose, modoConsulta, fileRef, backupRef, permisos }) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
+
+  // Fix UX-48 (auditoría UI/UX de élite, 15 ago): el dropdown solo cerraba
+  // con clic-afuera — sin Escape, un usuario navegando solo con teclado no
+  // tenía forma de cerrarlo sin tabular hasta salir del documento. Devuelve
+  // el foco al botón que lo abrió, mismo criterio que ya usa ConfirmModal
+  // al cancelar.
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      onClose();
+      triggerRef?.current?.focus();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, triggerRef]);
 
   const disabled = appData.uploading || appData.loading;
 

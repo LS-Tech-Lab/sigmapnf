@@ -1,6 +1,7 @@
 // Sidebar del módulo Horarios: marca, trimestre activo, selector de programa,
 // navegación, dropdown de administración y lógica de expansión/colapso
 // (hover, pin, apertura móvil). Extraído de HorariosLayout.jsx (ARCH-11).
+import { useRef } from "react";
 import { useAppDataContext } from "../context/AppDataContext";
 import { formatLapso } from "../utils/lapso";
 import buildNavGroups from "./buildNavGroups";
@@ -35,6 +36,11 @@ export default function HorariosSidebar({
   fileRef, backupRef,
 }) {
   const appData = useAppDataContext();
+
+  // Fix UX-48 (auditoría UI/UX de élite, 15 ago): ref al botón que abre el
+  // dropdown de Administración, para devolverle el foco al cerrar por
+  // Escape o por selección de un ítem (accesibilidad de teclado).
+  const adminBtnRef = useRef(null);
 
   // Lógica de colapso: expandido si está fijado, en hover, o abierto en móvil.
   const expanded = pinned || hovered || mobileOpen;
@@ -203,6 +209,7 @@ export default function HorariosSidebar({
           <AdminMenu
             modoConsulta={modoConsulta}
             onClose={() => setAdminOpen(false)}
+            triggerRef={adminBtnRef}
             fileRef={fileRef}
             backupRef={backupRef}
             permisos={permisos}
@@ -216,6 +223,7 @@ export default function HorariosSidebar({
         <div className="hl-footer">
           {(permisos.puedeImportarExcel || permisos.puedeHacerBackup || permisos.puedeBorrarHorarios) && (
             <button
+              ref={adminBtnRef}
               onClick={() => setAdminOpen(o => !o)}
               className={`nav-item hl-admin-btn ${adminOpen ? "hl-admin-btn--open" : ""}`}
               title="Administración"

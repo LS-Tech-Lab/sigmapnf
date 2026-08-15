@@ -13,7 +13,8 @@
 //   onCancel     — () => void  (descarta todo)
 // =====================================================================
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import useFocusTrap from "../hooks/useFocusTrap";
 import "./UploadPreviewModal.css";
 
 // ── Helpers de presentación ──────────────────────────────────────────
@@ -170,6 +171,20 @@ function Advertencias({ advertencias, warnings }) {
 export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) {
   const [tab, setTab] = useState("nuevos");
 
+  // Fix UX-47 (auditoría UI/UX de élite, 15 ago): declaraba role="dialog"
+  // aria-modal="true" pero no tenía ni trampa de foco (Tab escapaba al
+  // fondo) ni cierre por Escape — a diferencia del resto de modales del
+  // proyecto (ModalUsuario/ModalRol/ConfirmModal/ModalEditarClase/
+  // ModalCambiarPassword), que ya siguen el patrón de UX-3.
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef, open);
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => { if (e.key === "Escape") onCancel?.(); };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onCancel]);
+
   if (!open || !data) return null;
 
   const {
@@ -203,6 +218,7 @@ export default function UploadPreviewModal({ open, data, onConfirm, onCancel }) 
 
       {/* Panel */}
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Vista previa de carga"

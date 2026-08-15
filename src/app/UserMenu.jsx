@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import { roleColorClass } from "../constants";
 import { useSedeContext } from "../context/SedeContext";
@@ -45,6 +45,25 @@ export default function UserMenu({
     const h = Math.floor(mins / 60), m = mins % 60;
     return m > 0 ? `${h}h ${m}min` : `${h}h`;
   })();
+
+  // Fix UX-48 (auditoría UI/UX de élite, 15 ago): el dropdown solo cerraba
+  // con clic en el overlay (`um-menu-overlay`) — sin Escape, un usuario
+  // navegando solo con teclado no tenía forma de cerrarlo sin tabular hasta
+  // salir del documento. A diferencia de AdminMenu (botón trigger vive en
+  // un componente padre distinto), acá el trigger es local — no requiere
+  // prop nueva. Devuelve el foco al propio botón al cerrar.
+  const triggerRef = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      onClose();
+      triggerRef.current?.focus();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   return (
     <div className="um-root">
       {/* Badge visible sin abrir el menú — quick-glance, no requiere clic.
@@ -58,6 +77,7 @@ export default function UserMenu({
         </span>
       )}
       <button
+        ref={triggerRef}
         onClick={onToggle}
         title="Menú de usuario"
         aria-label="Menú de usuario"
