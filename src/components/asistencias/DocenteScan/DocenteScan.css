@@ -161,7 +161,7 @@ button.scan-install-banner:hover { background: #DBEAFE; }
 .scan-selector-footer-hint {
   margin-top: clamp(16px,4vw,22px);
   font-size: clamp(13px,3vw,15px);
-  color: #94A3B8;
+  color: var(--color-text-tertiary);
   text-align: center;
   line-height: 1.6;
 }
@@ -219,7 +219,7 @@ button.scan-install-banner:hover { background: #DBEAFE; }
   margin-top: 20px; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px;
   padding: 16px 18px; width: 100%; text-align: center;
 }
-.scan-requiere-rescan-card__label { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.scan-requiere-rescan-card__label { font-size: var(--font-size-11); font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
 .scan-requiere-rescan-card__name  { font-size: clamp(16px,4vw,19px); font-weight: 700; color: #0F172A; }
 .scan-requiere-rescan-card__cedula { font-size: var(--font-size-13); color: #64748B; font-family: monospace; margin-top: 2px; }
 
@@ -257,14 +257,14 @@ button.scan-install-banner:hover { background: #DBEAFE; }
 }
 
 .scan-cedula-card { width: 100%; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 18px; margin-bottom: 20px; text-align: center; }
-.scan-cedula-card__label--mb8 { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-.scan-cedula-card__label--mb6 { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.scan-cedula-card__label--mb8 { font-size: var(--font-size-11); font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.scan-cedula-card__label--mb6 { font-size: var(--font-size-11); font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
 .scan-cedula-card__value  { font-size: clamp(28px,7vw,36px); font-weight: 800; color: #0F172A; font-family: monospace; letter-spacing: 0.04em; }
 .scan-cedula-card__divider { height: 1px; background: #E2E8F0; margin: 14px 0; }
 .scan-cedula-card__name   { font-size: clamp(17px,4vw,20px); font-weight: 700; color: #0F172A; }
 
 .scan-saved-card { width: 100%; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
-.scan-saved-card__label  { font-size: var(--font-size-11); font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.scan-saved-card__label  { font-size: var(--font-size-11); font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
 .scan-saved-card__name   { font-size: clamp(17px,4vw,21px); font-weight: 700; color: #0F172A; margin-bottom: 4px; }
 .scan-saved-card__cedula { font-size: var(--font-size-13); color: #64748B; font-family: monospace; font-weight: 600; }
 
@@ -289,7 +289,7 @@ button.scan-install-banner:hover { background: #DBEAFE; }
   text-decoration: underline; margin-bottom: 6px;
 }
 .scan-tipo-link-sm {
-  background: none; border: none; color: #94A3B8; font-size: var(--font-size-12); cursor: pointer;
+  background: none; border: none; color: var(--color-text-tertiary); font-size: var(--font-size-12); cursor: pointer;
   display: flex; align-items: center; gap: 4px;
 }
 .scan-tipo-link-sm--mt14 { margin-top: 14px; }
