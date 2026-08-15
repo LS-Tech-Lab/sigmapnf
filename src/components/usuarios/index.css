@@ -15,12 +15,27 @@
 .uv-title-icon { margin-right: 8px; color: var(--color-role-coord); }
 .uv-subtitle { margin: 6px 0 0; font-size: var(--font-size-13); color: var(--color-text-tertiary); }
 
-.uv-tabs { display: flex; gap: 2px; margin-bottom: 20px; background: var(--color-background-tertiary); border-radius: 10px; padding: 3px; width: fit-content; }
+/* Fix UX-45 (14 ago 2026, verificación responsive tras UX-43/44): antes
+   sin flex-wrap ni overflow-x, con `width: fit-content` -- inofensivo
+   mientras uv-tabs solo tuvo 2 pestañas (Usuarios y Roles, Reportes),
+   pero Sedes lo reutiliza con 3 ("Sedes"/"Programas"/"Asignación") y esas
+   ~360px de grupo de pestañas ya no entran en los ~319px disponibles
+   dentro de .gs-root en un viewport de 375px (mobile-375 de
+   playwright.config.js), desbordando el contenedor. Mismo criterio que
+   .asm-tabs (UX-34): scroll horizontal propio en vez de wrap (evita
+   partir el fondo redondeado tipo "segmented control" en dos líneas) y
+   cada pestaña sin encogerse para no truncar el label a la mitad. */
+.uv-tabs {
+  display: flex; gap: 2px; margin-bottom: 20px; background: var(--color-background-tertiary);
+  border-radius: 10px; padding: 3px; width: fit-content; max-width: 100%;
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.uv-tabs::-webkit-scrollbar { display: none; }
 
 .uv-tab {
   padding: 7px 18px; border-radius: 8px; border: none; cursor: pointer;
   font-size: var(--font-size-13); font-weight: 600; transition: all 0.15s;
   background: transparent; color: var(--color-text-tertiary);
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap;
 }
 .uv-tab--active { background: #fff; color: var(--color-text-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
