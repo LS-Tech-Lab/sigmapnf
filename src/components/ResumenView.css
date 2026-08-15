@@ -21,7 +21,13 @@
 .rv-card--alert { background: #FEF2F2; border: 1px solid #FECACA; }
 .rv-card--full { grid-column: 1 / -1; }
 
-.rv-root { padding: 20px; }
+/* UX-52 (auditoría UI/UX de élite, 15 ago): en monitores ultra-anchos
+   (2560px+) las tarjetas de métrica se estiraban sin límite, generando
+   vacíos excesivos entre ellas. Acotado a esta vista (dashboard de
+   tarjetas) en vez de al wrapper compartido `.hl-main`, que también
+   envuelve la grilla de horarios y tablas de reportes — esas sí se
+   benefician del ancho completo en pantallas grandes. */
+.rv-root { padding: 20px; max-width: 1600px; margin-inline: auto; }
 
 .rv-syncing-banner { background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 9px; font-size: var(--font-size-13); color: #0369A1; font-weight: 500; }
 .rv-syncing-icon { font-size: var(--font-size-15); animation: spin 1s linear infinite; }
