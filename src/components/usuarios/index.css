@@ -13,7 +13,16 @@
 .uv-header { margin-bottom: 24px; }
 .uv-title { margin: 0; font-size: var(--font-size-20); font-weight: 800; color: var(--color-text-primary); }
 .uv-title-icon { margin-right: 8px; color: var(--color-role-coord); }
-.uv-subtitle { margin: 6px 0 0; font-size: var(--font-size-13); color: var(--color-text-tertiary); }
+.uv-subtitle {
+  margin: 6px 0 0; font-size: var(--font-size-13); color: var(--color-text-mid);
+  /* Fix UX-43 (15 ago, CI real vía axe-core — nunca fue .um-role, era este
+     párrafo, reutilizado tal cual en las 2 pantallas por GestionSedes.jsx,
+     de ahí que la falla saliera idéntica en ambas): var(--color-text-tertiary)
+     #64748b sobre --color-background-tertiary #f1f5f9 (fondo heredado de
+     .asm-root, el fondo general del módulo Admin) da 4.34:1, mismo patrón
+     exacto que ya se corrigió en .uv-tab.
+     --color-text-mid da 9.41:1 sobre el mismo fondo. */
+}
 
 /* Fix UX-45 (14 ago 2026, verificación responsive tras UX-43/44): antes
    sin flex-wrap ni overflow-x, con `width: fit-content` -- inofensivo
