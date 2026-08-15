@@ -181,7 +181,12 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
           placeholder="Buscar por nombre o email…"
           className="s-input pu-search-input"
         />
-        <select className="s-select" value={filtroRol} onChange={e => setFiltroRol(e.target.value)}>
+        <select
+          className="s-select"
+          value={filtroRol}
+          onChange={e => setFiltroRol(e.target.value)}
+          aria-label="Filtrar por rol"
+        >
           <option value="todos">Todos los roles</option>
           {roles.map(r => <option key={r.nombre} value={r.nombre}>{r.emoji} {r.label}</option>)}
         </select>
