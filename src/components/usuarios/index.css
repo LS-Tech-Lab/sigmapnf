@@ -35,7 +35,14 @@
 .uv-tab {
   padding: 7px 18px; border-radius: 8px; border: none; cursor: pointer;
   font-size: var(--font-size-13); font-weight: 600; transition: all 0.15s;
-  background: transparent; color: var(--color-text-tertiary);
+  background: transparent; color: var(--color-text-mid); /* Fix UX-40 (14 ago,
+  CI real): var(--color-text-tertiary) #64748b sobre el fondo de .uv-tabs
+  (--color-background-tertiary #f1f5f9) da 4.34:1, por debajo del 4.5:1
+  exigido por WCAG AA para texto normal a 13px — axe-core lo detectó recién
+  en la corrida real de GitHub Actions (no en la revisión estática previa),
+  en "Roles y Permisos" (Usuarios y Roles) y "Programas"/"Asignación"
+  (Sedes y Programas), las 3 pestañas inactivas de este componente
+  compartido. --color-text-mid da 9.41:1 sobre el mismo fondo. */
   display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap;
 }
 .uv-tab--active { background: #fff; color: var(--color-text-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
