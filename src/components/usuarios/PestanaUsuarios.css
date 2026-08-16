@@ -97,6 +97,18 @@
 .pu-action-btn--eliminar { border-color: var(--color-danger-light); color: var(--color-danger); }
 .pu-action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
+/* Fix UX-55 (verificación independiente 16 ago): .pu-action-btn (padding
+   5px 10px + font-size 13px) rondaba ~26px de alto real, por debajo del
+   mínimo táctil de 44px (WCAG 2.5.5 / Material) — mismo patrón que
+   UX-37/42/44/46 no cubrió porque, desde ADMIN-8 (12 ago), esta clase
+   también la reutiliza TabProgramas.jsx (pestaña Programas de Gestión de
+   Sedes), componente posterior a esas rondas de barrido. Acotado a
+   dispositivos táctiles reales (pointer: coarse), no por ancho de
+   viewport, para no inflar el control en desktop/laptop con mouse. */
+@media (hover: none) and (pointer: coarse) {
+  .pu-action-btn { min-height: 44px; min-width: 44px; }
+}
+
 .pu-toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   background: var(--color-text-primary); color: #fff; border-radius: 10px;
