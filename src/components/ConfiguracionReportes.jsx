@@ -248,12 +248,18 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
           <div className="cr-preview-sub">{form.subtitulo_1 || "—"}</div>
           <div className="cr-preview-sub">{form.subtitulo_2 || "—"}</div>
         </div>
+        {form.logo_coordinacion_base64 && (
+          <img
+            src={form.logo_coordinacion_base64}
+            alt="Logo de la coordinación"
+            className="cr-preview-logo-coordinacion"
+          />
+        )}
       </div>
       <div className="cr-preview-pie">{form.pie_texto || "—"}</div>
       <div className="cr-preview-pie">{form.firma_label || "—"}</div>
     </div>
   );
-
   return (
     <div className="cr-root">
       {/* Rediseño 14 ago 2026 (pedido LS): se quita el título propio de
