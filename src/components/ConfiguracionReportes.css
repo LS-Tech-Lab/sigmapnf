@@ -197,6 +197,11 @@
    línea aproximada del texto que reemplaza, para no desbalancear la
    tarjeta de vista previa. */
 .cr-preview-logo-unermb { display: block; max-height: 22px; width: auto; object-fit: contain; }
+/* UX-54 (15 ago, reportado por LS): el preview nunca mostró el logo de
+   coordinación (migración 0092, 13 ago) aunque el formulario sí permite
+   subirlo -- mismo criterio visual que reporte-print.css (separador
+   sutil, no tamaño, para distinguirlo del logo institucional). */
+.cr-preview-logo-coordinacion { max-height: 30px; width: auto; max-width: 90px; object-fit: contain; flex-shrink: 0; margin-left: auto; padding-left: 10px; border-left: 1px solid var(--color-border, #E5E7EB); }
 .cr-preview-sub { font-size: 0.75rem; color: var(--color-text-mid); }
 .cr-preview-pie { font-size: 0.7rem; color: var(--color-text-mid); margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border, #E5E7EB); }
 
