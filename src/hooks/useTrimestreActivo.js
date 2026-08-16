@@ -67,7 +67,9 @@ export default function useTrimestreActivo() {
 
   // Al montar: cargar trimestres reales y corregir el lapso inicial si
   // hace falta -- si el heurístico no tiene fila real, o si tiene fila
-  // pero no es el activo, se cae al activo real de la BD.
+  // pero no es el activo, se cae al activo real de la BD -- salvo que hoy
+  // no caiga dentro de las fechas del activo (ver ASIST-8 abajo), en cuyo
+  // caso se prefiere el último cerrado.
   useEffect(() => {
     let cancelado = false;
     (async () => {
@@ -75,10 +77,31 @@ export default function useTrimestreActivo() {
       if (cancelado || !rows) { setCargando(false); return; }
 
       const activo = rows.find(r => r.estado === "activo");
+
+      // ASIST-8 (caso real detectado 16 ago 2026, ver AUDITORIA_INDICE.md):
+      // el `estado = 'activo'` en `trimestres` puede marcarse antes de que
+      // el trimestre realmente empiece (fecha_inicio en el futuro) o
+      // después de que termine -- deja un "hueco" donde el activo real no
+      // tiene datos cargados todavía (horarios/asistencias vacíos) mientras
+      // el último cerrado sigue siendo el que la gente necesita ver. Si hoy
+      // no cae dentro de las fechas del activo, se prefiere el último
+      // trimestre `cerrado` (mayor fecha_fin) como default -- el usuario
+      // siempre puede cambiar manualmente vía el selector.
+      const hoyISO = fechaHoyVE();
+      const activoCubreHoy = !!(
+        activo?.fecha_inicio && activo?.fecha_fin &&
+        hoyISO >= activo.fecha_inicio && hoyISO <= activo.fecha_fin
+      );
+      const ultimoCerrado = rows
+        .filter(r => r.estado === "cerrado" && r.fecha_fin)
+        .sort((a, b) => (a.fecha_fin < b.fecha_fin ? 1 : -1))[0];
+      const defaultSinActivoVigente = ultimoCerrado ? ultimoCerrado.lapso : (activo ? activo.lapso : rows[0].lapso);
+
       setLapsoState(prev => {
         const filaPrev = rows.find(r => r.lapso === prev);
         if (filaPrev?.estado === "activo") return prev;
-        return activo ? activo.lapso : (filaPrev ? prev : rows[0].lapso);
+        if (activo && activoCubreHoy) return activo.lapso;
+        return filaPrev ? prev : defaultSinActivoVigente;
       });
       setCargando(false);
       primerFetchHecho.current = true;
