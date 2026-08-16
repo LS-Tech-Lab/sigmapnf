@@ -1,0 +1,33 @@
+-- SEC-39: restaurar_backup() tenía 2 overloads reales con los mismos
+-- parámetros (mismos tipos por nombre, distinto orden declarado) —
+-- causado por 0087 (fix ON CONFLICT/sede_id), que reordenó los
+-- parámetros al reaplicar el fix y por eso Postgres lo tomó como una
+-- función NUEVA en vez de reemplazar la existente (0041/0065).
+-- Confirmado con EXPLAIN (sin ANALYZE, no ejecuta el cuerpo):
+-- "ERROR 42725: function restaurar_backup(...) is not unique" — bug
+-- activo en producción, cualquier llamada RPC con los 6 parámetros
+-- con nombre (el único modo en que la llama backupActions.js) falla
+-- con esta ambigüedad, no con el error que el fallback del cliente
+-- sabe detectar (PGRST202/"Could not find").
+--
+-- Además, el duplicado (oid 20394, firma p_docentes/p_materias/
+-- p_horarios/p_asistencias/p_lapso/p_sede_id) tenía EXECUTE otorgado
+-- a PUBLIC (incluye anon) — el mismo hueco que SEC-33 cerró para
+-- ~24 funciones, quedó afuera de ese barrido porque no existía
+-- todavía en esa fecha. Riesgo real bajo (la función exige
+-- tiene_permiso(auth.uid(), 'puedeRestaurarBackup') como primera
+-- línea, auth.uid() es NULL para anon), pero se corrige por el mismo
+-- principio ya establecido: no depender de que anon no tenga motivo.
+--
+-- Se conserva el otro overload (firma p_lapso/p_horarios/p_docentes/
+-- p_materias/p_asistencias/p_sede_id, la declarada originalmente en
+-- 0041/0065) porque ya tiene los grants correctos (solo authenticated/
+-- postgres/service_role, sin PUBLIC/anon) y el mismo fix de
+-- ON CONFLICT (sede_id, ...) en el cuerpo — ambos overloads tenían el
+-- fix aplicado, esto no es una regresión de lógica, solo limpieza del
+-- duplicado y su grant de más.
+--
+-- Ya aplicado en producción (Supabase project fcrrtpujuncxruwxpckq)
+-- el 2026-08-15. Esta migración sincroniza el repo.
+
+DROP FUNCTION public.restaurar_backup(jsonb, jsonb, jsonb, jsonb, text, text);
