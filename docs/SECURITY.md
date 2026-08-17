@@ -228,10 +228,13 @@ hallazgos abiertos, ninguno bloqueante — detalle completo en
 - **Rate limiting nativo de Auth**: confirmado activo y reforzado
   (sign-ups/sign-ins 4 req/5min por IP, resto en default) — respaldo real
   del lockout de `SEC-6`/`SEC-7` (aplicación), no lo reemplaza.
-- Hardening menor sin explotación conocida: ~15 funciones sin
-  `search_path` fijo, extensión `pg_trgm` en el schema `public` en vez de
-  uno dedicado, y una posible función `restaurar_backup()` duplicada con
-  firma distinta (pendiente que LS confirme cuál usa el frontend real).
+- Hardening menor cerrado (16 ago, `SEC-39`, migración `0100`): las 3
+  funciones `SECURITY DEFINER` que quedaban sin `search_path` fijo
+  (`get_my_role`, `get_my_programa`, `limpiar_scan_rate_limit`) y la
+  extensión `pg_trgm`, reubicada del schema `public` a `extensions`
+  (sin código real que la use). `restaurar_backup()` duplicada también
+  cerrada — sobrevive una sola firma, coincide con la que usa el
+  frontend real.
 
 ---
 
