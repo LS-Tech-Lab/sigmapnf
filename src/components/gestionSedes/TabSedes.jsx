@@ -33,6 +33,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { ModalConfirm } from "../usuarios/shared";
 import { useSedeContext } from "../../context/SedeContext";
+// Fix UX-55 (auditoría 16 ago): setError(err.message) mostraba el error
+// crudo de Postgres/PostgREST, mismo patrón que SEC-38 ya cerró en otros
+// 6 archivos el 10 ago.
+import { mensajeAmigable } from "../../utils/errorMessages";
 import "../usuarios/PestanaUsuarios.css"; // rediseño 14 ago 2026: reutiliza
 // pu-toolbar/pu-stats/pu-table TAL CUAL de Usuarios y Roles en vez de la
 // lista de tarjetas en flex-wrap que había antes -- ver el comentario
@@ -72,7 +76,7 @@ export default function TabSedes({ showToast, logAudit, onCambio }) {
       .from("sedes")
       .select("id, nombre, activa, orden")
       .order("orden", { ascending: true });
-    if (err) setError(err.message);
+    if (err) setError(mensajeAmigable(err));
     else setSedes(data || []);
     setLoading(false);
   }, []);
@@ -114,7 +118,7 @@ export default function TabSedes({ showToast, logAudit, onCambio }) {
     const { error: errInsert } = await supabase.from("sedes_programas").insert(filas);
     if (errInsert) {
       showToast?.(
-        `Sede creada, pero no se pudieron activar sus programas automáticamente: ${errInsert.message}. Ajusta desde la pestaña "Asignación".`,
+        `Sede creada, pero no se pudieron activar sus programas automáticamente: ${mensajeAmigable(errInsert)}. Ajusta desde la pestaña "Asignación".`,
         "error"
       );
     }
@@ -177,7 +181,7 @@ export default function TabSedes({ showToast, logAudit, onCambio }) {
       await refetchSedes?.();
       await onCambio?.();
     } catch (e) {
-      showToast?.(e.message || "No se pudo guardar la sede.", "error");
+      showToast?.(mensajeAmigable(e) || "No se pudo guardar la sede.", "error");
     }
     setGuardando(false);
   };
@@ -201,7 +205,7 @@ export default function TabSedes({ showToast, logAudit, onCambio }) {
       await refetchSedes?.();
       await onCambio?.();
     } catch (e) {
-      showToast?.(e.message || "No se pudo cambiar el estado de la sede.", "error");
+      showToast?.(mensajeAmigable(e) || "No se pudo cambiar el estado de la sede.", "error");
     }
   };
 

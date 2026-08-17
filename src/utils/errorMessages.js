@@ -80,6 +80,22 @@ export function mensajeAmigable(error) {
   const msg = error?.message || "";
   if (!msg) return msg;
 
+  // Fix UX-55 (auditoría 16 ago, encontrado al conectar mensajeAmigable()
+  // en 10 call-sites nuevos que hasta ahora concatenaban error.message
+  // crudo): un `RAISE EXCEPTION 'texto'` sin SQLSTATE explícito en
+  // PL/pgSQL toma por convención el código P0001 — es exactamente el
+  // patrón que varias RPCs de este proyecto ya usan a propósito para
+  // mandar un mensaje pensado para el usuario final (ver 0080/0084/0093/
+  // 0097: "Selecciona un programa antes de generar...", "No tienes acceso
+  // a ese programa."). Antes de este fix, mensajeAmigable() no distinguía
+  // esos guards deliberados de un error técnico real — los aplanaba al
+  // mensaje genérico igual que cualquier otro caso no reconocido, dejando
+  // sin sentido la razón real del rechazo. P0001 es, por construcción,
+  // siempre texto escrito por el propio equipo para este propósito exacto
+  // -- nunca un detalle interno de esquema -- así que se devuelve tal
+  // cual, sin pasar por las reglas de abajo ni por el fallback genérico.
+  if (error?.code === "P0001") return msg;
+
   const regla = TRADUCCIONES.find((r) => r.match(msg));
   if (regla) return regla.mensaje;
 

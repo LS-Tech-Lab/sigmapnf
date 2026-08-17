@@ -56,7 +56,16 @@ export default function MateriasView({ byMateria, initialSel, onConsumeNav, getM
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrar materia…" className="s-input mv-search-input" />
         <div className="s-card mv-list-card">
           <div className="mv-list-header">{filteredSorted.length} materias</div>
-          {filteredSorted.map(m => (
+          {/* Fix UX-56 (auditoría 16 ago): mismo patrón aplicado en
+              DocentesView.jsx — estado vacío explícito para el filtro. */}
+          {search && filteredSorted.length === 0 ? (
+            <div className="mv-empty-state">
+              <p>No se encontraron materias que coincidan con "{search}".</p>
+              <button type="button" className="s-btn s-btn--sm" onClick={() => setSearch("")}>
+                Limpiar búsqueda
+              </button>
+            </div>
+          ) : filteredSorted.map(m => (
             <div key={m} onClick={() => { setSel(m); setEditingName(false); }}
               className={`mv-list-item${sel === m ? ' mv-list-item--active' : ''}`}
             >

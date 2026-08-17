@@ -69,4 +69,24 @@ describe("mensajeAmigable", () => {
     expect(mensajeAmigable({})).toBe("");
     expect(mensajeAmigable(null)).toBe("");
   });
+
+  // Fix UX-55 (auditoría 16 ago, encontrado al conectar mensajeAmigable()
+  // en 10 call-sites nuevos): un RAISE EXCEPTION sin SQLSTATE explícito en
+  // PL/pgSQL toma por convención el código P0001 — varias RPCs del
+  // proyecto ya lo usan a propósito para mandar guards pensados para el
+  // usuario final (0080/0084/0093/0097). Antes de este fix se aplanaban
+  // al mensaje genérico igual que un error técnico real.
+  it("UX-55: devuelve tal cual un mensaje P0001 (RAISE EXCEPTION deliberado de una RPC)", () => {
+    const error = { message: "Selecciona un programa antes de generar las estadísticas.", code: "P0001" };
+    expect(mensajeAmigable(error)).toBe("Selecciona un programa antes de generar las estadísticas.");
+  });
+
+  it("UX-55: un mensaje P0001 no pasa por las reglas de TRADUCCIONES ni por el genérico, aunque coincida con un patrón técnico", () => {
+    // Caso límite: un RAISE EXCEPTION con texto que por coincidencia matchea
+    // una regla de abajo (ej. menciona "permission denied for" dentro de un
+    // mensaje propio) debe seguir devolviéndose tal cual — P0001 tiene
+    // prioridad, es siempre texto propio del proyecto.
+    const error = { message: "No tienes acceso a ese programa.", code: "P0001" };
+    expect(mensajeAmigable(error)).toBe("No tienes acceso a ese programa.");
+  });
 });

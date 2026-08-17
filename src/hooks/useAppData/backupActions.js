@@ -6,6 +6,10 @@
 import { supabase } from "../../lib/supabase";
 import { limpiarCache } from "../../utils/cache";
 import { logger } from "../../utils/logger";
+// Fix UX-55 (auditoría 16 ago): las 2 concatenaciones de err.message de
+// abajo bypasseaban el filtro de errorMessages.js, mismo patrón que SEC-38
+// (10 ago) cerró en otros 6 archivos.
+import { mensajeAmigable } from "../../utils/errorMessages";
 
 export function createBackupActions({
   lapso, selectedPrograma, showToast, openConfirm, closeConfirm,
@@ -128,7 +132,7 @@ export function createBackupActions({
       showToast("Backup descargado correctamente.", "success");
     } catch (err) {
       logger.error("Error al exportar:", err);
-      showToast("Error al crear backup: " + err.message, "error");
+      showToast("Error al crear backup: " + mensajeAmigable(err), "error");
     }
   };
 
@@ -263,7 +267,14 @@ export function createBackupActions({
                 await supabase.from("asistencias_diarias").upsert(asistenciasSinId, { onConflict: "sede_id,cedula_docente,fecha,tipo", ignoreDuplicates: true });
               }
             } else {
-              throw new Error(rpcError.message);
+              // Fix UX-55 (auditoría 16 ago): traducir el error de Postgres
+              // AQUÍ, en el origen — no en el catch de abajo, que también
+              // recibe errores de validación de payload (líneas de arriba)
+              // con mensajes deliberadamente específicos/amigables
+              // ("Versión de backup no compatible...", etc.). Envolver el
+              // catch entero en mensajeAmigable() los aplanaba a todos al
+              // mensaje genérico, perdiendo la razón real del rechazo.
+              throw new Error(mensajeAmigable(rpcError));
             }
           }
 

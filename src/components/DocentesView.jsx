@@ -91,7 +91,17 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrar docente…" className="s-input dv-search-input" />
         <div className="s-card dv-list-card">
           <div className="dv-list-header">{filteredSorted.length} docentes</div>
-          {filteredSorted.map(d => (
+          {/* Fix UX-56 (auditoría 16 ago): sin este bloque, un filtro sin
+              resultados dejaba la lista completamente en blanco — sin forma
+              de distinguir "sin resultados" de "cargando" o "roto". */}
+          {search && filteredSorted.length === 0 ? (
+            <div className="dv-empty-state">
+              <p>No se encontraron docentes que coincidan con "{search}".</p>
+              <button type="button" className="s-btn s-btn--sm" onClick={() => setSearch("")}>
+                Limpiar búsqueda
+              </button>
+            </div>
+          ) : filteredSorted.map(d => (
             <div key={d} onClick={() => { setSel(d); setEditingName(false); }}
               className={`dv-list-item${sel === d ? ' dv-list-item--active' : ''}`}
             >

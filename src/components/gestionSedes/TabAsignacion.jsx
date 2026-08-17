@@ -16,6 +16,8 @@
 // upsert en vez de fallar.
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
+// Fix UX-55 (auditoría 16 ago): mismo patrón que TabSedes.jsx/TabProgramas.jsx.
+import { mensajeAmigable } from "../../utils/errorMessages";
 import "../usuarios/PestanaUsuarios.css"; // rediseño 14 ago 2026: pu-toolbar/pu-search-input
 import "../GestionSedes.css";
 
@@ -39,7 +41,7 @@ export default function TabAsignacion({ showToast, logAudit, refrescarClave }) {
 
     const err = resSedes.error || resProgramas.error || resAsignacion.error;
     if (err) {
-      setError(err.message);
+      setError(mensajeAmigable(err));
       setLoading(false);
       return;
     }
@@ -78,7 +80,7 @@ export default function TabAsignacion({ showToast, logAudit, refrescarClave }) {
       });
       setActivos(prev => ({ ...prev, [clave]: nuevoValor }));
     } catch (e) {
-      showToast?.(e.message || "No se pudo actualizar la asignación.", "error");
+      showToast?.(mensajeAmigable(e) || "No se pudo actualizar la asignación.", "error");
     }
     setGuardando(null);
   };

@@ -60,6 +60,10 @@
 .dv-detail-panel { flex: 1; overflow-y: auto; }
 .dv-detail-empty { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--color-text-tertiary); font-size: var(--font-size-15); font-weight: 500; }
 
+/* Fix UX-56 (auditoría 16 ago): estado vacío del filtro de búsqueda en el
+   panel izquierdo — antes la lista quedaba en blanco sin ningún mensaje. */
+.dv-empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 16px; text-align: center; color: var(--color-text-tertiary); font-size: var(--font-size-13); }
+
 .dv-header-card { padding: 18px 22px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; }
 .dv-header-main { flex: 1; }
 
@@ -121,6 +125,27 @@
 .dv-table-header { padding: 14px 18px; border-bottom: 2px solid var(--color-border-tertiary); font-size: var(--font-size-14); font-weight: 700; color: var(--navy-700); display: flex; align-items: center; gap: 7px; }
 .dv-table-wrap { overflow-x: auto; }
 .dv-table { width: 100%; border-collapse: collapse; }
+
+/* Fix UX-57 (auditoría 16 ago): sin esto, hacer scroll horizontal en una
+   tabla ancha (más columnas de las que caben en el ancho de un teléfono)
+   perdía de vista tanto la cabecera de columna como la fila ancla (Día) —
+   fatiga operativa real en listados con muchas asignaciones. background
+   explícito porque, sin él, las filas de abajo se transparentan al pasar
+   debajo de la columna/cabecera fija. */
+.dv-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-surface, #fff);
+  z-index: 2;
+}
+.dv-table td:first-child,
+.dv-table th:first-child {
+  position: sticky;
+  left: 0;
+  background: inherit; /* toma el fondo cebrado de su <tr> (ver reglas nth-child abajo) */
+  z-index: 1;
+}
+
 .dv-table th:nth-child(1) { width: 100px; }
 .dv-table th:nth-child(2) { width: 180px; }
 .dv-table th:nth-child(4) { width: 90px; }

@@ -57,6 +57,10 @@
 .mv-detail-panel { flex: 1; overflow-y: auto; }
 .mv-detail-empty { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--color-text-tertiary); font-size: var(--font-size-15); font-weight: 500; }
 
+/* Fix UX-56 (auditoría 16 ago): estado vacío del filtro de búsqueda,
+   mismo patrón que .dv-empty-state en DocentesView.css. */
+.mv-empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 16px; text-align: center; color: var(--color-text-tertiary); font-size: var(--font-size-13); }
+
 .mv-header-card { padding: 18px 22px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; }
 .mv-header-main { flex: 1; }
 .mv-name-edit-row { display: flex; align-items: center; gap: 8px; }
@@ -80,6 +84,23 @@
 .mv-table-header { padding: 14px 18px; border-bottom: 2px solid var(--color-border-tertiary); font-size: var(--font-size-14); font-weight: 700; color: var(--navy-700); display: flex; align-items: center; gap: 7px; }
 .mv-table-wrap { overflow-x: auto; }
 .mv-table { width: 100%; border-collapse: collapse; }
+
+/* Fix UX-57 (auditoría 16 ago): mismo patrón que DocentesView.css —
+   cabecera y primera columna fijas al hacer scroll horizontal. */
+.mv-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-surface, #fff);
+  z-index: 2;
+}
+.mv-table td:first-child,
+.mv-table th:first-child {
+  position: sticky;
+  left: 0;
+  background: inherit; /* toma el fondo cebrado de su <tr> (ver reglas nth-child abajo) */
+  z-index: 1;
+}
+
 .mv-table tbody tr:nth-child(even) { background: #FAFAFB; }
 .mv-table tbody tr:nth-child(odd) { background: #fff; }
 .mv-td-dia { font-weight: 500; }

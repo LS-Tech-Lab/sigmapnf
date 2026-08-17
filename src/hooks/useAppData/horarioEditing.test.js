@@ -142,3 +142,67 @@ describe("saveClase — bloqueo optimista (ARCH-29)", () => {
     expect(fetchHorarios).not.toHaveBeenCalled();
   });
 });
+
+// Fix UX-55 (auditoría 16 ago): deleteClase() no tenía cobertura de test
+// (la nota original de este archivo la dejaba fuera de alcance de ARCH-29).
+// Se agrega acá al conectar mensajeAmigable() en su catch de excepción,
+// que hasta ahora concatenaba err.message crudo — el mismo patrón que
+// SEC-38 ya cerró en otros 6 archivos el 10 ago.
+describe("deleteClase (UX-55)", () => {
+  let showToast, logAudit, fetchHorarios, actions;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    showToast = vi.fn();
+    logAudit = vi.fn();
+    fetchHorarios = vi.fn().mockResolvedValue(undefined);
+    actions = createHorarioEditingActions({
+      logAudit,
+      showToast,
+      fetchHorarios,
+      selectedPrograma: "INFORMATICA",
+    });
+  });
+
+  it("borra normalmente y refresca/audita", async () => {
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const del = vi.fn().mockReturnValue({ eq });
+    supabase.from.mockReturnValue({ delete: del });
+
+    const res = await actions.deleteClase(42, "Horario #42");
+
+    expect(res).toEqual({ success: true });
+    expect(showToast).toHaveBeenCalledWith("Clase eliminada.", "success");
+    expect(logAudit).toHaveBeenCalledTimes(1);
+    expect(fetchHorarios).toHaveBeenCalledWith("INFORMATICA");
+  });
+
+  it("un error de Supabase (respuesta .error) ya pasaba por mensajeAmigable() antes de este fix — sigue sin mostrar el mensaje crudo", async () => {
+    const eq = vi.fn().mockResolvedValue({ error: { message: "permission denied for table horarios" } });
+    const del = vi.fn().mockReturnValue({ eq });
+    supabase.from.mockReturnValue({ delete: del });
+
+    const res = await actions.deleteClase(42);
+
+    expect(res).toEqual({ success: false });
+    expect(showToast).toHaveBeenCalledWith("Error al eliminar: No tienes permiso para realizar esta acción.", "error");
+  });
+
+  it("UX-55: una excepción (ej. corte de red) ya no muestra err.message crudo — pasa por mensajeAmigable()", async () => {
+    const eq = vi.fn().mockRejectedValue(new Error("Failed to fetch"));
+    const del = vi.fn().mockReturnValue({ eq });
+    supabase.from.mockReturnValue({ delete: del });
+
+    const res = await actions.deleteClase(42);
+
+    expect(res).toEqual({ success: false });
+    // "Failed to fetch" no matchea ninguna regla de errorMessages.js —
+    // antes de este fix se mostraba tal cual; ahora cae al genérico.
+    expect(showToast).toHaveBeenCalledWith(
+      "Error al eliminar: Ocurrió un error al procesar la solicitud. Si el problema persiste, contacta a soporte.",
+      "error"
+    );
+    expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("Failed to fetch"), "error");
+    expect(fetchHorarios).not.toHaveBeenCalled();
+  });
+});

@@ -28,6 +28,8 @@ import { supabase } from "../../../lib/supabase";
 import { DEFAULT_PROGRAMAS, TURNOS_CONFIG } from "../../../constants";
 import { fechaHoyVE } from "../../../utils/time";
 import { useSedeContext } from "../../../context/SedeContext";
+// Fix UX-55 (auditoría 16 ago): 2 setError(...message) mostraban error crudo.
+import { mensajeAmigable } from "../../../utils/errorMessages";
 import useTrimestreActivo from "../../../hooks/useTrimestreActivo";
 import { formatLapso, rangoTrimestre } from "../../../utils/lapso";
 import { CHART_COLORS, restarDias, formatFechaCorta, topN } from "./helpers";
@@ -121,7 +123,7 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
       if (signal.aborted) return;
 
       if (err) {
-        setError(err.message);
+        setError(mensajeAmigable(err));
         setDatos({ tendencia: [], por_docente: [], por_dia_semana: [], por_puntualidad: [], por_sede: [] });
         setLoading(false);
         return;
@@ -137,7 +139,7 @@ export default function EstadisticasAcademicas({ permisos = {} }) {
       setLoading(false);
     } catch (e) {
       if (signal.aborted) return;
-      setError(e.message);
+      setError(mensajeAmigable(e));
       setLoading(false);
     }
   }, [inicio, fin, turno, programa, sedeActiva]);

@@ -1049,6 +1049,13 @@ textarea:focus-visible,
 
 .hl-main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
 
+/* Fix UX-58 (auditoría 16 ago): sin límite de ancho, tablas y formularios
+   se estiraban a todo el ancho disponible en monitores ultra-anchos
+   (1920px+), generando filas/líneas de texto incómodamente largas de
+   escanear. Acotado a .hl-main (el área de contenido de cada módulo) para
+   no tocar el sidebar/topbar, que siguen a ancho completo. */
+.hl-main > * { max-width: 1600px; width: 100%; margin-inline: auto; }
+
 @media (max-width: 640px) {
   .hl-brand-row { padding: var(--space-10px) var(--space-2) var(--space-10px); }
   .hl-consulta-banner { padding: var(--space-7px) var(--space-3); flex-wrap: wrap; }

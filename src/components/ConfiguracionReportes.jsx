@@ -15,6 +15,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { CONFIG_REPORTE_DEFAULT } from "../utils/reportePlantilla";
+// Fix UX-55 (auditoría 16 ago): 3 puntos mostraban error crudo de Postgres/JS.
+import { mensajeAmigable } from "../utils/errorMessages";
 import "./usuarios/index.css"; // rediseño 14 ago 2026: uv-subtitle, ver comentario en el render
 import "./GestionSedes.css"; // .gs-hint
 import "./ConfiguracionReportes.css";
@@ -122,13 +124,13 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
         .select("nombre_institucion, subtitulo_1, subtitulo_2, pie_texto, firma_label, logo_base64, logo_coordinacion_base64, logo_unermb_base64, color_clase")
         .eq("id", 1)
         .maybeSingle();
-      if (err) { setError(err.message); }
+      if (err) { setError(mensajeAmigable(err)); }
       else if (data) { setForm(data); setOriginal(data); }
       // Sin fila (data null, sin error): se queda con el default — no
       // debería pasar (la migración 0056 siembra la fila), pero no rompe
       // la pantalla si pasara.
     } catch (e) {
-      setError(e.message || "No se pudo cargar la configuración.");
+      setError(mensajeAmigable(e) || "No se pudo cargar la configuración.");
     }
     setLoading(false);
   }, []);
@@ -208,7 +210,7 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
       setOriginal(nuevaConfig);
       showToast?.("Configuración de reportes guardada.", "success");
     } catch (e) {
-      const msg = e.message || "No se pudo guardar la configuración.";
+      const msg = mensajeAmigable(e) || "No se pudo guardar la configuración.";
       setError(msg);
       showToast?.(msg, "error");
     }

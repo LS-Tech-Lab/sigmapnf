@@ -183,7 +183,13 @@ describe("EstadisticasAcademicas — carga real vía RPC agregada en el servidor
   });
 
   it("si la RPC devuelve error, muestra el banner de error", async () => {
-    mockRpc({ data: null, error: { message: "Selecciona un programa antes de generar las estadísticas." } });
+    // Fix UX-55 (auditoría 16 ago): code: "P0001" agregado al mock — es el
+    // código real que PostgREST devuelve para un RAISE EXCEPTION sin
+    // SQLSTATE explícito (ver 0084_estad1_...sql), y mensajeAmigable() lo
+    // usa para distinguir este guard deliberado de un error técnico real.
+    // Sin el code en el mock, el test no reflejaba la forma real de la
+    // respuesta de Supabase para este caso.
+    mockRpc({ data: null, error: { message: "Selecciona un programa antes de generar las estadísticas.", code: "P0001" } });
 
     renderDashboard();
 

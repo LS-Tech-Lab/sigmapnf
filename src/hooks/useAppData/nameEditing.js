@@ -98,14 +98,18 @@ export function createNameEditingActions({
         if (updateError.code === "23505") {
           showToast("Esa cédula ya está vinculada a otro docente.", "error");
         } else {
-          showToast("Error: " + updateError.message, "error");
+          // Fix UX-55 (auditoría 16 ago): este else concatenaba
+          // updateError.message crudo — bug propio encontrado al cerrar el
+          // hallazgo original (el catch de abajo, ya reportado en el
+          // índice), mismo patrón que SEC-38 ya cerró en otros 6 archivos.
+          showToast("Error: " + mensajeAmigable(updateError), "error");
         }
         return { success: false };
       }
       showToast(cedulaLimpia ? "Cédula vinculada." : "Cédula desvinculada.", "success");
       logAudit?.({ accion: "EDITAR_DOCENTE", entidad: "docentes", resumen: `Cédula de "${rawName}" actualizada a "${cedulaLimpia || "(vacío)"}"` });
       return { success: true, cedulaLimpia };
-    } catch (err) { showToast("Error: " + err.message, "error"); return { success: false }; }
+    } catch (err) { showToast("Error: " + mensajeAmigable(err), "error"); return { success: false }; }
   };
 
   const saveMateriaName = async (rawName, displayName) => {

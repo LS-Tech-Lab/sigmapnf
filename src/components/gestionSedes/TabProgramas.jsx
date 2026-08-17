@@ -10,6 +10,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { ModalConfirm } from "../usuarios/shared";
+// Fix UX-55 (auditoría 16 ago): mismo patrón que TabSedes.jsx — setError/
+// showToast con err.message crudo, mismo problema que SEC-38 cerró en
+// otros 6 archivos el 10 ago.
+import { mensajeAmigable } from "../../utils/errorMessages";
 import "../usuarios/PestanaUsuarios.css"; // rediseño 14 ago 2026 — ver TabSedes.jsx
 import "../GestionSedes.css";
 
@@ -44,7 +48,7 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
       .from("programas")
       .select("id, nombre, activa, orden")
       .order("orden", { ascending: true });
-    if (err) setError(err.message);
+    if (err) setError(mensajeAmigable(err));
     else setProgramas(data || []);
     setLoading(false);
   }, []);
@@ -81,7 +85,7 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
     const { error: errInsert } = await supabase.from("sedes_programas").insert(filas);
     if (errInsert) {
       showToast?.(
-        `Programa creado, pero no se pudo activar en las sedes automáticamente: ${errInsert.message}. Ajusta desde la pestaña "Asignación".`,
+        `Programa creado, pero no se pudo activar en las sedes automáticamente: ${mensajeAmigable(errInsert)}. Ajusta desde la pestaña "Asignación".`,
         "error"
       );
     }
@@ -141,7 +145,7 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
       await cargar();
       await onCambio?.();
     } catch (e) {
-      showToast?.(e.message || "No se pudo guardar el programa.", "error");
+      showToast?.(mensajeAmigable(e) || "No se pudo guardar el programa.", "error");
     }
     setGuardando(false);
   };
@@ -164,7 +168,7 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
       await cargar();
       await onCambio?.();
     } catch (e) {
-      showToast?.(e.message || "No se pudo cambiar el estado del programa.", "error");
+      showToast?.(mensajeAmigable(e) || "No se pudo cambiar el estado del programa.", "error");
     }
   };
 

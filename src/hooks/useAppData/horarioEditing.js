@@ -96,7 +96,11 @@ export function createHorarioEditingActions({ logAudit, showToast, fetchHorarios
       return { success: true };
     } catch (err) {
       logger.error("deleteClase:", err);
-      showToast("Error al eliminar: " + err.message, "error");
+      // Fix UX-55 (auditoría 16 ago): este catch concatenaba err.message
+      // crudo, mismo patrón que SEC-38 cerró en otros 6 archivos el 10 ago
+      // — el path de error de Supabase arriba en esta misma función ya
+      // usaba mensajeAmigable(), la excepción de red/JS no.
+      showToast("Error al eliminar: " + mensajeAmigable(err), "error");
       return { success: false };
     }
   };

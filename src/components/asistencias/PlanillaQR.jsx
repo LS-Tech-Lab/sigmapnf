@@ -13,6 +13,8 @@ import { getCurrentLapso, formatLapso } from '../../utils/lapso';
 import { useReporteConfig } from '../../hooks/useReporteConfig';
 import usePlantillasImpresion from '../../hooks/usePlantillasImpresion';
 import { useSedeContext } from '../../context/SedeContext';
+// Fix UX-55 (auditoría 16 ago): setError(err.message) mostraba error crudo.
+import { mensajeAmigable } from '../../utils/errorMessages';
 import useTrimestreActivo from '../../hooks/useTrimestreActivo';
 import PlanillaImprimibleBase from './PlanillaImprimibleBase';
 
@@ -193,7 +195,7 @@ export default function PlanillaQR({ permisos = {}, profile }) {
         }
         if (!cancelado) setData(todasLasFilas);
       } catch (err) {
-        if (!cancelado) setError(err.message);
+        if (!cancelado) setError(mensajeAmigable(err));
       } finally {
         if (!cancelado) setLoading(false);
       }

@@ -18,6 +18,8 @@ import ReporteRango from "./ReporteRango";
 import { guardarReporteEnIDB, cargarReporteDeIDB } from "../../../utils/reporteCache";
 import { useReporteConfig } from "../../../hooks/useReporteConfig";
 import { useSedeContext } from "../../../context/SedeContext";
+// Fix UX-55 (auditoría 16 ago): setError(err.message) mostraba error crudo.
+import { mensajeAmigable } from "../../../utils/errorMessages";
 import useTrimestreActivo from "../../../hooks/useTrimestreActivo";
 import { formatLapso, lapsoParaFecha } from "../../../utils/lapso";
 import "./index.css";
@@ -135,7 +137,7 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
         setModoOffline(true);
         setFechaCache(cached.guardadoEn);
       } else {
-        setError(err.message);
+        setError(mensajeAmigable(err));
         setRows([]);
       }
     } else {

@@ -96,7 +96,12 @@ describe("ConfiguracionReportes — carga inicial", () => {
     supabase.from.mockImplementation(() => makeSelectBuilder({ data: null, error: { message: "Error de red." } }));
     render(<ConfiguracionReportes showToast={vi.fn()} logAudit={vi.fn()} />);
 
-    await waitFor(() => screen.getByText("Error de red."));
+    // Fix UX-55 (auditoría 16 ago): antes mostraba error.message crudo —
+    // ahora pasa por mensajeAmigable() como el resto del proyecto desde
+    // SEC-38. "Error de red." no matchea ninguna regla conocida, así que
+    // cae al mensaje genérico (mismo criterio que SEC-38 ya estableció:
+    // cualquier mensaje no reconocido se aplana, no se muestra crudo).
+    await waitFor(() => screen.getByText("Ocurrió un error al procesar la solicitud. Si el problema persiste, contacta a soporte."));
     // Sigue mostrando el default, la pantalla no queda en blanco.
     expect(screen.getByDisplayValue("UNERMB")).toBeTruthy();
   });

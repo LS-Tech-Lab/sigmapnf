@@ -8,6 +8,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { CONFIG_REPORTE_DEFAULT } from "../utils/reportePlantilla";
+// Fix UX-55 (auditoría 16 ago): 2 puntos mostraban error crudo.
+import { mensajeAmigable } from "../utils/errorMessages";
 
 export function useReporteConfig() {
   const [config, setConfig]   = useState(CONFIG_REPORTE_DEFAULT);
@@ -24,7 +26,7 @@ export function useReporteConfig() {
         .maybeSingle();
 
       if (err) {
-        setError(err.message);
+        setError(mensajeAmigable(err));
         // Se mantiene el último config conocido (o el default inicial) —
         // no se pisa con null/undefined ante un error transitorio.
       } else if (data) {
@@ -34,7 +36,7 @@ export function useReporteConfig() {
       // Sin error y sin data (fila ausente): se queda con el default, sin
       // marcar error — es un estado válido (nadie configuró nada aún).
     } catch (e) {
-      setError(e.message || "No se pudo cargar la configuración de reportes.");
+      setError(mensajeAmigable(e) || "No se pudo cargar la configuración de reportes.");
     }
     setLoading(false);
   }, []);
