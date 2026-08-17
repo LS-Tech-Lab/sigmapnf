@@ -41,78 +41,26 @@ esquema de BD y migraciones SQL, ver `ESQUEMA_Y_MIGRACIONES.md`.
 
 ## 🔴 Hallazgos realmente abiertos
 
-**`SEC-37` ⛔ no aplicable, no es hallazgo pendiente.** El toggle de
-leaked-password protection requiere plan Pro (organización real
-`bolysrglhpxjfydtuzkw`, plan `free`); LS confirmó (16 ago) que no
-tiene planes de contratar Pro en el corto plazo — decisión de
-producto, mismo criterio que `UX-13` (modo oscuro revertido), no un
-bloqueo a resolver. Reevaluar solo si el plan cambia en el futuro.
-Detalle en la fila `SEC-37`.
+**Sin hallazgos de código abiertos en todo el índice.** Único punto
+restante:
 
-**`SEC-39` cerrado por completo (16 ago, migración `0100`):** los 2
-puntos de hardening que quedaban (`search_path` en 3 funciones,
-`pg_trgm` fuera de `public`) implementados y verificados contra el
-proyecto real — 0 funciones `SECURITY DEFINER` sin `search_path` en
-todo `public`. `SEC-40`/`SEC-41` (RLS de `horarios` bloqueando
-trimestres cerrados a nivel de BD) también verificados cerrados el
-16 ago — ver esas filas.
+**`SEC-37` ⛔ no aplicable.** El toggle de leaked-password protection
+requiere plan Pro (organización `bolysrglhpxjfydtuzkw`, plan `free`);
+LS confirmó (16 ago) que no tiene planes de contratar Pro en el corto
+plazo — decisión de producto, mismo criterio que `UX-13` (modo oscuro
+revertido), no un bloqueo a resolver. Reevaluar solo si cambia el
+plan. Detalle en la fila `SEC-37`.
 
-**Sin hallazgos de código abiertos en todo el índice** tras esta
-pasada — el único punto restante es `SEC-37`, ⛔ no aplicable por
-decisión de producto, no un bloqueo real.
-
-**Patrón recurrente a vigilar:** dos veces un hallazgo se marcó ✅
+**Patrón recurrente a vigilar:** varias veces un hallazgo se marcó ✅
 cerrado sin que el fix llegara realmente al código/CI (`ARCH-29`→`31`,
-2 ago; `ARCH-34`→`35`, 3 ago; mismo patrón de fondo en `ARCH-43`,
-10 ago) — siempre detectado verificando archivo por archivo contra el
-HEAD real, nunca dando por buena la tabla de este documento sin más.
-El sistema de Sedes tuvo el mismo problema (`ARCH-37`, § Sistema
-multi-sede).
+`ARCH-34`→`35`, `ARCH-37`, `ARCH-43`) — siempre detectado verificando
+archivo por archivo contra el HEAD real, nunca dando por buena la
+tabla de este documento sin más.
 
-`UX-13` (modo oscuro) sigue ⛔ revertido a pedido de LS — decisión de
-producto, no hallazgo pendiente. CodeQL corre en cada push/PR y
-semanalmente por cron (`SEC-20`) — revisar Security → Code scanning
-periódicamente, 0 hallazgos hoy no es un estado permanente.
-
-Rate limiting nativo de Auth (`SEC-7`), `pg_cron` (`SEC-21`) y grants
-de las 8 funciones admin/sesión (`SEC-9`/`SEC-17`) confirmados sin
-drift el 9 ago — detalle completo, la auditoría de estrés operacional
-del 10 ago (`ARCH-43`/`OFF-12`/`SEC-38`/`UX-35`) y el drift paralelo
-de esos días (4 migraciones renumeradas `0082`–`84`→`0085`–`88`): ver
-§ Historial cronológico y las filas de cada ID en sus tablas.
-
-**Cerrado hoy, `UX-47`/`UX-48` (15 ago, verificación E2E de UI/UX
-independiente):** trampa de foco de teclado ausente en `UploadPreviewModal`/
-`ModalCambiarPassword` y cierre por `Escape` ausente en los dropdowns
-`AdminMenu`/`UserMenu` — ver filas `UX-47`/`UX-48`. De paso se detectaron
-y corrigieron **3 colisiones de ID reales** (mismo patrón que `SEC-33`/
-`UX-33` ya resolvió antes): un fix de contraste (`--role-text`) comentado
-como `UX-42` pisaba el `UX-42` ya documentado (targets táctiles) →
-renumerado `UX-49`; la vista previa sticky de `ConfiguracionReportes` y
-el fallback de contraste `.role-color--default` estaban ambos comentados
-como `UX-41`, pisando el `UX-41` real (scroll de backdrops de modal) →
-renumerados `UX-50`/`UX-51`. También se agregaron a este índice
-`UX-44`/`45`/`46`, implementados en código desde el 14-15 ago pero nunca
-indexados (`UX-41` sí estaba indexado, solo fuera de orden numérico).
-Detalle completo del incidente de subida y su corrección: § Historial
-cronológico, entrada del 15 ago.
-
-**Pendientes previos reconciliados (15 ago):** `UX-35` (baselines
-WebKit `mobile-webkit-375`/`tablet-webkit-768`, generadas el 11 ago en
-`8371a62`) y la graduación a bloqueante del CI de WebKit/axe-core
-(`847daa4`, 12 ago, corrida real `85855045178` — 9/9 + 3/3 sin falsos
-positivos) ya estaban cerrados antes de esta sesión; las notas de
-"pendiente" que este índice todavía arrastraba quedaron corregidas en
-`UX-35`/`UX-39`. **Sin hallazgos de UI/UX abiertos tras esta
-reconciliación.** `SEC-37` reclasificado (16 ago) como no aplicable
-por decisión de LS, no bloqueo pendiente. `OFF-10` verificado cerrado
-(16 ago, migración `0075` confirmada en producción). `SEC-40`/`41`
-(RLS de `horarios` en trimestres cerrados) encontrados aplicados en
-producción sin registrar en este índice — documentados retroactivamente
-el 16 ago, ver esas filas. `ARCH-39` cerrado el mismo día (16 ago):
-primera corrida real con los 3 secrets presentes, 0 errores inesperados
-en ambas oleadas — ver esa fila para el detalle de `DEVICE_DUPLICADO`
-(esperado, no es una falla).
+Recordatorios permanentes: `UX-13` (modo oscuro) sigue ⛔ revertido a
+pedido de LS. CodeQL corre en cada push/PR y semanalmente por cron
+(`SEC-20`) — revisar Security → Code scanning periódicamente, 0
+hallazgos hoy no es un estado permanente.
 
 ---
 
