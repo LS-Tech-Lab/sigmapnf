@@ -133,7 +133,11 @@ test.describe('Accesibilidad (WCAG, axe-core) — Sistema/Admin (UX-35 seguimien
     await page.goto('/');
     await expect(page.getByRole('heading', { name: /gestión de usuarios y roles/i })).toBeVisible({ timeout: 15_000 });
 
-    await page.getByRole('button', { name: /sedes/i }).click();
+    // Fix UX-64 (18 ago): el botón "Sedes" ganó role="tab" (accesibilidad
+    // correcta, mismo patrón que GestionSedes.jsx) y por eso dejó de matchear
+    // getByRole('button', ...) -- Playwright resuelve por el rol ARIA
+    // explícito, no por el elemento HTML subyacente.
+    await page.getByRole('tab', { name: /sedes/i }).click();
     await expect(page.getByRole('heading', { name: /sedes y programas/i })).toBeVisible({ timeout: 15_000 });
 
     const resultados = await new AxeBuilder({ page }).analyze();
