@@ -345,14 +345,19 @@ export default function ReporteAsistencias({ onVolverPanel, permisos = {}, showT
         ))}
       </div>
 
-      {/* Pestañas */}
-      <div className="ra-tabs">
+      {/* Pestañas.
+          Fix UX-64 (auditoría 18 ago): role="tablist"/role="tab"/aria-selected
+          agregados, mismo patrón ya establecido en GestionSedes.jsx/
+          GestionReportes.jsx/AsistenciasModulo.jsx/AdminModulo.jsx. */}
+      <div className="ra-tabs" role="tablist" aria-label="Vista de asistencias del día">
         {[
           { id: "presentes", label: `Presentes (${totalDocentes})`, icon: "ti-circle-check" },
           { id: "ausentes",  label: "Ausentes",                     icon: "ti-circle-x"    },
         ].map(t => (
           <button
             key={t.id}
+            role="tab"
+            aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
             className={`ra-tab-btn${tab === t.id ? ' ra-tab-btn--active' : ''}`}
           >
