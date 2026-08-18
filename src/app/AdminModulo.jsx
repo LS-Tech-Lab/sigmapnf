@@ -174,10 +174,15 @@ export default function AdminModulo({
               <i className="ti ti-chevron-left" aria-hidden="true" />
             </button>
           )}
-          <div className="asm-tabs" ref={tabsRef} onScroll={checkTabsOverflow}>
+          {/* Fix UX-64 (auditoría 18 ago): mismo patrón que AsistenciasModulo.jsx —
+              role="tablist"/role="tab"/aria-selected, ya establecido en
+              GestionSedes.jsx/GestionReportes.jsx. */}
+          <div className="asm-tabs" ref={tabsRef} onScroll={checkTabsOverflow} role="tablist" aria-label="Secciones de Sistema">
             {TABS.map((t) => (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)}
                 className={`asm-tab ${tab === t.id ? "asm-tab--active" : ""}`}
               >
