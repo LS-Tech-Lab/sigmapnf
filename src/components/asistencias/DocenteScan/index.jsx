@@ -14,6 +14,12 @@ import {
 } from "./cedula";
 import { calcularDeviceFingerprint } from "./deviceFingerprint";
 import { IconError } from "./icons";
+// Fix UX-59 (auditoría 16 ago, cierre del alcance dejado pendiente por
+// UX-55): catch de abajo relanza el error original de registrar_asistencia()
+// (`throw rpcErr`, conserva `.code`) sin traducir — este RPC además usa
+// RAISE EXCEPTION para sus propios guards (ej. entrada duplicada), que la
+// regla P0001 de mensajeAmigable() ya sabe respetar sin aplanarlos.
+import { mensajeAmigable } from "../../../utils/errorMessages";
 import Shell from "./Shell";
 import SelectorTipo from "./SelectorTipo";
 import PasoValidacionCedula from "./PasoValidacionCedula";
@@ -269,7 +275,7 @@ export default function DocenteScan() {
       setResultado(data);
       setPaso("resultado");
     } catch (err) {
-      setResultado({ ok: false, codigo: "ERROR", mensaje: err.message || "Error de conexión." });
+      setResultado({ ok: false, codigo: "ERROR", mensaje: err.message ? mensajeAmigable(err) : "Error de conexión." });
       setPaso("resultado");
     } finally {
       setLoading(false);

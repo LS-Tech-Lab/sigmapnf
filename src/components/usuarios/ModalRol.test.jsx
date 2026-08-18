@@ -97,14 +97,21 @@ describe("ModalRol — crear rol nuevo", () => {
   });
 
   it("con error del RPC, muestra el mensaje y NO llama onSave (no cierra el modal)", async () => {
-    supabase.rpc.mockResolvedValue({ error: { message: "Ya existe un rol con ese identificador." } });
+    // Fix UX-59 (auditoría 16 ago): el mock original usaba un mensaje
+    // ficticio ("Ya existe un rol con ese identificador.") que no
+    // corresponde a ningún RAISE EXCEPTION real de admin_upsert_role()
+    // (esa función usa ON CONFLICT DO UPDATE, no detecta duplicados como
+    // error) — y sin `code`, no reflejaba la forma real de la respuesta.
+    // Se reemplaza por uno de los guards reales de la misma función
+    // (0021), con code: "P0001" (RAISE EXCEPTION sin SQLSTATE explícito).
+    supabase.rpc.mockResolvedValue({ error: { message: "No tienes permiso para gestionar roles.", code: "P0001" } });
     const { onSave } = renderModal();
 
     fireEvent.change(screen.getByLabelText(/Identificador/), { target: { value: "coordinador" } });
     fireEvent.change(screen.getByLabelText(/Nombre visible/), { target: { value: "Coordinador" } });
     fireEvent.click(screen.getByText("Crear rol"));
 
-    await waitFor(() => screen.getByText(/Ya existe un rol/));
+    await waitFor(() => screen.getByText(/No tienes permiso para gestionar roles/));
     expect(onSave).not.toHaveBeenCalled();
   });
 

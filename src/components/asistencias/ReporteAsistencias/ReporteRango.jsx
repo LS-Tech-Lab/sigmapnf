@@ -162,7 +162,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
       // el resultado en silencio en vez de pisar la tabla actual.
       if (signal.aborted) return;
       if (err || countErr) {
-        setError((err || countErr).message);
+        setError(mensajeAmigable(err || countErr));
         setDocentes([]);
         setTotalRegistros(0);
         setLoading(false);
@@ -197,7 +197,7 @@ function ReporteRango({ onVolverDiario, permisos = {}, showToast }) {
       setTotalRegistros(count ?? 0);
     } catch (e) {
       if (signal.aborted || e.name === "AbortError") return;
-      setError(e.message || "Error al cargar el reporte.");
+      setError(mensajeAmigable(e) || "Error al cargar el reporte.");
       setDocentes([]);
       setTotalRegistros(0);
     }

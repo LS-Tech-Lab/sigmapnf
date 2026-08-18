@@ -16,6 +16,11 @@ import { supabase } from "../../lib/supabase";
 import { GRUPOS_PERMISOS, Spinner, ModalConfirm } from "./shared";
 import { roleColorClass } from "../../constants";
 import ModalRol from "./ModalRol";
+// Fix UX-59 (auditoría 16 ago, cierre del alcance dejado pendiente por
+// UX-55): ambos catch de abajo relanzan el error original de las RPCs
+// (`throw error`, no `throw new Error(error.message)`) — conserva
+// `.code`, así que se puede traducir directo en el catch.
+import { mensajeAmigable } from "../../utils/errorMessages";
 import "./PestanaRoles.css";
 
 export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged, showToast: showToastProp, logAudit }) {
@@ -39,7 +44,7 @@ export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged
       setRoles(data || []);
       onRolesChanged?.(data || []);
     } catch (e) {
-      toast(`Error: ${e.message}`);
+      toast(`Error: ${mensajeAmigable(e)}`);
     }
     setLoading(false);
   }, [onRolesChanged, toast]);
@@ -59,7 +64,7 @@ export default function PestanaRoles({ permisos: permisosUsuario, onRolesChanged
       toast("✓ Rol eliminado.");
       cargar();
     } catch (e) {
-      toast(e.message);
+      toast(mensajeAmigable(e));
     }
   };
 

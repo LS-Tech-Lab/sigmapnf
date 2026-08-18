@@ -64,7 +64,7 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
         .in("programa", programasRestringidos);
       if (sedeActiva) queryLapsos = queryLapsos.eq("sede_id", sedeActiva);
       const { data: lapsos, error: errLapsos } = await queryLapsos;
-      if (errLapsos) { showToast("Error al cargar historial: " + errLapsos.message, "error"); setLoading(false); return; }
+      if (errLapsos) { showToast("Error al cargar historial: " + mensajeAmigable(errLapsos), "error"); setLoading(false); return; }
       const lapsoSet = [...new Set((lapsos || []).map(h => h.lapso))];
       if (lapsoSet.length === 0) { setTrimestres([]); setLoading(false); return; }
       ({ data, error } = await supabase

@@ -20,6 +20,11 @@
  */
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../lib/supabase";
+// Fix UX-59 (auditoría 16 ago, cierre del alcance dejado pendiente por
+// UX-55): catch de abajo relanza el error original de sus 2 selects
+// (`throw plantillasRes.error`/`throw asignacionesRes.error`, conservan
+// `.code`) sin traducir.
+import { mensajeAmigable } from "../utils/errorMessages";
 
 export default function usePlantillasImpresion(tipoReporte, sedeId = null) {
   const [plantillas, setPlantillas]   = useState([]);
@@ -56,7 +61,7 @@ export default function usePlantillasImpresion(tipoReporte, sedeId = null) {
       setPlantillas(plantillasRes.data || []);
       setAsignaciones(asignacionesRes.data || []);
     } catch (e) {
-      setError(e.message || "No se pudieron cargar las plantillas de impresión.");
+      setError(mensajeAmigable(e) || "No se pudieron cargar las plantillas de impresión.");
     }
     setLoading(false);
   }, [tipoReporte]);

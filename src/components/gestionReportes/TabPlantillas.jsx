@@ -31,6 +31,11 @@ import { useReporteConfig } from "../../hooks/useReporteConfig";
 import { anchoContenidoMm } from "../../utils/reportePlantilla";
 import { CAMPOS_PLANILLA_TURNO, DEFAULT_COLUMNAS_BLOQUE } from "../../utils/plantillasImpresion";
 import { construirHtmlPreview, DIMENSIONES_PAGINA_PX } from "../../utils/plantillaPreview";
+// Fix UX-59 (auditoría 16 ago, cierre del alcance dejado pendiente por
+// UX-55): usePlantillasImpresion.js relanza el error original de sus RPCs
+// (`throw err`/`throw error`, conserva `.code`) en los 4 catch de este
+// archivo, sin traducir.
+import { mensajeAmigable } from "../../utils/errorMessages";
 import "../GestionSedes.css"; // reutiliza clases genéricas gs-*/s-* de panel admin, no exclusivas de "sedes"
 import "../usuarios/PestanaUsuarios.css"; // rediseño 14 ago 2026: pu-toolbar/pu-table, ver TabSedes.jsx
 import "./TabPlantillas.css";
@@ -147,7 +152,7 @@ export default function TabPlantillas({ showToast, logAudit }) {
       cerrarNueva();
       abrirEditorColumnas(nueva);
     } catch (e) {
-      showToast?.(e.message || "No se pudo crear la plantilla.", "error");
+      showToast?.(mensajeAmigable(e) || "No se pudo crear la plantilla.", "error");
     }
     setGuardandoNuevo(false);
   };
@@ -260,7 +265,7 @@ export default function TabPlantillas({ showToast, logAudit }) {
       showToast?.("Columnas guardadas.", "success");
       cerrarEditorColumnas();
     } catch (e) {
-      showToast?.(e.message || "No se pudieron guardar las columnas.", "error");
+      showToast?.(mensajeAmigable(e) || "No se pudieron guardar las columnas.", "error");
     }
     setGuardandoColumnas(false);
   };
@@ -277,7 +282,7 @@ export default function TabPlantillas({ showToast, logAudit }) {
       });
       showToast?.(`"${plantilla.nombre}" es ahora la predeterminada.`, "success");
     } catch (e) {
-      showToast?.(e.message || "No se pudo marcar como predeterminada.", "error");
+      showToast?.(mensajeAmigable(e) || "No se pudo marcar como predeterminada.", "error");
     }
     setMarcandoDefault(null);
   };
@@ -299,7 +304,7 @@ export default function TabPlantillas({ showToast, logAudit }) {
         resumen: `Plantilla de "${sede.nombre}" cambiada.`,
       });
     } catch (e) {
-      showToast?.(e.message || "No se pudo actualizar la asignación.", "error");
+      showToast?.(mensajeAmigable(e) || "No se pudo actualizar la asignación.", "error");
     }
   };
 

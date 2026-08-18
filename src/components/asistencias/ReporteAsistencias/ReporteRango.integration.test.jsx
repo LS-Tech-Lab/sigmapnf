@@ -212,7 +212,12 @@ describe("ReporteRango — carga real del reporte por rango (ARCH-27, agregació
     setDateInput("Desde", INICIO);
     setDateInput("Hasta", FIN);
 
-    await waitFor(() => screen.getByText("Error de red."));
+    // Fix UX-59 (auditoría 16 ago): "Error de red." no matchea ninguna
+    // regla de errorMessages.js — antes de conectar mensajeAmigable() en
+    // este archivo se mostraba tal cual, ahora cae al mensaje genérico
+    // (mismo criterio que SEC-38 ya estableció para cualquier mensaje no
+    // reconocido).
+    await waitFor(() => screen.getByText("Ocurrió un error al procesar la solicitud. Si el problema persiste, contacta a soporte."));
     expect(screen.getByText("No hay asistencias en este rango.")).toBeTruthy();
   });
 });

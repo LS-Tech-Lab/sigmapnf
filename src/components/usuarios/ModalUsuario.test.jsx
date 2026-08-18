@@ -177,11 +177,16 @@ describe("ModalUsuario — editar usuario existente", () => {
   });
 
   it("si admin_upsert_user_profile falla, NO llama a admin_set_user_programas ni a onSave", async () => {
-    supabase.rpc.mockResolvedValueOnce({ error: { message: "Sin permiso." } });
+    // Fix UX-59 (auditoría 16 ago): mock actualizado con el mensaje real
+    // de admin_upsert_user_profile() (0079) y code: "P0001" (RAISE
+    // EXCEPTION sin SQLSTATE explícito) — el mock original ("Sin
+    // permiso.") no correspondía al texto real de ningún guard de la RPC
+    // y no reflejaba la forma real de la respuesta de PostgREST.
+    supabase.rpc.mockResolvedValueOnce({ error: { message: "No tienes permiso para gestionar usuarios.", code: "P0001" } });
     const { onSave, logAudit } = renderModal();
     fireEvent.click(screen.getByText("Guardar cambios"));
 
-    await waitFor(() => screen.getByText("Sin permiso."));
+    await waitFor(() => screen.getByText("No tienes permiso para gestionar usuarios."));
     expect(supabase.rpc).toHaveBeenCalledTimes(1);
     expect(onSave).not.toHaveBeenCalled();
     expect(logAudit).not.toHaveBeenCalled();

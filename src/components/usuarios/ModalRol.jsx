@@ -20,6 +20,10 @@ import {
   Spinner,
 } from "./shared";
 import { roleColorClass } from "../../constants";
+// Fix UX-59 (auditoría 16 ago, cierre del alcance dejado pendiente por
+// UX-55): catch de abajo relanza el error original de admin_upsert_role()
+// (`throw err`, conserva `.code`) sin traducir.
+import { mensajeAmigable } from "../../utils/errorMessages";
 import useFocusTrap from "../../hooks/useFocusTrap";
 import "./ModalRol.css";
 
@@ -124,7 +128,7 @@ export default function ModalRol({ rol, onSave, onClose, logAudit }) {
 
       onSave();
     } catch (e) {
-      setError(e.message || "Error al guardar el rol.");
+      setError(mensajeAmigable(e) || "Error al guardar el rol.");
     }
     setSaving(false);
   };

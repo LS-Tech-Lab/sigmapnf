@@ -39,6 +39,10 @@ import { supabase } from "../../lib/supabase";
 import { Spinner } from "./shared";
 import { validarPassword } from "../../utils/password";
 import useFocusTrap from "../../hooks/useFocusTrap";
+// Fix UX-59 (auditoría 16 ago, cierre del alcance dejado pendiente por
+// UX-55): profileError/programasError vienen de admin_upsert_user_profile()
+// / admin_set_user_programas() (RPC), sin pasar por mensajeAmigable().
+import { mensajeAmigable } from "../../utils/errorMessages";
 import "./ModalUsuario.css";
 
 export default function ModalUsuario({ usuario, esActorAdmin = false, roles, programas, sedes, sedeProgramaActivo, onSave, onClose, showToast, logAudit }) {
@@ -173,7 +177,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
           p_programa: programaPrincipal,
           p_sede_id:  sedeId,
         });
-        if (profileError) throw new Error(profileError.message);
+        if (profileError) throw new Error(mensajeAmigable(profileError));
 
         // PROG-3: reemplaza el conjunto completo en user_profiles_programas
         // (0079) — llamada aparte, mismo patrón que ya usa este flujo para
@@ -186,7 +190,7 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
         });
         if (programasError) {
           showToast?.(
-            "Perfil actualizado pero no se pudieron guardar los programas: " + programasError.message,
+            "Perfil actualizado pero no se pudieron guardar los programas: " + mensajeAmigable(programasError),
             "warning"
           );
         }

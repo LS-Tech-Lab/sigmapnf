@@ -36,6 +36,13 @@ import { Badge, Spinner, ModalConfirm } from "./shared";
 import useSedes from "../../hooks/useSedes";
 import "./PestanaUsuarios.css";
 import ModalUsuario from "./ModalUsuario";
+// Fix UX-59 (auditoría 16 ago, cierre del alcance dejado pendiente por
+// UX-55): 2 de los 4 catch de este archivo relanzan el error original de
+// RPCs de Postgres (`throw error`) sin traducir — los otros 2
+// (`eliminarUsuario`/`eliminarHuerfano`) muestran `json.error` de
+// `/api/admin-users`, ya curado en español por ese endpoint, y quedan
+// sin tocar a propósito.
+import { mensajeAmigable } from "../../utils/errorMessages";
 
 export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles, programas, sedeProgramaActivo, showToast: showToastProp, logAudit, userId }) {
   const [usuarios,    setUsuarios]    = useState([]);
@@ -87,7 +94,7 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
 
       setUsuarios((data || []).map(u => ({ ...u, programas: programasPorUsuario[u.id] || undefined })));
     } catch (e) {
-      toast(`Error al cargar usuarios: ${e.message}`);
+      toast(`Error al cargar usuarios: ${mensajeAmigable(e)}`);
     }
     try {
       const { data: orphans } = await supabase.rpc("admin_get_orphan_auth_users");
@@ -115,7 +122,7 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
       toast(nuevoActivo ? `${u.nombre} activado.` : `${u.nombre} desactivado.`, "success");
       cargar();
     } catch (e) {
-      toast(e.message, "error");
+      toast(mensajeAmigable(e), "error");
     }
   };
 
