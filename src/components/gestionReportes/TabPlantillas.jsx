@@ -447,9 +447,14 @@ export default function TabPlantillas({ showToast, logAudit }) {
             </div>
             <div className="gs-modal-footer">
               <button type="button" className="s-btn s-btn--cancel" onClick={cerrarNueva} disabled={guardandoNuevo}>Cancelar</button>
-              <button type="button" className="gs-btn-guardar" onClick={handleCrear} disabled={guardandoNuevo}>
+              <button type="button" className="gs-btn-guardar" onClick={handleCrear} disabled={guardandoNuevo} aria-busy={guardandoNuevo}>
                 {guardandoNuevo ? "Creando…" : "Crear"}
               </button>
+            </div>
+            {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+                del botón ya daban feedback visual, faltaba el anuncio a a11y */}
+            <div className="sr-only" role="status" aria-live="polite">
+              {guardandoNuevo ? "Creando, por favor espera." : ""}
             </div>
           </div>
         </div>
@@ -570,9 +575,14 @@ export default function TabPlantillas({ showToast, logAudit }) {
 
             <div className="gs-modal-footer">
               <button type="button" className="s-btn s-btn--cancel" onClick={cerrarEditorColumnas} disabled={guardandoColumnas}>Cancelar</button>
-              <button type="button" className="gs-btn-guardar" onClick={handleGuardarColumnas} disabled={guardandoColumnas}>
+              <button type="button" className="gs-btn-guardar" onClick={handleGuardarColumnas} disabled={guardandoColumnas} aria-busy={guardandoColumnas}>
                 {guardandoColumnas ? "Guardando…" : "Guardar"}
               </button>
+            </div>
+            {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+                del botón ya daban feedback visual, faltaba el anuncio a a11y */}
+            <div className="sr-only" role="status" aria-live="polite">
+              {guardandoColumnas ? "Guardando cambios, por favor espera." : ""}
             </div>
           </div>
         </div>

@@ -84,7 +84,7 @@ export default function MateriasView({ byMateria, initialSel, onConsumeNav, getM
                 {editingName ? (
                   <div className="mv-name-edit-row">
                     <input value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingName(false); }} autoFocus className="s-input mv-name-edit-input" />
-                    <button onClick={saveEdit} disabled={saving} className="mv-btn-save">{saving ? "Guardando..." : "Guardar"}</button>
+                    <button onClick={saveEdit} disabled={saving} aria-busy={saving} className="mv-btn-save">{saving ? "Guardando..." : "Guardar"}</button>
                     <button onClick={() => setEditingName(false)} className="mv-btn-cancel">Cancelar</button>
                   </div>
                 ) : (
@@ -99,6 +99,12 @@ export default function MateriasView({ byMateria, initialSel, onConsumeNav, getM
                   {selEntries.length} clases asignadas
                   {selEntries.length > 0 && <span className="mv-trayecto-count-badge">{new Set(selEntries.map(e => e.trayecto)).size} trayecto(s)</span>}
                 </div>
+              </div>
+              {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+                  del botón "Guardar" ya daban feedback visual, faltaba el
+                  anuncio a a11y */}
+              <div className="sr-only" role="status" aria-live="polite">
+                {saving ? "Guardando cambios, por favor espera." : ""}
               </div>
             </div>
             <div className="s-card">

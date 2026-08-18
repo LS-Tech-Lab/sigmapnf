@@ -317,9 +317,14 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
               <button type="button" className="s-btn s-btn--cancel" onClick={cerrarModal} disabled={guardando}>
                 Cancelar
               </button>
-              <button type="button" className="gs-btn-guardar" onClick={handleGuardar} disabled={guardando}>
+              <button type="button" className="gs-btn-guardar" onClick={handleGuardar} disabled={guardando} aria-busy={guardando}>
                 {guardando ? "Guardando…" : "Guardar"}
               </button>
+            </div>
+            {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+                del botón ya daban feedback visual, faltaba el anuncio a a11y */}
+            <div className="sr-only" role="status" aria-live="polite">
+              {guardando ? "Guardando cambios, por favor espera." : ""}
             </div>
           </div>
         </div>

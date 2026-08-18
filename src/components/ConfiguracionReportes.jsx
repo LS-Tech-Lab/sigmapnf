@@ -457,9 +457,15 @@ export default function ConfiguracionReportes({ showToast, logAudit }) {
               className="cr-btn-guardar"
               onClick={handleGuardar}
               disabled={!hayCambios || saving}
+              aria-busy={saving}
             >
               {saving ? "Guardando…" : "Guardar cambios"}
             </button>
+          </div>
+          {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+              del botón ya daban feedback visual, faltaba el anuncio a a11y */}
+          <div className="sr-only" role="status" aria-live="polite">
+            {saving ? "Guardando cambios, por favor espera." : ""}
           </div>
         </div>
 

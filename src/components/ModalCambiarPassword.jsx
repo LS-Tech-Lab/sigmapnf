@@ -324,6 +324,7 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
           <button
             onClick={tab === "password" ? handleGuardarPassword : handleGuardarEmail}
             disabled={(tab === "password" ? !validoPassword : !validoEmail) || guardando}
+            aria-busy={guardando}
             className="mcp-btn-submit">
             {guardando
               ? "Actualizando…"
@@ -332,6 +333,11 @@ export default function ModalCambiarPassword({ onCerrar, showToast }) {
                 : <><i className="ti ti-mail mcp-btn-icon" aria-hidden="true" />Actualizar correo</>
             }
           </button>
+        </div>
+        {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+            del botón ya daban feedback visual, faltaba el anuncio a a11y */}
+        <div className="sr-only" role="status" aria-live="polite">
+          {guardando ? "Guardando cambios, por favor espera." : ""}
         </div>
       </div>
     </div>

@@ -72,9 +72,14 @@ export default function ModalActivarPIN({ user, profile, onDone }) {
           <button onClick={() => onDone(false)} disabled={saving} className="pin-modal-btn-cancel">
             Ahora no
           </button>
-          <button onClick={handleGuardar} disabled={saving || pin.length < 4} className="pin-modal-btn-confirm">
+          <button onClick={handleGuardar} disabled={saving || pin.length < 4} aria-busy={saving} className="pin-modal-btn-confirm">
             {saving ? "Guardando…" : "Activar PIN"}
           </button>
+        </div>
+        {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+            del botón ya daban feedback visual, faltaba el anuncio a a11y */}
+        <div className="sr-only" role="status" aria-live="polite">
+          {saving ? "Guardando cambios, por favor espera." : ""}
         </div>
       </div>
     </div>

@@ -415,11 +415,16 @@ export default function ModalEditarClase({
           <div className="mec-actions-right">
             <button className="mec-btn mec-btn--cancel" onClick={onClose} disabled={saving}>Cancelar</button>
             {puedeEditar && (
-              <button className="mec-btn mec-btn--primary" onClick={handleGuardar} disabled={saving || cargandoCatalogos}>
+              <button className="mec-btn mec-btn--primary" onClick={handleGuardar} disabled={saving || cargandoCatalogos} aria-busy={saving}>
                 {saving ? "Guardando…" : "Guardar"}
               </button>
             )}
           </div>
+        </div>
+        {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+            del botón ya daban feedback visual, faltaba el anuncio a a11y */}
+        <div className="sr-only" role="status" aria-live="polite">
+          {saving ? "Guardando cambios, por favor espera." : ""}
         </div>
       </div>
     </div>

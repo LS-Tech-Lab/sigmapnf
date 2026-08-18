@@ -421,11 +421,17 @@ export default function ModalUsuario({ usuario, esActorAdmin = false, roles, pro
           <button
             onClick={handleSave}
             disabled={saving}
+            aria-busy={saving}
             className="mu-btn-save"
           >
             {saving && <Spinner />}
             {saving ? "Guardando…" : (esNuevo ? "Crear usuario" : "Guardar cambios")}
           </button>
+        </div>
+        {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+            del botón ya daban feedback visual, faltaba el anuncio a a11y */}
+        <div className="sr-only" role="status" aria-live="polite">
+          {saving ? "Guardando cambios, por favor espera." : ""}
         </div>
       </div>
     </div>

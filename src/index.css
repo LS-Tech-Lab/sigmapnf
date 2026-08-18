@@ -500,6 +500,14 @@ textarea:focus-visible,
    patrón que ModalUsuario) lo herede gratis sin CSS nuevo. */
 .s-input[aria-invalid="true"], .s-select[aria-invalid="true"] { border-color: var(--color-danger); }
 
+/* Fix UX-63 (auditoría UI/UX de élite, 18 ago): utilidad compartida para
+   regiones aria-live que anuncian estado (ej. "Guardando…") sin mostrar
+   texto visible duplicado — patrón estándar, visualmente oculta pero
+   legible por lector de pantalla. Usada junto a aria-busy en los botones
+   de guardar de los modales/formularios que ya tenían feedback visual
+   (texto + disabled) pero ningún aria-live equivalente. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
 /* S.btn(active) — dos variantes según el booleano `active` */
 .s-btn { padding: var(--btn-pad-md); border-radius: var(--border-radius-md); border: 1px solid var(--color-border-tertiary); background: #fff; color: var(--color-text-mid); cursor: pointer; font-size: var(--font-size-13); font-weight: 500; transition: all 0.15s; }
 .s-btn--active { border-color: var(--brand-500); background: var(--color-background-info); color: var(--brand-600); font-weight: 600; }

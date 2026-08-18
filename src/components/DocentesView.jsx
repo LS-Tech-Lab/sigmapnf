@@ -126,7 +126,7 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
                 {editingName ? (
                   <div className="dv-name-edit-row">
                     <input value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingName(false); }} autoFocus className="s-input dv-name-edit-input" />
-                    <button onClick={saveEdit} disabled={saving} className="dv-btn-save">{saving ? "Guardando..." : "Guardar"}</button>
+                    <button onClick={saveEdit} disabled={saving} aria-busy={saving} className="dv-btn-save">{saving ? "Guardando..." : "Guardar"}</button>
                     <button onClick={() => setEditingName(false)} className="dv-btn-cancel">Cancelar</button>
                   </div>
                 ) : (
@@ -149,7 +149,7 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
                         placeholder="V-12345678"
                         className="s-input dv-cedula-input"
                       />
-                      <button onClick={saveCedulaEdit} disabled={savingCedula} className="dv-btn-save dv-btn-save--sm">{savingCedula ? "Guardando..." : "Guardar"}</button>
+                      <button onClick={saveCedulaEdit} disabled={savingCedula} aria-busy={savingCedula} className="dv-btn-save dv-btn-save--sm">{savingCedula ? "Guardando..." : "Guardar"}</button>
                       <button onClick={() => setEditingCedula(false)} className="dv-btn-cancel dv-btn-cancel--sm">Cancelar</button>
                     </>
                   ) : (
@@ -166,6 +166,13 @@ export default function DocentesView({ byDocente, conflicts, initialSel, onConsu
                 </div>
               </div>
               <div className="dv-trayecto-badges">{[...new Set(selEntries.map(e => e.trayecto))].sort().map(t => <span key={t} className={`dv-trayecto-badge ${trayectoClass(t)}`}>T.{t}</span>)}</div>
+            </div>
+            {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+                de los botones "Guardar" ya daban feedback visual, faltaba el
+                anuncio a a11y (comparten una sola región: solo una edición
+                inline está activa a la vez en este panel) */}
+            <div className="sr-only" role="status" aria-live="polite">
+              {(saving || savingCedula) ? "Guardando cambios, por favor espera." : ""}
             </div>
             {selConflicts.map((c, i) => (
               <div key={i} className="dv-conflict-card">

@@ -306,10 +306,15 @@ function RegistroManualForm({ turno, programa, fecha, sedeActiva, onCerrar }) {
         </div>
         {msg && <div className="qrp-manual-pending-msg">{msg}</div>}
         <div className="qrp-manual-actions">
-          <button type="submit" disabled={guardando} className="qrp-manual-submit">
+          <button type="submit" disabled={guardando} aria-busy={guardando} className="qrp-manual-submit">
             {guardando ? "Guardando…" : "Guardar registro"}
           </button>
           <button type="button" onClick={onCerrar} className="qrp-manual-cancel">Cerrar</button>
+        </div>
+        {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
+            del botón ya daban feedback visual, faltaba el anuncio a a11y */}
+        <div className="sr-only" role="status" aria-live="polite">
+          {guardando ? "Guardando registro, por favor espera." : ""}
         </div>
         {pendientes > 0 && (
           <div className="qrp-manual-pending-msg">
