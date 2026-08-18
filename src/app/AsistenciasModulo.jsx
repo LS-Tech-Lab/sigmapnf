@@ -220,10 +220,17 @@ export default function AsistenciasModulo({
               <i className="ti ti-chevron-left" aria-hidden="true" />
             </button>
           )}
-          <div className="asm-tabs" ref={tabsRef} onScroll={checkTabsOverflow}>
+          {/* Fix UX-64 (auditoría 18 ago): role="tablist"/role="tab"/aria-selected
+              agregados — mismo patrón ya establecido en GestionSedes.jsx/
+              GestionReportes.jsx, que un lector de pantalla sí anunciaba
+              como pestañas. Estas eran <button> sueltos sin ningún rol ARIA
+              de pestaña, justo en el módulo de mayor uso operativo diario. */}
+          <div className="asm-tabs" ref={tabsRef} onScroll={checkTabsOverflow} role="tablist" aria-label="Secciones de Asistencias QR">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
+                role="tab"
+                aria-selected={subView === tab.id}
                 onClick={() => setSubView(tab.id)}
                 className={`asm-tab ${subView === tab.id ? "asm-tab--active" : ""}`}
               >
