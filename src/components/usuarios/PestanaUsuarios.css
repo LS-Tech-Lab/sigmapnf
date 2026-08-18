@@ -73,8 +73,41 @@
 
 .pu-table-card { overflow-x: auto; }
 .pu-table { width: 100%; border-collapse: collapse; }
+
+/* Fix UX-62 (auditoría 18 ago): mismo patrón que UX-57 (DocentesView/
+   MateriasView) — sin esto, el scroll horizontal en esta tabla de 6
+   columnas (Usuario/Rol/Programa/Sede/Estado/acciones) pierde de vista
+   la cabecera y la columna de identidad del usuario en móvil. */
+.pu-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-surface, #fff);
+  z-index: 2;
+}
+.pu-table td:first-child,
+.pu-table th:first-child {
+  position: sticky;
+  left: 0;
+  background: inherit;
+  z-index: 1;
+}
 .pu-th--right { text-align: right; }
 .pu-td-empty { text-align: center; padding: 32px; color: var(--color-text-tertiary); }
+
+/* Fix UX-61 (auditoría 18 ago): acción para limpiar la búsqueda/filtros
+   cuando el estado vacío es por "sin coincidencias", no "sin datos" —
+   reutilizada por PestanaUsuarios.jsx, TabProgramas.jsx y TabSedes.jsx
+   (las 3 importan este archivo). */
+.pu-clear-search-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+}
+.pu-clear-search-btn:hover { color: var(--color-primary-hover, var(--color-primary)); }
 .pu-td-right { text-align: right; }
 
 .pu-row--inactivo { opacity: 0.5; }

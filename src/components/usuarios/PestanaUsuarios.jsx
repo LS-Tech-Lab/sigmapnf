@@ -273,7 +273,22 @@ export default function PestanaUsuarios({ permisos, esActorAdmin = false, roles,
               {usuariosFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="s-td pu-td-empty">
-                    Sin resultados
+                    {busqueda || filtroRol !== "todos" ? (
+                      <>
+                        {busqueda
+                          ? `No hay resultados para "${busqueda}".`
+                          : "Ningún usuario coincide con ese rol."}{" "}
+                        <button
+                          type="button"
+                          className="pu-clear-search-btn"
+                          onClick={() => { setBusqueda(""); setFiltroRol("todos"); }}
+                        >
+                          Limpiar filtros
+                        </button>
+                      </>
+                    ) : (
+                      "Sin usuarios registrados."
+                    )}
                   </td>
                 </tr>
               ) : usuariosFiltrados.map(u => {

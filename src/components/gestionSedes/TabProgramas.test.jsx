@@ -65,6 +65,26 @@ describe("TabProgramas — carga inicial", () => {
   });
 });
 
+describe("TabProgramas — búsqueda sin resultados", () => {
+  // Fix UX-61 (auditoría 18 ago): mismo patrón que GestionSedes.test.jsx
+  // (TabSedes) y MateriasView.test.jsx (UX-56) — "sin coincidencias"
+  // distinto de "sin datos", con acción para limpiar la búsqueda.
+  it("distingue 'sin coincidencias' de 'sin datos' y permite limpiar la búsqueda", async () => {
+    renderTab();
+    await waitFor(() => expect(screen.getByText("PNF Informática")).toBeTruthy());
+
+    const input = screen.getByPlaceholderText("Buscar por nombre o identificador…");
+    fireEvent.change(input, { target: { value: "programa que no existe xyz" } });
+
+    expect(screen.getByText(/No hay resultados para/)).toBeTruthy();
+    expect(screen.queryByText("PNF Informática")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda" }));
+    expect(input.value).toBe("");
+    expect(screen.getByText("PNF Informática")).toBeTruthy();
+  });
+});
+
 describe("TabProgramas — alta", () => {
   it("al guardar, inserta el programa, crea las filas de sedes_programas para cada sede y llama a onCambio", async () => {
     const programasBuilder = { ...makeSelectBuilder({ data: PROGRAMAS_DB, error: null }), ...makeInsertBuilder({ error: null }) };

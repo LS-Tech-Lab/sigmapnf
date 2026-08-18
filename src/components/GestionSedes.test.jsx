@@ -74,7 +74,25 @@ describe("GestionSedes — carga inicial", () => {
 
   it("muestra un estado vacío si no hay sedes registradas", async () => {
     renderGestion({ sedes: [] });
-    await waitFor(() => expect(screen.getByText("Sin sedes que coincidan.")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Sin sedes registradas.")).toBeTruthy());
+  });
+
+  // Fix UX-61 (auditoría 18 ago): "sin coincidencias" ahora es distinto de
+  // "sin datos", con acción para limpiar la búsqueda — mismo patrón que
+  // MateriasView.test.jsx ya cubre para UX-56.
+  it("distingue 'sin coincidencias' de 'sin datos' y permite limpiar la búsqueda", async () => {
+    renderGestion();
+    await waitFor(() => expect(screen.getByText("Cabimas")).toBeTruthy());
+
+    const input = screen.getByPlaceholderText("Buscar por nombre o identificador…");
+    fireEvent.change(input, { target: { value: "sede que no existe xyz" } });
+
+    expect(screen.getByText(/No hay resultados para/)).toBeTruthy();
+    expect(screen.queryByText("Cabimas")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda" }));
+    expect(input.value).toBe("");
+    expect(screen.getByText("Cabimas")).toBeTruthy();
   });
 });
 

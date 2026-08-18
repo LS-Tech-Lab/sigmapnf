@@ -230,7 +230,20 @@ export default function TabProgramas({ showToast, logAudit, onCambio }) {
           </thead>
           <tbody>
             {programasFiltrados.length === 0 ? (
-              <tr><td colSpan={4} className="s-td pu-td-empty">Sin programas que coincidan.</td></tr>
+              <tr>
+                <td colSpan={4} className="s-td pu-td-empty">
+                  {busqueda ? (
+                    <>
+                      No hay resultados para "{busqueda}".{" "}
+                      <button type="button" className="pu-clear-search-btn" onClick={() => setBusqueda("")}>
+                        Limpiar búsqueda
+                      </button>
+                    </>
+                  ) : (
+                    "Sin programas registrados."
+                  )}
+                </td>
+              </tr>
             ) : programasFiltrados.map(programa => (
               <tr key={programa.id} className={programa.activa ? "" : "pu-row--inactivo"}>
                 <td className="s-td">

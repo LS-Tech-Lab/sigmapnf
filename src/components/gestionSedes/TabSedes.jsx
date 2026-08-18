@@ -272,7 +272,20 @@ export default function TabSedes({ showToast, logAudit, onCambio }) {
           </thead>
           <tbody>
             {sedesFiltradas.length === 0 ? (
-              <tr><td colSpan={4} className="s-td pu-td-empty">Sin sedes que coincidan.</td></tr>
+              <tr>
+                <td colSpan={4} className="s-td pu-td-empty">
+                  {busqueda ? (
+                    <>
+                      No hay resultados para "{busqueda}".{" "}
+                      <button type="button" className="pu-clear-search-btn" onClick={() => setBusqueda("")}>
+                        Limpiar búsqueda
+                      </button>
+                    </>
+                  ) : (
+                    "Sin sedes registradas."
+                  )}
+                </td>
+              </tr>
             ) : sedesFiltradas.map(sede => (
               <tr key={sede.id} className={sede.activa ? "" : "pu-row--inactivo"}>
                 <td className="s-td">

@@ -23,6 +23,23 @@
 
 .va-table { width: 100%; border-collapse: collapse; }
 
+/* Fix UX-62 (auditoría 18 ago): mismo patrón que UX-57 — tabla de 4
+   columnas, scroll horizontal en móvil perdía la cabecera y el nombre
+   del docente al revisar ausentes en pantalla angosta. */
+.va-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-surface, #fff);
+  z-index: 2;
+}
+.va-table td:first-child,
+.va-table th:first-child {
+  position: sticky;
+  left: 0;
+  background: inherit;
+  z-index: 1;
+}
+
 .va-row { transition: background 0.1s; }
 .va-row:hover { background: #FFF7F7; }
 

@@ -117,6 +117,23 @@
 
 .ra-table-wrap { overflow-x: auto; }
 .ra-table { width: 100%; border-collapse: collapse; }
+
+/* Fix UX-62 (auditoría 18 ago): mismo patrón que UX-57 — tabla de 6
+   columnas (Cédula/Nombre/Estado/Entrada/Salida/Programa), scroll
+   horizontal en móvil perdía cabecera y cédula/nombre ancla. */
+.ra-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-surface, #fff);
+  z-index: 2;
+}
+.ra-table td:first-child,
+.ra-table th:first-child {
+  position: sticky;
+  left: 0;
+  background: inherit;
+  z-index: 1;
+}
 .ra-table tbody tr { transition: background 0.1s; }
 .ra-table tbody tr:hover { background: #F8FAFC; }
 .ra-td-empty-msg { text-align: center; padding: 40px 0; color: #64748B; }
