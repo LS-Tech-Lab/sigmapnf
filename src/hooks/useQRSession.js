@@ -21,6 +21,15 @@ import { fechaHoyVE } from "../utils/time";
 // hay red, para poder activarlas sin RPC si el corte llega justo al
 // momento de iniciar el turno. Ver src/utils/qrOfflineCache.js.
 import { buscarSesionCacheada, guardarSesionCacheada } from "../utils/qrOfflineCache";
+// FIX ARCH-45 (auditoría E2E, 18 ago): las llamadas RPC de este hook usan
+// POST -- a diferencia de un SELECT (GET), `@supabase/postgrest-js` NO las
+// reintenta automáticamente ante un fallo de red transitorio (ver
+// RETRYABLE_METHODS en la librería, solo cubre GET/HEAD/OPTIONS). Sin esto,
+// una latencia de red sostenida o una caída intermitente durante la
+// renovación automática del token dejaba el QR mostrando un error de
+// inmediato, aunque la red se hubiera recuperado el segundo siguiente.
+import { conReintento } from "../utils/fetchWithRetry";
+import { logger } from "../utils/logger";
 
 // ── Fix OFF-1 / OFF-4: exponer estado de red para que AdminQRPanel y
 // QRProyeccion muestren un banner cuando no hay conexión.
@@ -143,12 +152,23 @@ export default function useQRSession() {
   }, []);
 
   const renovarToken = useCallback(async (sid) => {
-    const { data, error: rpcErr } = await supabase.rpc("renovar_qr_token", {
-      p_session_id: sid,
-      // FIX OFF-11: ya no coincide con la cadencia de rotación — ver
-      // comentario de EXPIRY_TTL_MINUTES arriba.
-      p_ttl_min:    EXPIRY_TTL_MINUTES,
-    });
+    // FIX ARCH-45: reintento con backoff SOLO ante fallos de transporte
+    // (timeout, conexión caída a mitad de la llamada) -- un rechazo real del
+    // RPC (sesión inexistente, sin permiso) no es de red y no se reintenta,
+    // `conReintento` lo distingue por si trae `code`/mensaje de red o no.
+    const { data, error: rpcErr } = await conReintento(
+      () => supabase.rpc("renovar_qr_token", {
+        p_session_id: sid,
+        // FIX OFF-11: ya no coincide con la cadencia de rotación — ver
+        // comentario de EXPIRY_TTL_MINUTES arriba.
+        p_ttl_min:    EXPIRY_TTL_MINUTES,
+      }),
+      {
+        intentos: 3,
+        baseMs: 1000,
+        onReintento: ({ intento }) => logger.warn(`Reintentando renovación de token QR (intento ${intento})…`),
+      }
+    );
     if (rpcErr || !data?.ok) {
       setError(data?.mensaje || rpcErr?.message || "Error al renovar el token QR.");
       return false;
