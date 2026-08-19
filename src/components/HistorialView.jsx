@@ -125,21 +125,31 @@ export default function HistorialView({ lapsoActivo, onCambiarLapso, showToast, 
 
   const handleCerrar = async ({ lapso, fechaInicio, fechaFin, observacion }) => {
     setProcesando(true);
-    const [num, anio] = lapso.split("-").map(Number);
-    const { error } = await supabase.from("trimestres").upsert(
-      {
-        lapso, numero: num, anio,
-        estado:       "cerrado",
-        fecha_inicio: fechaInicio || null,
-        fecha_fin:    fechaFin || null,
-        notas:        observacion || null,
-        cerrado_en:   new Date().toISOString(),
-        cerrado_por:  user?.email,
-      },
-      { onConflict: "lapso" }
-    );
-    if (error) { showToast("Error al cerrar: " + mensajeAmigable(error), "error"); setProcesando(false); return; }
-    showToast(`Trimestre ${formatLapso(lapso)} cerrado y archivado.`, "success");
+    // Fix ARCH-46 (auditoría E2E, 18 ago): antes esto era un upsert
+    // client-side directo -- dos coordinadores cerrando el mismo lapso casi
+    // a la vez no fallaban, pero el segundo pisaba en silencio
+    // cerrado_en/cerrado_por del primero, sin que ninguno de los dos lo
+    // supiera. El RPC hace el mismo upsert atómicamente (lock de fila) y
+    // devuelve si el trimestre YA estaba cerrado, para avisar en vez de
+    // sobreescribir en silencio.
+    const { data, error } = await supabase.rpc("cerrar_trimestre", {
+      p_lapso:        lapso,
+      p_fecha_inicio: fechaInicio || null,
+      p_fecha_fin:    fechaFin || null,
+      p_notas:        observacion || null,
+    });
+    if (error || !data?.ok) {
+      showToast("Error al cerrar: " + (data?.mensaje || mensajeAmigable(error)), "error");
+      setProcesando(false);
+      return;
+    }
+    if (data.ya_estaba_cerrado) {
+      const quien = data.cerrado_por_anterior ? ` por ${data.cerrado_por_anterior}` : "";
+      const cuando = data.cerrado_en_anterior ? ` (${fmt(data.cerrado_en_anterior)})` : "";
+      showToast(`Trimestre ${formatLapso(lapso)} ya había sido cerrado${quien}${cuando} — datos actualizados.`, "warning");
+    } else {
+      showToast(`Trimestre ${formatLapso(lapso)} cerrado y archivado.`, "success");
+    }
     logAudit?.({ accion: "CERRAR_TRIMESTRE", entidad: "trimestres", lapso, resumen: `Trimestre cerrado: ${formatLapso(lapso)}` });
     setModal(null);
     await cargarTrimestres();
