@@ -55,7 +55,7 @@ jobs:
           BACKUP_OUTPUT_DIR: backups
 
       - name: Subir backup como artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         # Sube el directorio aunque esté vacío por el "skip" de secrets
         # faltantes evita que el paso anterior falle el job; si backups/
         # no llegó a crearse (secrets ausentes), este paso no encuentra
