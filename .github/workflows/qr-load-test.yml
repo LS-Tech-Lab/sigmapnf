@@ -27,7 +27,7 @@ jobs:
     # (mismo patrón que rls-smoke-test.mjs) en vez de fallar el job.
     steps:
       - name: Checkout del código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
