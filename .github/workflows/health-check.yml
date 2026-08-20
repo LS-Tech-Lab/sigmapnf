@@ -1,0 +1,102 @@
+name: Health check
+
+# Fix ARCH-48 (auditoría E2E, 19 de agosto): la única verificación activa
+# de disponibilidad era qr-load-test.yml, semanal — una degradación fuera
+# de esa ventana no generaba ninguna alerta automática. Este workflow
+# corre un chequeo liviano (scripts/health-check.mjs) cada 15 minutos.
+#
+# Diseño anti-falso-positivo: un solo fallo NO abre un incidente — GitHub
+# Actions y la red del runner pueden tener blips transitorios propios,
+# ajenos a Supabase. Solo se abre/actualiza un issue cuando el chequeo
+# falla 2 veces seguidas dentro del mismo run (con una espera corta entre
+# intentos), mismo criterio conservador que el resto de scripts de este
+# proyecto (p. ej. el backoff de ARCH-32 antes de bloquear un dispositivo).
+#
+# No requiere ningún secret nuevo: usa el GITHUB_TOKEN que Actions provee
+# automáticamente para crear/consultar issues del propio repo.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  health-check:
+    name: Verificar disponibilidad de Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependencias (versión exacta del lockfile)
+        run: npm ci
+
+      - name: Health check — intento 1
+        id: intento1
+        continue-on-error: true
+        run: npm run health-check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Esperar antes de reintentar
+        if: steps.intento1.outcome == 'failure'
+        run: sleep 30
+
+      - name: Health check — intento 2 (confirmación)
+        id: intento2
+        if: steps.intento1.outcome == 'failure'
+        continue-on-error: true
+        run: npm run health-check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Abrir/actualizar issue de incidente (2 fallos consecutivos)
+        if: steps.intento1.outcome == 'failure' && steps.intento2.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = "incidente-disponibilidad";
+            const title = "🔴 Health check: 2 fallos consecutivos contra Supabase";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const abiertos = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: label,
+            });
+
+            const cuerpo = `El health check (\`scripts/health-check.mjs\`) falló 2 veces seguidas ` +
+              `(con 30s de espera entre intentos) contra Supabase.\n\n` +
+              `**Run:** ${runUrl}\n\n` +
+              `Esto NO confirma necesariamente una caída del proyecto — puede ser un blip ` +
+              `del runner de Actions. Revisar el estado real del proyecto en el Dashboard ` +
+              `de Supabase antes de escalar. Cerrar este issue manualmente una vez confirmado ` +
+              `(no se auto-cierra: la próxima corrida exitosa no lo toca).`;
+
+            if (abiertos.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: cuerpo,
+                labels: [label],
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: abiertos.data[0].number,
+                body: `Nueva confirmación del mismo problema:\n\n${cuerpo}`,
+              });
+            }
