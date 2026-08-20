@@ -8,6 +8,17 @@ name: Regenerar package-lock.json
 on:
   workflow_dispatch:
 
+# Fix CI-7 (fase de optimización fina, 20 ago): a diferencia de ci.yml
+# (que sí tiene concurrency desde antes), este workflow no lo tenía —
+# es manual (workflow_dispatch), pero nada impedía disparar dos corridas
+# seguidas desde la pestaña Actions antes de que la primera termine. Ambas
+# harían `git push` del mismo package-lock.json regenerado: la segunda
+# fallaría con un push no-fast-forward (rechazo de git, no corrupción de
+# datos), pero es ruido evitable con el mismo patrón ya usado en ci.yml.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
