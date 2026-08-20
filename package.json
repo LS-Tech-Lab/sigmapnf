@@ -25,7 +25,8 @@
     "rls:smoke-test": "node scripts/rls-smoke-test.mjs",
     "qr:load-test": "node scripts/qr-load-test.mjs",
     "health-check": "node scripts/health-check.mjs",
-    "backup:scheduled": "node scripts/scheduled-backup.mjs"
+    "backup:scheduled": "node scripts/scheduled-backup.mjs",
+    "backup:verify": "node scripts/verify-backup.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
