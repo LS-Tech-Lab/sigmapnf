@@ -238,6 +238,71 @@ hallazgos abiertos, ninguno bloqueante — detalle completo en
 
 ---
 
+## Almacenamiento de sesión en el cliente (`SEC-42`, agregado 19 ago)
+
+`src/lib/supabase.js` crea el cliente con `createClient()` sin configurar
+`auth.storage` — el SDK persiste el JWT (access token + refresh token) en
+**`localStorage`** por defecto (clave `sb-<project-ref>-auth-token`), no en
+una cookie `httpOnly`.
+
+**Riesgo real, acotado:** con la CSP actual (`script-src 'self'`, sin
+`unsafe-inline`, `SEC-3`) y las 3 rondas de auditoría de XSS ya cerradas
+(`SEC-2`, `SEC-25`), el vector de robo de token vía XSS reflejado/almacenado
+en la propia app es bajo — cualquier `<script>` inyectado tendría que venir
+de un origen `'self'`, lo que ya requeriría comprometer el build o una
+dependencia. El riesgo que **sí** aplica es de tipo supply-chain: cualquier
+dependencia npm comprometida (o extensión de navegador maliciosa) que
+ejecute JS en el origen de la app puede leer `localStorage` directamente,
+sin necesidad de un XSS propio — la CSP no protege contra código que ya
+corre con el mismo origen.
+
+**Decisión (19 ago):** se documenta como riesgo aceptado en vez de migrar a
+un flujo de cookies `httpOnly`/`Secure`/`SameSite=Strict`. Migrarlo
+requeriría introducir un proxy de sesión propio (patrón `@supabase/ssr` o
+un endpoint dedicado en `api/`) que reintroduciría superficie nueva (mismo
+tipo de RPC administrativo que ya se audita en `SEC-15`/`33`) a cambio de
+mitigar un vector hoy no explotado. Reevaluar si:
+- Se agrega una dependencia de terceros con acceso amplio a la app (SDK de
+  analítica, widget embebido, etc.), o
+- Aparece un hallazgo de XSS nuevo en cualquier auditoría futura (aunque
+  esté fuera de `src/`, p. ej. en una librería).
+
+No requiere migración de código ni afecta ningún flujo existente — es una
+nota de riesgo aceptado, no un fix pendiente.
+
+---
+
+## Continuidad de datos bajo el plan actual de Supabase (`ARCH-47`, agregado 19 ago)
+
+El proyecto está confirmado en **plan Free** (ver `SEC-37` arriba, mismo
+proyecto `bolysrglhpxjfydtuzkw`). Además del toggle de leaked-password ya
+documentado, el plan Free de Supabase típicamente no incluye point-in-time
+recovery (PITR) — la recuperación ante un borrado/corrupción de datos
+depende del backup diario nativo con retención corta.
+
+**Contexto operativo que agrava el riesgo:** el sistema ya documenta cortes
+eléctricos de 5+ horas diarios (`OFF-10`) y picos de escaneo QR en horario
+pico — un incidente de datos detectado más de un día después (p. ej. un uso
+incorrecto de `admin_borrar_asistencias_rango`, que ya tiene guardas de
+permiso/sede/trimestre pero no es infalible ante error humano con permiso
+legítimo) puede caer fuera de la ventana de recuperación del backup nativo.
+
+**Mitigación implementada (19 ago):** workflow `.github/workflows/backup-export.yml`
+(cron diario) que invoca el RPC `exportar_backup_completo()` (`PERM-6`, ya
+audita permiso `puedeHacerBackup` server-side) con la Service Role Key y
+sube el resultado como *artifact* de GitHub Actions, con retención propia
+de 30 días — independiente del backup nativo de Supabase. Ver
+`scripts/scheduled-backup.mjs`.
+
+**Explícitamente fuera de alcance de este fix:** esto no reemplaza un
+backup real de infraestructura (no incluye WAL/PITR, solo un snapshot
+lógico vía RPC) ni resuelve el fondo del problema (plan Free). Es una
+mitigación de bajo costo mientras se evalúa si el proyecto justifica
+Supabase Pro — mismo criterio de "decisión de producto, no bloqueante" que
+`SEC-37`.
+
+---
+
 ## Flujo de log de auditoría
 
 Cada operación de escritura llama a `logAudit()` automáticamente:
