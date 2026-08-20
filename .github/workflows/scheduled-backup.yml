@@ -1,0 +1,58 @@
+name: Backup programado
+
+# Fix ARCH-47 (auditoría E2E, 19 de agosto): el proyecto está confirmado en
+# plan Free de Supabase (SEC-37, docs/AUDITORIA_INDICE.md), que típicamente
+# no incluye point-in-time recovery. Combinado con el contexto operativo ya
+# documentado (cortes eléctricos de 5+ horas, OFF-10), un incidente de datos
+# detectado más de un día después puede caer fuera de la ventana de
+# recuperación del backup nativo de Supabase.
+#
+# Este workflow NO reemplaza un backup real de infraestructura (sin WAL,
+# solo un snapshot lógico vía consultas directas con la Service Role Key) —
+# ver docs/SECURITY.md § Continuidad de datos bajo el plan actual de
+# Supabase para el detalle completo y las limitaciones explícitas.
+#
+# Mismo criterio que qr-load-test.yml / codeql.yml: workflow separado
+# (no en ci.yml), cron diario + workflow_dispatch manual, se salta con
+# exit 0 si faltan los secrets.
+on:
+  schedule:
+    - cron: '15 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  scheduled-backup:
+    name: Exportar backup diario por sede
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependencias (versión exacta del lockfile)
+        run: npm ci
+
+      - name: Ejecutar backup programado
+        run: npm run backup:scheduled
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_OUTPUT_DIR: backups
+
+      - name: Subir backup como artifact
+        uses: actions/upload-artifact@v4
+        # Sube el directorio aunque esté vacío por el "skip" de secrets
+        # faltantes evita que el paso anterior falle el job; si backups/
+        # no llegó a crearse (secrets ausentes), este paso no encuentra
+        # nada que subir y se omite en silencio por if-no-files-found.
+        if: always()
+        with:
+          name: sigmapnf-backup-${{ github.run_id }}
+          path: backups/
+          retention-days: 30
+          if-no-files-found: ignore
