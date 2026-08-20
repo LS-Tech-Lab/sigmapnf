@@ -10,3 +10,7 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# ARCH-47 — salida local de scripts/scheduled-backup.mjs (datos reales de
+# producción). En CI se sube como artifact, nunca se commitea al repo.
+backups/
