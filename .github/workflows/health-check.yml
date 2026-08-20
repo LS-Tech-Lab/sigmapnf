@@ -62,7 +62,7 @@ jobs:
 
       - name: Abrir/actualizar issue de incidente (2 fallos consecutivos)
         if: steps.intento1.outcome == 'failure' && steps.intento2.outcome == 'failure'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const label = "incidente-disponibilidad";
