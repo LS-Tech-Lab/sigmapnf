@@ -44,6 +44,16 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BACKUP_OUTPUT_DIR: backups
 
+      - name: Verificar integridad del backup (fix ARCH-50)
+        # Confirma que lo que se acaba de escribir es estructuralmente
+        # restaurable ANTES de subirlo como artifact "exitoso" — ver
+        # scripts/verify-backup.mjs para el detalle de qué se valida y por
+        # qué. Bloqueante a propósito: un backup corrupto subido en
+        # silencio es peor que un job rojo visible en Actions.
+        run: npm run backup:verify
+        env:
+          BACKUP_OUTPUT_DIR: backups
+
       - name: Subir backup como artifact
         uses: actions/upload-artifact@v4
         # Sube el directorio aunque esté vacío por el "skip" de secrets
