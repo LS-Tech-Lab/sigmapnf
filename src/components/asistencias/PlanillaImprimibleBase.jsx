@@ -24,7 +24,7 @@
 // `reporteConfig`.
 import React, { useState, useMemo } from 'react';
 import { DAYS, TURNOS_CONFIG } from '../../constants';
-import { getTurnoDeRegistro } from '../../utils/turno';
+import { getTurnoPlanilla } from '../../utils/turno';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../../utils/time';
 import { parseClase } from '../../utils/parsing';
 import { getCurrentLapso } from '../../utils/lapso';
@@ -97,7 +97,7 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
   // de un bloque, igual que en la planilla en papel de referencia.
   const bloquesDelDia = useMemo(() => {
     const bloques = data
-      .filter(d => getTurnoDeRegistro(d) === turno && d.dia === selectedDay)
+      .filter(d => getTurnoPlanilla(d) === turno && d.dia === selectedDay)
       .map(d => {
         const { materia, docente: docenteParseado } = parseClase(d.clase, catalogoDocentes);
         // Mismo criterio que antes: relación real docentes.nombre_raw
