@@ -1,5 +1,5 @@
 import { timeToMin, partesHoraNormalizadas, minToTime } from './time';
-import { BLOQUES_DIURNO, BLOQUES_VESPERTINO, BLOQUES_MIXTO } from '../constants';
+import { BLOQUES_DIURNO, BLOQUES_VESPERTINO, BLOQUES_MIXTO, TURNOS_CONFIG } from '../constants';
 
 export function getTurnoByCodigo(sheetName) {
   if (!sheetName) return null;
@@ -34,6 +34,33 @@ export function getTurnoFromHora(horaStr) {
 
 export function getTurnoDeRegistro(d) {
   return normalizeTurno(d.turno) || getTurnoByCodigo(d.sheet) || getTurnoFromHora(d.hora) || "DIURNO";
+}
+
+// Turno de una clase para la planilla "Asistencias Diarias por Turno".
+//
+// Fix: el botón "Diurno" dejaba ver clases de la tarde. getTurnoDeRegistro
+// da prioridad a la columna `turno` y al código de la hoja por encima de la
+// HORA, así que una clase con turno "DIURNO" mal cargado (o sin turno y con
+// una hora fuera de 7:00-12:00, que cae al respaldo "DIURNO") aparecía en
+// el botón equivocado. Aquí la hora real de inicio manda:
+//   - MIXTO declarado se respeta tal cual (turno continuo 7am-4pm, la hora
+//     sola no lo puede separar en diurno/vespertino).
+//   - Inicio hasta las 12:00 PM  -> DIURNO.
+//   - Inicio después de las 12:00 PM -> VESPERTINO (o NOCTURNO si ese turno
+//     está habilitado y la clase empieza dentro de su horario).
+//   - Si la hora no se puede leer, se usa el turno declarado como respaldo.
+// getTurnoDeRegistro no se toca: lo usan Horarios, Resumen y Materias.
+export function getTurnoPlanilla(d) {
+  const declarado = normalizeTurno(d?.turno) || getTurnoByCodigo(d?.sheet);
+  if (declarado === "MIXTO") return "MIXTO";
+
+  const [inicioStr] = partesHoraNormalizadas(d?.hora);
+  const min = timeToMin(inicioStr);
+  if (!min) return declarado || "DIURNO";
+
+  const nocturno = TURNOS_CONFIG.find(t => t.id === "NOCTURNO" && t.habilitado);
+  if (nocturno && min >= nocturno.inicioMin) return "NOCTURNO";
+  return min <= timeToMin("12:00PM") ? "DIURNO" : "VESPERTINO";
 }
 
 // Mejora 4: eliminado el import() dinámico (devolvía una Promise, nunca funcionó).
