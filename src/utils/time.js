@@ -150,8 +150,18 @@ export function getHoraDisplayDeRegistro(d) {
   const horaStr = d.hora.trim();
   const parts = horaStr.split(/[-–]/);
   if (parts.length >= 2) {
-    const inicio = parts[0].trim().replace(/(\d)(AM|PM)/gi, '$1 $2');
-    const fin = parts[1].trim().replace(/(\d)(AM|PM)/gi, '$1 $2');
+    const inicioRaw = parts[0].trim();
+    let finRaw = parts[1].trim();
+    // Fix: "9:45 - 12:00 AM" es un typo de captura por "12:00 PM" (mediodía).
+    // partesHoraNormalizadas ya lo corrige para posicionar la clase; aquí se
+    // corrige igual al MOSTRARLA, para que la planilla no diga "12:00 AM".
+    // Solo si el inicio no trae su propio AM/PM: un "8:00PM - 12:00AM"
+    // explícito es un cruce real de medianoche y no se toca.
+    if (!/AM|PM/i.test(inicioRaw) && /^12:00\s*AM$/i.test(finRaw)) {
+      finRaw = finRaw.replace(/AM/i, 'PM');
+    }
+    const inicio = inicioRaw.replace(/(\d)(AM|PM)/gi, '$1 $2');
+    const fin = finRaw.replace(/(\d)(AM|PM)/gi, '$1 $2');
     return `${inicio} – ${fin}`;
   }
   return horaStr.replace(/(\d)(AM|PM)/gi, '$1 $2');
