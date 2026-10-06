@@ -186,7 +186,7 @@ tr:nth-child(even) td { background: #F8FAFC; }
 
 /* ── Planilla Imprimible (ADMIN-6, unificada con la misma plantilla) ── */
 .docente-name-cell { font-weight: 700; }
-.firma-box { width: 100px; height: 28px; border: 1px solid #999; margin: 0 auto; }
+.firma-box { width: 100px; height: 28px; border: 1px solid #000; margin: 0 auto; }
 
 /* Pedido de LS (13 ago): criterio de texto uniforme (todo mayúscula),
    encabezados centrados y menos espaciado por fila para que quepan más
@@ -194,8 +194,19 @@ tr:nth-child(even) td { background: #F8FAFC; }
    en vez de tocar las reglas genéricas `table th/td` de más arriba --
    esas las comparten Reporte Diario y Reporte por Rango (exportPDF.js),
    que NO pidieron este cambio. */
-.rp-planilla-table th { text-align: center; text-transform: uppercase; padding: 3px 6px; }
-.rp-planilla-table td { text-transform: uppercase; padding: 2px 6px; }
+/* Pedido de LS (5 oct): al imprimir, la planilla se veía muy clara --
+   los títulos (Hora, Asignatura...) eran texto BLANCO sobre un fondo de
+   color, y cuando el navegador no imprime los fondos (opción "Gráficos de
+   fondo" apagada, lo normal) quedaban casi invisibles. Ahora los títulos
+   van en negro y negrita, sin depender de ningún fondo, con una línea
+   negra debajo; el texto de las filas también va en negro puro. Solo
+   afecta a .rp-planilla-table (la planilla), no a los otros reportes. */
+.rp-planilla-table th {
+  text-align: center; text-transform: uppercase; padding: 3px 6px;
+  background: transparent; color: #000; font-weight: 800;
+  border-bottom: 2px solid #000;
+}
+.rp-planilla-table td { text-transform: uppercase; padding: 2px 6px; color: #000; }
 
 /* Pedido de LS (14 ago): la columna Hora ("07:30 – 09:45 AM") partía en
    2 líneas -- nowrap + un ancho mínimo que alcanza para el caso más largo
