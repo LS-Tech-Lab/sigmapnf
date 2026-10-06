@@ -226,3 +226,30 @@ describe("countBlocksEnBloques — span real sobre bloques dinámicos", () => {
     expect(countBlocksEnBloques(dinamicos, "7:00AM-11:30AM")).toBe(6);
   });
 });
+
+// ── getTurnoPlanilla: la hora real manda (excepto MIXTO) ────────────────
+import { getTurnoPlanilla } from "./turno";
+
+describe("getTurnoPlanilla", () => {
+  it("clase de la mañana -> DIURNO aunque el turno diga VESPERTINO", () => {
+    expect(getTurnoPlanilla({ turno: "VESPERTINO", hora: "9:00AM-9:45AM" })).toBe("DIURNO");
+  });
+  it("clase de la tarde -> VESPERTINO aunque el turno diga DIURNO", () => {
+    expect(getTurnoPlanilla({ turno: "DIURNO", hora: "2:15PM-3:00PM" })).toBe("VESPERTINO");
+  });
+  it("sin turno y fuera de 7:00-12:00 ya no cae a DIURNO", () => {
+    expect(getTurnoPlanilla({ turno: null, hora: "5:45PM-6:30PM", sheet: "ABC" })).toBe("VESPERTINO");
+    expect(getTurnoPlanilla({ turno: null, hora: "12:15PM-12:45PM", sheet: "ABC" })).toBe("VESPERTINO");
+  });
+  it("12:00 PM exacto y bloque que cruza el mediodía siguen siendo DIURNO", () => {
+    expect(getTurnoPlanilla({ hora: "12:00PM-12:45PM" })).toBe("DIURNO");
+    expect(getTurnoPlanilla({ hora: "11:30AM-12:15PM" })).toBe("DIURNO");
+  });
+  it("MIXTO declarado se respeta aunque la hora sea de la tarde", () => {
+    expect(getTurnoPlanilla({ turno: "MIXTO", hora: "2:00PM-2:45PM" })).toBe("MIXTO");
+  });
+  it("sin hora legible usa el turno declarado, y si no hay, DIURNO", () => {
+    expect(getTurnoPlanilla({ turno: "VESPERTINO", hora: "" })).toBe("VESPERTINO");
+    expect(getTurnoPlanilla({ hora: "" })).toBe("DIURNO");
+  });
+});
