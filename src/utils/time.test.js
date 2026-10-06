@@ -62,3 +62,21 @@ describe("partesHoraNormalizadas — typo '12:00 AM' con inicio ambiguo (regresi
     expect(partesHoraNormalizadas("11:15 - 12:00 PM")).toEqual(["11:15AM", "12:00 PM"]);
   });
 });
+
+// ── getHoraDisplayDeRegistro: typo "12:00 AM" por "12:00 PM" ────────────
+import { getHoraDisplayDeRegistro } from "./time";
+
+describe("getHoraDisplayDeRegistro — typo 12:00 AM", () => {
+  it("'09:45 - 12:00 AM' se muestra como 12:00 PM", () => {
+    expect(getHoraDisplayDeRegistro({ hora: "09:45 - 12:00 AM" })).toBe("09:45 – 12:00 PM");
+    expect(getHoraDisplayDeRegistro({ hora: "9:45-12:00AM" })).toBe("9:45 – 12:00 PM");
+  });
+  it("un cruce real de medianoche con inicio explícito no se toca", () => {
+    expect(getHoraDisplayDeRegistro({ hora: "8:00PM-12:00AM" })).toBe("8:00 PM – 12:00 AM");
+  });
+  it("horas normales siguen igual", () => {
+    expect(getHoraDisplayDeRegistro({ hora: "7:30AM-9:45AM" })).toBe("7:30 AM – 9:45 AM");
+    expect(getHoraDisplayDeRegistro({ hora: "07:30 - 09:45 AM" })).toBe("07:30 – 09:45 AM");
+    expect(getHoraDisplayDeRegistro({ hora: "9:45AM-12:00PM" })).toBe("9:45 AM – 12:00 PM");
+  });
+});
