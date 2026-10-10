@@ -43,11 +43,55 @@ vi.mock("../utils/time", async (importOriginal) => {
   return { ...actual, fechaHoyVE: () => "2026-08-16" };
 });
 
+// Fix ASIST-9 (oct 2026): el hook también lee el calendario real vía
+// getCurrentLapso() para su lapso inicial. Sin mockearlo, estas pruebas
+// pasaban en agosto (calendario → 2-2026) y fallaron desde septiembre
+// (calendario → 3-2026). Ahora se controla explícitamente.
+let mockLapsoCalendario = "2-2026";
+vi.mock("../utils/lapso", async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, getCurrentLapso: () => mockLapsoCalendario };
+});
+
 import useTrimestreActivo from "./useTrimestreActivo";
 
 describe("useTrimestreActivo — ASIST-8: hueco entre trimestres", () => {
   beforeEach(() => {
     mockRows = [];
+    mockLapsoCalendario = "2-2026";
+  });
+
+  it("ASIST-9: usa el último cerrado aunque el calendario ya apunte al lapso activo vacío", async () => {
+    mockLapsoCalendario = "3-2026";
+    mockRows = [
+      { lapso: "3-2026", estado: "activo", fecha_inicio: "2026-09-28", fecha_fin: "2026-12-11" },
+      { lapso: "2-2026", estado: "cerrado", fecha_inicio: "2026-05-11", fecha_fin: "2026-07-31" },
+    ];
+    const { result } = renderHook(() => useTrimestreActivo());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    expect(result.current.lapso).toBe("2-2026");
+  });
+
+  it("ASIST-9: con calendario en 3-2026 y hoy dentro del activo, se queda en el activo", async () => {
+    mockLapsoCalendario = "3-2026";
+    mockRows = [
+      { lapso: "3-2026", estado: "activo", fecha_inicio: "2026-08-01", fecha_fin: "2026-11-30" },
+      { lapso: "2-2026", estado: "cerrado", fecha_inicio: "2026-05-11", fecha_fin: "2026-07-31" },
+    ];
+    const { result } = renderHook(() => useTrimestreActivo());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    expect(result.current.lapso).toBe("3-2026");
+  });
+
+  it("ASIST-9: un activo sin fechas cargadas se respeta como antes", async () => {
+    mockLapsoCalendario = "3-2026";
+    mockRows = [
+      { lapso: "3-2026", estado: "activo", fecha_inicio: null, fecha_fin: null },
+      { lapso: "2-2026", estado: "cerrado", fecha_inicio: "2026-05-11", fecha_fin: "2026-07-31" },
+    ];
+    const { result } = renderHook(() => useTrimestreActivo());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    expect(result.current.lapso).toBe("3-2026");
   });
 
   it("usa el activo cuando hoy cae dentro de su rango (caso normal)", async () => {
