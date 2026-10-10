@@ -97,11 +97,20 @@ export default function useTrimestreActivo() {
         .sort((a, b) => (a.fecha_fin < b.fecha_fin ? 1 : -1))[0];
       const defaultSinActivoVigente = ultimoCerrado ? ultimoCerrado.lapso : (activo ? activo.lapso : rows[0].lapso);
 
+      // Fix ASIST-9 (oct 2026): antes, si el lapso calculado por calendario
+      // (getCurrentLapso) coincidía con el `activo` de la BD, se devolvía
+      // `prev` sin mirar las fechas -- eso saltaba el fix ASIST-8 justo en
+      // el hueco entre trimestres. Ahora las fechas del activo se revisan
+      // primero. Un activo SIN fechas cargadas se sigue respetando como
+      // antes (no hay forma de saber si hoy cae dentro de su rango).
+      const activoSinFechas = !!activo && !(activo.fecha_inicio && activo.fecha_fin);
+
       setLapsoState(prev => {
         const filaPrev = rows.find(r => r.lapso === prev);
-        if (filaPrev?.estado === "activo") return prev;
         if (activo && activoCubreHoy) return activo.lapso;
-        return filaPrev ? prev : defaultSinActivoVigente;
+        if (filaPrev?.estado === "activo" && activoSinFechas) return prev;
+        if (filaPrev && filaPrev.estado !== "activo") return prev;
+        return defaultSinActivoVigente;
       });
       setCargando(false);
       primerFetchHecho.current = true;
