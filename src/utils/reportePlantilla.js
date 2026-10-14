@@ -145,8 +145,19 @@ export function anchoContenidoMm(tamanoPagina, orientacion) {
   return PAGINA_MM[`${tamano}-${orient}`].w - PAGINA_MM[`${tamano}-${orient}`].marginX * 2;
 }
 
+/** Primera fila del <thead> de la planilla: casillas en blanco DD / MM /
+ *  AAAA para escribir a mano la fecha a la que corresponde. Va DENTRO del
+ *  <thead> a propósito: los navegadores repiten el thead en cada página
+ *  impresa, así la fecha aparece en todas las hojas de una planilla
+ *  larga (si se separan, ninguna queda sin fecha). `colspan` = cantidad de
+ *  columnas visibles de la tabla. */
+export function filaFechaManualHtml(colspan = 1) {
+  const n = Math.max(1, Number.isFinite(colspan) ? Math.floor(colspan) : 1);
+  return `<tr class="tr-fecha"><th class="th-fecha" colspan="${n}"><div class="fecha-manual">Fecha: <span class="fecha-casilla"></span> / <span class="fecha-casilla"></span> / <span class="fecha-casilla fecha-casilla--anio"></span></div></th></tr>`;
+}
+
 /**
- * plantillaReporte({ config, titulo, subtitulo, seccionesHtml, pie })
+ * plantillaReporte({ config, titulo, subtitulo, seccionesHtml, pie, fechaManual })
  *
  * Arma el HTML completo (<!DOCTYPE> a </html>) de la ventana de impresión,
  * con el membrete institucional configurable + el contenido específico del
@@ -155,8 +166,20 @@ export function anchoContenidoMm(tamanoPagina, orientacion) {
  * `config` es opcional — si se omite o viene incompleto, cada campo cae a
  * CONFIG_REPORTE_DEFAULT campo por campo (no todo-o-nada), para que un
  * admin que solo cambió el logo no pierda los textos por defecto.
+ *
+ * `fechaManual` (14 oct 2026, pedido de LS): solo para la Planilla
+ * Imprimible. Esas planillas se imprimen con anticipación como respaldo
+ * ante fallas eléctricas, así que "Generado: <fecha>" no dice a qué día
+ * corresponde la planilla. Con `fechaManual: true` el membrete trae
+ * casillas en blanco DD / MM / AAAA para escribir la fecha a mano (fila
+ * del <thead> que arma el caller con filaFechaManualHtml(), así el
+ * navegador la repite en cada hoja impresa), y la fecha/hora de
+ * impresión pasa a una línea pequeña al pie ("Versión impresa"), útil
+ * para saber qué versión del horario se imprimió. El
+ * Reporte Diario y el de Rango NO lo pasan: ahí "Generado" sigue siendo
+ * correcto porque se emiten en el momento.
  */
-export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml, pie, orientacion, tamanoPagina, layout }) {
+export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml, pie, orientacion, tamanoPagina, layout, fechaManual = false }) {
   const cfg = { ...CONFIG_REPORTE_DEFAULT, ...config };
 
   // Defensa en profundidad: aunque la tabla ya tiene un CHECK constraint
@@ -179,6 +202,17 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
   const pieStyle = layoutStyleInline(layout?.bloques, "pie", anchoMm, ALTURA_PIE_MM);
 
   const ahora = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
+
+  // Planilla con fecha manuscrita: el membrete ya no lleva "Generado" (las
+  // casillas DD / MM / AAAA las agrega el caller como primera fila del
+  // <thead>, ver filaFechaManualHtml, para que se repitan en cada hoja) y,
+  // al pie, la fecha de impresión en pequeño. `ahora` lo genera
+  // toLocaleString (no es input de usuario), pero se pasa por ESC() igual
+  // por consistencia con el resto de interpolaciones.
+  const fechaHtml = fechaManual ? "" : `<div>Generado: ${ahora}</div>`;
+  const versionHtml = fechaManual
+    ? `<div class="pie-version">Versión impresa: ${ESC(ahora)}</div>`
+    : "";
 
   // Logo: imagen real si hay una configurada, si no la "letra" de
   // placeholder (primera letra del nombre de institución) — mismo look
@@ -236,7 +270,7 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
     <div class="membrete-der"${derStyle}>
       <div>${ESC(titulo)}</div>
       <div class="pdf-subtitulo-valor">${ESC(subtitulo)}</div>
-      <div>Generado: ${ahora}</div>
+      ${fechaHtml}
     </div>
   </div>
 
@@ -244,7 +278,7 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
 
   <div class="rp-pie-canvas"${pieWrapperStyle}>
     <div class="pie"${pieStyle}>
-      <div>${ESC(pie ?? cfg.pie_texto)}</div>
+      <div>${ESC(pie ?? cfg.pie_texto)}${versionHtml}</div>
       <div class="firma-bloque">
         <div class="firma-linea"></div>
         <div class="pdf-firma-label">${ESC(cfg.firma_label)}</div>
