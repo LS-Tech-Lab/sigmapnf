@@ -145,16 +145,14 @@ export function anchoContenidoMm(tamanoPagina, orientacion) {
   return PAGINA_MM[`${tamano}-${orient}`].w - PAGINA_MM[`${tamano}-${orient}`].marginX * 2;
 }
 
-/** Primera fila del <thead> de la planilla: casillas en blanco DD / MM /
- *  AAAA para escribir a mano la fecha a la que corresponde. Va DENTRO del
- *  <thead> a propósito: los navegadores repiten el thead en cada página
- *  impresa, así la fecha aparece en todas las hojas de una planilla
- *  larga (si se separan, ninguna queda sin fecha). `colspan` = cantidad de
- *  columnas visibles de la tabla. */
-export function filaFechaManualHtml(colspan = 1) {
-  const n = Math.max(1, Number.isFinite(colspan) ? Math.floor(colspan) : 1);
-  return `<tr class="tr-fecha"><th class="th-fecha" colspan="${n}"><div class="fecha-manual">Fecha: <span class="fecha-casilla"></span> / <span class="fecha-casilla"></span> / <span class="fecha-casilla fecha-casilla--anio"></span></div></th></tr>`;
-}
+/** Marcador que el caller de la planilla pone como primera fila de su
+ *  <thead>: `<thead>${MARCADOR_MEMBRETE_THEAD}<tr>…columnas…</tr></thead>`.
+ *  Con `fechaManual: true`, plantillaReporte() lo reemplaza por una fila
+ *  con TODO el membrete (logos, título, turno y casillas de fecha), en
+ *  lugar de emitir el membrete suelto arriba de la tabla. Como los
+ *  navegadores repiten el <thead> en cada página impresa, el membrete y
+ *  la fecha salen en todas las hojas de una planilla larga. */
+export const MARCADOR_MEMBRETE_THEAD = "<!--MEMBRETE_THEAD-->";
 
 /**
  * plantillaReporte({ config, titulo, subtitulo, seccionesHtml, pie, fechaManual })
@@ -170,16 +168,21 @@ export function filaFechaManualHtml(colspan = 1) {
  * `fechaManual` (14 oct 2026, pedido de LS): solo para la Planilla
  * Imprimible. Esas planillas se imprimen con anticipación como respaldo
  * ante fallas eléctricas, así que "Generado: <fecha>" no dice a qué día
- * corresponde la planilla. Con `fechaManual: true` el membrete trae
- * casillas en blanco DD / MM / AAAA para escribir la fecha a mano (fila
- * del <thead> que arma el caller con filaFechaManualHtml(), así el
- * navegador la repite en cada hoja impresa), y la fecha/hora de
- * impresión pasa a una línea pequeña al pie ("Versión impresa"), útil
- * para saber qué versión del horario se imprimió. El
- * Reporte Diario y el de Rango NO lo pasan: ahí "Generado" sigue siendo
+ * corresponde la planilla. Con `fechaManual: true`:
+ *   - en el membrete, donde estaba "Generado", van casillas en blanco
+ *     DD / MM / AAAA para escribir la fecha a mano;
+ *   - si `seccionesHtml` trae MARCADOR_MEMBRETE_THEAD, el membrete completo
+ *     se inyecta ahí, como primera fila del <thead> (`columnas` = cantidad
+ *     de columnas de la tabla, para el colspan), de modo que se repita en
+ *     cada hoja impresa. Sin el marcador cae al membrete suelto de
+ *     siempre (solo en la primera hoja);
+ *   - la fecha/hora de impresión pasa a una línea pequeña al pie
+ *     ("Versión impresa"), útil para saber qué versión del horario se
+ *     imprimió.
+ * El Reporte Diario y el de Rango NO lo pasan: ahí "Generado" sigue siendo
  * correcto porque se emiten en el momento.
  */
-export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml, pie, orientacion, tamanoPagina, layout, fechaManual = false }) {
+export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml, pie, orientacion, tamanoPagina, layout, fechaManual = false, columnas = 1 }) {
   const cfg = { ...CONFIG_REPORTE_DEFAULT, ...config };
 
   // Defensa en profundidad: aunque la tabla ya tiene un CHECK constraint
@@ -203,13 +206,13 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
 
   const ahora = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
 
-  // Planilla con fecha manuscrita: el membrete ya no lleva "Generado" (las
-  // casillas DD / MM / AAAA las agrega el caller como primera fila del
-  // <thead>, ver filaFechaManualHtml, para que se repitan en cada hoja) y,
-  // al pie, la fecha de impresión en pequeño. `ahora` lo genera
+  // Planilla con fecha manuscrita: en vez de "Generado", casillas DD / MM /
+  // AAAA en el membrete y, al pie, la fecha de impresión en pequeño. `ahora` lo genera
   // toLocaleString (no es input de usuario), pero se pasa por ESC() igual
   // por consistencia con el resto de interpolaciones.
-  const fechaHtml = fechaManual ? "" : `<div>Generado: ${ahora}</div>`;
+  const fechaHtml = fechaManual
+    ? `<div class="fecha-manual">Fecha: <span class="fecha-casilla"></span> / <span class="fecha-casilla"></span> / <span class="fecha-casilla fecha-casilla--anio"></span></div>`
+    : `<div>Generado: ${ahora}</div>`;
   const versionHtml = fechaManual
     ? `<div class="pie-version">Versión impresa: ${ESC(ahora)}</div>`
     : "";
@@ -249,14 +252,7 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
   const subtitulo1Html = cfg.subtitulo_1 ? `<p>${ESC(cfg.subtitulo_1)}</p>` : "";
   const subtitulo2Html = cfg.subtitulo_2 ? `<p>${ESC(cfg.subtitulo_2)}</p>` : "";
 
-  return `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8"/>
-  <title>${ESC(titulo)}</title>
-  <link rel="stylesheet" href="/reporte-print.css"/>
-</head>
-<body class="${bodyClase}">
+  const membreteHtml = `
   <div class="membrete"${membreteWrapperStyle}>
     <div class="membrete-izq"${izqStyle}>
       ${logoHtml}
@@ -273,8 +269,28 @@ export function plantillaReporte({ config = {}, titulo, subtitulo, seccionesHtml
       ${fechaHtml}
     </div>
   </div>
+  `;
+  // Planilla (fechaManual): el membrete va como primera fila del <thead> de
+  // la tabla para repetirse en cada hoja. Si el caller no puso el marcador,
+  // no hay dónde inyectarlo y se emite suelto arriba (solo 1ª hoja).
+  const membreteEnThead = fechaManual && typeof seccionesHtml === "string" && seccionesHtml.includes(MARCADOR_MEMBRETE_THEAD);
+  const colspanMembrete = Math.max(1, Number.isFinite(columnas) ? Math.floor(columnas) : 1);
+  const membreteSuelto = membreteEnThead ? "" : membreteHtml;
+  const seccionesFinal = membreteEnThead
+    ? seccionesHtml.replace(MARCADOR_MEMBRETE_THEAD, () => `<tr class="tr-membrete"><th class="th-membrete" colspan="${colspanMembrete}">${membreteHtml}</th></tr>`)
+    : seccionesHtml;
 
-  ${seccionesHtml}
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>${ESC(titulo)}</title>
+  <link rel="stylesheet" href="/reporte-print.css"/>
+</head>
+<body class="${bodyClase}">
+  ${membreteSuelto}
+
+  ${seccionesFinal}
 
   <div class="rp-pie-canvas"${pieWrapperStyle}>
     <div class="pie"${pieStyle}>

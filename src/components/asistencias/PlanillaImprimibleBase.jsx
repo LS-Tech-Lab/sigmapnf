@@ -28,7 +28,7 @@ import { getTurnoPlanilla } from '../../utils/turno';
 import { getHoraDisplayDeRegistro, getHoraMin } from '../../utils/time';
 import { parseClase } from '../../utils/parsing';
 import { getCurrentLapso } from '../../utils/lapso';
-import { plantillaReporte, abrirVentanaImpresion, filaFechaManualHtml } from '../../utils/reportePlantilla';
+import { plantillaReporte, abrirVentanaImpresion, MARCADOR_MEMBRETE_THEAD } from '../../utils/reportePlantilla';
 import { DEFAULT_COLUMNAS_BLOQUE } from '../../utils/plantillasImpresion';
 import './PlanillaImprimibleBase.css';
 
@@ -148,7 +148,7 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
     // que sigue verificando que llegue escapado ahí).
     const seccionesHtml = `
       <table class="rp-planilla-table">
-        <thead>${filaFechaManualHtml(columnasActivas.length)}<tr>${theadHtml}</tr></thead>
+        <thead>${MARCADOR_MEMBRETE_THEAD}<tr>${theadHtml}</tr></thead>
         <tbody>${filas || `<tr><td colspan="${columnasActivas.length}" class="td-empty">Sin clases programadas</td></tr>`}</tbody>
       </table>`;
 
@@ -162,6 +162,7 @@ export default function PlanillaImprimibleBase({ data, getDocName, getMateriaNam
       tamanoPagina: plantilla?.tamano_pagina,
       layout: plantilla?.layout,
       fechaManual: true,
+      columnas: columnasActivas.length,
     });
 
     if (!abrirVentanaImpresion(html, { autoPrint: true })) {

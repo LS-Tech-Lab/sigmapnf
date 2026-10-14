@@ -7,7 +7,7 @@
 // fuera del enum (no debería poder pasar por el CHECK de la migración
 // 0056, pero el módulo no confía ciegamente en eso).
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { plantillaReporte, abrirVentanaImpresion, filaFechaManualHtml, CONFIG_REPORTE_DEFAULT } from "./reportePlantilla";
+import { plantillaReporte, abrirVentanaImpresion, MARCADOR_MEMBRETE_THEAD, CONFIG_REPORTE_DEFAULT } from "./reportePlantilla";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -223,24 +223,46 @@ describe("plantillaReporte — fechaManual (planilla impresa con anticipación, 
     expect(html).not.toContain("Versión impresa");
   });
 
-  it("con fechaManual el membrete ya no trae \"Generado:\" ni casillas (la fila va en el thead del caller)", () => {
-    const html = plantillaReporte({ ...base, fechaManual: true });
+  const tabla = `<table class="rp-planilla-table"><thead>${MARCADOR_MEMBRETE_THEAD}<tr><th>A</th><th>B</th><th>C</th></tr></thead><tbody><tr><td>1</td><td>2</td><td>3</td></tr></tbody></table>`;
+
+  it("con fechaManual el membrete lleva 3 casillas DD/MM/AAAA en lugar de \"Generado:\"", () => {
+    const html = plantillaReporte({ ...base, seccionesHtml: tabla, fechaManual: true, columnas: 3 });
     expect(html).not.toContain("Generado:");
-    expect(html).not.toContain("fecha-casilla");
+    expect(html).toContain("Fecha:");
+    expect((html.match(/class="fecha-casilla"/g) || []).length).toBe(2);
+    expect((html.match(/fecha-casilla--anio/g) || []).length).toBe(1);
   });
 
-  it("filaFechaManualHtml arma 3 casillas DD/MM/AAAA en una fila con colspan", () => {
-    const fila = filaFechaManualHtml(7);
-    expect(fila).toContain('colspan="7"');
-    expect(fila).toContain("Fecha:");
-    expect((fila.match(/class="fecha-casilla"/g) || []).length).toBe(2);
-    expect((fila.match(/fecha-casilla--anio/g) || []).length).toBe(1);
+  it("con fechaManual y marcador, el membrete va DENTRO del thead (se repite por hoja) y no suelto", () => {
+    const html = plantillaReporte({ ...base, seccionesHtml: tabla, fechaManual: true, columnas: 3 });
+    expect(html).not.toContain(MARCADOR_MEMBRETE_THEAD);
+    expect((html.match(/class="membrete"/g) || []).length).toBe(1);
+    const iThead = html.indexOf("<thead>");
+    const iMembrete = html.indexOf('class="membrete"');
+    const iColumnas = html.indexOf("<th>A</th>");
+    expect(iMembrete).toBeGreaterThan(iThead);
+    expect(iMembrete).toBeLessThan(iColumnas);
+    expect(html).toContain('colspan="3"');
   });
 
-  it("filaFechaManualHtml con colspan inválido cae a 1 en vez de emitir basura", () => {
-    expect(filaFechaManualHtml(0)).toContain('colspan="1"');
-    expect(filaFechaManualHtml(NaN)).toContain('colspan="1"');
-    expect(filaFechaManualHtml(undefined)).toContain('colspan="1"');
+  it("con fechaManual pero SIN marcador, el membrete sale suelto arriba como siempre", () => {
+    const html = plantillaReporte({ ...base, seccionesHtml: "<p>x</p>", fechaManual: true });
+    expect((html.match(/class="membrete"/g) || []).length).toBe(1);
+    expect(html.indexOf('class="membrete"')).toBeLessThan(html.indexOf("<p>x</p>"));
+    expect(html).not.toContain("tr-membrete");
+  });
+
+  it("columnas inválido cae a colspan 1", () => {
+    for (const columnas of [0, NaN, undefined]) {
+      const html = plantillaReporte({ ...base, seccionesHtml: tabla, fechaManual: true, columnas });
+      expect(html).toContain('colspan="1"');
+    }
+  });
+
+  it("sin fechaManual el marcador no se toca y el membrete sale suelto", () => {
+    const html = plantillaReporte({ ...base, seccionesHtml: tabla });
+    expect(html).toContain(MARCADOR_MEMBRETE_THEAD);
+    expect(html).toContain("Generado:");
   });
 
   it("con fechaManual la fecha de impresión sale al pie como \"Versión impresa\"", () => {

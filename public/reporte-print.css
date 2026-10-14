@@ -146,21 +146,27 @@ tr:nth-child(even) td { background: #F8FAFC; }
   font-size: 8pt; color: #555;
 }
 /* Planilla imprimible (14 oct 2026): fecha a mano en lugar de "Generado"
-   y fecha de impresión pequeña al pie. La fila de la fecha va dentro del
-   <thead> de la tabla (ver filaFechaManualHtml en reportePlantilla.js)
-   para que el navegador la repita en cada hoja. */
+   (casillas DD / MM / AAAA en el membrete, donde estaba esa línea) y fecha
+   de impresión pequeña al pie. El membrete completo va como primera fila
+   del <thead> de la planilla (ver MARCADOR_MEMBRETE_THEAD en
+   reportePlantilla.js) para que el navegador lo repita en cada hoja. */
 thead { display: table-header-group; }
-.rp-planilla-table th.th-fecha {
-  text-align: right; padding: 0 0 6px; border-bottom: none;
-  text-transform: none; font-size: 8.5pt;
+/* Dentro de la tabla el membrete es una celda <th>: se neutralizan los
+   estilos de encabezado de columna (.rp-planilla-table th: mayúsculas,
+   negrita, centrado, línea negra) para que se vea igual que suelto. */
+.rp-planilla-table th.th-membrete {
+  text-align: left; text-transform: none; font-weight: 400;
+  color: #1a1a1a; padding: 0; border-bottom: none;
 }
-.fecha-manual { display: flex; align-items: center; justify-content: flex-end; gap: 4px; color: #111; font-weight: 700; }
+.fecha-manual { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 4px; color: #111; font-weight: 700; }
 .fecha-casilla {
   display: inline-block; box-sizing: border-box;
   width: 10mm; height: 8mm; border: 1px solid #111; background: #fff;
 }
 .fecha-casilla--anio { width: 16mm; }
 .pie-version { margin-top: 2px; font-size: 6.5pt; color: #9CA3AF; }
+/* Una fila de la planilla nunca se parte entre dos hojas. */
+.rp-planilla-table tbody tr { break-inside: avoid; page-break-inside: avoid; }
 .firma-bloque { text-align: center; }
 .firma-linea  { border-top: 1px solid #111; width: 200px; margin: 40px auto 4px; }
 
