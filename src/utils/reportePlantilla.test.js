@@ -7,7 +7,7 @@
 // fuera del enum (no debería poder pasar por el CHECK de la migración
 // 0056, pero el módulo no confía ciegamente en eso).
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { plantillaReporte, abrirVentanaImpresion, CONFIG_REPORTE_DEFAULT } from "./reportePlantilla";
+import { plantillaReporte, abrirVentanaImpresion, filaFechaManualHtml, CONFIG_REPORTE_DEFAULT } from "./reportePlantilla";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -210,6 +210,44 @@ describe("plantillaReporte — escapado de texto libre (mismo criterio que SEC-2
     });
     expect(html).not.toContain('" onerror="alert(1)');
     expect(html).toContain("&quot;");
+  });
+});
+
+describe("plantillaReporte — fechaManual (planilla impresa con anticipación, 14 oct 2026)", () => {
+  const base = { titulo: "T", subtitulo: "S", seccionesHtml: "" };
+
+  it("por defecto (reportes diario/rango) conserva \"Generado:\" y no agrega casillas ni versión impresa", () => {
+    const html = plantillaReporte(base);
+    expect(html).toContain("Generado:");
+    expect(html).not.toContain("fecha-casilla");
+    expect(html).not.toContain("Versión impresa");
+  });
+
+  it("con fechaManual el membrete ya no trae \"Generado:\" ni casillas (la fila va en el thead del caller)", () => {
+    const html = plantillaReporte({ ...base, fechaManual: true });
+    expect(html).not.toContain("Generado:");
+    expect(html).not.toContain("fecha-casilla");
+  });
+
+  it("filaFechaManualHtml arma 3 casillas DD/MM/AAAA en una fila con colspan", () => {
+    const fila = filaFechaManualHtml(7);
+    expect(fila).toContain('colspan="7"');
+    expect(fila).toContain("Fecha:");
+    expect((fila.match(/class="fecha-casilla"/g) || []).length).toBe(2);
+    expect((fila.match(/fecha-casilla--anio/g) || []).length).toBe(1);
+  });
+
+  it("filaFechaManualHtml con colspan inválido cae a 1 en vez de emitir basura", () => {
+    expect(filaFechaManualHtml(0)).toContain('colspan="1"');
+    expect(filaFechaManualHtml(NaN)).toContain('colspan="1"');
+    expect(filaFechaManualHtml(undefined)).toContain('colspan="1"');
+  });
+
+  it("con fechaManual la fecha de impresión sale al pie como \"Versión impresa\"", () => {
+    const html = plantillaReporte({ ...base, fechaManual: true });
+    const pie = html.slice(html.indexOf('class="pie"'));
+    expect(pie).toContain("pie-version");
+    expect(pie).toContain("Versión impresa:");
   });
 });
 
