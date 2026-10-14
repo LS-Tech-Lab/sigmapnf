@@ -17,7 +17,7 @@
 // contenido de una plantilla con muchas columnas visibles desborda el
 // ancho, se ve tal cual se vería impreso, incluyendo el desborde -- eso
 // es información útil, no un bug de la preview).
-import { plantillaReporte } from "./reportePlantilla";
+import { plantillaReporte, filaFechaManualHtml } from "./reportePlantilla";
 
 // Mismas clases/secciones que la foto de referencia que trajo LS
 // (12 ago) -- suficiente variedad para ver el efecto de reordenar u
@@ -70,7 +70,7 @@ export function construirHtmlPreview({ columnas, orientacion, tamanoPagina, layo
 
   const seccionesHtml = `
     <table class="rp-planilla-table">
-      <thead><tr>${theadHtml || '<th>Sin columnas visibles</th>'}</tr></thead>
+      <thead>${filaFechaManualHtml(columnasVisibles.length)}<tr>${theadHtml || '<th>Sin columnas visibles</th>'}</tr></thead>
       <tbody>${filas || `<tr><td class="td-empty">Sin columnas visibles</td></tr>`}</tbody>
     </table>`;
 
@@ -83,5 +83,6 @@ export function construirHtmlPreview({ columnas, orientacion, tamanoPagina, layo
     orientacion,
     tamanoPagina,
     layout,
+    fechaManual: true,
   });
 }
