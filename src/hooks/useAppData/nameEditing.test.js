@@ -113,3 +113,79 @@ describe("nameEditing — unifyNameLegacy manda p_sede_id a replace_nombre_en_cl
     });
   });
 });
+
+// FIX (cédulas que "se borran"): saveDocenteCedula hacía UPDATE sin verificar
+// filas afectadas. Para docentes que solo existen en el texto del horario
+// (sin fila en `docentes`) el UPDATE respondía 204 con 0 filas, la UI decía
+// "Cédula vinculada." y al refrescar la cédula desaparecía.
+describe("nameEditing — saveDocenteCedula verifica filas afectadas", () => {
+  function updateBuilder(result) {
+    const b = {
+      update: vi.fn(() => b),
+      eq: vi.fn(() => b),
+      select: vi.fn(() => Promise.resolve(result)),
+    };
+    return b;
+  }
+  function upsertBuilder(result) {
+    const b = {
+      upsert: vi.fn(() => b),
+      select: vi.fn(() => Promise.resolve(result)),
+    };
+    return b;
+  }
+
+  it("UPDATE con 0 filas: crea la fila del docente con la cédula (upsert por sede_id,nombre_raw)", async () => {
+    const upd = updateBuilder({ data: [], error: null });
+    const ups = upsertBuilder({ data: [{ id: 900 }], error: null });
+    supabase.from.mockReturnValueOnce(upd).mockReturnValueOnce(ups);
+    const deps = baseDeps();
+
+    const { saveDocenteCedula } = createNameEditingActions(deps);
+    const res = await saveDocenteCedula("LIZ ARAUJO", " v12345678 ");
+
+    expect(res).toEqual({ success: true, cedulaLimpia: "V12345678" });
+    expect(ups.upsert).toHaveBeenCalledWith(
+      { nombre_raw: "LIZ ARAUJO", nombre_display: "LIZ ARAUJO", cedula: "V12345678", sede_id: "cabimas" },
+      { onConflict: "sede_id,nombre_raw" }
+    );
+    expect(deps.showToast).toHaveBeenCalledWith("Cédula vinculada.", "success");
+  });
+
+  it("UPDATE con 1 fila: no crea nada extra", async () => {
+    const upd = updateBuilder({ data: [{ id: 5 }], error: null });
+    supabase.from.mockReturnValueOnce(upd);
+
+    const { saveDocenteCedula } = createNameEditingActions(baseDeps());
+    const res = await saveDocenteCedula("JUAN CASTRO", "V7964835");
+
+    expect(res.success).toBe(true);
+    expect(supabase.from).toHaveBeenCalledTimes(1);
+  });
+
+  it("UPDATE y upsert sin filas (RLS/permisos): devuelve error y NO muestra éxito", async () => {
+    const upd = updateBuilder({ data: [], error: null });
+    const ups = upsertBuilder({ data: [], error: null });
+    supabase.from.mockReturnValueOnce(upd).mockReturnValueOnce(ups);
+    const deps = baseDeps();
+
+    const { saveDocenteCedula } = createNameEditingActions(deps);
+    const res = await saveDocenteCedula("SANDRA LOPEZ", "V111");
+
+    expect(res.success).toBe(false);
+    expect(deps.showToast).not.toHaveBeenCalledWith("Cédula vinculada.", "success");
+    expect(deps.showToast).toHaveBeenCalledWith(expect.stringContaining("No se pudo guardar"), "error");
+  });
+
+  it("cédula duplicada (23505) sigue mostrando el mensaje específico", async () => {
+    const upd = updateBuilder({ data: null, error: { code: "23505", message: "dup" } });
+    supabase.from.mockReturnValueOnce(upd);
+    const deps = baseDeps();
+
+    const { saveDocenteCedula } = createNameEditingActions(deps);
+    const res = await saveDocenteCedula("ANA FLORIDO", "V222");
+
+    expect(res.success).toBe(false);
+    expect(deps.showToast).toHaveBeenCalledWith("Esa cédula ya está vinculada a otro docente.", "error");
+  });
+});
