@@ -87,21 +87,49 @@ export function createNameEditingActions({
   const saveDocenteCedula = async (rawName, cedula) => {
     const cedulaLimpia = cedula.trim().toUpperCase();
     try {
-      // UPDATE en lugar de upsert: la cédula siempre se edita sobre un
-      // docente que ya existe. El upsert intentaría INSERT si no existe,
-      // fallando por la restricción NOT NULL de nombre_display.
-      const { error: updateError } = await supabase
+      // FIX (cédulas que "se borran"): un UPDATE sobre una fila inexistente
+      // o invisible por RLS responde 204 sin error y con 0 filas afectadas.
+      // La vista Docentes también lista nombres que solo existen en el texto
+      // del horario (horarios.docente_id nulo, clave tomada de parseClase),
+      // sin fila en `docentes`. Antes se mostraba "Cédula vinculada." y el
+      // estado optimista la pintaba, pero al refrescar desde la BD
+      // desaparecía. Ahora se pide `.select("id")` para contar filas y, si
+      // no hubo ninguna, se crea la fila del docente con la cédula.
+      let { data: filas, error: updateError } = await supabase
         .from("docentes")
         .update({ cedula: cedulaLimpia || null })
-        .eq("nombre_raw", rawName);
+        .eq("nombre_raw", rawName)
+        .select("id");
+      if (!updateError && (!filas || filas.length === 0)) {
+        if (!cedulaLimpia) {
+          // Desvincular algo que nunca estuvo guardado: nada que hacer.
+          showToast("Cédula desvinculada.", "success");
+          return { success: true, cedulaLimpia };
+        }
+        // nombre_display es NOT NULL; sede_id explícito (SEDE-5) para roles
+        // sin sede fija. Si el docente aparece en paralelo, el upsert por
+        // (sede_id, nombre_raw) lo reutiliza.
+        const res = await supabase
+          .from("docentes")
+          .upsert(
+            { nombre_raw: rawName, nombre_display: rawName, cedula: cedulaLimpia, ...(sedeActiva ? { sede_id: sedeActiva } : {}) },
+            { onConflict: "sede_id,nombre_raw" }
+          )
+          .select("id");
+        updateError = res.error;
+        filas = res.data;
+        if (!updateError && (!filas || filas.length === 0)) {
+          // Ni UPDATE ni INSERT tocaron filas: RLS/permisos. No mentir.
+          showToast("No se pudo guardar la cédula: sin permiso o sede incorrecta.", "error");
+          return { success: false };
+        }
+      }
       if (updateError) {
         if (updateError.code === "23505") {
           showToast("Esa cédula ya está vinculada a otro docente.", "error");
         } else {
-          // Fix UX-55 (auditoría 16 ago): este else concatenaba
-          // updateError.message crudo — bug propio encontrado al cerrar el
-          // hallazgo original (el catch de abajo, ya reportado en el
-          // índice), mismo patrón que SEC-38 ya cerró en otros 6 archivos.
+          // Fix UX-55 (auditoría 16 ago): no concatenar updateError.message
+          // crudo (mismo patrón que SEC-38).
           showToast("Error: " + mensajeAmigable(updateError), "error");
         }
         return { success: false };
