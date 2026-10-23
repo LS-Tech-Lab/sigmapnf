@@ -38,6 +38,16 @@
  *                              usuario editó la fila mientras el modal
  *                              estaba abierto (bloqueo optimista)
  *   onDelete      {fn(id, resumen) => Promise<{success}>}
+ *   modo          {"editar"|"crear"} — "editar" (default) es el flujo UX-14.
+ *                              "crear" reutiliza el mismo formulario para
+ *                              "Agregar clase" y "Duplicar": `entry` es
+ *                              entonces la fila de REFERENCIA (no se
+ *                              modifica) — de ella se copia el contexto
+ *                              (sheet/programa/trayecto/seccion/sede/lapso/
+ *                              sede_id) y los valores iniciales del
+ *                              formulario. En este modo no hay "Eliminar".
+ *   onCreate      {fn(payload) => Promise<{success}>} — solo modo "crear";
+ *                              recibe el payload completo para INSERT
  *   onClose       {fn}
  *   openConfirm   {fn}      — appData.openConfirm
  *   closeConfirm  {fn}      — appData.closeConfirm
@@ -118,7 +128,9 @@ function bloqueFinalDe(entry, bloqueInicio) {
 export default function ModalEditarClase({
   open, entry, puedeEditar, puedeBorrar, puedeCrearDocentes, puedeCrearMaterias,
   onSave, onDelete, onClose, openConfirm, closeConfirm,
+  modo = "editar", onCreate,
 }) {
+  const esCrear = modo === "crear";
   const dialogRef = useRef(null);
   useFocusTrap(dialogRef, open);
 
@@ -228,10 +240,15 @@ export default function ModalEditarClase({
       return d.nombre_display || d.nombre_raw;
     })();
 
+    const diaLabel = dia.charAt(0) + dia.slice(1).toLowerCase();
+    const detalle = `${diaLabel}, ${rangoLabel}${aula.trim() ? `, aula ${aula.trim()}` : ""}: ${materiaLabel} — ${docenteLabel}`;
+
     openConfirm({
-      title: "Guardar cambios",
-      message: `Se moverá a ${dia.charAt(0) + dia.slice(1).toLowerCase()}, ${rangoLabel}${aula.trim() ? `, aula ${aula.trim()}` : ""}: ${materiaLabel} — ${docenteLabel}. ¿Confirmas?`,
-      confirmLabel: "Guardar",
+      title: esCrear ? "Agregar clase" : "Guardar cambios",
+      message: esCrear
+        ? `Se agregará una clase nueva el ${detalle}. ¿Confirmas?`
+        : `Se moverá a ${detalle}. ¿Confirmas?`,
+      confirmLabel: esCrear ? "Agregar" : "Guardar",
       danger: false,
       onConfirm: async () => {
         closeConfirm();
@@ -288,6 +305,30 @@ export default function ModalEditarClase({
           clase: `${materiaRow.nombre_raw}\nProf. ${docenteRow.nombre_raw}`,
         };
 
+        if (esCrear) {
+          // Contexto de la fila nueva: una celda vacía (o una fila a
+          // duplicar) no lo trae por sí sola, así que se copia de la fila de
+          // referencia. sede_id: el de la fila de referencia; si no lo
+          // tuviera (dato viejo), la sede activa de la sesión; si tampoco,
+          // se omite y el trigger trg_autocompletar_sede lo completa.
+          const sedeIdFila = entry.sede_id || sedeActiva;
+          const resCrear = await onCreate({
+            sheet: entry.sheet,
+            programa: entry.programa,
+            trayecto: entry.trayecto,
+            seccion: entry.seccion,
+            sede: entry.sede,
+            lapso: entry.lapso,
+            ...(sedeIdFila ? { sede_id: sedeIdFila } : {}),
+            ...payload,
+          });
+          setSaving(false);
+          // Si falló (RLS, trimestre cerrado, red) el modal queda abierto
+          // con lo que el usuario escribió, para reintentar sin perderlo.
+          if (resCrear.success) onClose();
+          return;
+        }
+
         // ARCH-29: entry.updated_at es el valor con el que se cargó este
         // formulario (fila en memoria, no una consulta nueva) — onSave lo
         // usa para detectar si alguien más editó la fila mientras el
@@ -327,8 +368,8 @@ export default function ModalEditarClase({
     <div className="mec-overlay" onClick={onClose} role="presentation">
       <div className="mec-modal" ref={dialogRef} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="mec-title">
         <div className="mec-header">
-          <i className="ti ti-edit mec-icon" aria-hidden="true" />
-          <h2 id="mec-title" className="mec-title">Editar clase</h2>
+          <i className={`ti ${esCrear ? "ti-plus" : "ti-edit"} mec-icon`} aria-hidden="true" />
+          <h2 id="mec-title" className="mec-title">{esCrear ? "Agregar clase" : "Editar clase"}</h2>
         </div>
 
         {error && <div className="mec-error">{error}</div>}
@@ -407,7 +448,7 @@ export default function ModalEditarClase({
         </div>
 
         <div className="mec-actions">
-          {puedeBorrar && (
+          {puedeBorrar && !esCrear && (
             <button className="mec-btn mec-btn--danger" onClick={handleEliminar} disabled={saving}>
               <i className="ti ti-trash" aria-hidden="true" /> Eliminar
             </button>
@@ -416,7 +457,7 @@ export default function ModalEditarClase({
             <button className="mec-btn mec-btn--cancel" onClick={onClose} disabled={saving}>Cancelar</button>
             {puedeEditar && (
               <button className="mec-btn mec-btn--primary" onClick={handleGuardar} disabled={saving || cargandoCatalogos} aria-busy={saving}>
-                {saving ? "Guardando…" : "Guardar"}
+                {saving ? "Guardando…" : (esCrear ? "Agregar" : "Guardar")}
               </button>
             )}
           </div>
@@ -424,7 +465,7 @@ export default function ModalEditarClase({
         {/* Fix UX-63: región viva para lectores de pantalla — el texto/disabled
             del botón ya daban feedback visual, faltaba el anuncio a a11y */}
         <div className="sr-only" role="status" aria-live="polite">
-          {saving ? "Guardando cambios, por favor espera." : ""}
+          {saving ? (esCrear ? "Agregando clase, por favor espera." : "Guardando cambios, por favor espera.") : ""}
         </div>
       </div>
     </div>
@@ -438,8 +479,10 @@ ModalEditarClase.propTypes = {
   puedeBorrar: PropTypes.bool,
   puedeCrearDocentes: PropTypes.bool,
   puedeCrearMaterias: PropTypes.bool,
-  onSave: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
+  onSave: PropTypes.func,
+  onDelete: PropTypes.func,
+  modo: PropTypes.oneOf(["editar", "crear"]),
+  onCreate: PropTypes.func,
   onClose: PropTypes.func.isRequired,
   openConfirm: PropTypes.func.isRequired,
   closeConfirm: PropTypes.func.isRequired,

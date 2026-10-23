@@ -247,6 +247,10 @@ export default function HorariosLayout({
                 puedeCrearMaterias={permisos.puedeEditarMaterias || permisos.puedeImportarExcel}
                 onSaveClase={permisos.puedeEditarHorarios ? appData.saveClase : null}
                 onDeleteClase={permisos.puedeBorrarHorarios ? appData.deleteClase : null}
+                // UX-66: agregar/duplicar clase. Además del permiso, se oculta en modo
+                // consulta (trimestre cerrado): RLS (0099) lo rechazaría igual, pero así
+                // el usuario no ve un botón que siempre falla.
+                onCreateClase={permisos.puedeEditarHorarios && !modoConsulta ? appData.createClase : null}
                 openConfirm={appData.openConfirm}
                 closeConfirm={appData.closeConfirm}
               />

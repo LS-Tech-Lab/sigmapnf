@@ -206,3 +206,75 @@ describe("deleteClase (UX-55)", () => {
     expect(fetchHorarios).not.toHaveBeenCalled();
   });
 });
+
+// UX-66: alta de clase (Agregar / Duplicar). No hay bloqueo optimista acá —
+// es un INSERT; lo que importa es distinguir "se insertó" de "RLS lo
+// descartó" (0 filas devueltas) y que se refresque la grilla solo en éxito.
+describe("createClase — alta de clase (UX-66)", () => {
+  let showToast, logAudit, fetchHorarios, actions;
+  const payload = {
+    sheet: "T1-1", programa: "INFORMATICA", trayecto: "1", seccion: "1", sede: "Cabimas", lapso: "3-2026",
+    sede_id: "cabimas", turno: "DIURNO", dia: "LUNES", hora: "7:30AM-8:15AM", aula: "A1",
+    docente_id: 1, materia_id: 2, clase: "X\nProf. Y",
+  };
+
+  function mockInsert(result) {
+    const select = vi.fn().mockResolvedValue(result);
+    const insert = vi.fn().mockReturnValue({ select });
+    supabase.from.mockReturnValue({ insert });
+    return { insert, select };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    showToast = vi.fn();
+    logAudit = vi.fn();
+    fetchHorarios = vi.fn().mockResolvedValue(undefined);
+    actions = createHorarioEditingActions({ logAudit, showToast, fetchHorarios, selectedPrograma: "INFORMATICA" });
+  });
+
+  it("inserta el payload tal cual, avisa, audita y recarga la grilla", async () => {
+    const { insert, select } = mockInsert({ data: [{ id: 99 }], error: null });
+
+    const res = await actions.createClase(payload);
+
+    expect(res).toEqual({ success: true, id: 99 });
+    expect(supabase.from).toHaveBeenCalledWith("horarios");
+    expect(insert).toHaveBeenCalledWith(payload);
+    expect(select).toHaveBeenCalledWith("id");
+    expect(showToast).toHaveBeenCalledWith("Clase agregada.", "success");
+    expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ accion: "CREAR_HORARIO", entidad: "horarios" }));
+    expect(fetchHorarios).toHaveBeenCalledWith("INFORMATICA");
+  });
+
+  it("si RLS descarta el INSERT en silencio (0 filas devueltas) NO lo da por guardado", async () => {
+    mockInsert({ data: [], error: null });
+
+    const res = await actions.createClase(payload);
+
+    expect(res).toEqual({ success: false });
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("No se pudo agregar"), "error");
+    expect(logAudit).not.toHaveBeenCalled();
+    expect(fetchHorarios).not.toHaveBeenCalled();
+  });
+
+  it("si Supabase devuelve error, falla sin auditar ni recargar", async () => {
+    mockInsert({ data: null, error: { message: "boom", code: "42501" } });
+
+    const res = await actions.createClase(payload);
+
+    expect(res).toEqual({ success: false });
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("Error al agregar la clase"), "error");
+    expect(logAudit).not.toHaveBeenCalled();
+    expect(fetchHorarios).not.toHaveBeenCalled();
+  });
+
+  it("si la llamada lanza una excepción (red), la captura y devuelve success:false", async () => {
+    supabase.from.mockImplementation(() => { throw new Error("network"); });
+
+    const res = await actions.createClase(payload);
+
+    expect(res).toEqual({ success: false });
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("Error al agregar la clase"), "error");
+  });
+});

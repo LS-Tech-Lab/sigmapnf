@@ -17,10 +17,16 @@
 // celda, marcadas como conflicto) en vez de que una desaparezca.
 // =====================================================================
 
+vi.mock("../lib/supabase", () => ({
+  supabase: { from: vi.fn() },
+}));
+
 import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import TurnoGrid from "./TurnoGrid";
+import { SedeProvider } from "../context/SedeContext";
+import { supabase } from "../lib/supabase";
 import { BLOQUES_DIURNO, BLOQUES_MIXTO, DAYS } from "../constants";
 
 afterEach(() => {
@@ -214,5 +220,87 @@ describe("TurnoGrid — caso Agroalimentación: grilla dinámica para turno MIXT
     expect(screen.getByText("Proyecto Formativo I")).toBeTruthy();
     const celda = container.querySelector(".tg-cell-data--span-6");
     expect(celda).toBeTruthy();
+  });
+});
+
+// UX-66: entradas a "agregar clase" desde la grilla.
+describe("TurnoGrid — agregar / duplicar clase (UX-66)", () => {
+  const base = { sheet: "T1-1", programa: "INFORMATICA", trayecto: "1", lapso: "3-2026", sede_id: "cabimas" };
+
+  // ModalEditarClase (montado dentro de TurnoGrid cuando hay permiso) consume
+  // useSedeContext() y consulta los catálogos al abrirse — mismo wrapper y
+  // mock que ModalEditarClase.test.jsx.
+  function renderGrid({ filtered, onCreateClase = vi.fn(), expandedCell = null }) {
+    const catalogo = () => {
+      const b = {};
+      b.select = vi.fn(() => b);
+      b.eq = vi.fn(() => b);
+      b.order = vi.fn(() => Promise.resolve({ data: [], error: null }));
+      return b;
+    };
+    supabase.from.mockImplementation(() => catalogo());
+    return render(
+      <SedeProvider value={{ sedeActiva: "cabimas", sedes: [], setSedeActiva: vi.fn() }}>
+      <TurnoGrid
+        bloques={BLOQUES_DIURNO}
+        turnoLabel="DIURNO"
+        filtered={filtered}
+        days={DAYS}
+        expandedCell={expandedCell}
+        setExpandedCell={noop}
+        getDocName={getDocName}
+        getMateriaName={getMateriaName}
+        puedeEditar={true}
+        puedeBorrar={false}
+        puedeCrearDocentes={false}
+        puedeCrearMaterias={false}
+        onSaveClase={vi.fn()}
+        onDeleteClase={vi.fn()}
+        onCreateClase={onCreateClase}
+        openConfirm={vi.fn()}
+        closeConfirm={vi.fn()}
+      />
+      </SedeProvider>
+    );
+  }
+
+  it("ofrece '+' en celdas vacías cuando todas las clases son de una sola sección", () => {
+    renderGrid({ filtered: [entry({ ...base, id: 1, hora: "7:30AM-8:15AM", materia: "Cálculo I", docente: "Pérez" })] });
+    expect(screen.getAllByRole("button", { name: /Agregar clase el/ }).length).toBeGreaterThan(0);
+  });
+
+  it("NO ofrece '+' si la grilla mezcla secciones (no se sabe a cuál pertenece la celda vacía)", () => {
+    renderGrid({
+      filtered: [
+        entry({ ...base, id: 1, hora: "7:30AM-8:15AM", materia: "Cálculo I", docente: "Pérez" }),
+        entry({ ...base, sheet: "T1-2", id: 2, hora: "7:30AM-8:15AM", materia: "Física I", docente: "Gómez" }),
+      ],
+    });
+    expect(screen.queryAllByRole("button", { name: /Agregar clase el/ })).toHaveLength(0);
+  });
+
+  it("NO ofrece '+' ni 'Duplicar' sin onCreateClase (sin permiso o modo consulta)", () => {
+    renderGrid({
+      filtered: [entry({ ...base, id: 1, hora: "7:30AM-8:15AM", materia: "Cálculo I", docente: "Pérez" })],
+      onCreateClase: null,
+      expandedCell: "DIURNO__0__LUNES",
+    });
+    expect(screen.queryAllByRole("button", { name: /Agregar clase el/ })).toHaveLength(0);
+    expect(screen.queryByText("Duplicar")).toBeNull();
+  });
+
+  it("muestra 'Duplicar' en el detalle expandido de una clase", () => {
+    renderGrid({
+      filtered: [entry({ ...base, id: 1, hora: "7:30AM-8:15AM", materia: "Cálculo I", docente: "Pérez" })],
+      expandedCell: "DIURNO__0__LUNES",
+    });
+    expect(screen.getByText("Duplicar")).toBeTruthy();
+  });
+
+  it("clic en '+' abre el modal en modo crear", () => {
+    renderGrid({ filtered: [entry({ ...base, id: 1, hora: "7:30AM-8:15AM", materia: "Cálculo I", docente: "Pérez" })] });
+    fireEvent.click(screen.getAllByRole("button", { name: /Agregar clase el/ })[0]);
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Agregar clase" })).toBeTruthy();
   });
 });

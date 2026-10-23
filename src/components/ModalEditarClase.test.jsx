@@ -171,3 +171,57 @@ describe("ModalEditarClase — sync turno-hora al guardar", () => {
     expect(payload.turno).toBe("DIURNO");
   });
 });
+
+// UX-66: modo "crear" (Agregar clase / Duplicar) — mismo formulario, INSERT
+// en vez de UPDATE, con el contexto copiado de la fila de referencia.
+describe("ModalEditarClase — modo crear (UX-66)", () => {
+  const referencia = {
+    id: 7,
+    sheet: "T1-1", programa: "INFORMATICA", trayecto: "1", seccion: "1", sede: "Cabimas", lapso: "3-2026", sede_id: "cabimas",
+    dia: "LUNES", hora: "7:30AM-8:15AM", turno: "DIURNO", aula: "A1",
+    docente_id: 1, materia_id: 10,
+    clase: "Quimica Aplicada\nProf. Lisbeth Brito",
+    updated_at: "2026-08-01T00:00:00Z",
+  };
+
+  it("duplicar: llama onCreate (no onSave) con el contexto de la fila de referencia y sin id", async () => {
+    const onCreate = vi.fn().mockResolvedValue({ success: true });
+    const { onSave, onClose, getConfirm } = renderModal(referencia, { modo: "crear", onCreate });
+
+    await waitFor(() => expect(screen.getByText("Agregar", { selector: "button" })).toBeTruthy());
+    fireEvent.click(screen.getByText("Agregar", { selector: "button" }));
+
+    expect(getConfirm().title).toBe("Agregar clase");
+    await getConfirm().onConfirm();
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onCreate).toHaveBeenCalledTimes(1);
+    const payload = onCreate.mock.calls[0][0];
+    expect(payload).toMatchObject({
+      sheet: "T1-1", programa: "INFORMATICA", trayecto: "1", seccion: "1", sede: "Cabimas", lapso: "3-2026", sede_id: "cabimas",
+      dia: "LUNES", hora: "7:30AM-8:15AM", turno: "DIURNO", aula: "A1", docente_id: 1, materia_id: 10,
+      clase: "Quimica Aplicada\nProf. Lisbeth Brito",
+    });
+    expect(payload).not.toHaveProperty("id");
+    expect(payload).not.toHaveProperty("updated_at");
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("no ofrece 'Eliminar' en modo crear aunque se tenga permiso de borrar", async () => {
+    renderModal(referencia, { modo: "crear", onCreate: vi.fn(), puedeBorrar: true });
+    await waitFor(() => expect(screen.getByText("Agregar", { selector: "button" })).toBeTruthy());
+    expect(screen.queryByText("Eliminar")).toBeNull();
+  });
+
+  it("si onCreate falla, el modal NO se cierra (el usuario conserva lo escrito)", async () => {
+    const onCreate = vi.fn().mockResolvedValue({ success: false });
+    const { onClose, getConfirm } = renderModal(referencia, { modo: "crear", onCreate });
+
+    await waitFor(() => expect(screen.getByText("Agregar", { selector: "button" })).toBeTruthy());
+    fireEvent.click(screen.getByText("Agregar", { selector: "button" }));
+    await getConfirm().onConfirm();
+
+    expect(onCreate).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});

@@ -84,8 +84,10 @@ export default function useAppData(lapso, logAudit = null, userId = null, sedeAc
   // UX-14: edición/borrado in-line de bloques de horario desde TurnoGrid.
   // SEDE-3: no necesita sedeActiva — opera por UPDATE/DELETE sobre un `id`
   // ya existente, y RLS (0063) ya excluye silenciosamente filas de otra
-  // sede vía USING(usuario_puede_ver_sede(sede_id)); no hay INSERT acá.
-  const { saveClase, deleteClase } = createHorarioEditingActions({
+  // sede vía USING(usuario_puede_ver_sede(sede_id)). createClase (alta de
+  // clase / duplicar) sí inserta, pero copia sede_id de la fila de referencia
+  // y RLS (0099) valida permiso + sede + programa + lapso no cerrado.
+  const { saveClase, deleteClase, createClase } = createHorarioEditingActions({
     logAudit, showToast, fetchHorarios, selectedPrograma,
   });
 
@@ -124,7 +126,7 @@ export default function useAppData(lapso, logAudit = null, userId = null, sedeAc
     // Fix OFF-12: cola de cargas de Excel pendientes de reintentar
     cargasExcelPendientes, reintentarCargaExcel, descartarCargaExcelPendiente,
     saveDocenteName, saveDocenteCedula, saveMateriaName, getDocName, getDocCedula, getDocCedulaFuente, getMateriaName,
-    saveClase, deleteClase,
+    saveClase, deleteClase, createClase,
     logAudit,
   };
 }

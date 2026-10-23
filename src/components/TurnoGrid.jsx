@@ -10,11 +10,19 @@ import './TurnoGrid.css';
 // closeConfirm son opcionales — si no llegan (vista de solo lectura o sin
 // permiso), la grilla se comporta exactamente igual que antes: solo
 // expandir/colapsar el detalle de la celda, sin botones de edición.
+//
+// UX-66: `onCreateClase` (también opcional) habilita dos entradas al mismo
+// ModalEditarClase en modo "crear": "Duplicar" en el detalle de cada clase,
+// y un "+" en las celdas vacías cuando todas las clases mostradas son de
+// una sola sección (si hay varias secciones mezcladas no se sabe a cuál
+// pertenece la celda vacía, así que el "+" no se ofrece).
 export default function TurnoGrid({
   bloques, turnoLabel, filtered, days, expandedCell, setExpandedCell, getDocName, getMateriaName,
-  puedeEditar, puedeBorrar, puedeCrearDocentes, puedeCrearMaterias, onSaveClase, onDeleteClase, openConfirm, closeConfirm,
+  puedeEditar, puedeBorrar, puedeCrearDocentes, puedeCrearMaterias, onSaveClase, onDeleteClase, onCreateClase, openConfirm, closeConfirm,
 }) {
-  const [editingEntry, setEditingEntry] = useState(null);
+  // { modo: "editar" | "crear", entry } — en "crear", `entry` es la fila de
+  // referencia (clase a duplicar, o plantilla de celda vacía), no se modifica.
+  const [modalState, setModalState] = useState(null);
 
   // Caso particular PNF Agroalimentación (turno "MIXTO", ver constants/
   // turno.js): en vez de una tabla de bloques fija por turno, se parte de
@@ -77,9 +85,33 @@ export default function TurnoGrid({
     return map;
   }, [bloquesDinamicos, days, filtered, turnoLabel]);
 
+  // UX-66: contexto (sheet/programa/trayecto/sede/lapso) para "+" en celdas
+  // vacías. Solo si TODAS las clases de la grilla comparten sección.
+  const contextoUnico = useMemo(() => {
+    if (!onCreateClase || !filtered?.length) return null;
+    const first = filtered[0];
+    const mismo = filtered.every(d =>
+      d.sheet === first.sheet && d.programa === first.programa && d.trayecto === first.trayecto &&
+      (d.sede_id || null) === (first.sede_id || null) && d.lapso === first.lapso
+    );
+    return mismo ? first : null;
+  }, [filtered, onCreateClase]);
+
   if (!days || !bloquesDinamicos || !filtered) {
     return <div className="tg-loading">Cargando grilla...</div>;
   }
+
+  const abrirCrearEnCelda = (day, bloque) => {
+    setModalState({
+      modo: "crear",
+      entry: {
+        ...contextoUnico,
+        id: undefined, updated_at: undefined, docentes: undefined, materias: undefined,
+        dia: day, turno: turnoLabel, hora: `${bloque.inicio}-${bloque.fin}`,
+        aula: null, docente_id: null, materia_id: null, clase: "",
+      },
+    });
+  };
 
   const turnoConfig = TURNOS_CONFIG.find(t => t.id === turnoLabel);
   const esVespertino = turnoLabel === "VESPERTINO" || turnoLabel === "NOCTURNO";
@@ -126,7 +158,22 @@ export default function TurnoGrid({
                     const day = days[ci];
                     if (cell.skip) return null;
                     const cellKey = `${turnoLabel}__${bi}__${day}`, isExp = expandedCell === cellKey;
-                    if (cell.empty) return <td key={day} className="tg-cell-empty" />;
+                    if (cell.empty) {
+                      return (
+                        <td key={day} className="tg-cell-empty">
+                          {contextoUnico && (
+                            <button
+                              type="button"
+                              className="tg-cell-add-btn"
+                              aria-label={`Agregar clase el ${day.charAt(0) + day.slice(1).toLowerCase()} a las ${bloque.inicio.replace(/(\d)(AM|PM)/gi, '$1 $2')}`}
+                              onClick={() => abrirCrearEnCelda(day, bloque)}
+                            >
+                              <i className="ti ti-plus" aria-hidden="true" />
+                            </button>
+                          )}
+                        </td>
+                      );
+                    }
                     const { entries, span, conflicto } = cell.data;
                     return (
                       <td
@@ -167,9 +214,18 @@ export default function TurnoGrid({
                                     <button
                                       type="button"
                                       className="tg-clase-edit-btn"
-                                      onClick={ev => { ev.stopPropagation(); setEditingEntry(e); }}
+                                      onClick={ev => { ev.stopPropagation(); setModalState({ modo: "editar", entry: e }); }}
                                     >
                                       <i className="ti ti-edit" aria-hidden="true" /> Editar
+                                    </button>
+                                  )}
+                                  {onCreateClase && (
+                                    <button
+                                      type="button"
+                                      className="tg-clase-edit-btn"
+                                      onClick={ev => { ev.stopPropagation(); setModalState({ modo: "crear", entry: e }); }}
+                                    >
+                                      <i className="ti ti-copy" aria-hidden="true" /> Duplicar
                                     </button>
                                   )}
                                 </div>
@@ -187,17 +243,19 @@ export default function TurnoGrid({
           </tbody>
         </table>
       </div>
-      {(puedeEditar || puedeBorrar) && (
+      {(puedeEditar || puedeBorrar || onCreateClase) && (
         <ModalEditarClase
-          open={!!editingEntry}
-          entry={editingEntry}
+          open={!!modalState}
+          entry={modalState?.entry}
+          modo={modalState?.modo || "editar"}
+          onCreate={onCreateClase}
           puedeEditar={puedeEditar}
           puedeBorrar={puedeBorrar}
           puedeCrearDocentes={puedeCrearDocentes}
           puedeCrearMaterias={puedeCrearMaterias}
           onSave={onSaveClase}
           onDelete={onDeleteClase}
-          onClose={() => setEditingEntry(null)}
+          onClose={() => setModalState(null)}
           openConfirm={openConfirm}
           closeConfirm={closeConfirm}
         />

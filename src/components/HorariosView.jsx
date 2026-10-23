@@ -24,7 +24,7 @@ export default function HorariosView({
   // `DocentesView`.
   modoConsulta,
   lapso,
-  puedeEditar, puedeBorrar, puedeCrearDocentes, puedeCrearMaterias, onSaveClase, onDeleteClase, openConfirm, closeConfirm,
+  puedeEditar, puedeBorrar, puedeCrearDocentes, puedeCrearMaterias, onSaveClase, onDeleteClase, onCreateClase, openConfirm, closeConfirm,
 }) {
   const [tab, setTab] = useState('horarios');
 
@@ -82,6 +82,10 @@ export default function HorariosView({
                 {seccionesByTrayecto.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <span className="hv-count">{filtered.length} clases</span>
+              {/* UX-66: sin sección elegida no se sabe a cuál pertenece una celda vacía */}
+              {onCreateClase && selectedSeccion === "all" && (
+                <span className="hv-count" role="note">Elige una sección para agregar clases en las celdas vacías.</span>
+              )}
             </>
           )}
         </div>
@@ -100,9 +104,9 @@ export default function HorariosView({
       <div className={`hv-content${tab === 'conflictos' ? ' hv-content--conflictos' : ''}`}>
         {tab === 'horarios' && (
           <>
-            {fd.length > 0 && <TurnoGrid bloques={BLOQUES_DIURNO} turnoLabel="DIURNO" filtered={fd} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} puedeCrearDocentes={puedeCrearDocentes} puedeCrearMaterias={puedeCrearMaterias} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
-            {fv.length > 0 && <TurnoGrid bloques={BLOQUES_VESPERTINO} turnoLabel="VESPERTINO" filtered={fv} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} puedeCrearDocentes={puedeCrearDocentes} puedeCrearMaterias={puedeCrearMaterias} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
-            {fm.length > 0 && <TurnoGrid bloques={BLOQUES_MIXTO} turnoLabel="MIXTO" filtered={fm} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} puedeCrearDocentes={puedeCrearDocentes} puedeCrearMaterias={puedeCrearMaterias} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
+            {fd.length > 0 && <TurnoGrid bloques={BLOQUES_DIURNO} turnoLabel="DIURNO" filtered={fd} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} puedeCrearDocentes={puedeCrearDocentes} puedeCrearMaterias={puedeCrearMaterias} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} onCreateClase={onCreateClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
+            {fv.length > 0 && <TurnoGrid bloques={BLOQUES_VESPERTINO} turnoLabel="VESPERTINO" filtered={fv} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} puedeCrearDocentes={puedeCrearDocentes} puedeCrearMaterias={puedeCrearMaterias} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} onCreateClase={onCreateClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
+            {fm.length > 0 && <TurnoGrid bloques={BLOQUES_MIXTO} turnoLabel="MIXTO" filtered={fm} days={days} expandedCell={expandedCell} setExpandedCell={setExpandedCell} getDocName={getDocName} getMateriaName={getMateriaName} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} puedeCrearDocentes={puedeCrearDocentes} puedeCrearMaterias={puedeCrearMaterias} onSaveClase={onSaveClase} onDeleteClase={onDeleteClase} onCreateClase={onCreateClase} openConfirm={openConfirm} closeConfirm={closeConfirm} />}
             {(filtered.length === 0 || (fd.length === 0 && fv.length === 0 && fm.length === 0)) && <div className="s-card s-empty-state">No hay clases para los filtros seleccionados.</div>}
           </>
         )}

@@ -105,5 +105,49 @@ export function createHorarioEditingActions({ logAudit, showToast, fetchHorarios
     }
   };
 
-  return { saveClase, deleteClase };
+  // Alta de un bloque de horario nuevo — "Agregar clase" y "Duplicar" desde
+  // TurnoGrid/ModalEditarClase (modo "crear").
+  //
+  // payload esperado: todas las columnas NOT NULL de `horarios` salvo
+  // id/lapso-default: { sheet, programa, trayecto, seccion, sede, lapso,
+  // sede_id?, turno, dia, hora, aula, docente_id, materia_id, clase }.
+  // El contexto (sheet/programa/trayecto/seccion/sede/lapso/sede_id) lo
+  // arma ModalEditarClase copiándolo de la fila de referencia — una celda
+  // vacía no lo tiene por sí sola.
+  //
+  // RLS ya cubre este INSERT (política "Inserción con permiso", 0099):
+  // puedeEditarHorarios + sede + programa + lapso no cerrado. No hace falta
+  // migración nueva; el gating de UI (HorariosLayout.jsx) es solo la
+  // segunda barrera de UX.
+  //
+  // .select("id") distingue "se insertó" de "RLS lo descartó en silencio".
+  const createClase = async (payload) => {
+    try {
+      const { data, error } = await supabase.from("horarios").insert(payload).select("id");
+
+      if (error) {
+        showToast("Error al agregar la clase: " + mensajeAmigable(error), "error");
+        return { success: false };
+      }
+      if (!data || data.length === 0) {
+        showToast("No se pudo agregar la clase. Verifica tus permisos o que el trimestre no esté cerrado.", "error");
+        return { success: false };
+      }
+
+      showToast("Clase agregada.", "success");
+      logAudit?.({
+        accion: "CREAR_HORARIO",
+        entidad: "horarios",
+        resumen: `Horario #${data[0].id} creado (día ${payload.dia}, ${payload.hora}${payload.aula ? `, aula ${payload.aula}` : ""})`,
+      });
+      await fetchHorarios(selectedPrograma);
+      return { success: true, id: data[0].id };
+    } catch (err) {
+      logger.error("createClase:", err);
+      showToast("Error al agregar la clase: " + mensajeAmigable(err), "error");
+      return { success: false };
+    }
+  };
+
+  return { saveClase, deleteClase, createClase };
 }
